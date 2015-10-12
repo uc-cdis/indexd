@@ -6,15 +6,30 @@ from indexd.alias.sqlite import SQLiteAliasDriver
 INDEX_HOST = 'index.sq3'
 ALIAS_HOST = 'alias.sq3'
 
-INDEX_TABLES = [
-    'records',
-    'records_hash',
-    'records_urls',
-]
+INDEX_TABLES = {
+    'records': [
+        (0, u'id', u'TEXT', 0, None, 1),
+        (1, u'rev', u'TEXT', 0, None, 0),
+        (2, u'type', u'TEXT', 0, None, 0),
+        (3, u'size', u'INTEGER', 0, None, 0),
+    ],
+    'records_hash': [
+        (0, u'id', u'TEXT', 0, None, 1),
+        (1, u'type', u'TEXT', 0, None, 2),
+        (2, u'hash', u'TEXT', 0, None, 0),
+    ],
+    'records_urls': [
+        (0, u'id', u'TEXT', 0, None, 1),
+        (1, u'url', u'TEXT', 0, None, 2),
+    ],
+}
 
-ALIAS_TABLES = [
-    'aliases',
-]
+ALIAS_TABLES = {
+    'aliases': [
+        (0, u'alias', u'TEXT', 0, None, 1),
+        (1, u'data', u'TEXT', 0, None, 0),
+    ],
+}
 
 INDEX_CONFIG = {
     'SQLITE3': {
@@ -43,6 +58,14 @@ def test_sqlite3_index_setup_tables():
         
         for table in INDEX_TABLES:
             assert table in tables, '{table} not created'.format(table=table)
+        
+        for table, schema in INDEX_TABLES.items():
+            # NOTE PRAGMA's don't work with parameters...
+            c = conn.execute('''
+                PRAGMA table_info ('{table}')
+            '''.format(table=table))
+            
+            assert schema == [i for i in c]
 
 def test_sqlite3_alias_setup_tables():
     '''
@@ -59,3 +82,11 @@ def test_sqlite3_alias_setup_tables():
         
         for table in ALIAS_TABLES:
             assert table in tables, '{table} not created'.format(table=table)
+        
+        for table, schema in ALIAS_TABLES.items():
+            # NOTE PRAGMA's don't work with parameters...
+            c = conn.execute('''
+                PRAGMA table_info ('{table}')
+            '''.format(table=table))
+            
+            assert schema == [i for i in c]
