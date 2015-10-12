@@ -3,6 +3,9 @@ import sqlite3
 from indexd.index.sqlite import SQLiteIndexDriver
 from indexd.alias.sqlite import SQLiteAliasDriver
 
+
+OLD_SQLITE = sqlite3.sqlite_version_info < (3, 7, 16)
+
 INDEX_HOST = 'index.sq3'
 ALIAS_HOST = 'alias.sq3'
 
@@ -15,12 +18,12 @@ INDEX_TABLES = {
     ],
     'records_hash': [
         (0, u'id', u'TEXT', 0, None, 1),
-        (1, u'type', u'TEXT', 0, None, 2),
+        (1, u'type', u'TEXT', 0, None, 1 if OLD_SQLITE else 2),
         (2, u'hash', u'TEXT', 0, None, 0),
     ],
     'records_urls': [
         (0, u'id', u'TEXT', 0, None, 1),
-        (1, u'url', u'TEXT', 0, None, 2),
+        (1, u'url', u'TEXT', 0, None, 1 if OLD_SQLITE else 2),
     ],
 }
 
