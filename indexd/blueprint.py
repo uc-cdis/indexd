@@ -173,5 +173,10 @@ def get_config(setup_state):
     config = setup_state.app.config
     index_config = config.get('INDEX', {})
     alias_config = config.get('ALIAS', {})
-    blueprint.index_driver = index_config['driver'](**index_config)
-    blueprint.alias_driver = alias_config['driver'](**alias_config)
+
+    try: blueprint.index_driver = index_config['driver'](**index_config)
+    except Exception as err:
+        raise errors.ConfigurationError(err)
+    try: blueprint.alias_driver = alias_config['driver'](**alias_config)
+    except Exception as err:
+        raise errors.ConfigurationError(err)
