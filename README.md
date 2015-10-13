@@ -1,6 +1,6 @@
 Indexd
 ===
-![Version](https://img.shields.io/badge/Version-0.0.1-orange.svg?style=flat) [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE) [![Travis](https://travis-ci.org/LabAdvComp/indexd.svg?branch=master)](https://travis-ci.org/LabAdvComp/indexd)
+![version](https://img.shields.io/badge/Version-0.0.1-orange.svg?style=flat) [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE) [![Travis](https://travis-ci.org/LabAdvComp/indexd.svg?branch=master)](https://travis-ci.org/LabAdvComp/indexd)
 
 Indexd is a prototype data indexing and tracking service. It is intended to be
 distributed, hash-based indexing service, designed to be accessed via a
@@ -90,3 +90,32 @@ An example of one such record:
     "type": "object"
 }
 ```
+
+## Making Queries
+
+All queries to the index are made through HTTP using JSON data payloads.
+This gives a simple means of interaction that is easily accessible to any
+number of languages.
+
+The following examples are all given using the curl command line utility, with
+a copy of the index running on localhost on port 8080.
+
+### Create a record
+
+***TODO***
+
+### Name a record
+
+***TODO***
+
+### Retrieve a record
+
+***TODO***
+
+### Update a record
+
+***TODO***
+
+### Delete a record
+
+***TODO***
