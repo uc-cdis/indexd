@@ -51,7 +51,7 @@ def test_flask_blueprint_missing_index_config():
 
     app.config['ALIAS'] = ALIAS_CONFIG
 
-    with pytest.raises(IndexConfigurationError):
+    with pytest.raises(Exception):
         app.register_blueprint(indexd_index_blueprint)
 
     app.register_blueprint(indexd_alias_blueprint)
@@ -66,7 +66,7 @@ def test_flask_blueprint_invalid_index_config():
     app.config['INDEX'] = None
     app.config['ALIAS'] = ALIAS_CONFIG
 
-    with pytest.raises(IndexConfigurationError):
+    with pytest.raises(Exception):
         app.register_blueprint(indexd_index_blueprint)
 
     app.register_blueprint(indexd_alias_blueprint)
