@@ -77,9 +77,10 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
         Provide a transactional scope around a series of operations.
         '''
         session = self.Session()
-        try:
-            yield session
-            session.commit()
+        
+        yield session
+        
+        try: session.commit()
         except:
             session.rollback()
             raise
