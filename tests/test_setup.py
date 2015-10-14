@@ -1,5 +1,7 @@
 import sqlite3
 
+import util
+
 from indexd.index.sqlite import SQLiteIndexDriver
 from indexd.alias.sqlite import SQLiteAliasDriver
 
@@ -46,6 +48,7 @@ ALIAS_CONFIG = {
     }
 }
 
+@util.removes(INDEX_CONFIG['SQLITE3']['host'])
 def test_sqlite3_index_setup_tables():
     '''
     Tests that the SQLite3 index database gets set up correctly.
@@ -70,6 +73,7 @@ def test_sqlite3_index_setup_tables():
             
             assert schema == [i for i in c]
 
+@util.removes(ALIAS_CONFIG['SQLITE3']['host'])
 def test_sqlite3_alias_setup_tables():
     '''
     Tests that the SQLite3 alias database gets set up correctly.
