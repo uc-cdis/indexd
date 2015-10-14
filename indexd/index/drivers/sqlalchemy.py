@@ -8,7 +8,9 @@ import sqlalchemy
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
+from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -28,29 +30,32 @@ class IndexRecord(Base):
     '''
     Base index record representation.
     '''
-    __tablename__ = 'index_records'
+    __tablename__ = 'index_record'
 
     did = Column(String, primary_key=True)
     rev = Column(String)
     form = Column(String)
     size = Column(Integer)
 
+    urls = relationship('IndexRecordUrl', backref='index_record')
+    hashes = relationship('IndexRecordHash', backref='index_record')
+
 class IndexRecordUrl(Base):
     '''
     Base index record url representation.
     '''
-    __tablename__ = 'index_record_urls'
+    __tablename__ = 'index_record_url'
 
-    did = Column(String, primary_key=True)
+    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
     url = Column(String, primary_key=True)
 
 class IndexRecordHash(Base):
     '''
     Base index record hash representation.
     '''
-    __tablename__ = 'index_record_hashes'
+    __tablename__ = 'index_record_hash'
 
-    did = Column(String, primary_key=True)
+    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
     hash_type = Column(String, primary_key=True)
     hash_value = Column(String)
 
@@ -149,8 +154,9 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
             result.rev = data.get('rev')
             result.form = data.get('form')
             result.size = data.get('size')
-            result.urls = data.get('urls')
-            result.hashes = data.get('hashes')
+            
+            result.urls = data.get('urls', [])
+            result.hashes = data.get('hashes', [])
             
             session.add(result)
 
