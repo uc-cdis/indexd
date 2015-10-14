@@ -5,7 +5,7 @@ import flask
 from indexd.index.blueprint import blueprint as indexd_index_blueprint
 from indexd.alias.blueprint import blueprint as indexd_alias_blueprint
 
-from indexd.index.sqlite import SQLiteIndexDriver
+from indexd.index.drivers.sqlalchemy import SQLAlchemyIndexDriver
 from indexd.alias.sqlite import SQLiteAliasDriver
 
 
@@ -16,10 +16,7 @@ if __name__ == '__main__':
     app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
     app.config['INDEX'] = {
-        'driver': SQLiteIndexDriver,
-        'SQLITE3': {
-            'host': 'index.sq3',
-        }
+        'driver':  SQLAlchemyIndexDriver('sqlite:///index.sq3'),
     }
 
     app.config['ALIAS'] = {
