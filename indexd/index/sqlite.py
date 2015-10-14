@@ -71,7 +71,7 @@ class SQLiteIndexDriver(driver.IndexDriverABC):
             check_same_thread=False,
         )
 
-    def ids(self, limit=100, start=''):
+    def ids(self, limit=100, start='', size=None, hashes={}):
         '''
         Returns list of records stored by the backend.
         '''
