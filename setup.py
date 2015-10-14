@@ -6,6 +6,7 @@ setup(
     packages=[
         'indexd',
         'indexd.index',
+        'indexd.index.drivers',
         'indexd.alias',
     ],
     package_data={
