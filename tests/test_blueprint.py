@@ -4,6 +4,9 @@ import pytest
 import util
 import indexd
 
+from indexd.index.blueprint import blueprint as indexd_index_blueprint
+from indexd.alias.blueprint import blueprint as indexd_alias_blueprint
+
 from indexd.index.errors import IndexConfigurationError
 from indexd.alias.errors import AliasConfigurationError
 
@@ -36,8 +39,8 @@ def test_flask_blueprint():
     app.config['INDEX'] = INDEX_CONFIG
     app.config['ALIAS'] = ALIAS_CONFIG
 
-    app.register_blueprint(indexd.index_blueprint)
-    app.register_blueprint(indexd.alias_blueprint)
+    app.register_blueprint(indexd_index_blueprint)
+    app.register_blueprint(indexd_alias_blueprint)
 
 @util.removes(ALIAS_CONFIG['SQLITE3']['host'])
 def test_flask_blueprint_missing_index_config():
@@ -49,9 +52,9 @@ def test_flask_blueprint_missing_index_config():
     app.config['ALIAS'] = ALIAS_CONFIG
 
     with pytest.raises(IndexConfigurationError):
-        app.register_blueprint(indexd.index_blueprint)
+        app.register_blueprint(indexd_index_blueprint)
 
-    app.register_blueprint(indexd.alias_blueprint)
+    app.register_blueprint(indexd_alias_blueprint)
 
 @util.removes(ALIAS_CONFIG['SQLITE3']['host'])
 def test_flask_blueprint_invalid_index_config():
@@ -64,9 +67,9 @@ def test_flask_blueprint_invalid_index_config():
     app.config['ALIAS'] = ALIAS_CONFIG
 
     with pytest.raises(IndexConfigurationError):
-        app.register_blueprint(indexd.index_blueprint)
+        app.register_blueprint(indexd_index_blueprint)
 
-    app.register_blueprint(indexd.alias_blueprint)
+    app.register_blueprint(indexd_alias_blueprint)
 
 @util.removes(INDEX_CONFIG['SQLITE3']['host'])
 def test_flask_blueprint_missing_alias_config():
@@ -78,9 +81,9 @@ def test_flask_blueprint_missing_alias_config():
     app.config['INDEX'] = INDEX_CONFIG
 
     with pytest.raises(AliasConfigurationError):
-        app.register_blueprint(indexd.alias_blueprint)
+        app.register_blueprint(indexd_alias_blueprint)
 
-    app.register_blueprint(indexd.index_blueprint)
+    app.register_blueprint(indexd_index_blueprint)
 
 @util.removes(INDEX_CONFIG['SQLITE3']['host'])
 def test_flask_blueprint_invalid_alias_config():
@@ -93,6 +96,6 @@ def test_flask_blueprint_invalid_alias_config():
     app.config['ALIAS'] = None
 
     with pytest.raises(AliasConfigurationError):
-        app.register_blueprint(indexd.alias_blueprint)
+        app.register_blueprint(indexd_alias_blueprint)
 
-    app.register_blueprint(indexd.index_blueprint)
+    app.register_blueprint(indexd_index_blueprint)
