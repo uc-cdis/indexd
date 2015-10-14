@@ -1,8 +1,12 @@
 import flask
 import pytest
 
+import util
 import indexd
-from indexd import errors
+
+from indexd.index.errors import IndexConfigurationError
+from indexd.alias.errors import AliasConfigurationError
+
 from indexd.index.sqlite import SQLiteIndexDriver
 from indexd.alias.sqlite import SQLiteAliasDriver
 
@@ -21,7 +25,8 @@ ALIAS_CONFIG = {
     }
 }
 
-
+@util.removes(INDEX_CONFIG['SQLITE3']['host'])
+@util.removes(ALIAS_CONFIG['SQLITE3']['host'])
 def test_flask_blueprint():
     '''
     Tests standing up the server using flask.
@@ -31,8 +36,10 @@ def test_flask_blueprint():
     app.config['INDEX'] = INDEX_CONFIG
     app.config['ALIAS'] = ALIAS_CONFIG
 
-    app.register_blueprint(indexd.blueprint)
+    app.register_blueprint(indexd.index_blueprint)
+    app.register_blueprint(indexd.alias_blueprint)
 
+@util.removes(ALIAS_CONFIG['SQLITE3']['host'])
 def test_flask_blueprint_missing_index_config():
     '''
     Tests standing up the server using flask without an index config.
@@ -41,9 +48,12 @@ def test_flask_blueprint_missing_index_config():
 
     app.config['ALIAS'] = ALIAS_CONFIG
 
-    with pytest.raises(errors.ConfigurationError):
-        app.register_blueprint(indexd.blueprint)
+    with pytest.raises(IndexConfigurationError):
+        app.register_blueprint(indexd.index_blueprint)
 
+    app.register_blueprint(indexd.alias_blueprint)
+
+@util.removes(ALIAS_CONFIG['SQLITE3']['host'])
 def test_flask_blueprint_invalid_index_config():
     '''
     Tests standing up the server using flask without an index config.
@@ -53,9 +63,12 @@ def test_flask_blueprint_invalid_index_config():
     app.config['INDEX'] = None
     app.config['ALIAS'] = ALIAS_CONFIG
 
-    with pytest.raises(errors.ConfigurationError):
-        app.register_blueprint(indexd.blueprint)
+    with pytest.raises(IndexConfigurationError):
+        app.register_blueprint(indexd.index_blueprint)
 
+    app.register_blueprint(indexd.alias_blueprint)
+
+@util.removes(INDEX_CONFIG['SQLITE3']['host'])
 def test_flask_blueprint_missing_alias_config():
     '''
     Tests standing up the server using flask without an alias config.
@@ -64,9 +77,12 @@ def test_flask_blueprint_missing_alias_config():
 
     app.config['INDEX'] = INDEX_CONFIG
 
-    with pytest.raises(errors.ConfigurationError):
-        app.register_blueprint(indexd.blueprint)
+    with pytest.raises(AliasConfigurationError):
+        app.register_blueprint(indexd.alias_blueprint)
 
+    app.register_blueprint(indexd.index_blueprint)
+
+@util.removes(INDEX_CONFIG['SQLITE3']['host'])
 def test_flask_blueprint_invalid_alias_config():
     '''
     Tests standing up the server using flask without an alias config.
@@ -76,5 +92,7 @@ def test_flask_blueprint_invalid_alias_config():
     app.config['INDEX'] = INDEX_CONFIG
     app.config['ALIAS'] = None
 
-    with pytest.raises(errors.ConfigurationError):
-        app.register_blueprint(indexd.blueprint)
+    with pytest.raises(AliasConfigurationError):
+        app.register_blueprint(indexd.alias_blueprint)
+
+    app.register_blueprint(indexd.index_blueprint)
