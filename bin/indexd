@@ -3,6 +3,7 @@
 import flask
 
 import indexd
+
 from indexd.index.sqlite import SQLiteIndexDriver
 from indexd.alias.sqlite import SQLiteAliasDriver
 
@@ -27,7 +28,8 @@ if __name__ == '__main__':
         }
     }
 
-    app.register_blueprint(indexd.blueprint)
+    app.register_blueprint(indexd.index_blueprint)
+    app.register_blueprint(indexd.alias_blueprint)
 
     app.run(
         host='0.0.0.0',
