@@ -3,6 +3,7 @@ import flask
 import jsonschema
 
 from indexd.errors import UserError
+from indexd.errors import PermissionError
 
 from .schema import POST_RECORD_SCHEMA
 
