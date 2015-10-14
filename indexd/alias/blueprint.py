@@ -13,10 +13,6 @@ blueprint = flask.Blueprint('alias', __name__)
 blueprint.config = dict()
 blueprint.alias_driver = None
 
-
-URI_REGEX = r'^index:(?P<alias>.+)$'
-uri_regex = re.compile(URI_REGEX)
-
 @blueprint.route('/alias/<alias>', methods=['GET'])
 def get_alias(alias):
     '''
