@@ -12,3 +12,8 @@ class MultipleRecordsError(BaseIndexError):
     '''
     Multiple recordss error.
     '''
+
+class IndexConfigurationError(Exception):
+    '''
+    Index configuration error.
+    '''
