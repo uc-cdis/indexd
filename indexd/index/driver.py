@@ -45,7 +45,7 @@ class IndexDriverABC(object):
         del self[record]
 
     @abc.abstractmethod
-    def ids(self, limit=100, start=''):
+    def ids(self, limit=100, start='', size=None, hashes={}):
         '''
         Returns a list of records stored by the backend.
         '''

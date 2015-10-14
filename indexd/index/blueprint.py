@@ -21,8 +21,23 @@ def get_index():
     '''
     Returns a list of records.
     '''
-    limit = int(flask.request.args.get('limit', 100))
-    start = str(flask.request.args.get('start', ''))
+    limit = flask.request.args.get('limit')
+    try: limit = 100 if limit is None else int(limit)
+    except ValueError as err:
+        raise UserError('limit must be an integer')
+
+    if limit <= 0 or limit > 1024:
+        raise UserError('limit must be between 1 and 1024')
+
+    size = flask.request.args.get('size')
+    try: size = size if size is None else int(size)
+    except ValueError as err:
+        raise UserError('size must be an integer')
+
+    if size is not None and size < 0:
+        raise UserError('size must be > 0')
+
+    start = flask.request.args.get('start', '')
 
     hashes = flask.request.args.getlist('hash')
     hashes = [tuple(h.split(':', 1)) for h in hashes]
@@ -31,9 +46,10 @@ def get_index():
         raise UserError('limit must be between 0 and 1024')
 
     ids = blueprint.index_driver.ids(
-        limit=limit,
-        start=start,
 #        hashes=hashes,
+#        size=size,
+        start=start,
+        limit=limit,
     )
 
     base = {
@@ -96,6 +112,14 @@ def handle_no_record_error(err):
 @blueprint.errorhandler(MultipleRecordsError)
 def handle_multiple_records_error(err):
     return flask.jsonify(error=str(err)), 409
+
+@blueprint.errorhandler(UserError)
+def handle_user_error(err):
+    return flask.jsonify(error=str(err)), 400
+
+@blueprint.errorhandler(PermissionError)
+def handle_permission_error(err):
+    return flask.jsonify(error=str(err)), 403
 
 @blueprint.record
 def get_config(setup_state):
