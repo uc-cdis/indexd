@@ -124,9 +124,5 @@ def handle_permission_error(err):
 
 @blueprint.record
 def get_config(setup_state):
-    config = setup_state.app.config
-    index_config = config.get('INDEX', {})
-
-    try: blueprint.index_driver = index_config['driver'](**index_config)
-    except Exception as err:
-        raise IndexConfigurationError(err)
+    config = setup_state.app.config['INDEX']
+    blueprint.index_driver = config['driver']
