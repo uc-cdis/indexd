@@ -6,6 +6,7 @@ setup(
     packages=[
         'indexd',
         'indexd.index',
+        'indexd.index.drivers',
         'indexd.alias',
     ],
     package_data={
@@ -15,7 +16,7 @@ setup(
     },
     install_requires=[
         'flask==0.10.1',
-        'requests==2.7.0',
         'jsonschema==2.5.1',
+        'sqlalchemy==1.0.8',
     ],
 )

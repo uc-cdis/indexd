@@ -3,17 +3,17 @@ class BaseIndexError(Exception):
     Base index error.
     '''
 
-class NoRecordError(BaseIndexError):
+class NoRecordFound(BaseIndexError):
     '''
     No record error.
     '''
 
-class MultipleRecordsError(BaseIndexError):
+class MultipleRecordsFound(BaseIndexError):
     '''
     Multiple recordss error.
     '''
 
-class IndexConfigurationError(Exception):
+class RevisionMismatch(BaseIndexError):
     '''
-    Index configuration error.
+    Revision mismatch.
     '''
