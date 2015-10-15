@@ -56,7 +56,7 @@ def get_index():
     if size is not None and size < 0:
         raise UserError('size must be > 0')
 
-    start = flask.request.args.get('start', '')
+    start = flask.request.args.get('start')
 
     urls = flask.request.args.getlist('url')
 
@@ -80,6 +80,8 @@ def get_index():
         'ids': ids,
         'limit': limit,
         'start': start,
+        'size': size,
+        'urls': urls,
         'hashes': hashes,
     }
 
