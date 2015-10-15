@@ -7,9 +7,6 @@ import indexd
 from indexd.index.blueprint import blueprint as indexd_index_blueprint
 from indexd.alias.blueprint import blueprint as indexd_alias_blueprint
 
-from indexd.index.errors import IndexConfigurationError
-from indexd.alias.errors import AliasConfigurationError
-
 from indexd.index.sqlite import SQLiteIndexDriver
 from indexd.alias.sqlite import SQLiteAliasDriver
 
@@ -80,7 +77,7 @@ def test_flask_blueprint_missing_alias_config():
 
     app.config['INDEX'] = INDEX_CONFIG
 
-    with pytest.raises(AliasConfigurationError):
+    with pytest.raises(Exception):
         app.register_blueprint(indexd_alias_blueprint)
 
     app.register_blueprint(indexd_index_blueprint)
@@ -95,7 +92,7 @@ def test_flask_blueprint_invalid_alias_config():
     app.config['INDEX'] = INDEX_CONFIG
     app.config['ALIAS'] = None
 
-    with pytest.raises(AliasConfigurationError):
+    with pytest.raises(Exception):
         app.register_blueprint(indexd_alias_blueprint)
 
     app.register_blueprint(indexd_index_blueprint)
