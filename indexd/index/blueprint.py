@@ -18,6 +18,23 @@ blueprint = flask.Blueprint('index', __name__)
 blueprint.config = dict()
 blueprint.index_driver = None
 
+ACCEPTABLE_HASHES = {
+    'md5': re.compile(r'^[0-9a-f]{32}$').match,
+    'sha1': re.compile('r^[0-9a-f]{40}$').match,
+    'sha256': re.compile(r'^[0-9a-f]{64}$').match,
+    'sha512': re.compile(r'^[0-9a-f]{128}$').match,
+}
+
+def validate_hashes(**hashes):
+    '''
+    Validate hashes against known and valid hashing algorithms.
+    '''
+    if not all(h in ACCEPTABLE_HASHES for h in hashes):
+        raise UserError('invalid hash types specified')
+
+    if not all(ACCEPTABLE_HASHES[h](v) for h, v in hashes.items()):
+        raise UserError('invalid hash values specified')
+
 @blueprint.route('/index/', methods=['GET'])
 def get_index():
     '''
@@ -41,17 +58,22 @@ def get_index():
 
     start = flask.request.args.get('start', '')
 
+    urls = flask.request.args.getlist('url')
+
     hashes = flask.request.args.getlist('hash')
     hashes = [tuple(h.split(':', 1)) for h in hashes]
+
+    validate_hashes(**hashes)
 
     if limit < 0 or limit > 1024:
         raise UserError('limit must be between 0 and 1024')
 
     ids = blueprint.index_driver.ids(
-#        hashes=hashes,
-#        size=size,
         start=start,
         limit=limit,
+        size=size,
+        urls=urls,
+        hashes=hashes,
     )
 
     base = {
@@ -86,6 +108,8 @@ def post_index_record():
     urls = flask.request.json['urls']
     hashes = flask.request.json['hashes']
 
+    validate_hashes(**hashes)
+
     did, rev = blueprint.index_driver.add(form, size,
         urls=urls,
         hashes=hashes,
@@ -114,6 +138,8 @@ def put_index_record(record):
     size = flask.request.json['size']
     urls = flask.request.json['urls']
     hashes = flask.request.json['hashes']
+
+    validate_hashes(**hashes)
 
     did, rev = blueprint.index_driver.update(record, rev,
         size=size,
