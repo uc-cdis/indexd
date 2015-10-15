@@ -123,7 +123,7 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
             
             return [i.did for i in query]
 
-    def add(self, form, size=0, urls=[], hashes={}):
+    def add(self, form, size=None, urls=[], hashes={}):
         '''
         Creates a new record given urls and hashes.
         '''
