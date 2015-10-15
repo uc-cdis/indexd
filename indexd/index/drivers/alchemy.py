@@ -107,7 +107,6 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
         # TODO add dids to filter on
         with self.session as session:
             query = session.query(IndexRecord)
-            query = query.limit(limit)
             
             if start is not None:
                 query = query.filter(IndexRecord.did > start)
@@ -116,12 +115,18 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
                 query = query.filter(IndexRecord.size == size)
             
             if urls is not None:
-                # TODO add filters for urls
-                pass
+                query = query.join(IndexRecord.urls)
+                for u in urls:
+                    query = query.filter(IndexRecordUrl.url == u)
             
             if hashes is not None:
-                # TODO add filters for hashes
-                pass
+                query = query.join(IndexRecord.hashes)
+                for h,v in hashes.items():
+                    # TODO FIXME needs type AND value == h, v
+                    query = query.filter(IndexRecordHash.hash_type == h)
+                    query = query.filter(IndexRecordHash.hash_value == v)
+            
+            query = query.limit(limit)
             
             return [i.did for i in query]
 
