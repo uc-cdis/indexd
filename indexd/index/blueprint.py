@@ -103,13 +103,13 @@ def put_index_record(record):
     '''
     Update an existing record.
     '''
-    rev = flask.request.args.get('rev')
-    if rev is None:
-        raise UserError('no revision specified')
-
     try: jsonschema.validate(flask.request.json, PUT_RECORD_SCHEMA)
     except jsonschema.ValidationError as err:
         raise UserError(err)
+
+    rev = flask.request.args.get('rev')
+    if rev is None:
+        raise UserError('no revision specified')
 
     size = flask.request.json['size']
     urls = flask.request.json['urls']
