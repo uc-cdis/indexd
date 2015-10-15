@@ -20,8 +20,9 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from indexd.index import driver
 from indexd.index import errors
 
-from indexd.index.errors import NoRecordError
-from indexd.index.errors import MultipleRecordsError
+from indexd.index.errors import NoRecordFound
+from indexd.index.errors import MultipleRecordsFound
+from indexd.index.errors import RevisionMismatch
 
 
 Base = declarative_base()
@@ -37,8 +38,15 @@ class IndexRecord(Base):
     form = Column(String)
     size = Column(Integer)
 
-    urls = relationship('IndexRecordUrl', backref='index_record')
-    hashes = relationship('IndexRecordHash', backref='index_record')
+    urls = relationship('IndexRecordUrl',
+        backref='index_record',
+        cascade='all, delete-orphan',
+    )
+
+    hashes = relationship('IndexRecordHash',
+        backref='index_record',
+        cascade='all, delete-orphan',
+    )
 
 class IndexRecordUrl(Base):
     '''
@@ -92,45 +100,81 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
         finally:
             session.close()
 
-    def ids(self, limit=100, start=None, size=None, hashes={}):
+    def ids(self, limit=100, start=None, size=None, urls=None, hashes=None):
         '''
         Returns list of records stored by the backend.
         '''
+        # TODO add dids to filter on
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did > start)
             query = query.limit(limit)
+            
+            if size is not None:
+                query = query.filter(IndexRecord.size == size)
+            
+            if urls is not None:
+                # TODO add filters for urls
+                pass
+            
+            if hashes is not None:
+                # TODO add filters for hashes
+                pass
+            
             return [i.did for i in query]
 
-    def __getitem__(self, record):
+    def add(self, form, size=0, urls=[], hashes={}):
         '''
-        Returns record if stored by backend.
-        Raises KeyError otherwise.
+        Creates a new record given urls and hashes.
+        '''
+        with self.session as session:
+            record = IndexRecord()
+            
+            record.did = str(uuid.uuid4())
+            record.rev = str(uuid.uuid4())[:8]
+            
+            record.form = form
+            record.size = size
+            
+            record.urls = [IndexRecordUrl(
+                did=record,
+                url=url,
+            ) for url in urls]
+            
+            record.hashes = [IndexRecordHash(
+                did=record,
+                hash_type=h,
+                hash_value=v,
+            ) for h,v in hashes.items()]
+            
+            session.add(record)
+            
+            return record.did, record.rev
+
+    def get(self, did):
+        '''
+        Gets a record given the record id.
         '''
         with self.session as session:
             query = session.query(IndexRecord)
-            query = query.filter(IndexRecord.did == record)
+            query = query.filter(IndexRecord.did == did)
             
-            try: result = query.one()
+            try: record = query.one()
             except NoResultFound as err:
-                raise NoRecordError('no record found')
+                raise NoRecordFound('no record found')
             except MultipleResultsFound as err:
-                raise MultipleRecordsError('multiple records found')
+                raise MultipleRecordsFound('multiple records found')
             
-            rev = result.rev
-            form = result.form
-            size = result.size
+            rev = record.rev
             
-            urls = session.query(IndexRecordUrl)
-            urls = urls.filter(IndexRecordUrl.did == record)
-            urls = [i.url for i in urls]
+            form = record.form
+            size = record.size
             
-            hashes = session.query(IndexRecordHash)
-            hashes = hashes.filter(IndexRecordHash.did == record)
-            hashes = {i.hash_type: i.hash_value for i in hashes}
+            urls = [u.url for u in record.urls]
+            hashes = {h.hash_type: h.hash_value for h in record.hashes}
         
         ret = {
-            'id': record,
+            'did': did,
             'rev': rev,
             'size': size,
             'urls': urls,
@@ -140,34 +184,63 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
         
         return ret
 
-    def __setitem__(self, record, data):
+    def update(self, did, rev, size=None, urls=None, hashes=None):
         '''
-        Replaces record if stored by backend.
-        Raises KeyError otherwise.
+        Updates an existing record with new values.
         '''
         with self.session as session:
-            try: result = self[record]
-            except NoRecordError as err:
-                result = IndexRecord()
+            query = session.query(IndexRecord)
+            query = query.filter(IndexRecord.did == did)
             
-            result.did = record
-            result.rev = data.get('rev')
-            result.form = data.get('form')
-            result.size = data.get('size')
+            try: record = query.one()
+            except NoResultFound as err:
+                raise NoRecordFound('no record found')
+            except MultipleResultsFound as err:
+                raise MultipleRecordsFound('multiple records found')
             
-            result.urls = data.get('urls', [])
-            result.hashes = data.get('hashes', [])
+            if rev != record.rev:
+                raise RevisionMismatch('revision mismatch')
             
-            session.add(result)
+            if size is not None:
+                record.size = size
+            
+            if urls is not None:
+                record.urls = [IndexRecordUrl(
+                    did=record,
+                    url=url
+                ) for url in urls]
+           
+            if hashes is not None: 
+                record.hashes = [IndexRecordHash(
+                    did=record,
+                    hash_type=h,
+                    hash_value=v,
+                ) for h,v in hashes.items()]
+            
+            record.rev = str(uuid.uuid4())[:8]
+            
+            session.add(record)
+            
+            return record.did, record.rev
 
-    def __delitem__(self, record):
+    def delete(self, did, rev):
         '''
         Removes record if stored by backend.
-        Raises KeyError otherwise.
         '''
         with self.session as session:
-            result = self[record]
-            session.delete(result)
+            query = session.query(IndexRecord)
+            query = query.filter(IndexRecord.did == did)
+            
+            try: record = query.one()
+            except NoResultFound as err:
+                raise NoRecordFound('no record found')
+            except MultipleResultsFound as err:
+                raise MultipleRecordsFound('multiple records found')
+            
+            if rev != record.rev:
+                raise RevisionMismatch('revision mismatch')
+            
+            session.delete(record)
 
     def __contains__(self, record):
         '''
