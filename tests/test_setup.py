@@ -2,7 +2,7 @@ import sqlite3
 
 import util
 
-from indexd.index.drivers.sqlalchemy import SQLAlchemyIndexDriver
+from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.sqlite import SQLiteAliasDriver
 
 

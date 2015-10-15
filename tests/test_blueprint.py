@@ -7,7 +7,7 @@ import indexd
 from indexd.index.blueprint import blueprint as indexd_index_blueprint
 from indexd.alias.blueprint import blueprint as indexd_alias_blueprint
 
-from indexd.index.drivers.sqlalchemy import SQLAlchemyIndexDriver
+from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.sqlite import SQLiteAliasDriver
 
 
