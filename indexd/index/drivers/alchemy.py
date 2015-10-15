@@ -107,8 +107,10 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
         # TODO add dids to filter on
         with self.session as session:
             query = session.query(IndexRecord)
-            query = query.filter(IndexRecord.did > start)
             query = query.limit(limit)
+            
+            if start is not None:
+                query = query.filter(IndexRecord.did > start)
             
             if size is not None:
                 query = query.filter(IndexRecord.size == size)
