@@ -61,7 +61,7 @@ def get_index():
     urls = flask.request.args.getlist('url')
 
     hashes = flask.request.args.getlist('hash')
-    hashes = [tuple(h.split(':', 1)) for h in hashes]
+    hashes = {h:v for h,v in map(lambda x: x.split(':', 1), hashes)}
 
     validate_hashes(**hashes)
 
