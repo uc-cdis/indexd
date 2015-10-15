@@ -5,11 +5,12 @@ import jsonschema
 from indexd.errors import UserError
 from indexd.errors import PermissionError
 
+from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
 
-from .errors import NoRecordError
-from .errors import MultipleRecordsError
-from .errors import IndexConfigurationError
+from .errors import NoRecordFound
+from .errors import MultipleRecordsFound
+from .errors import RevisionMismatch
 
 
 blueprint = flask.Blueprint('index', __name__)
@@ -80,10 +81,19 @@ def post_index_record():
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
-    record = blueprint.index_driver.add(flask.request.json)
+    form = flask.request.json['form']
+    size = flask.request.json['size']
+    urls = flask.request.json['urls']
+    hashes = flask.request.json['hashes']
+
+    did, rev = blueprint.index_driver.add(form, size,
+        urls=urls,
+        hashes=hashes,
+    )
 
     ret = {
-        'record': record,
+        'did': did,
+        'rev': rev,
     }
 
     return flask.jsonify(ret), 200
@@ -93,24 +103,49 @@ def put_index_record(record):
     '''
     Update an existing record.
     '''
-    blueprint.index_driver.update(record, flask.request.json)
+    rev = flask.request.args.get('rev')
+    if rev is None:
+        raise UserError('no revision specified')
 
-    return '', 200
+    try: jsonschema.validate(flask.request.json, PUT_RECORD_SCHEMA)
+    except jsonschema.ValidationError as err:
+        raise UserError(err)
+
+    size = flask.request.json['size']
+    urls = flask.request.json['urls']
+    hashes = flask.request.json['hashes']
+
+    did, rev = blueprint.index_driver.update(record, rev,
+        size=size,
+        urls=urls,
+        hashes=hashes,
+    )
+
+    ret = {
+        'did': record,
+        'rev': rev,
+    }
+
+    return flask.jsonify(ret), 200
 
 @blueprint.route('/index/<record>', methods=['DELETE'])
 def delete_index_record(record):
     '''
     Delete an existing sign.
     '''
-    blueprint.index_driver.delete(record)
+    rev = flask.request.args.get('rev')
+    if rev is None:
+        raise UserError('no revision specified')
+
+    blueprint.index_driver.delete(record, rev)
 
     return '', 200
 
-@blueprint.errorhandler(NoRecordError)
+@blueprint.errorhandler(NoRecordFound)
 def handle_no_record_error(err):
     return flask.jsonify(error=str(err)), 404
 
-@blueprint.errorhandler(MultipleRecordsError)
+@blueprint.errorhandler(MultipleRecordsFound)
 def handle_multiple_records_error(err):
     return flask.jsonify(error=str(err)), 409
 
@@ -121,6 +156,10 @@ def handle_user_error(err):
 @blueprint.errorhandler(PermissionError)
 def handle_permission_error(err):
     return flask.jsonify(error=str(err)), 403
+
+@blueprint.errorhandler(RevisionMismatch)
+def handle_revision_mismatch(err):
+    return flask.jsonify(error=str(err)), 409
 
 @blueprint.record
 def get_config(setup_state):
