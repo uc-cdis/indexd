@@ -3,8 +3,7 @@ import uuid
 
 from contextlib import contextmanager
 
-import sqlalchemy
-
+from sqlalchemy import and_
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
@@ -12,10 +11,9 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.ext.declarative import declarative_base
 
 from indexd.index import driver
 from indexd.index import errors
@@ -122,9 +120,10 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
             if hashes is not None:
                 query = query.join(IndexRecord.hashes)
                 for h,v in hashes.items():
-                    # TODO FIXME needs type AND value == h, v
-                    query = query.filter(IndexRecordHash.hash_type == h)
-                    query = query.filter(IndexRecordHash.hash_value == v)
+                    query = query.filter(and_(
+                        IndexRecordHash.hash_type == h,
+                        IndexRecordHash.hash_value == v,
+                    ))
             
             query = query.limit(limit)
             
