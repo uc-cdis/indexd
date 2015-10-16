@@ -17,13 +17,6 @@ class AliasDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def ids(self, limit=100, start='', size=None, urls=None, hashes=None):
-        '''
-        Returns a list of record ids.
-        '''
-        raise NotImplementedError('TODO')
-
-    @abc.abstractmethod
     def upsert(self, name, rev=None, size=None, hashes={}, release=None,
                 metadata=None, host_authorities=[], keeper_authority=None, **kwargs):
         '''
