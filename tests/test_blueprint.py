@@ -8,7 +8,7 @@ from indexd.index.blueprint import blueprint as indexd_index_blueprint
 from indexd.alias.blueprint import blueprint as indexd_alias_blueprint
 
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
-from indexd.alias.sqlite import SQLiteAliasDriver
+from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 
 
 INDEX_CONFIG = {
@@ -16,14 +16,11 @@ INDEX_CONFIG = {
 }
 
 ALIAS_CONFIG = {
-    'driver': SQLiteAliasDriver,
-    'SQLITE3': {
-        'host': 'alias.sq3',
-    }
+    'driver': SQLAlchemyAliasDriver('sqlite:///alias.sq3'),
 }
 
 @util.removes('index.sq3')
-@util.removes(ALIAS_CONFIG['SQLITE3']['host'])
+@util.removes('alias.sq3')
 def test_flask_blueprint():
     '''
     Tests standing up the server using flask.
@@ -36,7 +33,7 @@ def test_flask_blueprint():
     app.register_blueprint(indexd_index_blueprint)
     app.register_blueprint(indexd_alias_blueprint)
 
-@util.removes(ALIAS_CONFIG['SQLITE3']['host'])
+@util.removes('alias.sq3')
 def test_flask_blueprint_missing_index_config():
     '''
     Tests standing up the server using flask without an index config.
@@ -50,7 +47,7 @@ def test_flask_blueprint_missing_index_config():
 
     app.register_blueprint(indexd_alias_blueprint)
 
-@util.removes(ALIAS_CONFIG['SQLITE3']['host'])
+@util.removes('alias.sq3')
 def test_flask_blueprint_invalid_index_config():
     '''
     Tests standing up the server using flask without an index config.
