@@ -3,7 +3,7 @@ import sqlite3
 import util
 
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
-from indexd.alias.sqlite import SQLiteAliasDriver
+from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 
 
 OLD_SQLITE = sqlite3.sqlite_version_info < (3, 7, 16)
@@ -30,9 +30,22 @@ INDEX_TABLES = {
 }
 
 ALIAS_TABLES = {
-    'aliases': [
-        (0, u'alias', u'TEXT', 0, None, 1),
-        (1, u'data', u'TEXT', 0, None, 0),
+    'alias_record': [
+        (0, u'name', u'VARCHAR', 1, None, 1),
+        (1, u'rev', u'VARCHAR', 0, None, 0),
+        (2, u'size', u'INTEGER', 0, None, 0),
+        (3, u'release', u'VARCHAR', 0, None, 0),
+        (4, u'metastring', u'VARCHAR', 0, None, 0),
+        (5, u'keeper_authority', u'VARCHAR', 0, None, 0),
+    ],
+    'alias_record_hash': [
+        (0, u'name', u'VARCHAR', 1, None, 1),
+        (1, u'hash_type', u'VARCHAR', 1, None, 1 if OLD_SQLITE else 2),
+        (2, u'hash_value', u'VARCHAR', 0, None, 0)
+    ],
+    'alias_record_host_authority': [
+        (0, u'name', u'VARCHAR', 1, None, 1),
+        (1, u'host', u'VARCHAR', 1, None, 1 if OLD_SQLITE else 2),
     ],
 }
 
@@ -41,12 +54,10 @@ INDEX_CONFIG = {
 }
 
 ALIAS_CONFIG = {
-    'SQLITE3': {
-        'host': ALIAS_HOST,
-    }
+    'driver': SQLAlchemyAliasDriver('sqlite:///alias.sq3'),
 }
 
-@util.removes('index.sq3')
+@util.removes(INDEX_HOST)
 def test_sqlite3_index_setup_tables():
     '''
     Tests that the SQLite3 index database gets set up correctly.
@@ -71,12 +82,12 @@ def test_sqlite3_index_setup_tables():
             
             assert schema == [i for i in c]
 
-@util.removes(ALIAS_CONFIG['SQLITE3']['host'])
+@util.removes(ALIAS_HOST)
 def test_sqlite3_alias_setup_tables():
     '''
     Tests that the SQLite3 alias database gets set up correctly.
     '''
-    SQLiteAliasDriver(**ALIAS_CONFIG)
+    SQLAlchemyAliasDriver('sqlite:///alias.sq3')
 
     with sqlite3.connect(ALIAS_HOST) as conn:
         c = conn.execute('''
