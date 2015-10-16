@@ -108,32 +108,32 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         Returns list of records stored by the backend.
         '''
         with self.session as session:
-            query = session.query(IndexRecord)
+            query = session.query(AliasRecord)
             
             if start is not None:
-                query = query.filter(IndexRecord.did > start)
+                query = query.filter(AliasRecord.name > start)
             
             if size is not None:
-                query = query.filter(IndexRecord.size == size)
+                query = query.filter(AliasRecord.size == size)
             
             if hashes is not None:
-                query = query.join(IndexRecord.hashes)
+                query = query.join(AliasRecord.hashes)
                 for h,v in hashes.items():
                     query = query.filter(and_(
-                        IndexRecordHash.hash_type == h,
-                        IndexRecordHash.hash_value == v,
+                        AliasRecordHash.hash_type == h,
+                        AliasRecordHash.hash_value == v,
                     ))
             
             query = query.limit(limit)
             
-            return [i.did for i in query]
+            return [i.name for i in query]
 
-    def upsert(self, name, rev=None, size=None, hasesh={}, release=None,
+    def upsert(self, name, rev=None, size=None, hashes={}, release=None,
                 metastring=None, host_authorities=[], keeper_authority=None):
         '''
         Updates or inserts a new record.
         '''
-        if release not in alias.RELEASES:
+        if release is not None and release not in alias.RELEASES:
             raise ValueError('release must be one of: %s' % alias.RELEASES)
         
         if size is not None and size < 0:
@@ -149,6 +149,8 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             except MultipleResultsFound as err:
                 raise MultipleRecordsFound('multiple records found')
             
+            record.name = name
+            
             if record.rev and rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
             
@@ -157,7 +159,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             
             if hashes is not None: 
                 record.hashes = [AliasRecordHash(
-                    did=record,
+                    name=record,
                     hash_type=h,
                     hash_value=v,
                 ) for h,v in hashes.items()]
@@ -181,7 +183,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             
             session.add(record)
             
-            return record.did, record.rev
+            return record.name, record.rev
 
     def get(self, name):
         '''
@@ -255,7 +257,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         '''
         with self.session as session:
             for i in session.query(AliasRecord):
-                yield i.did
+                yield i.name
 
     def __len__(self):
         '''

@@ -70,7 +70,6 @@ def get_alias():
         start=start,
         limit=limit,
         size=size,
-        urls=urls,
         hashes=hashes,
     )
 
@@ -79,7 +78,6 @@ def get_alias():
         'limit': limit,
         'start': start,
         'size': size,
-        'urls': urls,
         'hashes': hashes,
     }
 
@@ -105,21 +103,23 @@ def put_alias_record(record):
 
     rev = flask.request.args.get('rev')
 
-    size = flask.request.json['size']
-    hashes = flask.request.json['hashes']
-    release = flask.request.json['release']
-    metadata = flask.request.json['metadata']
-    host_authorities = flask.request.json['host_authorities']
-    keeper_authority = flask.request.json['keeper_authority']
+    print(flask.request.json)
 
-    validate_hashes(**hashes)
-    validate_release(release)
+    size = flask.request.json.get('size')
+    hashes = flask.request.json.get('hashes')
+    release = flask.request.json.get('release')
+    metastring = flask.request.json.get('metadata')
+    host_authorities = flask.request.json.get('host_authorities')
+    keeper_authority = flask.request.json.get('keeper_authority')
+
+    if hashes is not None:
+        validate_hashes(**hashes)
 
     record, rev = blueprint.alias_driver.upsert(record, rev,
         size=size,
         hashes=hashes,
         release=release,
-        metadata=metadata,
+        metastring=metastring,
         host_authorities=host_authorities,
         keeper_authority=keeper_authority,
     )
