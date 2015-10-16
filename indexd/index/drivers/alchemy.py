@@ -3,8 +3,7 @@ import uuid
 
 from contextlib import contextmanager
 
-import sqlalchemy
-
+from sqlalchemy import and_
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
@@ -12,13 +11,13 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.ext.declarative import declarative_base
 
-from indexd.index import driver
-from indexd.index import errors
+from indexd import index
+
+from indexd.index.driver import IndexDriverABC
 
 from indexd.index.errors import NoRecordFound
 from indexd.index.errors import MultipleRecordsFound
@@ -67,7 +66,7 @@ class IndexRecordHash(Base):
     hash_type = Column(String, primary_key=True)
     hash_value = Column(String)
 
-class SQLAlchemyIndexDriver(driver.IndexDriverABC):
+class SQLAlchemyIndexDriver(IndexDriverABC):
     '''
     SQLAlchemy implementation of index driver.
     '''
@@ -107,7 +106,6 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
         # TODO add dids to filter on
         with self.session as session:
             query = session.query(IndexRecord)
-            query = query.limit(limit)
             
             if start is not None:
                 query = query.filter(IndexRecord.did > start)
@@ -116,12 +114,19 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
                 query = query.filter(IndexRecord.size == size)
             
             if urls is not None:
-                # TODO add filters for urls
-                pass
+                query = query.join(IndexRecord.urls)
+                for u in urls:
+                    query = query.filter(IndexRecordUrl.url == u)
             
             if hashes is not None:
-                # TODO add filters for hashes
-                pass
+                query = query.join(IndexRecord.hashes)
+                for h,v in hashes.items():
+                    query = query.filter(and_(
+                        IndexRecordHash.hash_type == h,
+                        IndexRecordHash.hash_value == v,
+                    ))
+            
+            query = query.limit(limit)
             
             return [i.did for i in query]
 
@@ -129,6 +134,12 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
         '''
         Creates a new record given urls and hashes.
         '''
+        if form not in index.FORMS:
+            raise ValueError('form must be one of: %s' % index.FORMS)
+        
+        if size is not None and size < 0:
+            raise ValueError('size must be non-negative')
+        
         with self.session as session:
             record = IndexRecord()
             
@@ -181,7 +192,7 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
             'size': size,
             'urls': urls,
             'hashes': hashes,
-            'type': form,
+            'form': form,
         }
         
         return ret
