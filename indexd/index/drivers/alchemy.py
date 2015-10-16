@@ -15,8 +15,9 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 
-from indexd.index import driver
-from indexd.index import errors
+from indexd import index
+
+from indexd.index.driver import IndexDriverABC
 
 from indexd.index.errors import NoRecordFound
 from indexd.index.errors import MultipleRecordsFound
@@ -65,7 +66,7 @@ class IndexRecordHash(Base):
     hash_type = Column(String, primary_key=True)
     hash_value = Column(String)
 
-class SQLAlchemyIndexDriver(driver.IndexDriverABC):
+class SQLAlchemyIndexDriver(IndexDriverABC):
     '''
     SQLAlchemy implementation of index driver.
     '''
@@ -133,6 +134,12 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
         '''
         Creates a new record given urls and hashes.
         '''
+        if form not in index.FORMS:
+            raise ValueError('form must be one of: %s' % index.FORMS)
+        
+        if size is not None and size < 0:
+            raise ValueError('size must be non-negative')
+        
         with self.session as session:
             record = IndexRecord()
             
@@ -185,7 +192,7 @@ class SQLAlchemyIndexDriver(driver.IndexDriverABC):
             'size': size,
             'urls': urls,
             'hashes': hashes,
-            'type': form,
+            'form': form,
         }
         
         return ret
