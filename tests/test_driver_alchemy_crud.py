@@ -27,7 +27,7 @@ def test_driver_init_does_not_create_records():
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 0, 'driver created records upon initilization'
 
@@ -43,7 +43,7 @@ def test_driver_init_does_not_create_record_urls():
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record_url
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 0, 'driver created records urls upon initilization'
 
@@ -59,7 +59,7 @@ def test_driver_init_does_not_create_record_hashes():
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record_hash
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 0, 'driver created records hashes upon initilization'
 
@@ -76,13 +76,13 @@ def test_driver_add_object_record():
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 1, 'driver did not create record'
         
         record = conn.execute('''
             SELECT * FROM index_record
-        ''').next()
+        ''').fetchone()
         
         assert record[0], 'record id not populated'
         assert record[1], 'record rev not populated'
@@ -102,13 +102,13 @@ def test_driver_add_container_record():
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 1, 'driver did not create record'
         
         record = conn.execute('''
             SELECT * FROM index_record
-        ''').next()
+        ''').fetchone()
         
         assert record[0], 'record id not populated'
         assert record[1], 'record rev not populated'
@@ -128,13 +128,13 @@ def test_driver_add_multipart_record():
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 1, 'driver did not create record'
         
         record = conn.execute('''
             SELECT * FROM index_record
-        ''').next()
+        ''').fetchone()
         
         assert record[0], 'record id not populated'
         assert record[1], 'record rev not populated'
@@ -156,7 +156,7 @@ def test_driver_add_multiple_records():
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 3, 'driver did not create record(s)'
         
@@ -186,13 +186,13 @@ def test_driver_add_with_size():
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 1, 'driver did not create record'
         
         new_form, new_size = conn.execute('''
             SELECT form, size FROM index_record
-        ''').next()
+        ''').fetchone()
         
         assert form == new_form, 'record form mismatch'
         assert size == new_size, 'record size mismatch'
@@ -213,13 +213,13 @@ def test_driver_add_with_urls():
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 1, 'driver did not create record'
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record_url
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 3, 'driver did not create url(s)'
         
@@ -249,13 +249,13 @@ def test_driver_add_with_hashes():
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 1, 'driver did not create record'
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record_hash
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 3, 'driver did not create hash(es)'
         
@@ -379,7 +379,7 @@ def test_driver_update_record():
         
         new_did, new_rev, new_form, new_size = conn.execute('''
             SELECT did, rev, form, size FROM index_record
-        ''').next()
+        ''').fetchone()
         
         new_urls = sorted(url[0] for url in conn.execute('''
             SELECT url FROM index_record_url
@@ -473,7 +473,7 @@ def test_driver_delete_record():
         
         count = conn.execute('''
             SELECT COUNT(*) FROM index_record
-        ''').next()[0]
+        ''').fetchone()[0]
         
         assert count == 0, 'records remain after deletion'
 
