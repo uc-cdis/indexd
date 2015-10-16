@@ -10,7 +10,7 @@ from indexd.index.blueprint import blueprint as indexd_index_blueprint
 from indexd.alias.blueprint import blueprint as indexd_alias_blueprint
 
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
-from indexd.alias.sqlite import SQLiteAliasDriver
+from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 
 
 def setup_logging(log_levels, log_stream, **kwargs):
@@ -33,10 +33,7 @@ def main(host, port, debug_flask=False, **kwargs):
     }
 
     app.config['ALIAS'] = {
-        'driver': SQLiteAliasDriver,
-        'SQLITE3': {
-            'host': 'alias.sq3',
-        }
+        'driver': SQLAlchemyAliasDriver('sqlite:///alias.sq3'),
     }
 
     app.register_blueprint(indexd_index_blueprint)
