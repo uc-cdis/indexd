@@ -1,21 +1,19 @@
-from indexd.errors import ConfigurationError
-
 class BaseAliasError(Exception):
     '''
     Base alias error.
     '''
 
-class NoAliasError(BaseAliasError):
+class NoRecordFound(BaseAliasError):
     '''
-    No alias error.
-    '''
-
-class AliasExistsError(BaseAliasError):
-    '''
-    Alias exists error.
+    No record error.
     '''
 
-class AliasConfigurationError(ConfigurationError):
+class MultipleRecordsFound(BaseAliasError):
     '''
-    Alias configuration error.
+    Multiple recordss error.
+    '''
+
+class RevisionMismatch(BaseAliasError):
+    '''
+    Revision mismatch.
     '''
