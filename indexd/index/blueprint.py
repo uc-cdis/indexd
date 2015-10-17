@@ -64,6 +64,7 @@ def get_index():
     hashes = {h:v for h,v in map(lambda x: x.split(':', 1), hashes)}
 
     validate_hashes(**hashes)
+    hashes = hashes if hashes else None
 
     if limit < 0 or limit > 1024:
         raise UserError('limit must be between 0 and 1024')
