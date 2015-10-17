@@ -61,7 +61,9 @@ def get_alias():
     hashes = flask.request.args.getlist('hash')
     hashes = {h:v for h,v in map(lambda x: x.split(':', 1), hashes)}
 
+    # TODO FIXME this needs reworking
     validate_hashes(**hashes)
+    hashes = hashes if hashes else None
 
     if limit < 0 or limit > 1024:
         raise UserError('limit must be between 0 and 1024')
@@ -102,8 +104,6 @@ def put_alias_record(record):
         raise UserError(err)
 
     rev = flask.request.args.get('rev')
-
-    print(flask.request.json)
 
     size = flask.request.json.get('size')
     hashes = flask.request.json.get('hashes')
