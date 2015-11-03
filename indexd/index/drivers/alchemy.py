@@ -121,6 +121,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if hashes is not None and hashes:
                 for h,v in hashes.items():
                     sub = session.query(IndexRecord)
+                    sub = sub.join(IndexRecord.hashes)
                     sub = sub.filter(and_(
                         IndexRecordHash.hash_type == h,
                         IndexRecordHash.hash_value == v,
