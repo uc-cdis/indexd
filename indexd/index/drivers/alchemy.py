@@ -113,12 +113,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if size is not None:
                 query = query.filter(IndexRecord.size == size)
             
-            if urls is not None:
+            if urls is not None and urls:
                 query = query.join(IndexRecord.urls)
                 for u in urls:
                     query = query.filter(IndexRecordUrl.url == u)
             
-            if hashes is not None:
+            if hashes is not None and hashes:
                 query = query.join(IndexRecord.hashes)
                 for h,v in hashes.items():
                     query = query.filter(and_(
