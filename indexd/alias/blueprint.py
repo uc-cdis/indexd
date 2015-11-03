@@ -20,7 +20,7 @@ blueprint.alias_driver = None
 
 ACCEPTABLE_HASHES = {
     'md5': re.compile(r'^[0-9a-f]{32}$').match,
-    'sha1': re.compile('r^[0-9a-f]{40}$').match,
+    'sha1': re.compile(r'^[0-9a-f]{40}$').match,
     'sha256': re.compile(r'^[0-9a-f]{64}$').match,
     'sha512': re.compile(r'^[0-9a-f]{128}$').match,
 }
