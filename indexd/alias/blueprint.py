@@ -85,7 +85,7 @@ def get_alias():
 
     return flask.jsonify(base), 200
 
-@blueprint.route('/alias/<record>', methods=['GET'])
+@blueprint.route('/alias/<path:record>', methods=['GET'])
 def get_alias_record(record):
     '''
     Returns a record.
@@ -94,7 +94,7 @@ def get_alias_record(record):
 
     return flask.jsonify(ret), 200
 
-@blueprint.route('/alias/<record>', methods=['PUT'])
+@blueprint.route('/alias/<path:record>', methods=['PUT'])
 def put_alias_record(record):
     '''
     Create or replace an existing record.
@@ -131,7 +131,7 @@ def put_alias_record(record):
 
     return flask.jsonify(ret), 200
 
-@blueprint.route('/alias/<record>', methods=['DELETE'])
+@blueprint.route('/alias/<path:record>', methods=['DELETE'])
 def delete_alias_record(record):
     '''
     Delete an alias.
