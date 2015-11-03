@@ -119,12 +119,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     query = query.filter(IndexRecordUrl.url == u)
             
             if hashes is not None and hashes:
-                query = query.join(IndexRecord.hashes)
                 for h,v in hashes.items():
-                    query = query.filter(and_(
+                    sub = session.query(IndexRecord)
+                    sub = sub.filter(and_(
                         IndexRecordHash.hash_type == h,
                         IndexRecordHash.hash_value == v,
                     ))
+                    query = query.intersect(sub)
             
             query = query.limit(limit)
             
