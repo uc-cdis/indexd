@@ -85,14 +85,14 @@ def get_alias():
 
     return flask.jsonify(base), 200
 
-@blueprint.route('/alias/<path:record>', methods=['GET'])
-def get_alias_record(record):
-    '''
-    Returns a record.
-    '''
-    ret = blueprint.alias_driver.get(record)
-
-    return flask.jsonify(ret), 200
+#@blueprint.route('/alias/<path:record>', methods=['GET'])
+#def get_alias_record(record):
+#    '''
+#    Returns a record.
+#    '''
+#    ret = blueprint.alias_driver.get(record)
+#
+#    return flask.jsonify(ret), 200
 
 @blueprint.route('/alias/<path:record>', methods=['PUT'])
 def put_alias_record(record):
