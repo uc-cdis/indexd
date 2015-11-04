@@ -18,6 +18,13 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
+    def hashes_to_urls(self, size, hashes, start=0, limit=100):
+        '''
+        Returns a list of urls matching supplied size and hashes.
+        '''
+        raise NotImplementedError('TODO')
+
+    @abc.abstractmethod
     def add(self, form, size, urls=[], hashes={}):
         '''
         Creates record for given data.

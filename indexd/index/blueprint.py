@@ -88,6 +88,57 @@ def get_index():
 
     return flask.jsonify(base), 200
 
+@blueprint.route('/urls/', methods=['GET'])
+def get_urls():
+    '''
+    Returns a list of urls.
+    '''
+    hashes = flask.request.args.getlist('hash')
+    hashes = {h:v for h,v in map(lambda x: x.split(':', 1), hashes)}
+
+    try: size = int(flask.request.args.get('size'))
+    except TypeError as err:
+        raise UserError('size must be an integer')
+
+    try: start = int(flask.request.args.get('start', 0))
+    except TypeError as err:
+        raise UserError('start must be an integer')
+
+    try: limit = int(flask.request.args.get('limit', 100))
+    except TypeError as err:
+        raise UserError('limit must be an integer')
+
+    if size < 0:
+        raise UserError('size must be >= 0')
+
+    if start < 0:
+        raise UserError('start must be >= 0')
+
+    if limit < 0:
+        raise UserError('limit must be >= 0')
+
+    if limit > 1024:
+        raise UserError('limit must be <= 1024')
+
+    validate_hashes(**hashes)
+
+    urls = blueprint.index_driver.hashes_to_urls(
+        size=size,
+        hashes=hashes,
+        start=start,
+        limit=limit,
+    )
+
+    ret = {
+        'urls': urls,
+        'limit': limit,
+        'start': start,
+        'size': size,
+        'hashes': hashes,
+    }
+
+    return flask.jsonify(ret), 200
+
 @blueprint.route('/index/<record>', methods=['GET'])
 def get_index_record(record):
     '''
