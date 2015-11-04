@@ -20,7 +20,7 @@ blueprint.alias_driver = None
 
 ACCEPTABLE_HASHES = {
     'md5': re.compile(r'^[0-9a-f]{32}$').match,
-    'sha1': re.compile('r^[0-9a-f]{40}$').match,
+    'sha1': re.compile(r'^[0-9a-f]{40}$').match,
     'sha256': re.compile(r'^[0-9a-f]{64}$').match,
     'sha512': re.compile(r'^[0-9a-f]{128}$').match,
 }
@@ -85,16 +85,16 @@ def get_alias():
 
     return flask.jsonify(base), 200
 
-@blueprint.route('/alias/<record>', methods=['GET'])
-def get_alias_record(record):
-    '''
-    Returns a record.
-    '''
-    ret = blueprint.alias_driver.get(record)
+#@blueprint.route('/alias/<path:record>', methods=['GET'])
+#def get_alias_record(record):
+#    '''
+#    Returns a record.
+#    '''
+#    ret = blueprint.alias_driver.get(record)
+#
+#    return flask.jsonify(ret), 200
 
-    return flask.jsonify(ret), 200
-
-@blueprint.route('/alias/<record>', methods=['PUT'])
+@blueprint.route('/alias/<path:record>', methods=['PUT'])
 def put_alias_record(record):
     '''
     Create or replace an existing record.
@@ -131,7 +131,7 @@ def put_alias_record(record):
 
     return flask.jsonify(ret), 200
 
-@blueprint.route('/alias/<record>', methods=['DELETE'])
+@blueprint.route('/alias/<path:record>', methods=['DELETE'])
 def delete_alias_record(record):
     '''
     Delete an alias.

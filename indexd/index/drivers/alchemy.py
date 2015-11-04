@@ -113,22 +113,55 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if size is not None:
                 query = query.filter(IndexRecord.size == size)
             
-            if urls is not None:
+            if urls is not None and urls:
                 query = query.join(IndexRecord.urls)
                 for u in urls:
                     query = query.filter(IndexRecordUrl.url == u)
             
-            if hashes is not None:
-                query = query.join(IndexRecord.hashes)
+            if hashes is not None and hashes:
                 for h,v in hashes.items():
-                    query = query.filter(and_(
+                    sub = session.query(IndexRecord)
+                    sub = sub.join(IndexRecord.hashes)
+                    sub = sub.filter(and_(
                         IndexRecordHash.hash_type == h,
                         IndexRecordHash.hash_value == v,
                     ))
+                    query = query.intersect(sub)
             
             query = query.limit(limit)
             
             return [i.did for i in query]
+
+    def hashes_to_urls(self, size, hashes, start=0, limit=100):
+        '''
+        Returns a list of urls matching supplied size and hashes.
+        '''
+        with self.session as session:
+            query = session.query(IndexRecordUrl)
+            
+            query = query.join(IndexRecordUrl.index_record)
+            query = query.filter(IndexRecord.size == size)
+            
+            for h,v in hashes.items():
+                # Select subset that matches given hash.
+                sub = session.query(IndexRecordUrl)
+                sub = sub.join(IndexRecord.hashes)
+                sub = sub.filter(and_(
+                    IndexRecordHash.hash_type == h,
+                    IndexRecordHash.hash_value == v,
+                ))
+                
+                # Filter anything that does not match.
+                query = query.intersect(sub)
+            
+            # Remove duplicates.
+            query = query.distinct()
+            
+            # Return only specified window.
+            query = query.offset(start)
+            query = query.limit(limit)
+            
+            return [r.url for r in query]
 
     def add(self, form, size=None, urls=[], hashes={}):
         '''
