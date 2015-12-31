@@ -128,6 +128,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     ))
                     query = query.intersect(sub)
             
+            query = query.order_by(IndexRecord.did)
             query = query.limit(limit)
             
             return [i.did for i in query]

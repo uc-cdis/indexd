@@ -125,6 +125,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
                         AliasRecordHash.hash_value == v,
                     ))
             
+            query = query.order_by(AliasRecord.name)
             query = query.limit(limit)
             
             return [i.name for i in query]
