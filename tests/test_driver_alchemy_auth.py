@@ -12,7 +12,7 @@ from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 
 USERNAME = 'abc'
 PASSWORD = '123'
-DIGESTED = hashlib.sha256(PASSWORD).hexdigest()
+DIGESTED = SQLAlchemyAuthDriver.digest(PASSWORD)
 
 # TODO check if pytest has utilities for meta-programming of tests
 

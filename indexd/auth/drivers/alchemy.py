@@ -62,12 +62,19 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         finally:
             session.close()
 
+    @staticmethod
+    def digest(password):
+        '''
+        Digests a string.
+        '''
+        return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
     def auth(self, username, password):
         '''
         Returns a dict of user information.
         Raises AutheError otherwise.
         '''
-        password = hashlib.sha256(password).hexdigest()
+        password = self.digest(password)
         with self.session as session:
             query = session.query(AuthRecord)
 
