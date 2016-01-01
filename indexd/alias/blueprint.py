@@ -2,6 +2,8 @@ import re
 import flask
 import jsonschema
 
+from indexd.auth import authorize
+
 from indexd.errors import AuthError
 from indexd.errors import UserError
 
@@ -95,6 +97,7 @@ def get_alias():
 #    return flask.jsonify(ret), 200
 
 @blueprint.route('/alias/<path:record>', methods=['PUT'])
+@authorize
 def put_alias_record(record):
     '''
     Create or replace an existing record.
@@ -132,6 +135,7 @@ def put_alias_record(record):
     return flask.jsonify(ret), 200
 
 @blueprint.route('/alias/<path:record>', methods=['DELETE'])
+@authorize
 def delete_alias_record(record):
     '''
     Delete an alias.
