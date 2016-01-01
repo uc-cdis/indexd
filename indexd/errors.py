@@ -1,4 +1,4 @@
-from auth.errors import AuthError
+from .auth.errors import AuthError
 
 class UserError(Exception):
     '''
