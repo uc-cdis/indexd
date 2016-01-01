@@ -1,5 +1,6 @@
 import json
 import uuid
+import hashlib
 
 from contextlib import contextmanager
 
@@ -8,7 +9,6 @@ from sqlalchemy import Column
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 
 from indexd import auth
@@ -67,6 +67,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         Returns a dict of user information.
         Raises AutheError otherwise.
         '''
+        password = hashlib.sha256(password).hexdigest()
         with self.session as session:
             query = session.query(AuthRecord)
 
@@ -75,8 +76,12 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             query = query.filter(AuthRecord.password == password)
 
             try: query.one()
-            except NoResultError as err:
+            except NoResultFound as err:
                 raise AuthError('username / password mismatch')
 
-        # TODO return user information from records
-        return {}
+        context = {
+            'username': username,
+            # TODO include other user information
+        }
+
+        return context
