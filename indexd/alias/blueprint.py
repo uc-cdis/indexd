@@ -2,8 +2,8 @@ import re
 import flask
 import jsonschema
 
+from indexd.errors import AuthError
 from indexd.errors import UserError
-from indexd.errors import PermissionError
 
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
@@ -156,8 +156,8 @@ def handle_multiple_records_error(err):
 def handle_user_error(err):
     return flask.jsonify(error=str(err)), 400
 
-@blueprint.errorhandler(PermissionError)
-def handle_permission_error(err):
+@blueprint.errorhandler(AuthError)
+def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
 
 @blueprint.errorhandler(RevisionMismatch)

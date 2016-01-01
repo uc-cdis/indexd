@@ -2,8 +2,8 @@ import re
 import flask
 import jsonschema
 
+from indexd.errors import AuthError
 from indexd.errors import UserError
-from indexd.errors import PermissionError
 
 
 blueprint = flask.Blueprint('cross', __name__)
@@ -45,8 +45,8 @@ def get_alias(alias):
 def handle_user_error(err):
     return flask.jsonify(error=str(err)), 400
 
-@blueprint.errorhandler(PermissionError)
-def handle_permission_error(err):
+@blueprint.errorhandler(AuthError)
+def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
 
 @blueprint.record
