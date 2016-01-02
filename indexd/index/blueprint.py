@@ -2,8 +2,10 @@ import re
 import flask
 import jsonschema
 
+from indexd.auth import authorize
+
+from indexd.errors import AuthError
 from indexd.errors import UserError
-from indexd.errors import PermissionError
 
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
@@ -149,6 +151,7 @@ def get_index_record(record):
     return flask.jsonify(ret), 200
 
 @blueprint.route('/index/', methods=['POST'])
+@authorize
 def post_index_record():
     '''
     Create a new record.
@@ -177,6 +180,7 @@ def post_index_record():
     return flask.jsonify(ret), 200
 
 @blueprint.route('/index/<record>', methods=['PUT'])
+@authorize
 def put_index_record(record):
     '''
     Update an existing record.
@@ -209,6 +213,7 @@ def put_index_record(record):
     return flask.jsonify(ret), 200
 
 @blueprint.route('/index/<record>', methods=['DELETE'])
+@authorize
 def delete_index_record(record):
     '''
     Delete an existing sign.
@@ -233,8 +238,8 @@ def handle_multiple_records_error(err):
 def handle_user_error(err):
     return flask.jsonify(error=str(err)), 400
 
-@blueprint.errorhandler(PermissionError)
-def handle_permission_error(err):
+@blueprint.errorhandler(AuthError)
+def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
 
 @blueprint.errorhandler(RevisionMismatch)

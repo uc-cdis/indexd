@@ -1,7 +1,4 @@
-class PermissionError(Exception):
-    '''
-    Permission error.
-    '''
+from .auth.errors import AuthError
 
 class UserError(Exception):
     '''

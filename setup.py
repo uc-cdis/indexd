@@ -5,6 +5,8 @@ setup(
     version='0.1',
     packages=[
         'indexd',
+        'indexd.auth',
+        'indexd.auth.drivers',
         'indexd.index',
         'indexd.index.drivers',
         'indexd.alias',
