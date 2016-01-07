@@ -21,5 +21,6 @@ setup(
         'flask==0.10.1',
         'jsonschema==2.5.1',
         'sqlalchemy==1.0.8',
+	'psycopg2==2.6.1',
     ],
 )
