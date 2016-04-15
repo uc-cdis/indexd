@@ -193,11 +193,12 @@ def put_index_record(record):
     if rev is None:
         raise UserError('no revision specified')
 
-    size = flask.request.json['size']
-    urls = flask.request.json['urls']
-    hashes = flask.request.json['hashes']
+    size = flask.request.json.get('size')
+    urls = flask.request.json.get('urls')
+    hashes = flask.request.json.get('hashes')
 
-    validate_hashes(**hashes)
+    if hashes is not None:
+        validate_hashes(**hashes)
 
     did, rev = blueprint.index_driver.update(record, rev,
         size=size,
