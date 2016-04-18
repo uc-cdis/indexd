@@ -4,7 +4,7 @@ import jsonschema
 
 from indexd.errors import AuthError
 from indexd.errors import UserError
-
+from indexd.alias.errors import NoRecordFound
 
 blueprint = flask.Blueprint('cross', __name__)
 
@@ -48,6 +48,10 @@ def handle_user_error(err):
 @blueprint.errorhandler(AuthError)
 def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
+
+@blueprint.errorhandler(NoRecordFound)
+def handle_no_record_error(err):
+    return flask.jsonify(error=str(err)), 404
 
 @blueprint.record
 def get_config(setup_state):
