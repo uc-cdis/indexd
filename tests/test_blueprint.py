@@ -19,6 +19,7 @@ ALIAS_CONFIG = {
     'driver': SQLAlchemyAliasDriver('sqlite:///alias.sq3'),
 }
 
+
 @util.removes('index.sq3')
 @util.removes('alias.sq3')
 def test_flask_blueprint():
@@ -33,6 +34,7 @@ def test_flask_blueprint():
     app.register_blueprint(indexd_index_blueprint)
     app.register_blueprint(indexd_alias_blueprint)
 
+
 @util.removes('alias.sq3')
 def test_flask_blueprint_missing_index_config():
     '''
@@ -46,6 +48,7 @@ def test_flask_blueprint_missing_index_config():
         app.register_blueprint(indexd_index_blueprint)
 
     app.register_blueprint(indexd_alias_blueprint)
+
 
 @util.removes('alias.sq3')
 def test_flask_blueprint_invalid_index_config():
@@ -62,6 +65,7 @@ def test_flask_blueprint_invalid_index_config():
 
     app.register_blueprint(indexd_alias_blueprint)
 
+
 @util.removes('index.sq3')
 def test_flask_blueprint_missing_alias_config():
     '''
@@ -75,6 +79,7 @@ def test_flask_blueprint_missing_alias_config():
         app.register_blueprint(indexd_alias_blueprint)
 
     app.register_blueprint(indexd_index_blueprint)
+
 
 @util.removes('index.sq3')
 def test_flask_blueprint_invalid_alias_config():

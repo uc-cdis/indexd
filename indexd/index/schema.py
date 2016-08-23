@@ -9,8 +9,10 @@ POST_RECORD_SCHEMA = {
             'type': ['integer', 'null'],
         },
         'urls': {
-            'type': 'array',
-            'items': {'type': 'string'},
+            'type': 'object',
+            'patternProperties': {
+                '': {'type': 'string'}
+            }
         },
         'hashes': {
             'type': 'object',
@@ -32,8 +34,10 @@ PUT_RECORD_SCHEMA = {
             'type': ['integer', 'null'],
         },
         'urls': {
-            'type': 'array',
-            'items': {'type': 'string'},
+            'type': 'object',
+            'patternProperties': {
+                '': {'type': 'string'}
+            }
         },
         'hashes': {
             'type': 'object',

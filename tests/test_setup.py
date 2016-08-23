@@ -27,6 +27,10 @@ INDEX_TABLES = {
         (0, u'did', u'VARCHAR', 1, None, 1),
         (1, u'url', u'VARCHAR', 1, None, 1 if OLD_SQLITE else 2),
     ],
+    'index_record_api': [
+        (0, u'url', u'VARCHAR', 1, None, 1),
+        (1, u'api', u'VARCHAR', 0, None, 0),
+    ],
 }
 
 ALIAS_TABLES = {
@@ -57,6 +61,7 @@ ALIAS_CONFIG = {
     'driver': SQLAlchemyAliasDriver('sqlite:///alias.sq3'),
 }
 
+
 @util.removes(INDEX_HOST)
 def test_sqlite3_index_setup_tables():
     '''
@@ -68,19 +73,20 @@ def test_sqlite3_index_setup_tables():
         c = conn.execute('''
             SELECT name FROM sqlite_master WHERE type = 'table'
         ''')
-        
+
         tables = [i[0] for i in c]
-        
+
         for table in INDEX_TABLES:
             assert table in tables, '{table} not created'.format(table=table)
-        
+
         for table, schema in INDEX_TABLES.items():
             # NOTE PRAGMA's don't work with parameters...
             c = conn.execute('''
                 PRAGMA table_info ('{table}')
             '''.format(table=table))
-            
+
             assert schema == [i for i in c]
+
 
 @util.removes(ALIAS_HOST)
 def test_sqlite3_alias_setup_tables():
@@ -93,16 +99,16 @@ def test_sqlite3_alias_setup_tables():
         c = conn.execute('''
             SELECT name FROM sqlite_master WHERE type = 'table'
         ''')
-        
+
         tables = [i[0] for i in c]
-        
+
         for table in ALIAS_TABLES:
             assert table in tables, '{table} not created'.format(table=table)
-        
+
         for table, schema in ALIAS_TABLES.items():
             # NOTE PRAGMA's don't work with parameters...
             c = conn.execute('''
                 PRAGMA table_info ('{table}')
             '''.format(table=table))
-            
+
             assert schema == [i for i in c]
