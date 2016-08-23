@@ -25,6 +25,7 @@ ACCEPTABLE_HASHES = {
     'sha512': re.compile(r'^[0-9a-f]{128}$').match,
 }
 
+
 def validate_hashes(**hashes):
     '''
     Validate hashes against known and valid hashing algorithms.
@@ -35,13 +36,15 @@ def validate_hashes(**hashes):
     if not all(ACCEPTABLE_HASHES[h](v) for h, v in hashes.items()):
         raise UserError('invalid hash values specified')
 
+
 @blueprint.route('/index/', methods=['GET'])
 def get_index():
     '''
     Returns a list of records.
     '''
     limit = flask.request.args.get('limit')
-    try: limit = 100 if limit is None else int(limit)
+    try:
+        limit = 100 if limit is None else int(limit)
     except ValueError as err:
         raise UserError('limit must be an integer')
 
@@ -49,7 +52,8 @@ def get_index():
         raise UserError('limit must be between 1 and 1024')
 
     size = flask.request.args.get('size')
-    try: size = size if size is None else int(size)
+    try:
+        size = size if size is None else int(size)
     except ValueError as err:
         raise UserError('size must be an integer')
 
@@ -61,7 +65,7 @@ def get_index():
     urls = flask.request.args.getlist('url')
 
     hashes = flask.request.args.getlist('hash')
-    hashes = {h:v for h,v in map(lambda x: x.split(':', 1), hashes)}
+    hashes = {h: v for h, v in map(lambda x: x.split(':', 1), hashes)}
 
     validate_hashes(**hashes)
     hashes = hashes if hashes else None
@@ -88,23 +92,27 @@ def get_index():
 
     return flask.jsonify(base), 200
 
+
 @blueprint.route('/urls/', methods=['GET'])
 def get_urls():
     '''
     Returns a list of urls.
     '''
     hashes = flask.request.args.getlist('hash')
-    hashes = {h:v for h,v in map(lambda x: x.split(':', 1), hashes)}
+    hashes = {h: v for h, v in map(lambda x: x.split(':', 1), hashes)}
 
-    try: size = int(flask.request.args.get('size'))
+    try:
+        size = int(flask.request.args.get('size'))
     except TypeError as err:
         raise UserError('size must be an integer')
 
-    try: start = int(flask.request.args.get('start', 0))
+    try:
+        start = int(flask.request.args.get('start', 0))
     except TypeError as err:
         raise UserError('start must be an integer')
 
-    try: limit = int(flask.request.args.get('limit', 100))
+    try:
+        limit = int(flask.request.args.get('limit', 100))
     except TypeError as err:
         raise UserError('limit must be an integer')
 
@@ -139,6 +147,7 @@ def get_urls():
 
     return flask.jsonify(ret), 200
 
+
 @blueprint.route('/index/<record>', methods=['GET'])
 def get_index_record(record):
     '''
@@ -148,12 +157,14 @@ def get_index_record(record):
 
     return flask.jsonify(ret), 200
 
+
 @blueprint.route('/index/', methods=['POST'])
 def post_index_record():
     '''
     Create a new record.
     '''
-    try: jsonschema.validate(flask.request.json, POST_RECORD_SCHEMA)
+    try:
+        jsonschema.validate(flask.request.json, POST_RECORD_SCHEMA)
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
@@ -165,9 +176,9 @@ def post_index_record():
     validate_hashes(**hashes)
 
     did, rev = blueprint.index_driver.add(form, size,
-        urls=urls,
-        hashes=hashes,
-    )
+                                          urls=urls,
+                                          hashes=hashes,
+                                          )
 
     ret = {
         'did': did,
@@ -176,12 +187,14 @@ def post_index_record():
 
     return flask.jsonify(ret), 200
 
+
 @blueprint.route('/index/<record>', methods=['PUT'])
 def put_index_record(record):
     '''
     Update an existing record.
     '''
-    try: jsonschema.validate(flask.request.json, PUT_RECORD_SCHEMA)
+    try:
+        jsonschema.validate(flask.request.json, PUT_RECORD_SCHEMA)
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
@@ -196,10 +209,10 @@ def put_index_record(record):
     validate_hashes(**hashes)
 
     did, rev = blueprint.index_driver.update(record, rev,
-        size=size,
-        urls=urls,
-        hashes=hashes,
-    )
+                                             size=size,
+                                             urls=urls,
+                                             hashes=hashes,
+                                             )
 
     ret = {
         'did': record,
@@ -207,6 +220,7 @@ def put_index_record(record):
     }
 
     return flask.jsonify(ret), 200
+
 
 @blueprint.route('/index/<record>', methods=['DELETE'])
 def delete_index_record(record):
@@ -221,25 +235,31 @@ def delete_index_record(record):
 
     return '', 200
 
+
 @blueprint.errorhandler(NoRecordFound)
 def handle_no_record_error(err):
     return flask.jsonify(error=str(err)), 404
+
 
 @blueprint.errorhandler(MultipleRecordsFound)
 def handle_multiple_records_error(err):
     return flask.jsonify(error=str(err)), 409
 
+
 @blueprint.errorhandler(UserError)
 def handle_user_error(err):
     return flask.jsonify(error=str(err)), 400
+
 
 @blueprint.errorhandler(PermissionError)
 def handle_permission_error(err):
     return flask.jsonify(error=str(err)), 403
 
+
 @blueprint.errorhandler(RevisionMismatch)
 def handle_revision_mismatch(err):
     return flask.jsonify(error=str(err)), 409
+
 
 @blueprint.record
 def get_config(setup_state):
