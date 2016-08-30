@@ -1,0 +1,6 @@
+* text = auto
+
+*.py text
+*.yml text
+*.md text
+*.* text

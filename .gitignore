@@ -60,6 +60,6 @@ docs/_build/
 
 #.swp
 *.swp
-
+#.sq3
 local_settings.py
 settings.yaml
