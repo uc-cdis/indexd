@@ -1,13 +1,10 @@
 import os
 import shutil
-import time
-
 
 class removes(object):
     '''
     Decorator to remove a path after function call.
     '''
-
     def __init__(self, path):
         self.path = path
 
@@ -16,9 +13,7 @@ class removes(object):
         Ensures path is removed after function call.
         '''
         def wrapper(*args, **kwargs):
-            time.sleep(1)
-            try:
-                return f(*args, **kwargs)
+            try: return f(*args, **kwargs)
             finally:
                 if not os.path.exists(self.path):
                     pass
@@ -26,5 +21,5 @@ class removes(object):
                     shutil.rmtree(self.path)
                 elif os.path.isfile(self.path):
                     os.remove(self.path)
-
+        
         return wrapper
