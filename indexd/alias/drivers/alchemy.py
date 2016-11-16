@@ -117,12 +117,14 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
                 query = query.filter(AliasRecord.size == size)
             
             if hashes is not None:
-                query = query.join(AliasRecord.hashes)
                 for h,v in hashes.items():
-                    query = query.filter(and_(
+                    subq = (
+                        session.query(AliasRecordHash.name)
+                        .filter(and_(
                         AliasRecordHash.hash_type == h,
-                        AliasRecordHash.hash_value == v,
-                    ))
+                        AliasRecordHash.hash_value == v))
+                    )
+                    query = query.filter(AliasRecord.name.in_(subq.subquery()))
             
             query = query.order_by(AliasRecord.name)
             query = query.limit(limit)
