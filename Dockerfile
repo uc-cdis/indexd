@@ -7,10 +7,10 @@ RUN apt-get update && apt-get install -y python-pip git python-dev postgresql po
 ADD . /indexd
 RUN cd /indexd && pip install .
 
-RUN mkdir -p /var/www/indexd/ && cp /indexd/wsgi.py /var/www/indexd/wsgi.py && cp /indexd/bin/indexd /var/www/indexd/indexd
+RUN mkdir -p /var/www/indexd/ && cp /indexd/wsgi.py /var/www/indexd/wsgi.py && cp /indexd/bin/indexd /var/www/indexd/indexd && touch /var/www/indexd/index.sq3 && touch /var/www/indexd/alias.sq3 && chmod 777 /var/www/indexd/*.sq3
 
 RUN echo '<VirtualHost *:80>\n\
-    WSGIDaemonProcess indexd processes=1 threads=3 python-path=/var/www/indexd/:/usr/bin/python\n\
+    WSGIDaemonProcess indexd processes=1 threads=3 python-path=/var/www/indexd/:/usr/bin/python home=/var/www/indexd\n\
     WSGIProcessGroup indexd\n\
     WSGIScriptAlias / /var/www/indexd/wsgi.py\n\
     DocumentRoot /var/www/indexd/\n\
