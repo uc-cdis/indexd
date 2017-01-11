@@ -120,13 +120,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             
             if hashes is not None and hashes:
                 for h,v in hashes.items():
-                    sub = session.query(IndexRecord)
-                    sub = sub.join(IndexRecord.hashes)
+                    sub = session.query(IndexRecordHash.did)
                     sub = sub.filter(and_(
                         IndexRecordHash.hash_type == h,
                         IndexRecordHash.hash_value == v,
                     ))
-                    query = query.intersect(sub)
+                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
             
             query = query.order_by(IndexRecord.did)
             query = query.limit(limit)
@@ -145,15 +144,14 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             
             for h,v in hashes.items():
                 # Select subset that matches given hash.
-                sub = session.query(IndexRecordUrl)
-                sub = sub.join(IndexRecordUrl.index_record).join(IndexRecord.hashes)
+                sub = session.query(IndexRecordHash.did)
                 sub = sub.filter(and_(
                     IndexRecordHash.hash_type == h,
                     IndexRecordHash.hash_value == v,
                 ))
                 
                 # Filter anything that does not match.
-                query = query.intersect(sub)
+                query = query.filter(IndexRecordUrl.did.in_(sub.subquery()))
             
             # Remove duplicates.
             query = query.distinct()
