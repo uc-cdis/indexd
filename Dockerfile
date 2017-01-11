@@ -7,15 +7,16 @@ RUN apt-get update && apt-get install -y python-pip git python-dev postgresql po
 ADD . /indexd
 RUN cd /indexd && pip install .
 
-RUN mkdir -p /var/www/apache-indexd/ && cp /indexd/wsgi.py /var/www/apache-indexd/wsgi.py
+RUN mkdir -p /var/www/indexd/ && cp /indexd/wsgi.py /var/www/indexd/wsgi.py && cp /indexd/bin/indexd /var/www/indexd/indexd
 
 RUN echo '<VirtualHost *:80>\n\
-    WSGIDaemonProcess /indexd processes=1 threads=3 python-path=/var/www/indexd/:/usr/bin/python\n\
-    WSGIProcessGroup /indexd\n\
+    WSGIDaemonProcess indexd processes=1 threads=3 python-path=/var/www/indexd/:/usr/bin/python\n\
+    WSGIProcessGroup indexd\n\
     WSGIScriptAlias / /var/www/indexd/wsgi.py\n\
+    DocumentRoot /var/www/indexd/\n\
     <Directory "/var/www/indexd/">\n\
         Header set Access-Control-Allow-Origin "*"\n\
-        WSGIProcessGroup /indexd\n\
+        WSGIProcessGroup indexd\n\
         WSGIApplicationGroup %{GLOBAL}\n\
         Options +ExecCGI\n\
         Order deny,allow\n\
@@ -33,6 +34,6 @@ RUN a2dissite 000-default.conf
 
 EXPOSE 80
 
-WORKDIR /var/www/apache-indexd
+WORKDIR /var/www/indexd
 
 CMD  /usr/sbin/apache2ctl -D FOREGROUND

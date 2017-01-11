@@ -24,7 +24,7 @@ pip install .
 
 ```bash
 docker build --build-arg https_proxy=http://cloud-proxy:3128 --build-arg http_proxy=http://cloud-proxy:3128 -t indexd .
-docker run -p 80:80 indexd
+docker run -d --name=indexd -p 80:80 indexd
 ```
 
 ## Configuration
