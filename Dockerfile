@@ -1,7 +1,7 @@
-FROM ubuntu:15.04
+FROM ubuntu:16.04
 MAINTAINER CDIS <cdissupport@opensciencedatacloud.org>
 
-RUN apt-get update && apt-get install -y python-pip git python-dev postgresql postgresql-client libpq-dev apache2 libapache2-mod-wsgi \ 
+RUN apt-get update && apt-get install -y python-pip git python-dev libpq-dev apache2 libapache2-mod-wsgi vim \ 
  && apt-get clean && apt-get autoremove \
  && rm -rf /var/lib/apt/lists/*
 ADD . /indexd
@@ -34,4 +34,4 @@ EXPOSE 80
 
 WORKDIR /var/www/indexd
 
-CMD  /usr/sbin/apache2ctl -D FOREGROUND
+CMD  /indexd/dockerrun.bash
