@@ -2,8 +2,10 @@ import re
 import flask
 import jsonschema
 
+from indexd.auth import authorize
+
+from indexd.errors import AuthError
 from indexd.errors import UserError
-from indexd.errors import PermissionError
 
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
@@ -149,6 +151,7 @@ def get_index_record(record):
     return flask.jsonify(ret), 200
 
 @blueprint.route('/index/', methods=['POST'])
+@authorize
 def post_index_record():
     '''
     Create a new record.
@@ -177,6 +180,7 @@ def post_index_record():
     return flask.jsonify(ret), 200
 
 @blueprint.route('/index/<record>', methods=['PUT'])
+@authorize
 def put_index_record(record):
     '''
     Update an existing record.
@@ -189,11 +193,12 @@ def put_index_record(record):
     if rev is None:
         raise UserError('no revision specified')
 
-    size = flask.request.json['size']
-    urls = flask.request.json['urls']
-    hashes = flask.request.json['hashes']
+    size = flask.request.json.get('size')
+    urls = flask.request.json.get('urls')
+    hashes = flask.request.json.get('hashes')
 
-    validate_hashes(**hashes)
+    if hashes is not None:
+        validate_hashes(**hashes)
 
     did, rev = blueprint.index_driver.update(record, rev,
         size=size,
@@ -209,6 +214,7 @@ def put_index_record(record):
     return flask.jsonify(ret), 200
 
 @blueprint.route('/index/<record>', methods=['DELETE'])
+@authorize
 def delete_index_record(record):
     '''
     Delete an existing sign.
@@ -233,8 +239,8 @@ def handle_multiple_records_error(err):
 def handle_user_error(err):
     return flask.jsonify(error=str(err)), 400
 
-@blueprint.errorhandler(PermissionError)
-def handle_permission_error(err):
+@blueprint.errorhandler(AuthError)
+def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
 
 @blueprint.errorhandler(RevisionMismatch)

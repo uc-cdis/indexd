@@ -6,13 +6,7 @@ import argparse
 
 import flask
 
-from indexd.index.blueprint import blueprint as indexd_index_blueprint
-from indexd.alias.blueprint import blueprint as indexd_alias_blueprint
-from indexd.blueprint import blueprint as cross_blueprint
-
-from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
-from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
-
+from indexd import get_app
 
 def setup_logging(log_levels, log_stream, **kwargs):
     '''
@@ -24,23 +18,7 @@ def setup_logging(log_levels, log_stream, **kwargs):
     )
 
 def main(host, port, debug_flask=False, **kwargs):
-
-    app = flask.Flask(__name__)
-
-    app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
-
-    app.config['INDEX'] = {
-        'driver':  SQLAlchemyIndexDriver('sqlite:///index.sq3'),
-    }
-
-    app.config['ALIAS'] = {
-        'driver': SQLAlchemyAliasDriver('sqlite:///alias.sq3'),
-    }
-
-    app.register_blueprint(indexd_index_blueprint)
-    app.register_blueprint(indexd_alias_blueprint)
-    app.register_blueprint(cross_blueprint)
-
+    app = get_app()
     app.run(
         host=host,
         port=port,

@@ -115,7 +115,6 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             
             if size is not None:
                 query = query.filter(AliasRecord.size == size)
-            print([i.name for i in query])
             
             if hashes is not None:
                 query = query.join(AliasRecord.hashes)

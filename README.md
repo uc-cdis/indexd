@@ -20,6 +20,13 @@ To install the prototype implementation, simply run
 pip install .
 ```
 
+## Installation with Docker
+
+```bash
+docker build --build-arg https_proxy=http://cloud-proxy:3128 --build-arg http_proxy=http://cloud-proxy:3128 -t indexd .
+docker run -d --name=indexd -p 80:80 indexd
+```
+
 ## Configuration
 
 At present, all configuration options are hard-coded in the prototype. This
