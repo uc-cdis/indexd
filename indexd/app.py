@@ -18,9 +18,16 @@ def get_app():
 
     if 'INDEXD_SETTINGS' in os.environ:
         sys.path.append(os.environ['INDEXD_SETTINGS'])
+
+    has_local_settings = True
     try:
         from local_settings import settings
+    except ImportError:
+	has_local_settings = False
+
+    if has_local_settings:
         app_init(app, settings)
-    except Exception as e:
+    else:
         app_init(app) 
+
     return app
