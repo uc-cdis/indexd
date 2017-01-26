@@ -23,7 +23,7 @@ def get_app():
     try:
         from local_settings import settings
     except ImportError:
-	has_local_settings = False
+        has_local_settings = False
 
     if has_local_settings:
         app_init(app, settings)
