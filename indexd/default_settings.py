@@ -13,6 +13,6 @@ CONFIG['ALIAS'] = {
     'driver': SQLAlchemyAliasDriver('sqlite:///alias.sq3'),
 }
 
-AUTH = SQLAlchemyAuthDriver('sqlite:///auth.sq3').auth
+AUTH = SQLAlchemyAuthDriver('sqlite:///auth.sq3')
 
 settings = {'config': CONFIG, 'auth': AUTH}
