@@ -69,6 +69,26 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         '''
         return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
+    def add(self, username, password):
+        password = self.digest(password)
+        with self.session as session:
+            if (session.query(AuthRecord)
+                .filter(AuthRecord.username == username)
+                .first()):
+                raise AuthError('User {} already exists'.format(username))
+
+            new_record = AuthRecord(
+                username=username, password=password)
+            session.add(new_record)
+
+    def delete(self, username):
+        with self.session as session:
+            user = session.query(AuthRecord).filter(
+                AuthRecord.username == username).first()
+            if not user:
+                raise AuthError("User {} doesn't exist".format(username))
+            session.delete(user)
+
     def auth(self, username, password):
         '''
         Returns a dict of user information.

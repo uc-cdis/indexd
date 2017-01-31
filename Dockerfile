@@ -12,6 +12,7 @@ RUN mkdir -p /var/www/indexd/ && chmod 777 /var/www/indexd && cp /indexd/wsgi.py
 RUN echo '<VirtualHost *:80>\n\
     WSGIDaemonProcess indexd processes=1 threads=3 python-path=/var/www/indexd/:/usr/bin/python home=/var/www/indexd\n\
     WSGIScriptAlias / /var/www/indexd/wsgi.py\n\
+    WSGIPassAuthorization On\n\
     DocumentRoot /var/www/indexd/\n\
     <Directory "/var/www/indexd/">\n\
         Header set Access-Control-Allow-Origin "*"\n\

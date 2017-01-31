@@ -15,3 +15,19 @@ class AuthDriverABC(object):
         Raises AuthError otherwise.
         '''
         raise NotImplementedError('TODO')
+
+    @abc.abstractmethod
+    def add(self, username, password):
+        '''
+        Create an user.
+        Raises AuthError if user already exists.
+        '''
+        raise NotImplementedError('TODO')
+
+    @abc.abstractmethod
+    def delete(self, username):
+        '''
+        Delete an user
+        Raises AuthError if user doesn't exist.
+        '''
+        raise NotImplementedError('TODO')
