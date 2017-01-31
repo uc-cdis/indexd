@@ -166,11 +166,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         '''
         Creates a new record given urls and hashes.
         '''
-        if form not in index.FORMS:
-            raise ValueError('form must be one of: %s' % index.FORMS)
-        
-        if size is not None and size < 0:
-            raise ValueError('size must be non-negative')
         
         with self.session as session:
             record = IndexRecord()
