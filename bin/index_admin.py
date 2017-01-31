@@ -27,7 +27,7 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--path',
-        default='/var/www/',
+        default='/var/www/indexd/',
         help='path to find local_settings.py',
     )
     subparsers = parser.add_subparsers(title='action', dest='action')
