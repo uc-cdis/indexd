@@ -8,7 +8,6 @@ from indexd.errors import AuthError
 from indexd.errors import UserError
 
 from .schema import PUT_RECORD_SCHEMA
-from .schema import POST_RECORD_SCHEMA
 
 from .errors import NoRecordFound
 from .errors import MultipleRecordsFound
@@ -114,9 +113,6 @@ def put_alias_record(record):
     metastring = flask.request.json.get('metadata')
     host_authorities = flask.request.json.get('host_authorities')
     keeper_authority = flask.request.json.get('keeper_authority')
-
-    if hashes is not None:
-        validate_hashes(**hashes)
 
     record, rev = blueprint.alias_driver.upsert(record, rev,
         size=size,
