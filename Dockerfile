@@ -35,9 +35,6 @@ EXPOSE 80
 
 WORKDIR /var/www/indexd
 
-# directory to unzip dependencies' eggs
-RUN mkdir /var/www/.python-eggs
-RUN chown www-data /var/www/.python-eggs
 
 # this allows container to be restarted
 RUN rm -f /var/run/apache2/apache2.pid
