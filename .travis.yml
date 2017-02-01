@@ -7,6 +7,6 @@ python:
 sudo: false
 
 install:
-    - "pip install . --force --upgrade"
+    - "python setup.py install --force"
 
 script: "py.test -vv tests"
