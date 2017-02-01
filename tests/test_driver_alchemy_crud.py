@@ -266,26 +266,6 @@ def test_driver_add_with_hashes():
         assert hashes == new_hashes, 'record hashes mismatch'
 
 @util.removes('index.sq3')
-def test_driver_add_fails_with_invalid_forms():
-    '''
-    Tests creation of a record with invalid form will fail.
-    '''
-    driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
-
-    with pytest.raises(ValueError):
-        driver.add('this_is_not_a_valid_form')
-
-@util.removes('index.sq3')
-def test_driver_add_fails_with_invalid_sizes():
-    '''
-    Tests creation of a record with invalid size will fail.
-    '''
-    driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
-
-    with pytest.raises(ValueError):
-        driver.add('object', size=-1)
-
-@util.removes('index.sq3')
 def test_driver_get_record():
     '''
     Tests retrieval of a record.
