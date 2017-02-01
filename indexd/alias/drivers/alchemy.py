@@ -136,11 +136,6 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         '''
         Updates or inserts a new record.
         '''
-        if release is not None and release not in alias.RELEASES:
-            raise ValueError('release must be one of: %s' % alias.RELEASES)
-        
-        if size is not None and size < 0:
-            raise ValueError('size must be non-negative')
         
         with self.session as session:
             query = session.query(AliasRecord)
