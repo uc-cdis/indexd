@@ -24,7 +24,14 @@ pip install .
 
 ```bash
 docker build --build-arg https_proxy=http://cloud-proxy:3128 --build-arg http_proxy=http://cloud-proxy:3128 -t indexd .
+
 docker run -d --name=indexd -p 80:80 indexd
+docker exec indexd python /indexd/bin/index_admin.py create --username $username --password $password
+docker exec indexd python /indexd/bin/index_admin.py delete --username $username
+```
+To run docker with an alternative settings file:
+```
+docker run -d -v local_settings.py:/var/www/indexd/local_settings.py --name=indexd -p 80:80 indexd
 ```
 
 ## Configuration
