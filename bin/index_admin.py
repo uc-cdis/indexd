@@ -4,7 +4,11 @@ import sys
 
 def main(path, action=None, username=None, password=None):
     sys.path.append(path)
-    from local_settings import settings
+    try:
+        from local_settings import settings
+    except ImportError:
+        print "Can't import local_settings, import from default"
+        from indexd.default_settings import settings
     driver = settings['auth']
     if action == 'create':
         try:
@@ -27,7 +31,7 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--path',
-        default='/var/www/',
+        default='/var/www/indexd/',
         help='path to find local_settings.py',
     )
     subparsers = parser.add_subparsers(title='action', dest='action')
