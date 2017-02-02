@@ -116,7 +116,7 @@ a copy of the index running on localhost on port 8080.
 
 ### Create an index
 
-POST /index/
+POST /index/   
 Content-Type: Application/json
 ```
 {
@@ -139,7 +139,7 @@ Curl example:
 curl http://localhost/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
 ```
 
-***Response***
+***Response***   
 HTTP/1.1 200 OK
 ```
 {
@@ -157,7 +157,7 @@ HTTP/1.1 200 OK
 
 ### Update an index
 
-PUT /index/UUID?rev=REVSTRING
+PUT /index/UUID?rev=REVSTRING   
 Content-Type: Application/json
 ```
 {
@@ -180,7 +180,7 @@ Curl example:
 curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e?rev=80cf1989 -u test:test -H "Content-type: application/json" -X PUT -d '{"rev": "80cf1989","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
 ```
 
-***Response***
+***Response***   
 HTTP/1.1 200 OK
 ```
 {
@@ -205,7 +205,7 @@ Curl example:
 curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e
 ```
 
-***Response***
+***Response***   
 HTTP/1.1 200 OK
 ```
 {
@@ -236,12 +236,12 @@ Curl example:
 curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e?rev=80cf1989 -u test:test -X DELETE 
 ```
 
-***Response***
+***Response***   
 HTTP/1.1 200 OK
 
 ### Create an alias
 
-PUT /alias/ALIASSTRING 
+PUT /alias/ALIASSTRING   
 Content-Type: Application/json   
 ```
 {
@@ -268,7 +268,7 @@ Curl example:
 curl "http://localhost/alias/ark:/31807/DC1-TESTARK" -u test:test -H "Content-type: application/json" -X PUT -d '{"release": "public", "keeper_authority": "OCC", "host_authority": ["OCC"], "size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "b9942cf415384b27cadf1f4d2d682e5a"}}'
 ```
 
-***Response***
+***Response***   
 HTTP/1.1 200 OK
 ```json
 {
@@ -279,7 +279,7 @@ HTTP/1.1 200 OK
 
 ### Update an alias
 
-PUT /alias/ALIASSTRING?rev=REVSTRING
+PUT /alias/ALIASSTRING?rev=REVSTRING   
 Content-Type: Application/json
 ```
 {
@@ -306,7 +306,7 @@ Curl example:
 curl "http://localhost/alias/ark:/31807/DC1-TESTARK?rev=f93a62e4" -u test:test -H "Content-type: application/json" -X PUT -d '{"release": "public", "keeper_authority": "OCC", "host_authority": ["OCC", "GDC"], "size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "b9942cf415384b27cadf1f4d2d682e5a"}}'
 ```
 
-***Response***
+***Response***   
 HTTP/1.1 200 OK
 ```
 {
@@ -329,7 +329,7 @@ Curl example:
 curl http://localhost/alias/ark:/31807/DC1-TESTARK
 ```
 
-***Response***
+***Response***   
 HTTP/1.1 200 OK
 ```
 {
@@ -364,5 +364,5 @@ Curl example:
 curl http://localhost/alias/ark:/31807/DC1-TESTARK?rev=00898776 -u test:test -X DELETE
 ```
 
-***Response***
+***Response***   
 HTTP/1.1 200 OK
