@@ -67,44 +67,6 @@ sources in a secure manner.
 Additional metadata that is store in index records include the size of the
 data as well as the type.
 
-Records adhere to the following json-schema:
-
-```json
-{
-    "properties": {
-        "id": {
-            "type": "string",
-            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
-        },
-        "rev": {"type": "string"},
-        "size": {"type": "integer"},
-        "hash": {
-            "type": "object",
-            "additionalProperties": true,
-        },
-        "type": { "enum": ["object", "collection", "multipart"] }
-    },
-    "required": ["size","hash"],
-    "additionalProperties": false
-}
-```
-
-An example of one such record:
-
-```json
-{
-    "id": "119d292f-b786-421e-a8dd-72208e77c269",
-    "rev": "dbee8496-5d03-4fbd-9115-6871c4ebf59f",
-    "size": 512,
-    "hash": {
-        "md5": "e2a3a55aa1596f87f502c8ff29d74244",
-        "sha1": "cb4e5ba5d30fd4667beba95bf73ea9d76ad3dcd4",
-        "sha256": "20b599fa98f5f98e89e128ba6de3b65ff753c662721f368649fb8d7e7d4933b0"
-    },
-    "type": "object"
-}
-```
-
 ## Making Queries
 
 All queries to the index are made through HTTP using JSON data payloads.
@@ -114,22 +76,259 @@ number of languages.
 The following examples are all given using the curl command line utility, with
 a copy of the index running on localhost on port 8080.
 
-### Create a record
+### Create an index
 
-***TODO***
+POST /index/   
+Content-Type: application/json
+```
+{
+  "form": "object",
+  "size": 123,
+  "urls": ["s3://endpointurl/bucket/key"],
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
+}
+```
 
-### Name a record
+| Parameters        | Values           |
+| -----:|:-----|
+| form      | Can be one of 'object', 'container', 'multipart' |
+| size      |  File size in bytes (commonly computed via wc -c filename) |
+| urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
 
-***TODO***
+Curl example:   
+```
+curl http://localhost/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
+```
 
-### Retrieve a record
+***Response***   
+HTTP/1.1 200 OK
+```
+{
+  "did": "82eb97e1-7c2f-4a73-9b65-ad08ef81379e",
+  "rev": "80cf1989"
+}
+```
 
-***TODO***
+| Parameters        | Values           |
+| ----:|:----|
+| did     | Internal UUID assigned by the index service |
+| rev     | 8-digit hex revision ID assigned by the index service |
 
-### Update a record
+[Full schema for creating an index](indexd/index/schema.py)
 
-***TODO***
+### Update an index
 
-### Delete a record
+PUT /index/UUID?rev=REVSTRING   
+Content-Type: application/json
+```
+{
+  "rev": "80cf1989",
+  "size": 123,
+  "urls": ["s3://endpointurl/bucket/key"],
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
+}
+```
 
-***TODO***
+| Parameters        | Values           |
+| -----:|:-----|
+| rev      | Rev string of the index you wish to update |
+| size      |  File size in bytes (commonly computed via wc -c filename) |
+| urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+
+Curl example:
+```
+curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e?rev=80cf1989 -u test:test -H "Content-type: application/json" -X PUT -d '{"rev": "80cf1989","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
+```
+
+***Response***   
+HTTP/1.1 200 OK
+```
+{
+  "did": "82eb97e1-7c2f-4a73-9b65-ad08ef81379e",
+  "rev": "80cf1989"
+}
+```
+
+| Parameters        | Values           |
+| ----:|:----|
+| did     | Internal UUID assigned by the index service |
+| rev     | 8-digit hex revision ID assigned by the index service |
+
+[Full schema for updating an index](indexd/index/schema.py)
+
+### Retrieve an index
+
+GET /index/UUID   
+
+Curl example:
+```
+curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e
+```
+
+***Response***   
+HTTP/1.1 200 OK
+```
+{
+  "did": "82eb97e1-7c2f-4a73-9b65-ad08ef81379e",
+  "rev": "80cf1989"
+  "form": "object",
+  "size": 123,
+  "urls": ["s3://endpointurl/bucket/key"],
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
+}
+```
+
+| Parameters        | Values           |
+| ----:|:----|
+| did     | Internal UUID assigned by the index service |
+| rev     | 8-digit hex revision ID assigned by the index service |
+| form      | Can be one of 'object', 'container', 'multipart' |
+| size      |  File size in bytes |
+| urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+
+### Delete an index
+
+DELETE /index/UUID?rev=REVSTRING
+
+Curl example:
+```
+curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e?rev=80cf1989 -u test:test -X DELETE 
+```
+
+***Response***   
+HTTP/1.1 200 OK
+
+### Create an alias
+
+PUT /alias/ALIASSTRING   
+Content-Type: application/json   
+```
+{
+  "size": 123,
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+  "release": "public",
+  "keeper_authority": "OCC",
+  "host_authority": ["OCC"],
+  "metadata": "gov.noaa.ncdc:C00681"
+}
+```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| size      |  File size in bytes (commonly computed via wc -c filename) |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha1, sha256, sha512 hash types |
+| release      | How has this data been released? Options are public, private, and controlled |
+| keeper_authority  | Who is the authority keeping this metadata/index up to date? |
+| host_authority | Who are the authorities hosting this data? |
+| metadata | String which can reference further metdata about the dataset |
+
+Curl example:   
+```
+curl "http://localhost/alias/ark:/31807/DC1-TESTARK" -u test:test -H "Content-type: application/json" -X PUT -d '{"release": "public", "keeper_authority": "OCC", "host_authority": ["OCC"], "size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "b9942cf415384b27cadf1f4d2d682e5a"}}'
+```
+
+***Response***   
+HTTP/1.1 200 OK
+```json
+{
+  "name": "ark:/31807/DC1-TESTARK",
+  "rev": "f93a62e4"
+}
+```
+
+[Full schema for creating an alias](indexd/alias/schema.py)
+
+### Update an alias
+
+PUT /alias/ALIASSTRING?rev=REVSTRING   
+Content-Type: application/json
+```
+{
+  "size": 123,
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+  "release": "public",
+  "keeper_authority": "OCC",
+  "host_authority": ["OCC"],
+  "metadata": "gov.noaa.ncdc:C00681"
+}
+```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| size      |  File size in bytes (commonly computed via wc -c filename) |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha1, sha256, sha512 hash types |
+| release      | How has this data been released? Options are public, private, and controlled |
+| keeper_authority  | Who is the authority keeping this metadata/index up to date? |
+| host_authority | Who are the authorities hosting this data? |
+| metadata | String which can reference further metdata about the dataset |
+
+Curl example:
+```
+curl "http://localhost/alias/ark:/31807/DC1-TESTARK?rev=f93a62e4" -u test:test -H "Content-type: application/json" -X PUT -d '{"release": "public", "keeper_authority": "OCC", "host_authority": ["OCC", "GDC"], "size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "b9942cf415384b27cadf1f4d2d682e5a"}}'
+```
+
+***Response***   
+HTTP/1.1 200 OK
+```
+{
+  "name": "ark:/31807/DC1-TESTARK",
+  "rev": "00898776"
+}
+```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| name      |  The alias string you specified |
+| rev    |  8-digit hex revision ID assigned by the alias service |
+
+[Full schema for updating an alias](indexd/alias/schema.py)
+
+### Retrieve an alias
+
+GET /index/ALIASSTRING
+
+Curl example:
+```
+curl http://localhost/alias/ark:/31807/DC1-TESTARK
+```
+
+***Response***   
+HTTP/1.1 200 OK
+```
+{
+  "name": "ark:/31807/DC1-TESTARK",
+  "rev": "00898776"
+  "size": 123,
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+  "release": "public",
+  "keeper_authority": "OCC",
+  "host_authority": ["OCC"],
+  "metadata": "gov.noaa.ncdc:C00681"
+}
+```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| name      |  The alias string you specified |
+| rev    | 8-digit hex revision ID assigned by the alias service |
+| size      |  File size in bytes (commonly computed via wc -c filename) |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha1, sha256, sha512 hash types |
+| release      | How has this data been released? Options are public, private, and controlled |
+| keeper_authority  | Who is the authority keeping this metadata/index up to date? |
+| host_authority | Who are the authorities hosting this data? |
+| metadata | String which can reference further metdata about the dataset |
+
+### Delete an alias
+
+DELETE /index/UUID?rev=REVSTRING
+
+Curl example:
+```
+curl http://localhost/alias/ark:/31807/DC1-TESTARK?rev=00898776 -u test:test -X DELETE
+```
+
+***Response***   
+HTTP/1.1 200 OK
