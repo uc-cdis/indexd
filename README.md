@@ -134,6 +134,7 @@ Content-Type: Application/json
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
 
+Curl example:   
 ```
 curl http://localhost/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
 ```
@@ -152,24 +153,104 @@ HTTP/1.1 200 OK
 | did     | Internal UUID assigned by the index service |
 | rev     | 8-character internal UUID assigned by the index service |
 
+[Full schema for creating an index](indexd/index/schema.py)
+
 ### Update an index
+
+PUT /index/UUID?rev=REVSTRING
+Content-Type: Application/json
+```
+{
+  "rev": "80cf1989",
+  "size": 123,
+  "urls": ["s3://endpointurl/bucket/key"],
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
+}
+```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| rev      | Rev string of the index you wish to update |
+| size      |  File size in bytes (commonly computed via wc -c filename) |
+| urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+
+Curl example:
+```
+curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e?rev=80cf1989 -u test:test -H "Content-type: application/json" -X PUT -d '{"rev": "80cf1989","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
+```
+
+***Response***
+HTTP/1.1 200 OK
+```
+{
+  "did": "82eb97e1-7c2f-4a73-9b65-ad08ef81379e",
+  "rev": "80cf1989"
+}
+```
+
+| Parameters        | Values           |
+| ----:|:----|
+| did     | Internal UUID assigned by the index service |
+| rev     | 8-character internal UUID assigned by the index service |
+
+[Full schema for creating an index](indexd/index/schema.py)
 
 ### Retrieve an index
 
+GET /index/UUID   
+
+Curl example:
+```
+curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e
+```
+
+***Response***
+HTTP/1.1 200 OK
+```
+{
+  "did": "82eb97e1-7c2f-4a73-9b65-ad08ef81379e",
+  "rev": "80cf1989"
+  "form": "object",
+  "size": 123,
+  "urls": ["s3://endpointurl/bucket/key"],
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
+}
+```
+
+| Parameters        | Values           |
+| ----:|:----|
+| did     | Internal UUID assigned by the index service |
+| rev     | 8-character internal UUID assigned by the index service |
+| form      | Can be one of 'object', 'container', 'multipart' |
+| size      |  File size in bytes |
+| urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+
 ### Delete an index
+
+DELETE /index/UUID?rev=REVSTRING
+
+Curl example:
+```
+curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e?rev=80cf1989 -u test:test -X DELETE 
+```
+
+***Response***
+HTTP/1.1 200 OK
 
 ### Create an alias
 
-PUT /alias/   
+PUT /alias/ALIASSTRING 
 Content-Type: Application/json   
 ```
 {
-  'size': 123,
-  'hashes': {'md5': 8b9942cf415384b27cadf1f4d2d682e5},
-  'release': 'public',
-  'keeper_authority': 'OCC',
-  'host_authority': ['OCC'],
-  'metadata': 'gov.noaa.ncdc:C00681'
+  "size": 123,
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+  "release": "public",
+  "keeper_authority": "OCC",
+  "host_authority": ["OCC"],
+  "metadata": "gov.noaa.ncdc:C00681"
 }
 ```
 
@@ -182,23 +263,106 @@ Content-Type: Application/json
 | host_authority | Who are the authorities hosting this data? |
 | metadata | String which can reference further metdata about the dataset |
 
+Curl example:   
+```
+curl "http://localhost/alias/ark:/31807/DC1-TESTARK" -u test:test -H "Content-type: application/json" -X PUT -d '{"release": "public", "keeper_authority": "OCC", "host_authority": ["OCC"], "size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "b9942cf415384b27cadf1f4d2d682e5a"}}'
+```
 
 ***Response***
 HTTP/1.1 200 OK
 ```json
 {
-  "did": "82eb97e1-7c2f-4a73-9b65-ad08ef81379e",
-  "rev": "80cf1989"
+  "name": "ark:/31807/DC1-TESTARK",
+  "rev": "f93a62e4"
 }
 ```
 
 ### Update an alias
 
-***TODO***
+PUT /alias/ALIASSTRING?rev=REVSTRING
+Content-Type: Application/json
+```
+{
+  "size": 123,
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+  "release": "public",
+  "keeper_authority": "OCC",
+  "host_authority": ["OCC"],
+  "metadata": "gov.noaa.ncdc:C00681"
+}
+```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| size      |  File size in bytes (commonly computed via wc -c filename) |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha1, sha256, sha512 hash types |
+| release      | How has this data been released? Options are public, private, and controlled |
+| keeper_authority  | Who is the authority keeping this metadata/index up to date? |
+| host_authority | Who are the authorities hosting this data? |
+| metadata | String which can reference further metdata about the dataset |
+
+Curl example:
+```
+curl "http://localhost/alias/ark:/31807/DC1-TESTARK?rev=f93a62e4" -u test:test -H "Content-type: application/json" -X PUT -d '{"release": "public", "keeper_authority": "OCC", "host_authority": ["OCC", "GDC"], "size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "b9942cf415384b27cadf1f4d2d682e5a"}}'
+```
+
+***Response***
+HTTP/1.1 200 OK
+```
+{
+  "name": "ark:/31807/DC1-TESTARK",
+  "rev": "00898776"
+}
+```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| name      |  The alias string you specified |
+| rev    |  8-character internal UUID assigned by the index service |
 
 ### Retrieve an alias
 
+GET /index/ALIASSTRING
+
+Curl example:
+```
+curl http://localhost/alias/ark:/31807/DC1-TESTARK
+```
+
+***Response***
+HTTP/1.1 200 OK
+```
+{
+  "name": "ark:/31807/DC1-TESTARK",
+  "rev": "00898776"
+  "size": 123,
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+  "release": "public",
+  "keeper_authority": "OCC",
+  "host_authority": ["OCC"],
+  "metadata": "gov.noaa.ncdc:C00681"
+}
+```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| name      |  The alias string you specified |
+| rev    |  8-character internal UUID assigned by the index service |
+| size      |  File size in bytes (commonly computed via wc -c filename) |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha1, sha256, sha512 hash types |
+| release      | How has this data been released? Options are public, private, and controlled |
+| keeper_authority  | Who is the authority keeping this metadata/index up to date? |
+| host_authority | Who are the authorities hosting this data? |
+| metadata | String which can reference further metdata about the dataset |
 
 ### Delete an alias
 
-***TODO***
+DELETE /index/UUID?rev=REVSTRING
+
+Curl example:
+```
+curl http://localhost/alias/ark:/31807/DC1-TESTARK?rev=00898776 -u test:test -X DELETE
+```
+
+***Response***
+HTTP/1.1 200 OK
