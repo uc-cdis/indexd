@@ -28,12 +28,13 @@ def test_index_update(client, user):
         '/index/',
         data=json.dumps(data),
         headers=user)
+    assert r.status_code == 200
     assert 'did' in r.json
     did = r.json['did']
     assert 'rev' in r.json
     rev = r.json['rev']
     dataNew = {
-        'form': 'object',
+        'rev': rev,
         'size': 456,
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
@@ -44,6 +45,29 @@ def test_index_update(client, user):
     assert r2.status_code == 200
     assert 'rev' in r2.json
     assert r2.json['rev'] != rev
+
+def test_index_delete(client, user):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+    assert r.status_code == 200
+    assert 'did' in r.json
+    did = r.json['did']
+    assert 'rev' in r.json
+    rev = r.json['rev']
+    r = client.get('/index/' + did)
+    assert r.status_code == 200
+    r = client.delete('/index/' + did + '?rev=' + rev, headers=user)
+    assert r.status_code == 200
+    r = client.get('/index/' + did)
+    assert r.status_code == 404
 
 def test_alias_list(client):
     assert client.get('/alias/').status_code == 200
