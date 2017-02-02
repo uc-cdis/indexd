@@ -17,6 +17,33 @@ def test_index_create(client, user):
         data=json.dumps(data),
         headers=user).status_code == 200
 
+def test_index_update(client, user):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+    assert 'did' in r.json
+    did = r.json['did']
+    assert 'rev' in r.json
+    rev = r.json['rev']
+    dataNew = {
+        'form': 'object',
+        'size': 456,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    r2 = client.put(
+        '/index/' + did + '?rev=' + rev,
+        data=json.dumps(dataNew),
+        headers=user)
+    assert r2.status_code == 200
+    assert 'rev' in r2.json
+    assert r2.json['rev'] != rev
 
 def test_alias_list(client):
     assert client.get('/alias/').status_code == 200
