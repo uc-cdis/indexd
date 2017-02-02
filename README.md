@@ -117,7 +117,7 @@ a copy of the index running on localhost on port 8080.
 ### Create an index
 
 POST /index/   
-Content-Type: Application/json
+Content-Type: application/json
 ```
 {
   "form": "object",
@@ -151,14 +151,14 @@ HTTP/1.1 200 OK
 | Parameters        | Values           |
 | ----:|:----|
 | did     | Internal UUID assigned by the index service |
-| rev     | 8-character internal UUID assigned by the index service |
+| rev     | 8-digit hex revision ID assigned by the index service |
 
 [Full schema for creating an index](indexd/index/schema.py)
 
 ### Update an index
 
 PUT /index/UUID?rev=REVSTRING   
-Content-Type: Application/json
+Content-Type: application/json
 ```
 {
   "rev": "80cf1989",
@@ -192,9 +192,9 @@ HTTP/1.1 200 OK
 | Parameters        | Values           |
 | ----:|:----|
 | did     | Internal UUID assigned by the index service |
-| rev     | 8-character internal UUID assigned by the index service |
+| rev     | 8-digit hex revision ID assigned by the index service |
 
-[Full schema for creating an index](indexd/index/schema.py)
+[Full schema for updating an index](indexd/index/schema.py)
 
 ### Retrieve an index
 
@@ -221,7 +221,7 @@ HTTP/1.1 200 OK
 | Parameters        | Values           |
 | ----:|:----|
 | did     | Internal UUID assigned by the index service |
-| rev     | 8-character internal UUID assigned by the index service |
+| rev     | 8-digit hex revision ID assigned by the index service |
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
@@ -242,7 +242,7 @@ HTTP/1.1 200 OK
 ### Create an alias
 
 PUT /alias/ALIASSTRING   
-Content-Type: Application/json   
+Content-Type: application/json   
 ```
 {
   "size": 123,
@@ -277,10 +277,12 @@ HTTP/1.1 200 OK
 }
 ```
 
+[Full schema for creating an alias](indexd/alias/schema.py)
+
 ### Update an alias
 
 PUT /alias/ALIASSTRING?rev=REVSTRING   
-Content-Type: Application/json
+Content-Type: application/json
 ```
 {
   "size": 123,
@@ -318,7 +320,9 @@ HTTP/1.1 200 OK
 | Parameters        | Values           |
 | -----:|:-----|
 | name      |  The alias string you specified |
-| rev    |  8-character internal UUID assigned by the index service |
+| rev    |  8-digit hex revision ID assigned by the alias service |
+
+[Full schema for updating an alias](indexd/alias/schema.py)
 
 ### Retrieve an alias
 
@@ -347,7 +351,7 @@ HTTP/1.1 200 OK
 | Parameters        | Values           |
 | -----:|:-----|
 | name      |  The alias string you specified |
-| rev    |  8-character internal UUID assigned by the index service |
+| rev    | 8-digit hex revision ID assigned by the alias service |
 | size      |  File size in bytes (commonly computed via wc -c filename) |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha1, sha256, sha512 hash types |
 | release      | How has this data been released? Options are public, private, and controlled |
