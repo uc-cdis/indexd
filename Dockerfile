@@ -1,11 +1,11 @@
 FROM ubuntu:16.04
 MAINTAINER CDIS <cdissupport@opensciencedatacloud.org>
 
-RUN apt-get update && apt-get install -y python-pip git python-dev libpq-dev apache2 libapache2-mod-wsgi vim \ 
+RUN apt-get update && apt-get install -y sudo python-pip git python-dev libpq-dev apache2 libapache2-mod-wsgi vim \ 
  && apt-get clean && apt-get autoremove \
  && rm -rf /var/lib/apt/lists/*
 ADD . /indexd
-RUN cd /indexd && pip install .
+RUN cd /indexd && python setup.py install
 
 RUN mkdir -p /var/www/indexd/ && chmod 777 /var/www/indexd && cp /indexd/wsgi.py /var/www/indexd/wsgi.py && cp /indexd/bin/indexd /var/www/indexd/indexd
 
@@ -34,6 +34,7 @@ RUN a2dissite 000-default.conf
 EXPOSE 80
 
 WORKDIR /var/www/indexd
+
 
 # this allows container to be restarted
 RUN rm -f /var/run/apache2/apache2.pid
