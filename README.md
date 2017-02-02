@@ -67,44 +67,6 @@ sources in a secure manner.
 Additional metadata that is store in index records include the size of the
 data as well as the type.
 
-Records adhere to the following json-schema:
-
-```json
-{
-    "properties": {
-        "id": {
-            "type": "string",
-            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
-        },
-        "rev": {"type": "string"},
-        "size": {"type": "integer"},
-        "hash": {
-            "type": "object",
-            "additionalProperties": true,
-        },
-        "type": { "enum": ["object", "collection", "multipart"] }
-    },
-    "required": ["size","hash"],
-    "additionalProperties": false
-}
-```
-
-An example of one such record:
-
-```json
-{
-    "id": "119d292f-b786-421e-a8dd-72208e77c269",
-    "rev": "dbee8496-5d03-4fbd-9115-6871c4ebf59f",
-    "size": 512,
-    "hash": {
-        "md5": "e2a3a55aa1596f87f502c8ff29d74244",
-        "sha1": "cb4e5ba5d30fd4667beba95bf73ea9d76ad3dcd4",
-        "sha256": "20b599fa98f5f98e89e128ba6de3b65ff753c662721f368649fb8d7e7d4933b0"
-    },
-    "type": "object"
-}
-```
-
 ## Making Queries
 
 All queries to the index are made through HTTP using JSON data payloads.
