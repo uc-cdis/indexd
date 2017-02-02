@@ -93,3 +93,63 @@ def test_alias_create(client, user):
     aliases = client.get('/alias/').json['aliases']
     assert len(aliases) == 1
     assert aliases[0] == ark
+
+def test_alias_update(client, user):
+    data = {
+        'size': 123,
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
+        'release': 'private',
+        'keeper_authority': 'CRI', 'host_authority': ['PDC'],
+        'urls': [],
+    }
+    ark = 'ark:/31807/TEST-abc'
+
+    r = client.put(
+        '/alias/' + ark,
+        data=json.dumps(data),
+        headers=user)
+    assert r.status_code == 200
+    assert 'rev' in r.json
+    rev = r.json['rev']
+
+    dataNew = {
+        'size': 456,
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
+        'release': 'private',
+        'keeper_authority': 'CRI', 'host_authority': ['PDC'],
+        'urls': [],
+    }
+    r = client.put(
+        '/alias/' + ark + '?rev=' + rev,
+        data=json.dumps(dataNew),
+        headers=user)
+    assert r.status_code == 200
+    assert r.json['rev'] != rev
+    
+def test_alias_delete(client, user):
+    data = {
+        'size': 123,
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
+        'release': 'private',
+        'keeper_authority': 'CRI', 'host_authority': ['PDC'],
+        'urls': [],
+    }
+    ark = 'ark:/31807/TEST-abc'
+
+    r = client.put(
+        '/alias/' + ark,
+        data=json.dumps(data),
+        headers=user)
+    assert r.status_code == 200
+    assert 'rev' in r.json
+    rev = r.json['rev']
+
+    r = client.delete(
+        '/alias/' + ark + '?rev=' + rev,
+        headers=user)
+    assert r.status_code == 200
+
+    r = client.get(
+        '/alias/' + ark,
+        headers=user)
+    assert r.status_code == 404
