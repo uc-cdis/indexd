@@ -1,4 +1,3 @@
-import json
 import uuid
 
 from contextlib import contextmanager
@@ -15,8 +14,6 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 
-from indexd import index
-
 from indexd.index.driver import IndexDriverABC
 
 from indexd.index.errors import NoRecordFound
@@ -25,6 +22,7 @@ from indexd.index.errors import RevisionMismatch
 
 
 Base = declarative_base()
+
 
 class IndexRecord(Base):
     '''
@@ -37,15 +35,18 @@ class IndexRecord(Base):
     form = Column(String)
     size = Column(Integer)
 
-    urls = relationship('IndexRecordUrl',
+    urls = relationship(
+        'IndexRecordUrl',
         backref='index_record',
         cascade='all, delete-orphan',
     )
 
-    hashes = relationship('IndexRecordHash',
+    hashes = relationship(
+        'IndexRecordHash',
         backref='index_record',
         cascade='all, delete-orphan',
     )
+
 
 class IndexRecordUrl(Base):
     '''
@@ -55,6 +56,7 @@ class IndexRecordUrl(Base):
 
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
     url = Column(String, primary_key=True)
+
 
 class IndexRecordHash(Base):
     '''
@@ -66,6 +68,7 @@ class IndexRecordHash(Base):
     hash_type = Column(String, primary_key=True)
     hash_value = Column(String)
 
+
 class SQLAlchemyIndexDriver(IndexDriverABC):
     '''
     SQLAlchemy implementation of index driver.
@@ -76,10 +79,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Initialize the SQLAlchemy database driver.
         '''
         self.engine = create_engine(conn, **config)
-        
+
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
-        
+
         self.Session = sessionmaker(bind=self.engine)
 
     @property
@@ -89,10 +92,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Provide a transactional scope around a series of operations.
         '''
         session = self.Session()
-        
+
         yield session
-        
-        try: session.commit()
+
+        try:
+            session.commit()
         except:
             session.rollback()
             raise
@@ -106,30 +110,30 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         # TODO add dids to filter on
         with self.session as session:
             query = session.query(IndexRecord)
-            
+
             if start is not None:
                 query = query.filter(IndexRecord.did > start)
-            
+
             if size is not None:
                 query = query.filter(IndexRecord.size == size)
-            
+
             if urls is not None and urls:
                 query = query.join(IndexRecord.urls)
                 for u in urls:
                     query = query.filter(IndexRecordUrl.url == u)
-            
+
             if hashes is not None and hashes:
-                for h,v in hashes.items():
+                for h, v in hashes.items():
                     sub = session.query(IndexRecordHash.did)
                     sub = sub.filter(and_(
                         IndexRecordHash.hash_type == h,
                         IndexRecordHash.hash_value == v,
                     ))
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
-            
+
             query = query.order_by(IndexRecord.did)
             query = query.limit(limit)
-            
+
             return [i.did for i in query]
 
     def hashes_to_urls(self, size, hashes, start=0, limit=100):
@@ -138,57 +142,57 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         '''
         with self.session as session:
             query = session.query(IndexRecordUrl)
-            
+
             query = query.join(IndexRecordUrl.index_record)
             query = query.filter(IndexRecord.size == size)
-            
-            for h,v in hashes.items():
+
+            for h, v in hashes.items():
                 # Select subset that matches given hash.
                 sub = session.query(IndexRecordHash.did)
                 sub = sub.filter(and_(
                     IndexRecordHash.hash_type == h,
                     IndexRecordHash.hash_value == v,
                 ))
-                
+
                 # Filter anything that does not match.
                 query = query.filter(IndexRecordUrl.did.in_(sub.subquery()))
-            
+
             # Remove duplicates.
             query = query.distinct()
-            
+
             # Return only specified window.
             query = query.offset(start)
             query = query.limit(limit)
-            
+
             return [r.url for r in query]
 
     def add(self, form, size=None, urls=[], hashes={}):
         '''
         Creates a new record given urls and hashes.
         '''
-        
+
         with self.session as session:
             record = IndexRecord()
-            
+
             record.did = str(uuid.uuid4())
             record.rev = str(uuid.uuid4())[:8]
-            
+
             record.form = form
             record.size = size
-            
+
             record.urls = [IndexRecordUrl(
                 did=record,
                 url=url,
             ) for url in urls]
-            
+
             record.hashes = [IndexRecordHash(
                 did=record,
                 hash_type=h,
                 hash_value=v,
-            ) for h,v in hashes.items()]
-            
+            ) for h, v in hashes.items()]
+
             session.add(record)
-            
+
             return record.did, record.rev
 
     def get(self, did):
@@ -198,21 +202,22 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
-            
-            try: record = query.one()
-            except NoResultFound as err:
+
+            try:
+                record = query.one()
+            except NoResultFound:
                 raise NoRecordFound('no record found')
-            except MultipleResultsFound as err:
+            except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
-            
+
             rev = record.rev
-            
+
             form = record.form
             size = record.size
-            
+
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
-        
+
         ret = {
             'did': did,
             'rev': rev,
@@ -221,7 +226,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             'hashes': hashes,
             'form': form,
         }
-        
+
         return ret
 
     def update(self, did, rev, size=None, urls=None, hashes=None):
@@ -231,36 +236,38 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
-            
-            try: record = query.one()
-            except NoResultFound as err:
+
+            try:
+                record = query.one()
+            except NoResultFound:
                 raise NoRecordFound('no record found')
-            except MultipleResultsFound as err:
+            except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
-            
+
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
-            
+
             if size is not None:
                 record.size = size
-            
+
             if urls is not None:
                 record.urls = [IndexRecordUrl(
                     did=record,
                     url=url
                 ) for url in urls]
-           
-            if hashes is not None: 
-                record.hashes = [IndexRecordHash(
-                    did=record,
-                    hash_type=h,
-                    hash_value=v,
-                ) for h,v in hashes.items()]
-            
+
+            if hashes is not None:
+                record.hashes = [
+                    IndexRecordHash(
+                        did=record,
+                        hash_type=h,
+                        hash_value=v,
+                    ) for h, v in hashes.items()]
+
             record.rev = str(uuid.uuid4())[:8]
-            
+
             session.add(record)
-            
+
             return record.did, record.rev
 
     def delete(self, did, rev):
@@ -270,16 +277,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
-            
-            try: record = query.one()
-            except NoResultFound as err:
+
+            try:
+                record = query.one()
+            except NoResultFound:
                 raise NoRecordFound('no record found')
-            except MultipleResultsFound as err:
+            except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
-            
+
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
-            
+
             session.delete(record)
 
     def __contains__(self, record):
@@ -290,7 +298,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == record)
-            
+
             return query.exists()
 
     def __iter__(self):

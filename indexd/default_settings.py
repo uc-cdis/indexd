@@ -1,6 +1,6 @@
-from index.drivers.alchemy import SQLAlchemyIndexDriver
-from alias.drivers.alchemy import SQLAlchemyAliasDriver
-from auth.drivers.alchemy import SQLAlchemyAuthDriver
+from .index.drivers.alchemy import SQLAlchemyIndexDriver
+from .alias.drivers.alchemy import SQLAlchemyAliasDriver
+from .auth.drivers.alchemy import SQLAlchemyAuthDriver
 
 CONFIG = {}
 
