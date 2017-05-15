@@ -1,0 +1,10 @@
+.git
+.gitignore
+.travis.yml
+.dockerignore
+tests
+test-requirements.txt
+NOTICE
+LICENSE
+Dockerfile
+*.md
