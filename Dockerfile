@@ -25,14 +25,16 @@ RUN apk --no-cache add \
 		echo '}'; \
 		echo '}'; \
 	} >/etc/nginx/conf.d/nginx.conf \
+	&& sed -i -e "s/worker_connections 1024;/worker_connections 1024;\nuse epoll;\nmulti_accept on;/g" /etc/nginx/nginx.conf \
+	&& sed -i -e "s/#gzip on/gzip on/g" /etc/nginx/nginx.conf \
 	&& echo "daemon off;" >> /etc/nginx/nginx.conf \
 	&& { \
 		echo '[uwsgi]'; \
 		echo 'socket = /tmp/uwsgi.sock'; \
 		echo 'chown-socket = nginx:nginx'; \
 		echo 'chmod-socket = 664'; \
-		echo 'cheaper = 2'; \
-		echo 'processes = 16'; \
+		echo 'master = true'; \
+		echo 'processes = 1'; \
 		echo 'wsgi-file=/var/www/indexd/wsgi.py'; \
 		echo 'plugins = python'; \
 	} >/etc/uwsgi/uwsgi.ini \
