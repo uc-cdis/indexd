@@ -36,7 +36,5 @@ EXPOSE 80
 WORKDIR /var/www/indexd
 
 
-# this allows container to be restarted
-RUN rm -f /var/run/apache2/apache2.pid
-
-CMD  /indexd/dockerrun.bash
+RUN ln -sf /dev/stdout /var/log/apache2/access.log && ln -sf /dev/stderr /var/log/apache2/error.log
+CMD  rm -f /var/run/apache2/apache2.pid && /indexd/dockerrun.bash
