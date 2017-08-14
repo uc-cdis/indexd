@@ -19,6 +19,8 @@ from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import NoRecordFound
 from indexd.index.errors import MultipleRecordsFound
 from indexd.index.errors import RevisionMismatch
+from indexd.errors import UserError
+from sqlalchemy.exc import IntegrityError
 
 
 Base = declarative_base()
@@ -166,7 +168,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return [r.url for r in query]
 
-    def add(self, form, size=None, urls=[], hashes={}):
+    def add(self, form, size=None, urls=[], hashes={}, did=None):
         '''
         Creates a new record given urls and hashes.
         '''
@@ -174,7 +176,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         with self.session as session:
             record = IndexRecord()
 
-            record.did = str(uuid.uuid4())
+            if did is None:
+                did = str(uuid.uuid4())
+            record.did = did
             record.rev = str(uuid.uuid4())[:8]
 
             record.form = form
@@ -190,8 +194,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 hash_type=h,
                 hash_value=v,
             ) for h, v in hashes.items()]
-
-            session.add(record)
+            try:
+                session.add(record)
+                session.commit()
+            except IntegrityError as err:
+                raise UserError('{did} already exists'.format(did=did), 400)
 
             return record.did, record.rev
 
