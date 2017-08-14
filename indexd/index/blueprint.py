@@ -164,10 +164,12 @@ def post_index_record():
     size = flask.request.json['size']
     urls = flask.request.json['urls']
     hashes = flask.request.json['hashes']
+    did = flask.request.json.get('did')
 
     did, rev = blueprint.index_driver.add(form, size,
         urls=urls,
         hashes=hashes,
+        did=did,
     )
 
     ret = {

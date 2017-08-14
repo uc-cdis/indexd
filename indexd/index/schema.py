@@ -28,6 +28,10 @@ POST_RECORD_SCHEMA = {
         "type": "string"
       }
     },
+    "did": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+    },
     "hashes": {
       "type": "object",
       "properties": {
@@ -46,7 +50,7 @@ POST_RECORD_SCHEMA = {
         "sha512": {
           "type": "string",
           "pattern": "^[0-9a-f]{128}$"
-        }
+        },
       },
       "oneOf": [
         {
