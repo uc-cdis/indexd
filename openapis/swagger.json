@@ -212,9 +212,6 @@
         "responses": {
           "400": {
             "description": "Invalid ID supplied"
-          },
-          "404": {
-            "description": "Pet not found"
           }
         },
         "security": [
@@ -386,7 +383,7 @@
   "securityDefinitions": {
     "cdis_auth": {
       "type": "oauth2",
-      "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+      "authorizationUrl": "https://data-commons.org/oauth/dialog",
       "flow": "implicit",
       "scopes": {
         "write:index": "modify any entry in the index",
