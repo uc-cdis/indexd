@@ -11,7 +11,7 @@ info:
   license:
     name: Apache 2.0
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
-host: data.braincommons.org
+host: data.example.domain
 basePath: /
 tags:
   - name: index
