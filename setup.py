@@ -20,7 +20,7 @@ setup(
     install_requires=[
         'flask==0.10.1',
         'jsonschema==2.5.1',
-        'sqlalchemy==1.0.8',
+        'sqlalchemy==0.9.9',
     	'psycopg2==2.6.1',
         'cdispyutils',
     ],

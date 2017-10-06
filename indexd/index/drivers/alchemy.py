@@ -1,35 +1,36 @@
+from enum import Enum
 import uuid
 
 from contextlib import contextmanager
 
-from sqlalchemy import and_
-from sqlalchemy import String
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import ForeignKey
-from sqlalchemy import create_engine
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy import (
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    and_,
+    create_engine,
+)
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
+from indexd.errors import UserError
 from indexd.index.driver import IndexDriverABC
-
 from indexd.index.errors import NoRecordFound
 from indexd.index.errors import MultipleRecordsFound
 from indexd.index.errors import RevisionMismatch
-from indexd.errors import UserError
-from sqlalchemy.exc import IntegrityError
 
 
 Base = declarative_base()
 
 
 class IndexRecord(Base):
-    '''
+    """
     Base index record representation.
-    '''
+    """
     __tablename__ = 'index_record'
 
     did = Column(String, primary_key=True)
@@ -50,20 +51,30 @@ class IndexRecord(Base):
     )
 
 
+class IndexRecordUrlPurpose(Base):
+    """
+    TODO
+    """
+    __tablename__ = 'index_record_url_purpose'
+
+    purpose = Column(String, primary_key=True)
+
+
 class IndexRecordUrl(Base):
-    '''
+    """
     Base index record url representation.
-    '''
+    """
     __tablename__ = 'index_record_url'
 
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
     url = Column(String, primary_key=True)
+    purpose = Column(String, ForeignKey('index_record_url_purpose.purpose'))
 
 
 class IndexRecordHash(Base):
-    '''
+    """
     Base index record hash representation.
-    '''
+    """
     __tablename__ = 'index_record_hash'
 
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
@@ -72,14 +83,14 @@ class IndexRecordHash(Base):
 
 
 class SQLAlchemyIndexDriver(IndexDriverABC):
-    '''
+    """
     SQLAlchemy implementation of index driver.
-    '''
+    """
 
     def __init__(self, conn, **config):
-        '''
+        """
         Initialize the SQLAlchemy database driver.
-        '''
+        """
         self.engine = create_engine(conn, **config)
 
         Base.metadata.bind = self.engine
@@ -90,9 +101,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     @property
     @contextmanager
     def session(self):
-        '''
+        """
         Provide a transactional scope around a series of operations.
-        '''
+        """
         session = self.Session()
 
         yield session
@@ -106,9 +117,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             session.close()
 
     def ids(self, limit=100, start=None, size=None, urls=None, hashes=None):
-        '''
+        """
         Returns list of records stored by the backend.
-        '''
+        """
         # TODO add dids to filter on
         with self.session as session:
             query = session.query(IndexRecord)
@@ -139,9 +150,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return [i.did for i in query]
 
     def hashes_to_urls(self, size, hashes, start=0, limit=100):
-        '''
+        """
         Returns a list of urls matching supplied size and hashes.
-        '''
+        """
         with self.session as session:
             query = session.query(IndexRecordUrl)
 
@@ -169,9 +180,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return [r.url for r in query]
 
     def add(self, form, size=None, urls=[], hashes={}, did=None):
-        '''
+        """
         Creates a new record given urls and hashes.
-        '''
+        """
 
         with self.session as session:
             record = IndexRecord()
@@ -180,32 +191,28 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 did = str(uuid.uuid4())
             record.did = did
             record.rev = str(uuid.uuid4())[:8]
-
             record.form = form
             record.size = size
-
-            record.urls = [IndexRecordUrl(
-                did=record,
-                url=url,
-            ) for url in urls]
-
-            record.hashes = [IndexRecordHash(
-                did=record,
-                hash_type=h,
-                hash_value=v,
-            ) for h, v in hashes.items()]
+            record.urls = [
+                IndexRecordUrl(did=record, url=url)
+                for url in urls
+            ]
+            record.hashes = [
+                IndexRecordHash(did=record, hash_type=h, hash_value=v)
+                for h, v in hashes.items()
+            ]
             try:
                 session.add(record)
                 session.commit()
-            except IntegrityError as err:
+            except IntegrityError:
                 raise UserError('{did} already exists'.format(did=did), 400)
 
             return record.did, record.rev
 
     def get(self, did):
-        '''
+        """
         Gets a record given the record id.
-        '''
+        """
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
@@ -237,9 +244,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         return ret
 
     def update(self, did, rev, size=None, urls=None, hashes=None):
-        '''
+        """
         Updates an existing record with new values.
-        '''
+        """
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
@@ -258,10 +265,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 record.size = size
 
             if urls is not None:
-                record.urls = [IndexRecordUrl(
-                    did=record,
-                    url=url
-                ) for url in urls]
+                record.urls = [
+                    IndexRecordUrl(did=record, url=url)
+                    for url in urls
+                ]
 
             if hashes is not None:
                 record.hashes = [
@@ -278,9 +285,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return record.did, record.rev
 
     def delete(self, did, rev):
-        '''
+        """
         Removes record if stored by backend.
-        '''
+        """
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
@@ -298,27 +305,26 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             session.delete(record)
 
     def __contains__(self, record):
-        '''
-        Returns True if record is stored by backend.
-        Returns False otherwise.
-        '''
+        """
+        Return:
+            bool: whether record is stored by backend
+        """
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == record)
-
             return query.exists()
 
     def __iter__(self):
-        '''
+        """
         Iterator over unique records stored by backend.
-        '''
+        """
         with self.session as session:
             for i in session.query(IndexRecord):
                 yield i.did
 
     def __len__(self):
-        '''
+        """
         Number of unique records stored by backend.
-        '''
+        """
         with self.session as session:
             return session.query(IndexRecord).count()
