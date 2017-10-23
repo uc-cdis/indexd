@@ -26,6 +26,10 @@ INDEX_TABLES = {
     'index_record_url': [
         (0, u'did', u'VARCHAR', 1, None, 1),
         (1, u'url', u'VARCHAR', 1, None, 1 if OLD_SQLITE else 2),
+        (2, u'purpose', u'VARCHAR', 0, None, 0),
+    ],
+    'index_record_url_purpose': [
+        (0, u'purpose', u'VARCHAR', 1, None, 1),
     ],
 }
 
