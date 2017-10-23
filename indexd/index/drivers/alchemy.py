@@ -1,4 +1,3 @@
-from enum import Enum
 import uuid
 
 from contextlib import contextmanager
@@ -13,7 +12,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
@@ -53,7 +51,8 @@ class IndexRecord(Base):
 
 class IndexRecordUrlPurpose(Base):
     """
-    TODO
+    A field to describe the purpose of the data stored an an
+    ``IndexRecordUrl``.
     """
     __tablename__ = 'index_record_url_purpose'
 
