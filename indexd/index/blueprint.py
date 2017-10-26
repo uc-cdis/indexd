@@ -3,7 +3,7 @@ import flask
 import jsonschema
 import os.path
 import subprocess
-import version_data as ver
+from .version_data import version_data as ver
 
 from indexd.auth import authorize
 
