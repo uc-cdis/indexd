@@ -1,6 +1,9 @@
 import re
 import flask
 import jsonschema
+import os.path
+import subprocess
+import version_data as ver
 
 from indexd.auth import authorize
 
@@ -13,6 +16,7 @@ from .schema import POST_RECORD_SCHEMA
 from .errors import NoRecordFound
 from .errors import MultipleRecordsFound
 from .errors import RevisionMismatch
+from .errors import UnhealthyCheck
 
 
 blueprint = flask.Blueprint('index', __name__)
@@ -239,11 +243,24 @@ def stats():
     '''
 
     filecount = blueprint.index_driver.__len__()
-    totalfilesize = 0
+    totalfilesize = blueprint.index_driver.__totalbytes__()
 
     base = {
         'fileCount': filecount,
         'totalFileSize': totalfilesize,
+    }
+
+    return flask.jsonify(base), 200
+
+@blueprint.route('/_version', methods=['GET'])
+def version():
+    '''
+    Return the version of this service.
+    '''
+
+    base = {
+        'version': ver.VERSION,
+        'commit': ver.COMMIT,
     }
 
     return flask.jsonify(base), 200

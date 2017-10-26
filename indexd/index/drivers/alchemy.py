@@ -21,6 +21,7 @@ from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import NoRecordFound
 from indexd.index.errors import MultipleRecordsFound
 from indexd.index.errors import RevisionMismatch
+from indexd.index.errors import UnhealthyCheck
 from indexd.errors import UserError
 from sqlalchemy.exc import IntegrityError
 
@@ -330,10 +331,20 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             for i in session.query(IndexRecord):
                 yield i.did
 
+    def __totalbytes__(self):
+        '''
+        Total number of bytes of data represented in the index.
+        '''
+        with self.session as session:
+            result = session.execute(select([func.sum(IndexRecord.size)])).scalar()
+            if result is None:
+                return 0
+            return result
+
     def __len__(self):
         '''
         Number of unique records stored by backend.
         '''
         with self.session as session:
             
-            return select([func.count()]).select_from(IndexRecord)
+            return session.execute(select([func.count()]).select_from(IndexRecord)).scalar()

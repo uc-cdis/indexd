@@ -75,6 +75,13 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
+    def __totalbytes__(self):
+        '''
+        Returns the total bytes of the data represented in the index.
+        '''
+        raise NotImplementedError('TODO')
+
+    @abc.abstractmethod
     def __len__(self):
         '''
         Returns the number of unique records stored by backend.
