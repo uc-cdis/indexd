@@ -8,7 +8,7 @@ COPY . /indexd
 WORKDIR /indexd
 RUN COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >indexd/index/version_data.py
 RUN VERSION=`git describe --always` && echo "VERSION=\"${VERSION}\"" >>indexd/index/version_data.py
-RUN cd /indexd && python setup.py install
+RUN python setup.py install
 
 RUN mkdir -p /var/www/indexd/ && chmod 777 /var/www/indexd && cp /indexd/wsgi.py /var/www/indexd/wsgi.py && cp /indexd/bin/indexd /var/www/indexd/indexd
 
