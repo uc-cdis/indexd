@@ -1,6 +1,9 @@
 import re
 import flask
 import jsonschema
+import os.path
+import subprocess
+from .version_data import VERSION, COMMIT
 
 from indexd.auth import authorize
 
@@ -13,6 +16,7 @@ from .schema import POST_RECORD_SCHEMA
 from .errors import NoRecordFound
 from .errors import MultipleRecordsFound
 from .errors import RevisionMismatch
+from .errors import UnhealthyCheck
 
 
 blueprint = flask.Blueprint('index', __name__)
@@ -222,6 +226,45 @@ def delete_index_record(record):
 
     return '', 200
 
+@blueprint.route('/_status', methods=['GET'])
+def health_check():
+    '''
+    Health Check.
+    '''
+
+    blueprint.index_driver.health_check()
+
+    return 'Healthy', 200
+
+@blueprint.route('/_stats', methods=['GET'])
+def stats():
+    '''
+    Return indexed data stats.
+    '''
+
+    filecount = blueprint.index_driver.len()
+    totalfilesize = blueprint.index_driver.totalbytes()
+
+    base = {
+        'fileCount': filecount,
+        'totalFileSize': totalfilesize,
+    }
+
+    return flask.jsonify(base), 200
+
+@blueprint.route('/_version', methods=['GET'])
+def version():
+    '''
+    Return the version of this service.
+    '''
+
+    base = {
+        'version': VERSION,
+        'commit': COMMIT,
+    }
+
+    return flask.jsonify(base), 200
+
 @blueprint.errorhandler(NoRecordFound)
 def handle_no_record_error(err):
     return flask.jsonify(error=str(err)), 404
@@ -241,6 +284,10 @@ def handle_auth_error(err):
 @blueprint.errorhandler(RevisionMismatch)
 def handle_revision_mismatch(err):
     return flask.jsonify(error=str(err)), 409
+
+@blueprint.errorhandler(UnhealthyCheck)
+def handle_unhealthy_check(err):
+    return "Unhealthy", 500
 
 @blueprint.record
 def get_config(setup_state):

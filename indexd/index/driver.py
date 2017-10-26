@@ -53,6 +53,13 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
+    def health_check(self):
+        '''
+        Performs a health check.
+        '''
+        raise NotImplementedError('TODO')
+
+    @abc.abstractmethod
     def __contains__(self, did):
         '''
         Returns True if record is stored by backend.
@@ -68,7 +75,14 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def __len__(self):
+    def totalbytes(self):
+        '''
+        Returns the total bytes of the data represented in the index.
+        '''
+        raise NotImplementedError('TODO')
+
+    @abc.abstractmethod
+    def len(self):
         '''
         Returns the number of unique records stored by backend.
         '''

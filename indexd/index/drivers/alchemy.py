@@ -2,6 +2,8 @@ import uuid
 
 from contextlib import contextmanager
 
+from sqlalchemy import func
+from sqlalchemy import select
 from sqlalchemy import and_
 from sqlalchemy import String
 from sqlalchemy import Column
@@ -19,6 +21,7 @@ from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import NoRecordFound
 from indexd.index.errors import MultipleRecordsFound
 from indexd.index.errors import RevisionMismatch
+from indexd.index.errors import UnhealthyCheck
 from indexd.errors import UserError
 from sqlalchemy.exc import IntegrityError
 
@@ -297,6 +300,18 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             session.delete(record)
 
+    def health_check(self):
+        '''
+        Does a health check of the backend.
+        '''
+        with self.session as session:
+            try:
+                query = session.execute('SELECT 1')
+            except Exception as e:
+                raise UnhealthyCheck()
+
+            return True
+
     def __contains__(self, record):
         '''
         Returns True if record is stored by backend.
@@ -316,9 +331,20 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             for i in session.query(IndexRecord):
                 yield i.did
 
-    def __len__(self):
+    def totalbytes(self):
+        '''
+        Total number of bytes of data represented in the index.
+        '''
+        with self.session as session:
+            result = session.execute(select([func.sum(IndexRecord.size)])).scalar()
+            if result is None:
+                return 0
+            return result
+
+    def len(self):
         '''
         Number of unique records stored by backend.
         '''
         with self.session as session:
-            return session.query(IndexRecord).count()
+            
+            return session.execute(select([func.count()]).select_from(IndexRecord)).scalar()
