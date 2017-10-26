@@ -3,7 +3,7 @@ import flask
 import jsonschema
 import os.path
 import subprocess
-import .version_data as ver
+from .version_data import VERSION, COMMIT
 
 from indexd.auth import authorize
 
@@ -259,8 +259,8 @@ def version():
     '''
 
     base = {
-        'version': ver.VERSION,
-        'commit': ver.COMMIT,
+        'version': VERSION,
+        'commit': COMMIT,
     }
 
     return flask.jsonify(base), 200
