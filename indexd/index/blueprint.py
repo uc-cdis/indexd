@@ -242,8 +242,8 @@ def stats():
     Return indexed data stats.
     '''
 
-    filecount = blueprint.index_driver.__len__()
-    totalfilesize = blueprint.index_driver.__totalbytes__()
+    filecount = blueprint.index_driver.len()
+    totalfilesize = blueprint.index_driver.totalbytes()
 
     base = {
         'fileCount': filecount,

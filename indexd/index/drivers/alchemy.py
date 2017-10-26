@@ -331,7 +331,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             for i in session.query(IndexRecord):
                 yield i.did
 
-    def __totalbytes__(self):
+    def totalbytes(self):
         '''
         Total number of bytes of data represented in the index.
         '''
@@ -341,7 +341,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 return 0
             return result
 
-    def __len__(self):
+    def len(self):
         '''
         Number of unique records stored by backend.
         '''
