@@ -222,6 +222,32 @@ def delete_index_record(record):
 
     return '', 200
 
+@blueprint.route('/_status', methods=['GET'])
+def health_check():
+    '''
+    Health Check.
+    '''
+
+    blueprint.index_driver.health_check()
+
+    return 'Healthy', 200
+
+@blueprint.route('/_stats', methods=['GET'])
+def stats():
+    '''
+    Return indexed data stats.
+    '''
+
+    filecount = blueprint.index_driver.__len__()
+    totalfilesize = 0
+
+    base = {
+        'fileCount': filecount,
+        'totalFileSize': totalfilesize,
+    }
+
+    return flask.jsonify(base), 200
+
 @blueprint.errorhandler(NoRecordFound)
 def handle_no_record_error(err):
     return flask.jsonify(error=str(err)), 404
@@ -241,6 +267,10 @@ def handle_auth_error(err):
 @blueprint.errorhandler(RevisionMismatch)
 def handle_revision_mismatch(err):
     return flask.jsonify(error=str(err)), 409
+
+@blueprint.errorhandler(UnhealthyCheck)
+def handle_unhealthy_check(err):
+    return "Unhealthy", 500
 
 @blueprint.record
 def get_config(setup_state):

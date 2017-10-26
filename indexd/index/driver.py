@@ -53,6 +53,13 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
+    def health_check(self):
+        '''
+        Performs a health check.
+        '''
+        raise NotImplementedError('TODO')
+
+    @abc.abstractmethod
     def __contains__(self, did):
         '''
         Returns True if record is stored by backend.

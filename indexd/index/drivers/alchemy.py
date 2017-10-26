@@ -2,6 +2,8 @@ import uuid
 
 from contextlib import contextmanager
 
+from sqlalchemy import func
+from sqlalchemy import select
 from sqlalchemy import and_
 from sqlalchemy import String
 from sqlalchemy import Column
@@ -297,6 +299,18 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             session.delete(record)
 
+    def health_check(self):
+        '''
+        Does a health check of the backend.
+        '''
+        with self.session as session:
+            try:
+                query = session.execute('SELECT 1')
+            except Exception as e:
+		raise UnhealthyCheck()
+
+            return True
+
     def __contains__(self, record):
         '''
         Returns True if record is stored by backend.
@@ -321,4 +335,5 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Number of unique records stored by backend.
         '''
         with self.session as session:
-            return session.query(IndexRecord).count()
+            
+            return select([func.count()]).select_from(IndexRecord)
