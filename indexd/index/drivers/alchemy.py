@@ -308,7 +308,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 query = session.execute('SELECT 1')
             except Exception as e:
-		raise UnhealthyCheck()
+                raise UnhealthyCheck()
 
             return True
 
