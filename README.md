@@ -1,11 +1,11 @@
 Indexd
 ===
-![version](https://img.shields.io/badge/version-0.0.1-orange.svg?style=flat) [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE) [![Travis](https://travis-ci.org/LabAdvComp/indexd.svg?branch=master)](https://travis-ci.org/LabAdvComp/indexd)
+![version](https://img.shields.io/badge/version-0.0.1-orange.svg?style=flat) [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE) [![Travis](https://travis-ci.org/uc-cdis/indexd.svg?branch=master)](https://travis-ci.org/uc-cdis/indexd)
 
 Indexd is a prototype data indexing and tracking service. It is intended to be
 distributed, hash-based indexing service, designed to be accessed via a
 REST-like API or via a client, such as the
-[reference implementation](https://github.com/LabAdvComp/index).
+[reference implementation](https://github.com/uc-cdis/indexclient).
 
 Indexd is a two-layer system. On the bottom layer, each data object has a globally unique digital ID and hashes that map to known physical locations of the data. The second layer is `aliases` that's basically user defined human-readable identifiers that map to hashes of the bottom layer.
 
@@ -17,7 +17,7 @@ Digital IDs are intended to be publicly readable documents, and therefore contai
 
 The second layer of user defined aliases are introduced to add flexibility of supporting human readable identifiers and allow referencing existing identifiers that are created in other systems.
 
-[View in Swagger](https://editor2.swagger.io/#!/?import=https://raw.githubusercontent.com/LabAdvComp/indexd/master/openapis/swagger.json)
+[View in Swagger](https://editor2.swagger.io/#!/?import=https://raw.githubusercontent.com/uc-cdis/indexd/master/openapis/swagger.json)
 
 ## Installation
 
