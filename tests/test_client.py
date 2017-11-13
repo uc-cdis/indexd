@@ -78,8 +78,7 @@ def test_alias_create(client, user):
         'size': 123,
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
         'release': 'private',
-        'keeper_authority': 'CRI', 'host_authority': ['PDC'],
-        'urls': [],
+        'keeper_authority': 'CRI', 'host_authorities': ['PDC'],
     }
     ark = 'ark:/31807/TEST-abc'
 
@@ -99,8 +98,7 @@ def test_alias_update(client, user):
         'size': 123,
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
         'release': 'private',
-        'keeper_authority': 'CRI', 'host_authority': ['PDC'],
-        'urls': [],
+        'keeper_authority': 'CRI', 'host_authorities': ['PDC'],
     }
     ark = 'ark:/31807/TEST-abc'
 
@@ -116,8 +114,7 @@ def test_alias_update(client, user):
         'size': 456,
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
         'release': 'private',
-        'keeper_authority': 'CRI', 'host_authority': ['PDC'],
-        'urls': [],
+        'keeper_authority': 'CRI', 'host_authorities': ['PDC'],
     }
     r = client.put(
         '/alias/' + ark + '?rev=' + rev,
@@ -131,8 +128,7 @@ def test_alias_delete(client, user):
         'size': 123,
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
         'release': 'private',
-        'keeper_authority': 'CRI', 'host_authority': ['PDC'],
-        'urls': [],
+        'keeper_authority': 'CRI', 'host_authorities': ['PDC'],
     }
     ark = 'ark:/31807/TEST-abc'
 
