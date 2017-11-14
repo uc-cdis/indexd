@@ -149,6 +149,90 @@ paths:
         - cdis_auth:
             - 'write:index'
             - 'read:index'
+            
+  '/index/version/{UUID}':
+    put:
+      summary: add a version of an index record
+      description: ''
+      operationId: addVersion
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: UUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+        - in: body
+          name: body
+          description: Pet object that needs to be added to the store
+          required: true
+          schema:
+            $ref: '#/definitions/InputInfo'
+      responses:
+        '200':
+          description: success
+          schema:
+            $ref: '#/definitions/VersionOutputRef'
+        '400':
+          description: Invalid input
+      security:
+        - cdis_auth:
+            - 'write:index'
+            - 'read:index'
+  '/index/version/latest/{UUID}':
+    get:
+      summary: Get the metadata of the latest index record version associated with the given id
+      description: Multiple status values can be provided with comma separated strings
+      operationId: getLastestVersion
+      produces:
+        - application/json
+      parameters:
+        - name: UUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/VersionOutputInfo'
+        '400':
+          description: Invalid status value
+      security:
+        - cdis_auth:
+            - 'write:index'
+            - 'read:index' 
+  '/index/version/all/{UUID}':
+    get:
+      summary: Get the metadata of index record versions associated with the given id
+      description: Multiple status values can be provided with comma separated strings
+      operationId: getAllVersion
+      produces:
+        - application/json
+      parameters:
+        - name: UUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/VersionOutputInfo'
+        '400':
+          description: Invalid status value
+      security:
+        - cdis_auth:
+            - 'write:index'
+            - 'read:index' 
+            
   '/alias/{ALIASSTRING}':
     put:
       tags:
@@ -433,6 +517,63 @@ definitions:
         $ref: '#/definitions/HashInfo'
       metadata:
         type: string
+        
+  VersionInputInfo:
+    type: object
+    properties:
+      target:
+        type: string
+        description: how the version entries were collected
+        enum:
+          - all
+          - latest
+  VersionOutputRef:
+    type: object
+    properties:
+      did:
+        type: string
+        pattern: >-
+          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+      baseid:
+        type: string
+        pattern: >-
+          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+  VersionOutputInfo:
+    type: object
+    properties:
+      did:
+        type: string
+        pattern: >-
+          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+      baseid:
+        type: string
+        pattern: >-
+          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+      rev:
+        type: string
+        pattern: '^[0-9a-f]{8}$'
+      form:
+        type: string
+        description: how the entry was submitted to storage
+        enum:
+          - object
+          - container
+          - multipart
+      size:
+        type: integer
+        format: int64
+        description: size in bytes
+      urls:
+        type: array
+        items:
+          type: string
+      hashes:
+        $ref: '#/definitions/HashInfo'
+      last_updated_by:
+        type: string
+        format: date-time
+        description: last updated time 
+        
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'
