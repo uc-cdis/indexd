@@ -17,7 +17,7 @@ Digital IDs are intended to be publicly readable documents, and therefore contai
 
 The second layer of user defined aliases are introduced to add flexibility of supporting human readable identifiers and allow referencing existing identifiers that are created in other systems.
 
-[View in Swagger](https://editor2.swagger.io/#!/?import=https://raw.githubusercontent.com/uc-cdis/indexd/master/openapis/swagger.json)
+[View in Swagger](https://editor2.swagger.io/#!/?import=https://raw.githubusercontent.com/uc-cdis/indexd/indexd_versioning/openapis/swagger.json)
 
 ## Installation
 
