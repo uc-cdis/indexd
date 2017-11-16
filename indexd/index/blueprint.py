@@ -169,16 +169,23 @@ def post_index_record():
     urls = flask.request.json['urls']
     hashes = flask.request.json['hashes']
     did = flask.request.json.get('did')
+    
+    try:
+        baseid = flask.request.json['baseid']
+    except KeyError:
+        baseid = None
 
-    did, rev = blueprint.index_driver.add(form, size,
+    did, rev, baseid = blueprint.index_driver.add(form, size,
         urls=urls,
         hashes=hashes,
         did=did,
+        baseid = baseid
     )
 
     ret = {
         'did': did,
         'rev': rev,
+        'baseid': baseid,
     }
 
     return flask.jsonify(ret), 200
@@ -194,15 +201,10 @@ def put_index_record(record):
         raise UserError(err)
 
     rev = flask.request.args.get('rev')
-
-    size = flask.request.json.get('size')
     urls = flask.request.json.get('urls')
-    hashes = flask.request.json.get('hashes')
 
     did, rev = blueprint.index_driver.update(record, rev,
-        size=size,
-        urls=urls,
-        hashes=hashes,
+        urls=urls
     )
 
     ret = {

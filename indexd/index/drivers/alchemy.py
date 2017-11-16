@@ -31,6 +31,18 @@ from indexd.utils import migrate_database
 
 Base = declarative_base()
 
+class BaseVersion(Base):
+    '''
+    Base index record version representation.
+    '''
+    __tablename__ = 'base_version'
+
+    baseid = Column(String(8), primary_key = True)
+    dids = relationship(
+        'IndexRecord',
+        backref = 'base_version',
+        cascade = 'all, delete-orphan')
+
 
 CURRENT_SCHEMA_VERSION = 1
 
@@ -49,8 +61,11 @@ class IndexRecord(Base):
     '''
     __tablename__ = 'index_record'
 
-    did = Column(String, primary_key=True)
+    did = Column(String, primary_key = True)
+    baseid = Column(String, ForeignKey('base_version.baseid'))
+
     rev = Column(String)
+
     form = Column(String)
     size = Column(BigInteger)
 
@@ -73,8 +88,8 @@ class IndexRecordUrl(Base):
     '''
     __tablename__ = 'index_record_url'
 
-    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
-    url = Column(String, primary_key=True)
+    did = Column(String, ForeignKey('index_record.did'), primary_key = True)
+    url = Column(String, primary_key = True)
 
 
 class IndexRecordHash(Base):
@@ -84,7 +99,7 @@ class IndexRecordHash(Base):
     __tablename__ = 'index_record_hash'
 
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
-    hash_type = Column(String, primary_key=True)
+    hash_type = Column(String, primary_key = True)
     hash_value = Column(String)
 
 
@@ -197,21 +212,26 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return [r.url for r in query]
 
-    def add(self, form, size=None, urls=[], hashes={}, did=None):
+
+    def add(self, form, size = None, urls = [], hashes = {}, did = None, baseid = None):
         '''
         Creates a new record given urls and hashes.
         '''
 
         with self.session as session:
             record = IndexRecord()
+            base_version = None
 
-            if did is None:
-                did = str(uuid.uuid4())
-            record.did = did
-            record.rev = str(uuid.uuid4())[:8]
+            if(baseid == None):
+                base_version = BaseVersion()
+                baseid = str(uuid.uuid4())
+                base_version.baseid = baseid
 
-            record.form = form
-            record.size = size
+            record.baseid = baseid
+            did = str(uuid.uuid4()) if did == None else did
+            record.did, record.rev = did, str(uuid.uuid4())[:8]
+
+            record.form, record.size = form, size
 
             record.urls = [IndexRecordUrl(
                 did=record,
@@ -223,13 +243,26 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 hash_type=h,
                 hash_value=v,
             ) for h, v in hashes.items()]
+
             try:
+                if(base_version):
+                    session.add(base_version)
+                else:
+                    # check if baseid is existed in base_version table.
+                    # If no, throw an exception
+                    query = session.query(BaseVersion).filter(BaseVersion.baseid == baseid)
+                    try:
+                        query.one()
+                    except NoResultFound:
+                        raise UserError('{baseid} is not existed'.format(baseid=baseid), 400)
+
                 session.add(record)
                 session.commit()
+
             except IntegrityError as err:
                 raise UserError('{did} already exists'.format(did=did), 400)
 
-            return record.did, record.rev
+            return record.did, record.rev, record.baseid
 
     def get(self, did):
         '''
@@ -265,7 +298,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         return ret
 
-    def update(self, did, rev, size=None, urls=None, hashes=None):
+    def update(self, did, rev, urls):
         '''
         Updates an existing record with new values.
         '''
@@ -283,22 +316,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
 
-            if size is not None:
-                record.size = size
-
             if urls is not None:
                 record.urls = [IndexRecordUrl(
                     did=record,
                     url=url
                 ) for url in urls]
-
-            if hashes is not None:
-                record.hashes = [
-                    IndexRecordHash(
-                        did=record,
-                        hash_type=h,
-                        hash_value=v,
-                    ) for h, v in hashes.items()]
 
             record.rev = str(uuid.uuid4())[:8]
 
