@@ -1,4 +1,5 @@
 import uuid
+import datetime
 
 from cdispyutils.log import get_logger
 from contextlib import contextmanager
@@ -10,6 +11,7 @@ from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import BigInteger
+from sqlalchemy import DateTime
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.orm import relationship
@@ -68,6 +70,8 @@ class IndexRecord(Base):
 
     form = Column(String)
     size = Column(BigInteger)
+
+    updated_last_by = Column(DateTime, default=datetime.datetime.utcnow)
 
     urls = relationship(
         'IndexRecordUrl',
@@ -347,6 +351,77 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise RevisionMismatch('revision mismatch')
 
             session.delete(record)
+
+    def get_all_versions(self,baseid):
+        '''
+        Get all records with baseid
+        '''
+
+        ret = dict()
+        with self.session as session:
+            query = session.query(IndexRecord)
+            records = query.filter(IndexRecord.baseid == baseid).all()
+
+            for idx, record in enumerate(records):
+                rev = record.rev
+                did = record.did
+
+                form = record.form
+                size = record.size
+
+                urls = [u.url for u in record.urls]
+                hashes = {h.hash_type: h.hash_value for h in record.hashes}
+
+                updated_last_by = record.updated_last_by
+
+                ret[idx] = {
+                    'did': did,
+                    'rev': rev,
+                    'size': size,
+                    'urls': urls,
+                    'hashes': hashes,
+                    'form': form,
+                    'updated_last_by': updated_last_by,
+
+                }
+
+        return ret
+
+    def get_latest_version(self,baseid):
+        '''
+        Get all records with baseid
+        '''
+        ret = {};
+        with self.session as session:
+            query = session.query(IndexRecord)
+            records = query.filter(IndexRecord.baseid == baseid).order_by(IndexRecord.updated_last_by).all()
+            if(len(records) > 0):
+                record = records[-1]
+
+                rev = record.rev
+                did = record.did
+
+                form = record.form
+                size = record.size
+
+                urls = [u.url for u in record.urls]
+                hashes = {h.hash_type: h.hash_value for h in record.hashes}
+
+                updated_last_by = record.updated_last_by
+
+                ret = {
+                    'did': did,
+                    'rev': rev,
+                    'size': size,
+                    'urls': urls,
+                    'hashes': hashes,
+                    'form': form,
+                    'updated_last_by': updated_last_by,
+
+                }
+
+        return ret
+
 
     def health_check(self):
         '''

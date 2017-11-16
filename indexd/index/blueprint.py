@@ -218,7 +218,7 @@ def put_index_record(record):
 @authorize
 def delete_index_record(record):
     '''
-    Delete an existing sign.
+    Delete an existing record.
     '''
     rev = flask.request.args.get('rev')
     if rev is None:
@@ -227,6 +227,22 @@ def delete_index_record(record):
     blueprint.index_driver.delete(record, rev)
 
     return '', 200
+
+@blueprint.route('/index/<record>/versions', methods=['GET'])
+def get_all_index_record_versions(record):
+    '''
+    Get all record versions
+    '''
+    ret = blueprint.index_driver.get_all_versions(record)
+    return flask.jsonify(ret), 200
+
+@blueprint.route('/index/<record>/latest', methods=['GET'])
+def get_latest_index_record_versions(record):
+    '''
+    Get all record versions
+    '''
+    ret = blueprint.index_driver.get_latest_version(record)
+    return flask.jsonify(ret), 200
 
 @blueprint.route('/_status', methods=['GET'])
 def health_check():
