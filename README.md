@@ -110,32 +110,35 @@ Content-Type: application/json
 
 Curl example:   
 ```
-curl http://localhost/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
+curl http://localhost:8080/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
 ```
 
 ***Response***   
 HTTP/1.1 200 OK
 ```
 {
-  "did": "82eb97e1-7c2f-4a73-9b65-ad08ef81379e",
-  "rev": "80cf1989"
+  "did": "e4350f7e-1b16-4f23-9332-1b3ca1ccc800",
+  "baseid": "18992079-ff5c-401a-9633-d5fc6349f445"
+  "rev": "0984a150"
 }
 ```
 
 | Parameters        | Values           |
 | ----:|:----|
 | did     | Internal UUID assigned by the index service |
+| baseid  | Internal UUID assigned by the index service |
 | rev     | 8-digit hex revision ID assigned by the index service |
 
 [Full schema for creating an index](indexd/index/schema.py)
 
-### Update an index
+### Create an index version
 
-PUT /index/UUID?rev=REVSTRING   
+POST /index/   
 Content-Type: application/json
 ```
 {
-  "rev": "80cf1989",
+  "baseid": "18992079-ff5c-401a-9633-d5fc6349f445"
+  "form": "object",
   "size": 123,
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
@@ -144,22 +147,63 @@ Content-Type: application/json
 
 | Parameters        | Values           |
 | -----:|:-----|
-| rev      | Rev string of the index you wish to update |
+| baseid    | baseid string of the index you wish to create new version   |
+| form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes (commonly computed via wc -c filename) |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
 
-Curl example:
+Curl example:   
 ```
-curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e?rev=80cf1989 -u test:test -H "Content-type: application/json" -X PUT -d '{"rev": "80cf1989","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
+curl http://localhost:8080/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"baseid": "18992079-ff5c-401a-9633-d5fc6349f445", "form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
 ```
 
 ***Response***   
 HTTP/1.1 200 OK
 ```
 {
-  "did": "82eb97e1-7c2f-4a73-9b65-ad08ef81379e",
-  "rev": "80cf1989"
+  "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105",
+  "baseid": "18992079-ff5c-401a-9633-d5fc6349f445"
+  "rev": "ef758b5a"
+}
+```
+
+| Parameters        | Values           |
+| ----:|:----|
+| did     | Internal UUID assigned by the index service |
+| baseid  | Internal UUID assigned by the index service |
+| rev     | 8-digit hex revision ID assigned by the index service |
+
+[Full schema for creating an index](indexd/index/schema.py)
+
+
+### Update an index
+
+PUT /index/UUID?rev=REVSTRING   
+Content-Type: application/json
+```
+{
+  "rev": "ef758b5a",
+  "urls": ["s3://endpointurl/bucket/key"]}
+}
+```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| rev      | Rev string of the index you wish to update |
+| urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
+
+Curl example:
+```
+curl http://localhost:8080/index/60fd9e9d-da12-45b3-b9f5-20f5ab5b6105?rev=ef758b5a -u test:test -H "Content-type: application/json" -X PUT -d '{"rev": "80cf1989","urls": ["s3://endpointurl/bucket/key"]}'
+```
+
+***Response***   
+HTTP/1.1 200 OK
+```
+{
+  "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105",
+  "rev": "fec0ce30"
 }
 ```
 
@@ -176,19 +220,55 @@ GET /index/UUID
 
 Curl example:
 ```
-curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e
+curl http://localhost:8080/index/60fd9e9d-da12-45b3-b9f5-20f5ab5b6105
 ```
 
 ***Response***   
 HTTP/1.1 200 OK
 ```
 {
-  "did": "82eb97e1-7c2f-4a73-9b65-ad08ef81379e",
-  "rev": "80cf1989"
+  "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105",
+  "baseid": "18992079-ff5c-401a-9633-d5fc6349f445",
+  "rev": "fec0ce30"
   "form": "object",
   "size": 123,
   "urls": ["s3://endpointurl/bucket/key"],
-  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+  "updated_last_by": "Fri, 17 Nov 2017 06:17:39 GMT"
+}
+```
+
+| Parameters        | Values           |
+| ----:|:----|
+| did     | Internal UUID assigned by the index service |
+| baseid  | Internal UUID assigned by the index service |
+| rev     | 8-digit hex revision ID assigned by the index service |
+| form      | Can be one of 'object', 'container', 'multipart' |
+| size      |  File size in bytes |
+| urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+| updated_last_by | File timestamp  |
+
+### Retrieve the lastest version
+
+GET /index/{UUID}/latest   
+
+Curl example:
+```
+curl http://localhost:8080/index/18992079-ff5c-401a-9633-d5fc6349f445/latest
+```
+
+***Response***   
+HTTP/1.1 200 OK
+```
+{
+  "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105"
+  "rev": "fec0ce30"
+  "form": "object",
+  "size": 123,
+  "urls": ["s3://endpointurl/bucket/key"],
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+  "updated_last_by": "Fri, 17 Nov 2017 06:17:39 GMT"
 }
 ```
 
@@ -200,6 +280,52 @@ HTTP/1.1 200 OK
 | size      |  File size in bytes |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+| updated_last_by | File timestamp  |
+
+### Retrieve all the versions
+
+GET /index/{UUID}/versions   
+
+Curl example:
+```
+curl http://localhost:8080/index/18992079-ff5c-401a-9633-d5fc6349f445/versions
+```
+
+***Response***   
+HTTP/1.1 200 OK
+```
+{
+  "0": 
+    {
+      "did": "e4350f7e-1b16-4f23-9332-1b3ca1ccc800", 
+      "form": "object", 
+      "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}, 
+      "rev": "0984a150", 
+      "size": 123, "updated_last_by": "Fri, 17 Nov 2017 06:11:18 GMT", 
+      "urls": ["s3://endpointurl/bucket/key"]
+    }, 
+  "1": 
+    {
+      "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105", 
+      "form": "object", 
+      "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}, 
+      "rev": "fec0ce30", "size": 123, 
+      "updated_last_by": "Fri, 17 Nov 2017 06:17:39 GMT", 
+      "urls": ["s3://endpointurl/bucket/key"]
+   }
+}
+```
+
+| Parameters        | Values           |
+| ----:|:----|
+| did     | Internal UUID assigned by the index service |
+| rev     | 8-digit hex revision ID assigned by the index service |
+| form      | Can be one of 'object', 'container', 'multipart' |
+| size      |  File size in bytes |
+| urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+| updated_last_by | File timestamp  |
+
 
 ### Delete an index
 
