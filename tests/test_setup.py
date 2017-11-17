@@ -76,7 +76,6 @@ def test_sqlite3_index_setup_tables():
 
         tables = [i[0] for i in c]
 
-
         for table in INDEX_TABLES:
             assert table in tables, '{table} not created'.format(table=table)
 
