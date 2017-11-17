@@ -110,7 +110,7 @@ Content-Type: application/json
 
 Curl example:   
 ```
-curl http://localhost:8080/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
+curl http://localhost/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
 ```
 
 ***Response***   
@@ -247,7 +247,7 @@ HTTP/1.1 200 OK
 | size      |  File size in bytes |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
-| updated_last_by | File timestamp  |
+| updated_last_by | File created datetime  |
 
 ### Retrieve the lastest version
 
@@ -280,7 +280,7 @@ HTTP/1.1 200 OK
 | size      |  File size in bytes |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
-| updated_last_by | File timestamp  |
+| updated_last_by | File created datetime  |
 
 ### Retrieve all the versions
 
@@ -324,7 +324,7 @@ HTTP/1.1 200 OK
 | size      |  File size in bytes |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
-| updated_last_by | File timestamp  |
+| updated_last_by | File created datetime  |
 
 
 ### Delete an index
