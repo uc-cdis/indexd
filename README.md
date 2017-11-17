@@ -110,7 +110,7 @@ Content-Type: application/json
 
 Curl example:
 ```
-curl http://localhost/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
+curl http://localhost:8080/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
 ```
 
 ***Response***
@@ -131,8 +131,6 @@ HTTP/1.1 200 OK
 
 [Full schema for creating an index](indexd/index/schema.py)
 
-### Create a new object version
-
 POST /index/
 Content-Type: application/json
 ```
@@ -152,6 +150,46 @@ Content-Type: application/json
 | size      |  File size in bytes (commonly computed via wc -c filename) |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+
+Curl example:
+```
+curl http://localhost:8080/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"baseid": "18992079-ff5c-401a-9633-d5fc6349f445", "form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
+```
+
+***Response***
+HTTP/1.1 200 OK
+```
+{
+  "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105",
+  "baseid": "18992079-ff5c-401a-9633-d5fc6349f445"
+  "rev": "ef758b5a"
+}
+```
+
+| Parameters        | Values           |
+| ----:|:----|
+| did     | Internal UUID assigned by the index service |
+| baseid  | Internal UUID assigned by the index service |
+| rev     | 8-digit hex revision ID assigned by the index service |
+
+[Full schema for creating an index](indexd/index/schema.py)
+
+
+### Update an index
+
+PUT /index/UUID?rev=REVSTRING
+Content-Type: application/json
+```
+{
+  "rev": "ef758b5a",
+  "urls": ["s3://endpointurl/bucket/key"]}
+}
+```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| rev      | Rev string of the index you wish to update |
+| urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 
 Curl example:
 ```
