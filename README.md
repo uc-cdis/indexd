@@ -155,7 +155,7 @@ Content-Type: application/json
 
 Curl example:   
 ```
-curl http://localhost:8080/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"baseid": "18992079-ff5c-401a-9633-d5fc6349f445", "form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
+curl http://localhost/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"baseid": "18992079-ff5c-401a-9633-d5fc6349f445", "form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
 ```
 
 ***Response***   
@@ -174,7 +174,7 @@ HTTP/1.1 200 OK
 | baseid  | Internal UUID assigned by the index service |
 | rev     | 8-digit hex revision ID assigned by the index service |
 
-[Full schema for creating an index](indexd/index/schema.py)
+[Full schema for creating an index version](indexd/index/schema.py)
 
 
 ### Update an index
@@ -220,7 +220,7 @@ GET /index/UUID
 
 Curl example:
 ```
-curl http://localhost:8080/index/60fd9e9d-da12-45b3-b9f5-20f5ab5b6105
+curl http://localhost/index/60fd9e9d-da12-45b3-b9f5-20f5ab5b6105
 ```
 
 ***Response***   
@@ -251,11 +251,11 @@ HTTP/1.1 200 OK
 
 ### Retrieve the lastest version
 
-GET /index/{UUID}/latest   
+GET /index/UUID/latest   
 
 Curl example:
 ```
-curl http://localhost:8080/index/18992079-ff5c-401a-9633-d5fc6349f445/latest
+curl http://localhost/index/18992079-ff5c-401a-9633-d5fc6349f445/latest
 ```
 
 ***Response***   
@@ -284,11 +284,11 @@ HTTP/1.1 200 OK
 
 ### Retrieve all the versions
 
-GET /index/{UUID}/versions   
+GET /index/UUID/versions   
 
 Curl example:
 ```
-curl http://localhost:8080/index/18992079-ff5c-401a-9633-d5fc6349f445/versions
+curl http://localhost/index/18992079-ff5c-401a-9633-d5fc6349f445/versions
 ```
 
 ***Response***   
