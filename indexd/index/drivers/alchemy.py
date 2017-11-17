@@ -64,6 +64,7 @@ class IndexRecord(Base):
     __tablename__ = 'index_record'
 
     did = Column(String, primary_key = True)
+
     baseid = Column(String, ForeignKey('base_version.baseid'))
 
     rev = Column(String)
@@ -283,6 +284,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
 
+            baseid = record.baseid
             rev = record.rev
 
             form = record.form
@@ -291,13 +293,19 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
 
+            updated_last_by = record.updated_last_by
+
+
+
         ret = {
             'did': did,
+            'baseid': baseid,
             'rev': rev,
             'size': size,
             'urls': urls,
             'hashes': hashes,
             'form': form,
+            "updated_last_by": updated_last_by,
         }
 
         return ret
@@ -362,7 +370,14 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query = session.query(IndexRecord)
             records = query.filter(IndexRecord.baseid == baseid).all()
 
+<<<<<<< HEAD
             for idx, record in enumerate(records):
+=======
+            if(len(records) == 0):
+                raise NoRecordFound('no record found')
+
+            for idx, record in enumerate(records):    
+>>>>>>> b1f111b... Fix some bugs of index versioning functions
                 rev = record.rev
                 did = record.did
 
@@ -395,7 +410,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         with self.session as session:
             query = session.query(IndexRecord)
             records = query.filter(IndexRecord.baseid == baseid).order_by(IndexRecord.updated_last_by).all()
+
+            if(len(records) == 0):
+                raise NoRecordFound('no record found')
+
             if(len(records) > 0):
+                
                 record = records[-1]
 
                 rev = record.rev
