@@ -232,10 +232,16 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 base_version = BaseVersion()
                 baseid = str(uuid.uuid4())
                 base_version.baseid = baseid
+<<<<<<< HEAD
 
             record.baseid = baseid
             did = did or str(uuid.uuid4())
 
+=======
+            
+            record.baseid = baseid    
+            did = did or str(uuid.uuid4())
+>>>>>>> 0e86508... Change to some python idoms
             record.did, record.rev = did, str(uuid.uuid4())[:8]
 
             record.form, record.size = form, size
@@ -413,6 +419,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise NoRecordFound('no record found')
 
             record = records[-1]
+<<<<<<< HEAD
 
             rev = record.rev
             did = record.did
@@ -434,6 +441,29 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 'form': form,
                 'last_updated': last_updated,
 
+=======
+            
+            rev = record.rev
+            did = record.did
+
+            form = record.form
+            size = record.size
+
+            urls = [u.url for u in record.urls]
+            hashes = {h.hash_type: h.hash_value for h in record.hashes}
+
+            last_updated = record.last_updated
+
+            ret = {
+                'did': did,
+                'rev': rev,
+                'size': size,
+                'urls': urls,
+                'hashes': hashes,
+                'form': form,
+                'last_updated': last_updated,
+
+>>>>>>> 0e86508... Change to some python idoms
             }
 
         return ret

@@ -289,11 +289,7 @@ def test_driver_get_record():
         dt = datetime.now()
 
         conn.execute('''
-<<<<<<< HEAD
             INSERT INTO index_record(did, baseid, rev, form, size, last_updated) VALUES (?,?,?,?,?,?)
-=======
-            INSERT INTO index_record(did, baseid, rev, form, size, updated_last_by) VALUES (?,?,?,?,?,?)
->>>>>>> 50b1772... Fix some bugs of index versioning functions
         ''', (did, baseid, rev, form, size,dt))
 
         conn.commit()
@@ -305,11 +301,7 @@ def test_driver_get_record():
         assert record['rev'] == rev, 'record revision does not match'
         assert record['size'] == size, 'record size does not match'
         assert record['form'] == form, 'record form does not match'
-<<<<<<< HEAD
         assert record['last_updated'] == dt, 'record last_updated does not match'
-=======
-        assert record['updated_last_by'] == dt, 'record updated_last_by does not match'
->>>>>>> 50b1772... Fix some bugs of index versioning functions
 
 @util.removes('index.sq3')
 def test_driver_get_fails_with_no_records():
