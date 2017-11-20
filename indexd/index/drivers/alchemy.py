@@ -39,7 +39,7 @@ class BaseVersion(Base):
     '''
     __tablename__ = 'base_version'
 
-    baseid = Column(String(8), primary_key = True)
+    baseid = Column(String, primary_key=True)
     dids = relationship(
         'IndexRecord',
         backref = 'base_version',
@@ -63,7 +63,7 @@ class IndexRecord(Base):
     '''
     __tablename__ = 'index_record'
 
-    did = Column(String, primary_key = True)
+    did = Column(String, primary_key=True)
 
     baseid = Column(String, ForeignKey('base_version.baseid'))
 
@@ -72,7 +72,7 @@ class IndexRecord(Base):
     form = Column(String)
     size = Column(BigInteger)
 
-    updated_last_by = Column(DateTime, default=datetime.datetime.utcnow)
+    last_updated = Column(DateTime, default=datetime.datetime.utcnow)
 
     urls = relationship(
         'IndexRecordUrl',
@@ -103,7 +103,7 @@ class IndexRecordHash(Base):
     '''
     __tablename__ = 'index_record_hash'
 
-    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    did = Column(String, ForeignKey('index_record.did'), primary_key = True)
     hash_type = Column(String, primary_key = True)
     hash_value = Column(String)
 
@@ -211,6 +211,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             # Remove duplicates.
             query = query.distinct()
 
+
             # Return only specified window.
             query = query.offset(start)
             query = query.limit(limit)
@@ -218,7 +219,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return [r.url for r in query]
 
 
-    def add(self, form, size = None, urls = [], hashes = {}, did = None, baseid = None):
+    def add(self, form, size=None, urls=[], hashes={}, did=None, baseid=None):
         '''
         Creates a new record given urls and hashes.
         '''
@@ -233,7 +234,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 base_version.baseid = baseid
 
             record.baseid = baseid
-            did = str(uuid.uuid4()) if did == None else did
+            did = did or str(uuid.uuid4())
+
             record.did, record.rev = did, str(uuid.uuid4())[:8]
 
             record.form, record.size = form, size
@@ -293,7 +295,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
 
-            updated_last_by = record.updated_last_by
+            last_updated = record.last_updated
 
 
 
@@ -305,7 +307,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             'urls': urls,
             'hashes': hashes,
             'form': form,
-            "updated_last_by": updated_last_by,
+            "last_updated": last_updated,
         }
 
         return ret
@@ -370,14 +372,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query = session.query(IndexRecord)
             records = query.filter(IndexRecord.baseid == baseid).all()
 
-<<<<<<< HEAD
-            for idx, record in enumerate(records):
-=======
             if(len(records) == 0):
                 raise NoRecordFound('no record found')
 
-            for idx, record in enumerate(records):    
->>>>>>> b1f111b... Fix some bugs of index versioning functions
+            for idx, record in enumerate(records):
                 rev = record.rev
                 did = record.did
 
@@ -387,7 +385,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 urls = [u.url for u in record.urls]
                 hashes = {h.hash_type: h.hash_value for h in record.hashes}
 
-                updated_last_by = record.updated_last_by
+                last_updated= record.last_updated
 
                 ret[idx] = {
                     'did': did,
@@ -396,7 +394,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     'urls': urls,
                     'hashes': hashes,
                     'form': form,
-                    'updated_last_by': updated_last_by,
+                    'last_updated': last_updated,
 
                 }
 
@@ -406,39 +404,37 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         '''
         Get all records with baseid
         '''
-        ret = {};
+        ret = {}
         with self.session as session:
             query = session.query(IndexRecord)
-            records = query.filter(IndexRecord.baseid == baseid).order_by(IndexRecord.updated_last_by).all()
+            records = query.filter(IndexRecord.baseid == baseid).order_by(IndexRecord.last_updated).all()
 
-            if(len(records) == 0):
+            if(not records):
                 raise NoRecordFound('no record found')
 
-            if(len(records) > 0):
-                
-                record = records[-1]
+            record = records[-1]
 
-                rev = record.rev
-                did = record.did
+            rev = record.rev
+            did = record.did
 
-                form = record.form
-                size = record.size
+            form = record.form
+            size = record.size
 
-                urls = [u.url for u in record.urls]
-                hashes = {h.hash_type: h.hash_value for h in record.hashes}
+            urls = [u.url for u in record.urls]
+            hashes = {h.hash_type: h.hash_value for h in record.hashes}
 
-                updated_last_by = record.updated_last_by
+            last_updated = record.last_updated
 
-                ret = {
-                    'did': did,
-                    'rev': rev,
-                    'size': size,
-                    'urls': urls,
-                    'hashes': hashes,
-                    'form': form,
-                    'updated_last_by': updated_last_by,
+            ret = {
+                'did': did,
+                'rev': rev,
+                'size': size,
+                'urls': urls,
+                'hashes': hashes,
+                'form': form,
+                'last_updated': last_updated,
 
-                }
+            }
 
         return ret
 

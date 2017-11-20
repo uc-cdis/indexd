@@ -12,7 +12,6 @@ from indexd.index.errors import RevisionMismatch
 
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
-import datetime
 from datetime import datetime
 
 
@@ -290,7 +289,7 @@ def test_driver_get_record():
         dt = datetime.now()
         
         conn.execute('''
-            INSERT INTO index_record(did, baseid, rev, form, size, updated_last_by) VALUES (?,?,?,?,?,?)
+            INSERT INTO index_record(did, baseid, rev, form, size, last_updated) VALUES (?,?,?,?,?,?)
         ''', (did, baseid, rev, form, size,dt))
         
         conn.commit()
@@ -302,7 +301,7 @@ def test_driver_get_record():
         assert record['rev'] == rev, 'record revision does not match'
         assert record['size'] == size, 'record size does not match'
         assert record['form'] == form, 'record form does not match'
-        assert record['updated_last_by'] == dt, 'record updated_last_by does not match'
+        assert record['last_updated'] == dt, 'record last_updated does not match'
 
 @util.removes('index.sq3')
 def test_driver_get_fails_with_no_records():
@@ -333,7 +332,7 @@ def test_driver_get_latest_version():
             dt = datetime.now()
             
             conn.execute('''
-                INSERT INTO index_record(did, baseid, rev, form, size, updated_last_by) VALUES (?,?,?,?,?,?)
+                INSERT INTO index_record(did, baseid, rev, form, size, last_updated) VALUES (?,?,?,?,?,?)
             ''', (did, baseid, rev, form, size, dt))
             
             conn.commit()
@@ -344,7 +343,7 @@ def test_driver_get_latest_version():
         assert record['rev'] == rev, 'record revision does not match'
         assert record['size'] == size, 'record size does not match'
         assert record['form'] == form, 'record form does not match'
-        assert record['updated_last_by'] == dt, 'record form does not match'
+        assert record['last_updated'] == dt, 'record form does not match'
 
 @util.removes('index.sq3')
 def test_driver_get_latest_version_with_no_record():
@@ -365,7 +364,7 @@ def test_driver_get_latest_version_with_no_record():
             dt = datetime.now()
             
             conn.execute('''
-                INSERT INTO index_record(did, baseid, rev, form, size, updated_last_by) VALUES (?,?,?,?,?,?)
+                INSERT INTO index_record(did, baseid, rev, form, size, last_updated) VALUES (?,?,?,?,?,?)
             ''', (did, baseid, rev, form, size, dt))
             
             conn.commit()
@@ -391,7 +390,7 @@ def test_driver_get_all_version():
         revs = []
         dts = []
 
-        for i in xrange(0,NUMBER_OF_RECORD):
+        for i in xrange(NUMBER_OF_RECORD):
 
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
@@ -404,7 +403,7 @@ def test_driver_get_all_version():
             dts.append(dt)
             
             conn.execute('''
-                INSERT INTO index_record(did, baseid, rev, form, size, updated_last_by) VALUES (?,?,?,?,?,?)
+                INSERT INTO index_record(did, baseid, rev, form, size, last_updated) VALUES (?,?,?,?,?,?)
             ''', (did, baseid, rev, form, size, dt))
             
         conn.commit()
@@ -418,7 +417,7 @@ def test_driver_get_all_version():
             assert record['rev'] == revs[i], 'record revision does not match'
             assert record['size'] == size, 'record size does not match'
             assert record['form'] == form, 'record form does not match'
-            assert record['updated_last_by'] == dts[i], 'record form does not match'
+            assert record['last_updated'] == dts[i], 'record form does not match'
 
 @util.removes('index.sq3')
 def test_driver_get_all_version_with_no_record():

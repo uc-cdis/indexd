@@ -13,7 +13,7 @@ ALIAS_HOST = 'alias.sq3'
 
 INDEX_TABLES = {
     'base_version': [
-        (0, u'baseid', u'VARCHAR(8)', 1, None, 1),
+        (0, u'baseid', u'VARCHAR', 1, None, 1),
     ],
     'index_record': [
         (0, u'did', u'VARCHAR', 1, None, 1),
@@ -21,7 +21,7 @@ INDEX_TABLES = {
         (2, u'rev', u'VARCHAR', 0, None, 0),
         (3, u'form', u'VARCHAR', 0, None, 0),
         (4, u'size', u'INTEGER', 0, None, 0),
-        (5, u'updated_last_by', u'DATETIME', 0, None, 0),
+        (5, u'last_updated', u'DATETIME', 0, None, 0),
     ],
     'index_record_hash': [
         (0, u'did', u'VARCHAR', 1, None, 1),
