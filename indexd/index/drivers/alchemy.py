@@ -349,7 +349,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             result = session.execute(select([func.sum(IndexRecord.size)])).scalar()
             if result is None:
                 return 0
-            return result
+            return long(result)
 
     def len(self):
         '''
