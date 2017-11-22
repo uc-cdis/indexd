@@ -8,8 +8,11 @@ from sqlalchemy import and_
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
+from sqlalchemy import BigInteger
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
+from sqlalchemy import MetaData
+from sqlalchemy import Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
@@ -87,8 +90,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
-
         self.Session = sessionmaker(bind=self.engine)
+
+        md = MetaData()
+        table = Table(IndexRecord.__tablename__, md, autoload=True, autoload_with=self.engine)
+        print(table.c.size.type)
+        if str(table.c.size.type) == 'INTEGER':
+            print("Altering table %s size from Integer to BigInteger" % (IndexRecord.__tablename__))
+            with self.session as session:
+                session.execute("ALTER TABLE %s ALTER COLUMN size TYPE bigint;" % (IndexRecord.__tablename__))
 
     @property
     @contextmanager
