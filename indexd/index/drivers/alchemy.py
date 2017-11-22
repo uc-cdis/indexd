@@ -41,7 +41,7 @@ class IndexRecord(Base):
     did = Column(String, primary_key=True)
     rev = Column(String)
     form = Column(String)
-    size = Column(Integer)
+    size = Column(BigInteger)
 
     urls = relationship(
         'IndexRecordUrl',
