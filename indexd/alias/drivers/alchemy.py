@@ -7,8 +7,11 @@ from sqlalchemy import and_
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
+from sqlalchemy import BigInteger
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
+from sqlalchemy import MetaData
+from sqlalchemy import Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
@@ -34,7 +37,7 @@ class AliasRecord(Base):
 
     name = Column(String, primary_key=True)
     rev = Column(String)
-    size = Column(Integer)
+    size = Column(BigInteger)
 
     hashes = relationship('AliasRecordHash',
         backref='alias_record',
@@ -83,8 +86,15 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
-        
         self.Session = sessionmaker(bind=self.engine)
+
+        md = MetaData()
+        table = Table(AliasRecord.__tablename__, md, autoload=True, autoload_with=self.engine)
+        print(table.c.size.type)
+        if str(table.c.size.type) == 'INTEGER':
+            print("Altering table %s size from Integer to BigInteger" % (AliasRecord.__tablename__))
+            with self.session as session:
+                session.execute("ALTER TABLE %s ALTER COLUMN size TYPE bigint;" % (AliasRecord.__tablename__))
 
     @property
     @contextmanager
