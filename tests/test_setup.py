@@ -16,7 +16,7 @@ INDEX_TABLES = {
         (0, u'did', u'VARCHAR', 1, None, 1),
         (1, u'rev', u'VARCHAR', 0, None, 0),
         (2, u'form', u'VARCHAR', 0, None, 0),
-        (3, u'size', u'INTEGER', 0, None, 0),
+        (3, u'size', u'BIGINT', 0, None, 0),
     ],
     'index_record_hash': [
         (0, u'did', u'VARCHAR', 1, None, 1),
