@@ -39,7 +39,7 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def update(self, did, rev, size=None, urls=None, hashes=None):
+    def update(self, did, rev, size=None, urls=None, hashes=None, baseid=None):
         '''
         Updates record with new values.
         '''
