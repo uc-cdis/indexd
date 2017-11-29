@@ -169,7 +169,7 @@ def post_index_record():
     urls = flask.request.json['urls']
     hashes = flask.request.json['hashes']
     did = flask.request.json.get('did')
-    
+
     try:
         baseid = flask.request.json['baseid']
     except KeyError:

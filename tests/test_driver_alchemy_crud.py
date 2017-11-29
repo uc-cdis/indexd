@@ -322,7 +322,7 @@ def test_driver_get_latest_version():
         driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
         baseid = str(uuid.uuid4())
 
-        for i in xrange(1,10):
+        for _ in range(1,10):
 
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
@@ -353,8 +353,7 @@ def test_driver_get_latest_version_with_no_record():
     with sqlite3.connect('index.sq3') as conn:
         driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
 
-
-        for i in xrange(1,10):
+        for _ in range(1,10):
 
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
@@ -370,9 +369,7 @@ def test_driver_get_latest_version_with_no_record():
             conn.commit()
 
         with pytest.raises(NoRecordFound):
-            record = driver.get_latest_version('some base version')
-
-
+            driver.get_latest_version('some base version')
 
 
 @util.removes('index.sq3')
@@ -428,7 +425,7 @@ def test_driver_get_all_version_with_no_record():
         driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
         baseid = str(uuid.uuid4())
 
-        for i in xrange(0,3):
+        for _ in range(3):
 
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
@@ -442,7 +439,7 @@ def test_driver_get_all_version_with_no_record():
         conn.commit()
 
         with pytest.raises(NoRecordFound):
-            records = driver.get_all_versions('some baseid')
+            driver.get_all_versions('some baseid')
 
 @util.removes('index.sq3')
 def test_driver_get_fails_with_invalid_id():
