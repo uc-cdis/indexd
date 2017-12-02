@@ -17,7 +17,7 @@ Digital IDs are intended to be publicly readable documents, and therefore contai
 
 The second layer of user defined aliases are introduced to add flexibility of supporting human readable identifiers and allow referencing existing identifiers that are created in other systems.
 
-[View in Swagger](https://editor2.swagger.io/#!/?import=https://raw.githubusercontent.com/uc-cdis/indexd/indexd_versioning/openapis/swagger.json)
+[View in Swagger](https://editor2.swagger.io/#!/?import=https://raw.githubusercontent.com/uc-cdis/indexd/master/openapis/swagger.json)
 
 ## Installation
 
@@ -90,7 +90,7 @@ a copy of the index running on localhost on port 8080.
 
 ### Create an index
 
-POST /index/   
+POST /index/
 Content-Type: application/json
 ```
 {
@@ -108,12 +108,12 @@ Content-Type: application/json
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
 
-Curl example:   
+Curl example:
 ```
 curl http://localhost/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
 ```
 
-***Response***   
+***Response***
 HTTP/1.1 200 OK
 ```
 {
@@ -126,14 +126,14 @@ HTTP/1.1 200 OK
 | Parameters        | Values           |
 | ----:|:----|
 | did     | Internal UUID assigned by the index service |
-| baseid  | Internal UUID assigned by the index service |
+| baseid  | Internal UUID assigned by the index service. Different record versions share the same baseid |
 | rev     | 8-digit hex revision ID assigned by the index service |
 
 [Full schema for creating an index](indexd/index/schema.py)
 
-### Create an index version
+### Create a new object version
 
-POST /index/   
+POST /index/
 Content-Type: application/json
 ```
 {
@@ -153,12 +153,12 @@ Content-Type: application/json
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
 
-Curl example:   
+Curl example:
 ```
 curl http://localhost/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"baseid": "18992079-ff5c-401a-9633-d5fc6349f445", "form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
 ```
 
-***Response***   
+***Response***
 HTTP/1.1 200 OK
 ```
 {
@@ -179,7 +179,7 @@ HTTP/1.1 200 OK
 
 ### Update an index
 
-PUT /index/UUID?rev=REVSTRING   
+PUT /index/UUID?rev=REVSTRING
 Content-Type: application/json
 ```
 {
@@ -198,7 +198,7 @@ Curl example:
 curl http://localhost:8080/index/60fd9e9d-da12-45b3-b9f5-20f5ab5b6105?rev=ef758b5a -u test:test -H "Content-type: application/json" -X PUT -d '{"rev": "80cf1989","urls": ["s3://endpointurl/bucket/key"]}'
 ```
 
-***Response***   
+***Response***
 HTTP/1.1 200 OK
 ```
 {
@@ -216,14 +216,14 @@ HTTP/1.1 200 OK
 
 ### Retrieve an index
 
-GET /index/UUID   
+GET /index/UUID
 
 Curl example:
 ```
 curl http://localhost/index/60fd9e9d-da12-45b3-b9f5-20f5ab5b6105
 ```
 
-***Response***   
+***Response***
 HTTP/1.1 200 OK
 ```
 {
@@ -251,14 +251,14 @@ HTTP/1.1 200 OK
 
 ### Retrieve the lastest version
 
-GET /index/UUID/latest   
+GET /index/UUID/latest
 
 Curl example:
 ```
 curl http://localhost/index/18992079-ff5c-401a-9633-d5fc6349f445/latest
 ```
 
-***Response***   
+***Response***
 HTTP/1.1 200 OK
 ```
 {
@@ -284,33 +284,33 @@ HTTP/1.1 200 OK
 
 ### Retrieve all the versions
 
-GET /index/UUID/versions   
+GET /index/UUID/versions
 
 Curl example:
 ```
 curl http://localhost/index/18992079-ff5c-401a-9633-d5fc6349f445/versions
 ```
 
-***Response***   
+***Response***
 HTTP/1.1 200 OK
 ```
 {
-  "0": 
+  "0":
     {
-      "did": "e4350f7e-1b16-4f23-9332-1b3ca1ccc800", 
-      "form": "object", 
-      "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}, 
-      "rev": "0984a150", 
-      "size": 123, "updated_last_by": "Fri, 17 Nov 2017 06:11:18 GMT", 
+      "did": "e4350f7e-1b16-4f23-9332-1b3ca1ccc800",
+      "form": "object",
+      "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+      "rev": "0984a150",
+      "size": 123, "updated_last_by": "Fri, 17 Nov 2017 06:11:18 GMT",
       "urls": ["s3://endpointurl/bucket/key"]
-    }, 
-  "1": 
+    },
+  "1":
     {
-      "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105", 
-      "form": "object", 
-      "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}, 
-      "rev": "fec0ce30", "size": 123, 
-      "updated_last_by": "Fri, 17 Nov 2017 06:17:39 GMT", 
+      "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105",
+      "form": "object",
+      "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+      "rev": "fec0ce30", "size": 123,
+      "updated_last_by": "Fri, 17 Nov 2017 06:17:39 GMT",
       "urls": ["s3://endpointurl/bucket/key"]
    }
 }
@@ -333,16 +333,16 @@ DELETE /index/UUID?rev=REVSTRING
 
 Curl example:
 ```
-curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e?rev=80cf1989 -u test:test -X DELETE 
+curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e?rev=80cf1989 -u test:test -X DELETE
 ```
 
-***Response***   
+***Response***
 HTTP/1.1 200 OK
 
 ### Create an alias
 
-PUT /alias/ALIASSTRING   
-Content-Type: application/json   
+PUT /alias/ALIASSTRING
+Content-Type: application/json
 ```
 {
   "size": 123,
@@ -363,12 +363,12 @@ Content-Type: application/json
 | host_authority | Who are the authorities hosting this data? |
 | metadata | String which can reference further metdata about the dataset |
 
-Curl example:   
+Curl example:
 ```
 curl "http://localhost/alias/ark:/31807/DC1-TESTARK" -u test:test -H "Content-type: application/json" -X PUT -d '{"release": "public", "keeper_authority": "OCC", "host_authority": ["OCC"], "size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "b9942cf415384b27cadf1f4d2d682e5a"}}'
 ```
 
-***Response***   
+***Response***
 HTTP/1.1 200 OK
 ```json
 {
@@ -381,7 +381,7 @@ HTTP/1.1 200 OK
 
 ### Update an alias
 
-PUT /alias/ALIASSTRING?rev=REVSTRING   
+PUT /alias/ALIASSTRING?rev=REVSTRING
 Content-Type: application/json
 ```
 {
@@ -408,7 +408,7 @@ Curl example:
 curl "http://localhost/alias/ark:/31807/DC1-TESTARK?rev=f93a62e4" -u test:test -H "Content-type: application/json" -X PUT -d '{"release": "public", "keeper_authority": "OCC", "host_authority": ["OCC", "GDC"], "size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "b9942cf415384b27cadf1f4d2d682e5a"}}'
 ```
 
-***Response***   
+***Response***
 HTTP/1.1 200 OK
 ```
 {
@@ -433,7 +433,7 @@ Curl example:
 curl http://localhost/alias/ark:/31807/DC1-TESTARK
 ```
 
-***Response***   
+***Response***
 HTTP/1.1 200 OK
 ```
 {
@@ -468,5 +468,5 @@ Curl example:
 curl http://localhost/alias/ark:/31807/DC1-TESTARK?rev=00898776 -u test:test -X DELETE
 ```
 
-***Response***   
+***Response***
 HTTP/1.1 200 OK
