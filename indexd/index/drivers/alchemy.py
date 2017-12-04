@@ -30,7 +30,6 @@ from indexd.index.errors import UnhealthyCheck
 from indexd.errors import UserError
 from indexd.utils import migrate_database
 
-
 Base = declarative_base()
 
 class BaseVersion(Base):
@@ -42,8 +41,8 @@ class BaseVersion(Base):
     baseid = Column(String, primary_key=True)
     dids = relationship(
         'IndexRecord',
-        backref = 'base_version',
-        cascade = 'all, delete-orphan')
+        backref='base_version',
+        cascade='all, delete-orphan')
 
 
 CURRENT_SCHEMA_VERSION = 1
@@ -71,8 +70,8 @@ class IndexRecord(Base):
 
     form = Column(String)
     size = Column(BigInteger)
-
-    last_updated = Column(DateTime, default=datetime.datetime.utcnow)
+    created_date = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_date = Column(DateTime, default=datetime.datetime.utcnow)
 
     urls = relationship(
         'IndexRecordUrl',
@@ -93,8 +92,8 @@ class IndexRecordUrl(Base):
     '''
     __tablename__ = 'index_record_url'
 
-    did = Column(String, ForeignKey('index_record.did'), primary_key = True)
-    url = Column(String, primary_key = True)
+    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    url = Column(String, primary_key=True)
 
 
 class IndexRecordHash(Base):
@@ -103,8 +102,8 @@ class IndexRecordHash(Base):
     '''
     __tablename__ = 'index_record_hash'
 
-    did = Column(String, ForeignKey('index_record.did'), primary_key = True)
-    hash_type = Column(String, primary_key = True)
+    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    hash_type = Column(String, primary_key=True)
     hash_value = Column(String)
 
 
@@ -158,7 +157,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         '''
         Returns list of records stored by the backend.
         '''
-        # TODO add dids to filter on
         with self.session as session:
             query = session.query(IndexRecord)
 
@@ -211,13 +209,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             # Remove duplicates.
             query = query.distinct()
 
-
             # Return only specified window.
             query = query.offset(start)
             query = query.limit(limit)
 
             return [r.url for r in query]
-
 
     def add(self, form, size=None, urls=None, hashes=None, did=None, baseid=None):
         '''
@@ -232,7 +228,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record = IndexRecord()
             base_version = None
 
-            if(baseid == None):
+            if(baseid is None):
                 base_version = BaseVersion()
                 baseid = str(uuid.uuid4())
                 base_version.baseid = baseid
@@ -269,7 +265,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 session.add(record)
                 session.commit()
 
-            except IntegrityError as err:
+            except IntegrityError:
                 raise UserError('{did} already exists'.format(did=did), 400)
 
             return record.did, record.rev, record.baseid
@@ -298,9 +294,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
 
-            last_updated = record.last_updated
-
-
+            created_date = record.created_date
+            updated_date = record.updated_date
 
         ret = {
             'did': did,
@@ -310,7 +305,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             'urls': urls,
             'hashes': hashes,
             'form': form,
-            "last_updated": last_updated,
+            'created_date': created_date,
+            "updated_date": updated_date,
         }
 
         return ret
@@ -365,18 +361,24 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             session.delete(record)
 
-    def get_all_versions(self,baseid):
+    def get_all_versions(self, did):
         '''
-        Get all records with baseid
+        Get all record versions given did
         '''
-
         ret = dict()
         with self.session as session:
             query = session.query(IndexRecord)
-            records = query.filter(IndexRecord.baseid == baseid).all()
+            query = query.filter(IndexRecord.did == did)
 
-            if(len(records) == 0):
+            try:
+                record = query.one()
+            except NoResultFound:
                 raise NoRecordFound('no record found')
+            except MultipleResultsFound:
+                raise MultipleRecordsFound('multiple records found')
+
+            query = session.query(IndexRecord)
+            records = query.filter(IndexRecord.baseid == record.baseid).all()
 
             for idx, record in enumerate(records):
                 rev = record.rev
@@ -388,7 +390,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 urls = [u.url for u in record.urls]
                 hashes = {h.hash_type: h.hash_value for h in record.hashes}
 
-                last_updated= record.last_updated
+                created_date = record.created_date
+                updated_date = record.updated_date
 
                 ret[idx] = {
                     'did': did,
@@ -397,20 +400,32 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     'urls': urls,
                     'hashes': hashes,
                     'form': form,
-                    'last_updated': last_updated,
+                    'created_date': created_date,
+                    'updated_date': updated_date,
 
                 }
 
         return ret
 
-    def get_latest_version(self,baseid):
+    def get_latest_version(self, did):
         '''
-        Get all records with baseid
+        Get the lattest record version given did
         '''
         ret = {}
         with self.session as session:
             query = session.query(IndexRecord)
-            records = query.filter(IndexRecord.baseid == baseid).order_by(IndexRecord.last_updated).all()
+            query = query.filter(IndexRecord.did == did)
+
+            try:
+                record = query.one()
+            except NoResultFound:
+                raise NoRecordFound('no record found')
+            except MultipleResultsFound:
+                raise MultipleRecordsFound('multiple records found')
+
+            query = session.query(IndexRecord)
+            records = query.filter(IndexRecord.baseid == record.baseid) \
+                .order_by(IndexRecord.updated_date).all()
 
             if(not records):
                 raise NoRecordFound('no record found')
@@ -426,7 +441,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
 
-            last_updated = record.last_updated
+            created_date = record.created_date
+            updated_date = record.updated_date
 
             ret = {
                 'did': did,
@@ -435,11 +451,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 'urls': urls,
                 'hashes': hashes,
                 'form': form,
-                'last_updated': last_updated,
+                'created_date': created_date,
+                'updated_date': updated_date,
+
             }
 
         return ret
-
 
     def health_check(self):
         '''
