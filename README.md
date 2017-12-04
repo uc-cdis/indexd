@@ -171,7 +171,7 @@ HTTP/1.1 200 OK
 | Parameters        | Values           |
 | ----:|:----|
 | did     | Internal UUID assigned by the index service |
-| baseid  | Internal UUID assigned by the index service |
+| baseid  | Internal UUID assigned by the index service. Different record versions share the same baseid |
 | rev     | 8-digit hex revision ID assigned by the index service |
 
 [Full schema for creating an index version](indexd/index/schema.py)
