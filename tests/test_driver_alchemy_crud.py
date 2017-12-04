@@ -90,7 +90,7 @@ def test_driver_add_object_record():
         assert record[1], 'record baseid not populated'
         assert record[2], 'record rev not populated'
         assert record[3] == 'object', 'record form is not object'
-        assert record[4] == None, 'record size non-null'
+        assert record[4] is None, 'record size non-null'
 
 @util.removes('index.sq3')
 def test_driver_add_container_record():
@@ -286,11 +286,12 @@ def test_driver_get_record():
         size = 512
         form = 'object'
         baseid = str(uuid.uuid4())
-        dt = datetime.now()
+        created_date = datetime.now()
+        updated_date = datetime.now()
 
         conn.execute('''
-            INSERT INTO index_record(did, baseid, rev, form, size, last_updated) VALUES (?,?,?,?,?,?)
-        ''', (did, baseid, rev, form, size,dt))
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
+        ''', (did, baseid, rev, form, size, created_date, updated_date))
 
         conn.commit()
 
@@ -301,7 +302,8 @@ def test_driver_get_record():
         assert record['rev'] == rev, 'record revision does not match'
         assert record['size'] == size, 'record size does not match'
         assert record['form'] == form, 'record form does not match'
-        assert record['last_updated'] == dt, 'record last_updated does not match'
+        assert record['created_date'] == created_date, 'created date does not match'
+        assert record['updated_date'] == updated_date, 'updated date does not match'
 
 @util.removes('index.sq3')
 def test_driver_get_fails_with_no_records():
@@ -322,28 +324,31 @@ def test_driver_get_latest_version():
         driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
         baseid = str(uuid.uuid4())
 
-        for _ in range(1,10):
+        for _ in range(10):
 
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
             size = 512
             form = 'object'
             baseid = str(uuid.uuid4())
-            dt = datetime.now()
+
+            created_date = datetime.now()
+            updated_date = datetime.now()
 
             conn.execute('''
-                INSERT INTO index_record(did, baseid, rev, form, size, last_updated) VALUES (?,?,?,?,?,?)
-            ''', (did, baseid, rev, form, size, dt))
+                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
+            ''', (did, baseid, rev, form, size, created_date, updated_date))
 
             conn.commit()
 
-        record = driver.get_latest_version(baseid)
+        record = driver.get_latest_version(did)
 
         assert record['did'] == did, 'record id does not match'
         assert record['rev'] == rev, 'record revision does not match'
         assert record['size'] == size, 'record size does not match'
         assert record['form'] == form, 'record form does not match'
-        assert record['last_updated'] == dt, 'record form does not match'
+        assert record['created_date'] == created_date, 'created date does not match'
+        assert record['updated_date'] == updated_date, 'updated date does not match'
 
 @util.removes('index.sq3')
 def test_driver_get_latest_version_with_no_record():
@@ -353,7 +358,7 @@ def test_driver_get_latest_version_with_no_record():
     with sqlite3.connect('index.sq3') as conn:
         driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
 
-        for _ in range(1,10):
+        for _ in range(10):
 
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
@@ -363,14 +368,13 @@ def test_driver_get_latest_version_with_no_record():
             dt = datetime.now()
 
             conn.execute('''
-                INSERT INTO index_record(did, baseid, rev, form, size, last_updated) VALUES (?,?,?,?,?,?)
-            ''', (did, baseid, rev, form, size, dt))
+                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
+            ''', (did, baseid, rev, form, size, dt, dt))
 
             conn.commit()
 
         with pytest.raises(NoRecordFound):
             driver.get_latest_version('some base version')
-
 
 @util.removes('index.sq3')
 def test_driver_get_all_version():
@@ -385,27 +389,32 @@ def test_driver_get_all_version():
 
         dids = []
         revs = []
-        dts = []
+        created_dates = []
+        updated_dates = []
 
-        for i in xrange(NUMBER_OF_RECORD):
+        for _ in range(NUMBER_OF_RECORD):
 
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
             size = 512
             form = 'object'
-            dt = datetime.now()
+            created_date = datetime.now()
+            updated_date = created_date
 
             dids.append(did)
             revs.append(rev)
-            dts.append(dt)
+
+            created_dates.append(created_date)
+            updated_dates.append(updated_date)
 
             conn.execute('''
-                INSERT INTO index_record(did, baseid, rev, form, size, last_updated) VALUES (?,?,?,?,?,?)
-            ''', (did, baseid, rev, form, size, dt))
+                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) \
+                    VALUES (?,?,?,?,?,?,?)
+            ''', (did, baseid, rev, form, size, created_date, updated_date))
 
         conn.commit()
 
-        records = driver.get_all_versions(baseid)
+        records = driver.get_all_versions(did)
         assert len(records) == NUMBER_OF_RECORD, 'the number of records does not match'
 
         for i in xrange(0,NUMBER_OF_RECORD):
@@ -414,7 +423,8 @@ def test_driver_get_all_version():
             assert record['rev'] == revs[i], 'record revision does not match'
             assert record['size'] == size, 'record size does not match'
             assert record['form'] == form, 'record form does not match'
-            assert record['last_updated'] == dts[i], 'record form does not match'
+            assert record['created_date'] == created_dates[i], 'created date does not match'
+            assert record['updated_date'] == updated_dates[i], 'updated date does not match'
 
 @util.removes('index.sq3')
 def test_driver_get_all_version_with_no_record():

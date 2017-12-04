@@ -117,65 +117,19 @@ curl http://localhost/index/ -u test:test -H "Content-type: application/json" -X
 HTTP/1.1 200 OK
 ```
 {
-  "did": "e4350f7e-1b16-4f23-9332-1b3ca1ccc800",
-  "baseid": "18992079-ff5c-401a-9633-d5fc6349f445"
-  "rev": "0984a150"
+  "did": "d5d9a196-f36d-4ab8-bdca-a989e0f21c00",
+  "baseid": "608d4730-101f-4372-aeb2-998ae41ff8a5"
+  "rev": "b9dc8220"
 }
 ```
 
 | Parameters        | Values           |
 | ----:|:----|
 | did     | Internal UUID assigned by the index service |
-| baseid  | Internal UUID assigned by the index service. Different record versions share the same baseid |
+| baseid  | Internal UUID assigned by the index service. All versions of a record share the same baseid |
 | rev     | 8-digit hex revision ID assigned by the index service |
 
 [Full schema for creating an index](indexd/index/schema.py)
-
-### Create a new object version
-
-POST /index/
-Content-Type: application/json
-```
-{
-  "baseid": "18992079-ff5c-401a-9633-d5fc6349f445"
-  "form": "object",
-  "size": 123,
-  "urls": ["s3://endpointurl/bucket/key"],
-  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
-}
-```
-
-| Parameters        | Values           |
-| -----:|:-----|
-| baseid    | baseid string of the index you wish to create new version   |
-| form      | Can be one of 'object', 'container', 'multipart' |
-| size      |  File size in bytes (commonly computed via wc -c filename) |
-| urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
-| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
-
-Curl example:
-```
-curl http://localhost/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"baseid": "18992079-ff5c-401a-9633-d5fc6349f445", "form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
-```
-
-***Response***
-HTTP/1.1 200 OK
-```
-{
-  "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105",
-  "baseid": "18992079-ff5c-401a-9633-d5fc6349f445"
-  "rev": "ef758b5a"
-}
-```
-
-| Parameters        | Values           |
-| ----:|:----|
-| did     | Internal UUID assigned by the index service |
-| baseid  | Internal UUID assigned by the index service |
-| rev     | 8-digit hex revision ID assigned by the index service |
-
-[Full schema for creating an index version](indexd/index/schema.py)
-
 
 ### Update an index
 
@@ -183,7 +137,7 @@ PUT /index/UUID?rev=REVSTRING
 Content-Type: application/json
 ```
 {
-  "rev": "ef758b5a",
+  "rev": "bc362844",
   "urls": ["s3://endpointurl/bucket/key"]}
 }
 ```
@@ -195,21 +149,22 @@ Content-Type: application/json
 
 Curl example:
 ```
-curl http://localhost:8080/index/60fd9e9d-da12-45b3-b9f5-20f5ab5b6105?rev=ef758b5a -u test:test -H "Content-type: application/json" -X PUT -d '{"rev": "80cf1989","urls": ["s3://endpointurl/bucket/key"]}'
+curl http://localhost:8080/index/1668106b-348e-47f2-bc6e-a3ed06a36055?rev=bc362844 -u test:test -H "Content-type: application/json" -X PUT -d '{"rev": "80cf1989","urls": ["s3://endpointurl/bucket/key"]}'
 ```
 
 ***Response***
 HTTP/1.1 200 OK
 ```
 {
-  "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105",
-  "rev": "fec0ce30"
+  "did": "1668106b-348e-47f2-bc6e-a3ed06a36055",
+  "rev": "9b7ec7b3"
 }
 ```
 
 | Parameters        | Values           |
 | ----:|:----|
 | did     | Internal UUID assigned by the index service |
+| baseid  | Internal UUID assigned by the index service |
 | rev     | 8-digit hex revision ID assigned by the index service |
 
 [Full schema for updating an index](indexd/index/schema.py)
@@ -220,34 +175,79 @@ GET /index/UUID
 
 Curl example:
 ```
-curl http://localhost/index/60fd9e9d-da12-45b3-b9f5-20f5ab5b6105
+curl http://localhost:8080/index/1668106b-348e-47f2-bc6e-a3ed06a36055
 ```
 
 ***Response***
 HTTP/1.1 200 OK
 ```
 {
-  "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105",
-  "baseid": "18992079-ff5c-401a-9633-d5fc6349f445",
-  "rev": "fec0ce30"
+  "did": "1668106b-348e-47f2-bc6e-a3ed06a36055",
+  "baseid": "608d4730-101f-4372-aeb2-998ae41ff8a5",
+  "rev": "9b7ec7b3"
   "form": "object",
   "size": 123,
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
-  "updated_last_by": "Fri, 17 Nov 2017 06:17:39 GMT"
+  "created_date": "Fri, 17 Nov 2017 06:07:29 GMT",
+  "updated_date": "Fri, 17 Nov 2017 06:17:39 GMT"
 }
 ```
 
 | Parameters        | Values           |
 | ----:|:----|
 | did     | Internal UUID assigned by the index service |
-| baseid  | Internal UUID assigned by the index service. Different record versions share the same baseid |
+| baseid  | Internal UUID assigned by the index service. All the versions of a record share the same baseid |
 | rev     | 8-digit hex revision ID assigned by the index service |
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
-| updated_last_by | File created datetime  |
+| created_date | File created datetime  |
+| updated_date | File updated datetime  |
+
+### Create a new record version
+
+POST /index/<did>
+Content-Type: application/json
+```
+{
+  "form": "object",
+  "size": 123,
+  "urls": ["s3://endpointurl/bucket/key"],
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
+}
+```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| form      | Can be one of 'object', 'container', 'multipart' |
+| size      |  File size in bytes (commonly computed via wc -c filename) |
+| urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+
+Curl example:
+```
+curl http://localhost/index/d5d9a196-f36d-4ab8-bdca-a989e0f21c00? -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
+```
+
+***Response***
+HTTP/1.1 200 OK
+```
+{
+  "did": "1668106b-348e-47f2-bc6e-a3ed06a36055"
+  "baseid": "608d4730-101f-4372-aeb2-998ae41ff8a5",
+  "rev": "bc362844"
+}
+```
+
+| Parameters        | Values           |
+| ----:|:----|
+| did     | Internal UUID assigned by the index service |
+| baseid  | Internal UUID assigned by the index service. All versions of a record share the same baseid |
+| rev     | 8-digit hex revision ID assigned by the index service |
+
+[Full schema for creating an index version](indexd/index/schema.py)
 
 ### Retrieve the lastest version
 
@@ -255,20 +255,22 @@ GET /index/UUID/latest
 
 Curl example:
 ```
-curl http://localhost/index/18992079-ff5c-401a-9633-d5fc6349f445/latest
+curl http://localhost:8080/index/1668106b-348e-47f2-bc6e-a3ed06a36055/latest
 ```
 
 ***Response***
 HTTP/1.1 200 OK
 ```
 {
-  "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105"
+  "did": "1668106b-348e-47f2-bc6e-a3ed06a36055"
+  "baseid": "608d4730-101f-4372-aeb2-998ae41ff8a5",
   "rev": "fec0ce30"
   "form": "object",
   "size": 123,
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
-  "updated_last_by": "Fri, 17 Nov 2017 06:17:39 GMT"
+  "created_date": "Tue, 05 Dec 2017 21:02:59 GMT",
+  "updated_date": "Tue, 05 Dec 2017 21:02:59 GMT"
 }
 ```
 
@@ -280,7 +282,8 @@ HTTP/1.1 200 OK
 | size      |  File size in bytes |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
-| updated_last_by | File created datetime  |
+| created_date  | File created datetime |
+| updated_date | File updated datetime  |
 
 ### Retrieve all the versions
 
@@ -288,7 +291,7 @@ GET /index/UUID/versions
 
 Curl example:
 ```
-curl http://localhost/index/18992079-ff5c-401a-9633-d5fc6349f445/versions
+curl http://localhost/index/60fd9e9d-da12-45b3-b9f5-20f5ab5b6105/versions
 ```
 
 ***Response***
@@ -298,19 +301,24 @@ HTTP/1.1 200 OK
   "0":
     {
       "did": "e4350f7e-1b16-4f23-9332-1b3ca1ccc800",
+      "baseid": "18992079-ff5c-401a-9633-d5fc6349f445",
       "form": "object",
       "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
       "rev": "0984a150",
-      "size": 123, "updated_last_by": "Fri, 17 Nov 2017 06:11:18 GMT",
+      "size": 123,
+      "created_date": "Fri, 17 Nov 2017 06:11:18 GMT"
+      "updated_date": "Fri, 17 Nov 2017 06:11:18 GMT",
       "urls": ["s3://endpointurl/bucket/key"]
     },
   "1":
     {
       "did": "60fd9e9d-da12-45b3-b9f5-20f5ab5b6105",
+      "baseid": "18992079-ff5c-401a-9633-d5fc6349f445",
       "form": "object",
       "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
       "rev": "fec0ce30", "size": 123,
-      "updated_last_by": "Fri, 17 Nov 2017 06:17:39 GMT",
+      "created_date": "Fri, 17 Nov 2017 06:17:39 GMT",
+      "updated_date": "Fri, 17 Nov 2017 06:17:39 GMT",
       "urls": ["s3://endpointurl/bucket/key"]
    }
 }
@@ -319,12 +327,14 @@ HTTP/1.1 200 OK
 | Parameters        | Values           |
 | ----:|:----|
 | did     | Internal UUID assigned by the index service |
+| baseid     | Internal UUID assigned by the index service. All the versions of a record share the same baseid |
 | rev     | 8-digit hex revision ID assigned by the index service |
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
-| updated_last_by | File created datetime  |
+| created_date | File created datetime  |
+| updated_date | File updated datetime  |
 
 
 ### Delete an index
