@@ -91,6 +91,10 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         self.__migrate__()
 
     def __migrate__(self):
+        if self.engine.dialect.supports_alter:
+            print("This engine dialect doesn't support altering so we are not migrating even if necessary!")
+            return
+
         md = MetaData()
         table = Table(AliasRecord.__tablename__, md, autoload=True, autoload_with=self.engine)
         if str(table.c.size.type) == 'INTEGER':
@@ -161,7 +165,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             
             record.name = name
             
-            if rev is not None and record.rev and rev != record.rev:
+            if record.rev and rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
             
             if size is not None:

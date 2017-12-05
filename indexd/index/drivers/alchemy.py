@@ -96,6 +96,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
 
     def __migrate__(self):
+        if self.engine.dialect.supports_alter:
+            print("This engine dialect doesn't support altering so we are not migrating even if necessary!")
+            return
         md = MetaData()
         table = Table(IndexRecord.__tablename__, md, autoload=True, autoload_with=self.engine)
         if str(table.c.size.type) == 'INTEGER':
