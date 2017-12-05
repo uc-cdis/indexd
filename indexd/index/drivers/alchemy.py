@@ -215,7 +215,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return [r.url for r in query]
 
-    def add(self, form, size=None, urls=None, hashes=None, did=None, baseid=None):
+    def add(self, form, size=None, urls=None, hashes=None):
         '''
         Creates a new record given urls and hashes.
         '''
@@ -226,15 +226,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             hashes = {}
         with self.session as session:
             record = IndexRecord()
-            base_version = None
 
-            if(baseid is None):
-                base_version = BaseVersion()
-                baseid = str(uuid.uuid4())
-                base_version.baseid = baseid
+            base_version = BaseVersion()
+            baseid = str(uuid.uuid4())
+            base_version.baseid = baseid
 
             record.baseid = baseid
-            did = did or str(uuid.uuid4())
+            did = str(uuid.uuid4())
             record.did, record.rev = did, str(uuid.uuid4())[:8]
 
             record.form, record.size = form, size
@@ -297,17 +295,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             created_date = record.created_date
             updated_date = record.updated_date
 
-        ret = {
-            'did': did,
-            'baseid': baseid,
-            'rev': rev,
-            'size': size,
-            'urls': urls,
-            'hashes': hashes,
-            'form': form,
-            'created_date': created_date,
-            "updated_date": updated_date,
-        }
+            ret = {
+                'did': did,
+                'baseid': baseid,
+                'rev': rev,
+                'size': size,
+                'urls': urls,
+                'hashes': hashes,
+                'form': form,
+                'created_date': created_date,
+                "updated_date": updated_date,
+            }
 
         return ret
 
@@ -339,7 +337,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             session.add(record)
 
-            return record.did, record.rev
+            return record.did, record.baseid, record.rev
 
     def delete(self, did, rev):
         '''
@@ -361,6 +359,48 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             session.delete(record)
 
+    def add_version(self, did, form, size=None, urls=None, hashes=None):
+        '''
+        Add a record version given did
+        '''
+        with self.session as session:
+            query = session.query(IndexRecord).filter_by(did=did)
+
+            try:
+                record = query.one()
+            except NoResultFound:
+                raise NoRecordFound('no record found')
+            except MultipleResultsFound:
+                raise MultipleRecordsFound('multiple records found')
+
+            baseid = record.baseid
+
+            record = IndexRecord()
+
+            did = str(uuid.uuid4())
+
+            record.did, record.baseid, record.rev = did, baseid, str(uuid.uuid4())[:8]
+            record.form, record.size = form, size
+
+            record.urls = [IndexRecordUrl(
+                did=record,
+                url=url,
+            ) for url in urls]
+
+            record.hashes = [IndexRecordHash(
+                did=record,
+                hash_type=h,
+                hash_value=v,
+            ) for h, v in hashes.items()]
+
+            try:
+                session.add(record)
+                session.commit()
+
+            except IntegrityError:
+                raise UserError('{did} already exists'.format(did=did), 400)
+
+            return record.did, record.baseid, record.rev
     def get_all_versions(self, did):
         '''
         Get all record versions given did

@@ -21,7 +21,8 @@ INDEX_TABLES = {
         (2, u'rev', u'VARCHAR', 0, None, 0),
         (3, u'form', u'VARCHAR', 0, None, 0),
         (4, u'size', u'INTEGER', 0, None, 0),
-        (5, u'last_updated', u'DATETIME', 0, None, 0),
+        (5, u'created_date', u'DATETIME', 0, None, 0),
+        (6, u'updated_date', u'DATETIME', 0, None, 0),
     ],
     'index_record_hash': [
         (0, u'did', u'VARCHAR', 1, None, 1),
@@ -61,6 +62,7 @@ INDEX_CONFIG = {
 ALIAS_CONFIG = {
     'driver': SQLAlchemyAliasDriver('sqlite:///alias.sq3'),
 }
+
 
 @util.removes(INDEX_HOST)
 def test_sqlite3_index_setup_tables():

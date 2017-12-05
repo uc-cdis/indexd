@@ -25,7 +25,7 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def add(self, form, size, urls=None, hashes=None, did=None, baseid=None):
+    def add(self, form, size, urls=None, hashes=None):
         '''
         Creates record for given data.
         '''
@@ -49,6 +49,13 @@ class IndexDriverABC(object):
     def delete(self, did, rev):
         '''
         Deletes record.
+        '''
+        raise NotImplementedError('TODO')
+
+    @abc.abstractmethod
+    def add_version(self, did, form, size=None, urls=None, hashes=None):
+        '''
+        Add a record version given did
         '''
         raise NotImplementedError('TODO')
 
