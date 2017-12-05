@@ -91,10 +91,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
         self.Session = sessionmaker(bind=self.engine)
+        
+        self.__migrate__()
 
+
+    def __migrate__(self):
         md = MetaData()
         table = Table(IndexRecord.__tablename__, md, autoload=True, autoload_with=self.engine)
-        print(table.c.size.type)
         if str(table.c.size.type) == 'INTEGER':
             print("Altering table %s size from Integer to BigInteger" % (IndexRecord.__tablename__))
             with self.session as session:

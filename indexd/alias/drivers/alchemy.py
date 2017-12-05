@@ -88,9 +88,11 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         Base.metadata.create_all()
         self.Session = sessionmaker(bind=self.engine)
 
+        self.__migrate__()
+
+    def __migrate__(self):
         md = MetaData()
         table = Table(AliasRecord.__tablename__, md, autoload=True, autoload_with=self.engine)
-        print(table.c.size.type)
         if str(table.c.size.type) == 'INTEGER':
             print("Altering table %s size from Integer to BigInteger" % (AliasRecord.__tablename__))
             with self.session as session:
