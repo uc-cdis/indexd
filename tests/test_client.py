@@ -45,40 +45,6 @@ def test_index_update(client, user):
     assert 'rev' in r2.json
     assert r2.json['rev'] != rev
 
-def test_index_create_version(client, user):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
-
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
-    assert r.status_code == 200
-    assert 'did' in r.json
-    did = r.json['did']
-    assert 'baseid' in r.json
-    baseid = r.json['baseid']
-    dataNew = {
-        'baseid': baseid,
-        'form': 'object',
-        'size': 244,
-        'urls': ['s3://endpointurl/bucket2/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
-        }
-    r2 = client.post(
-        '/index/',
-        data=json.dumps(dataNew),
-        headers=user)
-    assert r2.status_code == 200
-    assert 'did' in r2.json
-    assert r2.json['did'] != did
-    assert 'baseid' in r2.json
-    assert r2.json['baseid'] == baseid
-    assert 'rev' in r2.json
-
 def test_index_delete(client, user):
     data = {
         'form': 'object',
@@ -101,6 +67,84 @@ def test_index_delete(client, user):
     assert r.status_code == 200
     r = client.get('/index/' + did)
     assert r.status_code == 404
+
+def test_create_index_version(client, user):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+
+    assert r.status_code == 200
+    assert 'did' in r.json
+    did = r.json['did']
+    assert 'baseid' in r.json
+    baseid = r.json['baseid']
+
+    dataNew = {
+        'form': 'object',
+        'size': 244,
+        'urls': ['s3://endpointurl/bucket2/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
+        }
+
+    r2 = client.post(
+        '/index/' + did,
+        data=json.dumps(dataNew),
+        headers=user)
+    assert r2.status_code == 200
+    assert 'baseid' in r2.json
+    assert r2.json['baseid'] == baseid
+    assert 'rev' in r2.json
+
+def test_get_latest_version(client, user):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+
+    assert r.status_code == 200
+    assert 'did' in r.json
+    did = r.json['did']
+
+    r2 = client.get(
+        '/index/' + did + '/latest',
+        )
+
+    assert r2.status_code == 200
+
+def test_get_all_versions(client, user):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+
+    assert r.status_code == 200
+    assert 'did' in r.json
+    did = r.json['did']
+
+    r2 = client.get(
+        '/index/' + did + '/versions',
+        )
+
+    assert r2.status_code == 200
 
 def test_alias_list(client):
     assert client.get('/alias/').status_code == 200
@@ -155,7 +199,7 @@ def test_alias_update(client, user):
         headers=user)
     assert r.status_code == 200
     assert r.json['rev'] != rev
-    
+
 def test_alias_delete(client, user):
     data = {
         'size': 123,
