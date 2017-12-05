@@ -161,7 +161,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             
             record.name = name
             
-            if record.rev and rev != record.rev:
+            if rev is not None and record.rev and rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
             
             if size is not None:
