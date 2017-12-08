@@ -91,7 +91,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
         self.Session = sessionmaker(bind=self.engine)
-        
+
         self.__migrate__()
 
 
