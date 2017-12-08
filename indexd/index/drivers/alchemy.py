@@ -1,3 +1,4 @@
+from __future__ import print_function
 import uuid
 
 from contextlib import contextmanager
@@ -27,6 +28,14 @@ from sqlalchemy.exc import IntegrityError
 
 
 Base = declarative_base()
+
+
+class IndexSchemaVersion(Base):
+    '''
+    Table to track current database's schema version
+    '''
+    __tablename__ = 'index_schema_version'
+    version = Column(Integer, primary_key=True)
 
 
 class IndexRecord(Base):
@@ -79,7 +88,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     SQLAlchemy implementation of index driver.
     '''
 
-    def __init__(self, conn, **config):
+    def __init__(self, conn, auto_migrate=True, **config):
         '''
         Initialize the SQLAlchemy database driver.
         '''
@@ -89,6 +98,29 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Base.metadata.create_all()
 
         self.Session = sessionmaker(bind=self.engine)
+        self.current_schema_version = 0
+        if auto_migrate:
+            self.migrate_database()
+
+    def migrate_database(self):
+        print('migrating index schema')
+        schema_version = self.init_schema_version()
+        all_migration_functions = []
+        for f in all_migration_functions[schema_version:self.current_schema_version]:
+            with self.session as s:
+                f(s)
+                schema_version = s.query(IndexSchemaVersion).first()
+                schema_version.version += 1
+                s.add(schema_version)
+
+    def init_schema_version(self):
+        with self.session as s:
+            schema_version = s.query(IndexSchemaVersion).first()
+            if not schema_version:
+                schema_version = IndexSchemaVersion(version=0)
+                s.add(schema_version)
+            version = schema_version.version
+        return version
 
     @property
     @contextmanager

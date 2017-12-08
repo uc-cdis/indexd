@@ -1,3 +1,4 @@
+from __future__ import print_function
 import json
 import uuid
 
@@ -25,6 +26,13 @@ from indexd.alias.errors import RevisionMismatch
 
 
 Base = declarative_base()
+
+class AliasSchemaVersion(Base):
+    '''
+    Table to track current database's schema version
+    '''
+    __tablename__ = 'alias_schema_version'
+    version = Column(Integer, primary_key=True)
 
 class AliasRecord(Base):
     '''
@@ -75,7 +83,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
     SQLAlchemy implementation of alias driver.
     '''
 
-    def __init__(self, conn, **config):
+    def __init__(self, conn, auto_migrate=True, **config):
         '''
         Initialize the SQLAlchemy database driver.
         '''
@@ -85,6 +93,29 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         Base.metadata.create_all()
         
         self.Session = sessionmaker(bind=self.engine)
+        self.current_schema_version = 0
+        if auto_migrate:
+            self.migrate_database()
+
+    def migrate_database(self):
+        print('migrating alias schema')
+        schema_version = self.init_schema_version()
+        all_migration_functions = []
+        for f in all_migration_functions[schema_version:self.current_schema_version]:
+            with self.session as s:
+                f(s)
+                schema_version = s.query(AliasSchemaVersion).first()
+                schema_version.version += 1
+                s.add(schema_version)
+
+    def init_schema_version(self):
+        with self.session as s:
+            schema_version = s.query(AliasSchemaVersion).first()
+            if not schema_version:
+                schema_version = AliasSchemaVersion(version=0)
+                s.add(schema_version)
+            version = schema_version.version
+        return version
 
     @property
     @contextmanager
