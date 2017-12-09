@@ -31,10 +31,7 @@ from indexd.utils import migrate_database
 Base = declarative_base()
 
 
-CURRENT_SCHEMA_VERSION = 0
-# ordered schema migration functions that the index should correspond to
-# CURRENT_SCHEMA_VERSION - 1 when it's written
-SCHEMA_MIGRATION_FUNCTIONS = []
+CURRENT_SCHEMA_VERSION = 1
 
 
 class IndexSchemaVersion(Base):
@@ -374,5 +371,16 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Number of unique records stored by backend.
         '''
         with self.session as session:
-            
+
             return session.execute(select([func.count()]).select_from(IndexRecord)).scalar()
+
+
+def migrate_1(session, **kwargs):
+    session.execute(
+        "ALTER TABLE {} ALTER COLUMN size TYPE bigint;"
+        .format(IndexRecord.__tablename__))
+
+
+# ordered schema migration functions that the index should correspond to
+# CURRENT_SCHEMA_VERSION - 1 when it's written
+SCHEMA_MIGRATION_FUNCTIONS = [migrate_1]

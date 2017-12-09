@@ -27,10 +27,8 @@ from indexd.utils import migrate_database
 
 Base = declarative_base()
 
-CURRENT_SCHEMA_VERSION = 0
-# ordered schema migration functions that the index should correspond to
-#  CURRENT_SCHEMA_VERSION - 1 when it's written
-SCHEMA_MIGRATION_FUNCTIONS = []
+CURRENT_SCHEMA_VERSION = 1
+
 
 class AliasSchemaVersion(Base):
     '''
@@ -287,3 +285,14 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         '''
         with self.session as session:
             return session.query(AliasRecord).count()
+
+
+def migrate_1(session, **kwargs):
+    session.execute(
+        "ALTER TABLE {} ALTER COLUMN size TYPE bigint;"
+        .format(AliasRecord.__tablename__))
+
+
+# ordered schema migration functions that the index should correspond to
+# CURRENT_SCHEMA_VERSION - 1 when it's written
+SCHEMA_MIGRATION_FUNCTIONS = [migrate_1]
