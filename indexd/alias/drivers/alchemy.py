@@ -1,7 +1,7 @@
-from __future__ import print_function
 import json
 import uuid
 
+from cdispyutils.log import get_logger
 from contextlib import contextmanager
 
 from sqlalchemy import and_
@@ -17,15 +17,20 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 
 from indexd import alias
-
 from indexd.alias.driver import AliasDriverABC
 
 from indexd.alias.errors import NoRecordFound
 from indexd.alias.errors import MultipleRecordsFound
 from indexd.alias.errors import RevisionMismatch
+from indexd.utils import migrate_database
 
 
 Base = declarative_base()
+
+CURRENT_SCHEMA_VERSION = 0
+# ordered schema migration functions that the index should correspond to
+#  CURRENT_SCHEMA_VERSION - 1 when it's written
+SCHEMA_MIGRATION_FUNCTIONS = []
 
 class AliasSchemaVersion(Base):
     '''
@@ -83,39 +88,27 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
     SQLAlchemy implementation of alias driver.
     '''
 
-    def __init__(self, conn, auto_migrate=True, **config):
+    def __init__(self, conn, logger=None, auto_migrate=True, **config):
         '''
         Initialize the SQLAlchemy database driver.
         '''
         self.engine = create_engine(conn, **config)
-        
+        self.logger = logger or get_logger('SQLAlchemyAliasDriver')
+
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
-        
         self.Session = sessionmaker(bind=self.engine)
-        self.current_schema_version = 0
         if auto_migrate:
-            self.migrate_database()
+            self.migrate_alias_database()
 
-    def migrate_database(self):
-        print('migrating alias schema')
-        schema_version = self.init_schema_version()
-        all_migration_functions = []
-        for f in all_migration_functions[schema_version:self.current_schema_version]:
-            with self.session as s:
-                f(s)
-                schema_version = s.query(AliasSchemaVersion).first()
-                schema_version.version += 1
-                s.add(schema_version)
-
-    def init_schema_version(self):
-        with self.session as s:
-            schema_version = s.query(AliasSchemaVersion).first()
-            if not schema_version:
-                schema_version = AliasSchemaVersion(version=0)
-                s.add(schema_version)
-            version = schema_version.version
-        return version
+    def migrate_alias_database(self):
+        '''
+        migrate alias database to match CURRENT_SCHEMA_VERSION
+        '''
+        migrate_database(
+            driver=self, migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
+            current_schema_version=CURRENT_SCHEMA_VERSION,
+            model=AliasSchemaVersion)
 
     @property
     @contextmanager
@@ -124,9 +117,9 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         Provide a transactional scope around a series of operations.
         '''
         session = self.Session()
-        
+
         yield session
-        
+
         try: session.commit()
         except:
             session.rollback()
