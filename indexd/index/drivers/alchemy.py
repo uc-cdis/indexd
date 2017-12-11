@@ -1,5 +1,6 @@
 import uuid
 
+from cdispyutils.log import get_logger
 from contextlib import contextmanager
 
 from sqlalchemy import func
@@ -8,6 +9,7 @@ from sqlalchemy import and_
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
+from sqlalchemy import BigInteger
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.orm import relationship
@@ -15,6 +17,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.exc import IntegrityError
 
 from indexd.index.driver import IndexDriverABC
 
@@ -23,10 +26,21 @@ from indexd.index.errors import MultipleRecordsFound
 from indexd.index.errors import RevisionMismatch
 from indexd.index.errors import UnhealthyCheck
 from indexd.errors import UserError
-from sqlalchemy.exc import IntegrityError
+from indexd.utils import migrate_database
 
 
 Base = declarative_base()
+
+
+CURRENT_SCHEMA_VERSION = 1
+
+
+class IndexSchemaVersion(Base):
+    '''
+    Table to track current database's schema version
+    '''
+    __tablename__ = 'index_schema_version'
+    version = Column(Integer, primary_key=True)
 
 
 class IndexRecord(Base):
@@ -38,7 +52,7 @@ class IndexRecord(Base):
     did = Column(String, primary_key=True)
     rev = Column(String)
     form = Column(String)
-    size = Column(Integer)
+    size = Column(BigInteger)
 
     urls = relationship(
         'IndexRecordUrl',
@@ -79,16 +93,28 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     SQLAlchemy implementation of index driver.
     '''
 
-    def __init__(self, conn, **config):
+    def __init__(self, conn, logger=None, auto_migrate=True, **config):
         '''
         Initialize the SQLAlchemy database driver.
         '''
         self.engine = create_engine(conn, **config)
+        self.logger = logger or get_logger('SQLAlchemyIndexDriver')
 
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
 
         self.Session = sessionmaker(bind=self.engine)
+        if auto_migrate:
+            self.migrate_index_database()
+
+    def migrate_index_database(self):
+        '''
+        migrate alias database to match CURRENT_SCHEMA_VERSION
+        '''
+        migrate_database(
+            driver=self, migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
+            current_schema_version=CURRENT_SCHEMA_VERSION,
+            model=IndexSchemaVersion)
 
     @property
     @contextmanager
@@ -339,12 +365,23 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             result = session.execute(select([func.sum(IndexRecord.size)])).scalar()
             if result is None:
                 return 0
-            return result
+            return long(result)
 
     def len(self):
         '''
         Number of unique records stored by backend.
         '''
         with self.session as session:
-            
+
             return session.execute(select([func.count()]).select_from(IndexRecord)).scalar()
+
+
+def migrate_1(session, **kwargs):
+    session.execute(
+        "ALTER TABLE {} ALTER COLUMN size TYPE bigint;"
+        .format(IndexRecord.__tablename__))
+
+
+# ordered schema migration functions that the index should correspond to
+# CURRENT_SCHEMA_VERSION - 1 when it's written
+SCHEMA_MIGRATION_FUNCTIONS = [migrate_1]

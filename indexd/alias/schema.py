@@ -6,7 +6,6 @@ PUT_RECORD_SCHEMA = {
   "required": [
     "size",
     "hashes",
-    "urls",
     "release"
   ],
   "properties": {
@@ -23,24 +22,18 @@ PUT_RECORD_SCHEMA = {
       "type": "integer",
       "minimum": 0
     },
-    "urls": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
     "keeper_authority": {
       "description": "Who controls the alias pointing to this data?",
       "type": "string"
     },
-    "host_authority": {
+    "host_authorities": {
       "description": "Who hosts the data?",
       "type": "array",
       "items": {
         "type": "string"
       }
     },
-    "metadata": {
+    "metastring": {
       "description": "Further dataset identifiers",
       "type": "string"
     },
