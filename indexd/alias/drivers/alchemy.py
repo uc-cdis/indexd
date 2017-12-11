@@ -11,6 +11,8 @@ from sqlalchemy import Integer
 from sqlalchemy import BigInteger
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
+from sqlalchemy import MetaData
+from sqlalchemy import Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
@@ -108,6 +110,20 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             driver=self, migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
             current_schema_version=CURRENT_SCHEMA_VERSION,
             model=AliasSchemaVersion)
+
+        self.__migrate__()
+
+    def __migrate__(self):
+        if self.engine.dialect.supports_alter:
+            print("This engine dialect doesn't support altering so we are not migrating even if necessary!")
+            return
+
+        md = MetaData()
+        table = Table(AliasRecord.__tablename__, md, autoload=True, autoload_with=self.engine)
+        if str(table.c.size.type) == 'INTEGER':
+            print("Altering table %s size from Integer to BigInteger" % (AliasRecord.__tablename__))
+            with self.session as session:
+                session.execute("ALTER TABLE %s ALTER COLUMN size TYPE bigint;" % (AliasRecord.__tablename__))
 
     @property
     @contextmanager

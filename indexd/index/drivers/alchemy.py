@@ -12,6 +12,8 @@ from sqlalchemy import Integer
 from sqlalchemy import BigInteger
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
+from sqlalchemy import MetaData
+from sqlalchemy import Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
@@ -102,7 +104,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
-
         self.Session = sessionmaker(bind=self.engine)
         if auto_migrate:
             self.migrate_index_database()
@@ -115,6 +116,20 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             driver=self, migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
             current_schema_version=CURRENT_SCHEMA_VERSION,
             model=IndexSchemaVersion)
+
+        self.__migrate__()
+
+
+    def __migrate__(self):
+        if self.engine.dialect.supports_alter:
+            print("This engine dialect doesn't support altering so we are not migrating even if necessary!")
+            return
+        md = MetaData()
+        table = Table(IndexRecord.__tablename__, md, autoload=True, autoload_with=self.engine)
+        if str(table.c.size.type) == 'INTEGER':
+            print("Altering table %s size from Integer to BigInteger" % (IndexRecord.__tablename__))
+            with self.session as session:
+                session.execute("ALTER TABLE %s ALTER COLUMN size TYPE bigint;" % (IndexRecord.__tablename__))
 
     @property
     @contextmanager
