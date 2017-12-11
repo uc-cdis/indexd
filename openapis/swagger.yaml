@@ -272,12 +272,6 @@ paths:
           pattern: '^[a-z,0-9]{8}$'
           required: false
           description: Revision of the current alias to be deleted.
-        - in: body
-          name: body
-          description: Metadata object that needs to be added to the store
-          required: true
-          schema:
-            $ref: '#/definitions/AliasInputInfo'
       responses:
         '200':
           description: successful operation
