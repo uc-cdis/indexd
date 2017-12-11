@@ -8,6 +8,7 @@ from sqlalchemy import and_
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
+from sqlalchemy import BigInteger
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.orm import relationship
@@ -45,7 +46,7 @@ class AliasRecord(Base):
 
     name = Column(String, primary_key=True)
     rev = Column(String)
-    size = Column(Integer)
+    size = Column(BigInteger)
 
     hashes = relationship('AliasRecordHash',
         backref='alias_record',

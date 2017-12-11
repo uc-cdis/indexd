@@ -9,6 +9,7 @@ from sqlalchemy import and_
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
+from sqlalchemy import BigInteger
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.orm import relationship
@@ -51,7 +52,7 @@ class IndexRecord(Base):
     did = Column(String, primary_key=True)
     rev = Column(String)
     form = Column(String)
-    size = Column(Integer)
+    size = Column(BigInteger)
 
     urls = relationship(
         'IndexRecordUrl',
@@ -364,7 +365,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             result = session.execute(select([func.sum(IndexRecord.size)])).scalar()
             if result is None:
                 return 0
-            return result
+            return long(result)
 
     def len(self):
         '''
