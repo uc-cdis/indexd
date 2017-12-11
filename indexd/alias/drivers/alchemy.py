@@ -1,12 +1,14 @@
 import json
 import uuid
 
+from cdispyutils.log import get_logger
 from contextlib import contextmanager
 
 from sqlalchemy import and_
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
+from sqlalchemy import BigInteger
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.orm import relationship
@@ -16,15 +18,25 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 
 from indexd import alias
-
 from indexd.alias.driver import AliasDriverABC
 
 from indexd.alias.errors import NoRecordFound
 from indexd.alias.errors import MultipleRecordsFound
 from indexd.alias.errors import RevisionMismatch
+from indexd.utils import migrate_database
 
 
 Base = declarative_base()
+
+CURRENT_SCHEMA_VERSION = 1
+
+
+class AliasSchemaVersion(Base):
+    '''
+    Table to track current database's schema version
+    '''
+    __tablename__ = 'alias_schema_version'
+    version = Column(Integer, primary_key=True)
 
 class AliasRecord(Base):
     '''
@@ -34,7 +46,7 @@ class AliasRecord(Base):
 
     name = Column(String, primary_key=True)
     rev = Column(String)
-    size = Column(Integer)
+    size = Column(BigInteger)
 
     hashes = relationship('AliasRecordHash',
         backref='alias_record',
@@ -75,16 +87,27 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
     SQLAlchemy implementation of alias driver.
     '''
 
-    def __init__(self, conn, **config):
+    def __init__(self, conn, logger=None, auto_migrate=True, **config):
         '''
         Initialize the SQLAlchemy database driver.
         '''
         self.engine = create_engine(conn, **config)
-        
+        self.logger = logger or get_logger('SQLAlchemyAliasDriver')
+
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
-        
         self.Session = sessionmaker(bind=self.engine)
+        if auto_migrate:
+            self.migrate_alias_database()
+
+    def migrate_alias_database(self):
+        '''
+        migrate alias database to match CURRENT_SCHEMA_VERSION
+        '''
+        migrate_database(
+            driver=self, migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
+            current_schema_version=CURRENT_SCHEMA_VERSION,
+            model=AliasSchemaVersion)
 
     @property
     @contextmanager
@@ -93,9 +116,9 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         Provide a transactional scope around a series of operations.
         '''
         session = self.Session()
-        
+
         yield session
-        
+
         try: session.commit()
         except:
             session.rollback()
@@ -263,3 +286,14 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         '''
         with self.session as session:
             return session.query(AliasRecord).count()
+
+
+def migrate_1(session, **kwargs):
+    session.execute(
+        "ALTER TABLE {} ALTER COLUMN size TYPE bigint;"
+        .format(AliasRecord.__tablename__))
+
+
+# ordered schema migration functions that the index should correspond to
+# CURRENT_SCHEMA_VERSION - 1 when it's written
+SCHEMA_MIGRATION_FUNCTIONS = [migrate_1]

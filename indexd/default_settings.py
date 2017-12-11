@@ -5,12 +5,16 @@ from .auth.drivers.alchemy import SQLAlchemyAuthDriver
 CONFIG = {}
 
 CONFIG['JSONIFY_PRETTYPRINT_REGULAR'] = False
+AUTO_MIGRATE = True
+
 CONFIG['INDEX'] = {
-    'driver':  SQLAlchemyIndexDriver('sqlite:///index.sq3'),
+    'driver':  SQLAlchemyIndexDriver(
+        'sqlite:///index.sq3', auto_migrate=AUTO_MIGRATE),
 }
 
 CONFIG['ALIAS'] = {
-    'driver': SQLAlchemyAliasDriver('sqlite:///alias.sq3'),
+    'driver': SQLAlchemyAliasDriver(
+        'sqlite:///alias.sq3', auto_migrate=AUTO_MIGRATE),
 }
 
 AUTH = SQLAlchemyAuthDriver('sqlite:///auth.sq3')
