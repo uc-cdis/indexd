@@ -172,7 +172,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             
             record.name = name
             
-            if record.rev and rev != record.rev:
+            if rev is not None and record.rev and rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
             
             if size is not None:
@@ -242,7 +242,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         
         return ret
 
-    def delete(self, name, rev):
+    def delete(self, name, rev=None):
         '''
         Removes a record.
         '''
@@ -256,7 +256,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             except MultipleResultsFound as err:
                 raise MultipleRecordsFound('multiple records found')
             
-            if rev != record.rev:
+            if rev is not None and rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
             
             session.delete(record)

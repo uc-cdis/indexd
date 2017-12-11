@@ -137,8 +137,6 @@ def delete_alias_record(record):
     Delete an alias.
     '''
     rev = flask.request.args.get('rev')
-    if rev is None:
-        raise UserError('no revision specified')
 
     blueprint.alias_driver.delete(record, rev)
 
