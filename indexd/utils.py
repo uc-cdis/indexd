@@ -50,7 +50,8 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
 
     if not check_engine_for_migrate(driver.engine) and need_migrate:
         driver.logger.error(
-            'This engine does not support alter, skip migration')
+            'Engine {} does not support alter, skip migration'.format(
+                driver.engine.dialect.name))
         return
     for f in migrate_functions[
             db_schema_version:current_schema_version]:
