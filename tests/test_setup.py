@@ -16,7 +16,7 @@ INDEX_TABLES = {
         (0, u'did', u'VARCHAR', 1, None, 1),
         (1, u'rev', u'VARCHAR', 0, None, 0),
         (2, u'form', u'VARCHAR', 0, None, 0),
-        (3, u'size', u'INTEGER', 0, None, 0),
+        (3, u'size', u'BIGINT', 0, None, 0),
     ],
     'index_record_hash': [
         (0, u'did', u'VARCHAR', 1, None, 1),
@@ -33,7 +33,7 @@ ALIAS_TABLES = {
     'alias_record': [
         (0, u'name', u'VARCHAR', 1, None, 1),
         (1, u'rev', u'VARCHAR', 0, None, 0),
-        (2, u'size', u'INTEGER', 0, None, 0),
+        (2, u'size', u'BIGINT', 0, None, 0),
         (3, u'release', u'VARCHAR', 0, None, 0),
         (4, u'metastring', u'VARCHAR', 0, None, 0),
         (5, u'keeper_authority', u'VARCHAR', 0, None, 0),
