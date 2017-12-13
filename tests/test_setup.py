@@ -20,7 +20,7 @@ INDEX_TABLES = {
         (1, u'baseid', u'VARCHAR', 0, None, 0),
         (2, u'rev', u'VARCHAR', 0, None, 0),
         (3, u'form', u'VARCHAR', 0, None, 0),
-        (4, u'size', u'INTEGER', 0, None, 0),
+        (4, u'size', u'BIGINT', 0, None, 0),
         (5, u'created_date', u'DATETIME', 0, None, 0),
         (6, u'updated_date', u'DATETIME', 0, None, 0),
     ],
@@ -86,8 +86,6 @@ def test_sqlite3_index_setup_tables():
             c = conn.execute('''
                 PRAGMA table_info ('{table}')
             '''.format(table=table))
-
-            print(c)
 
             assert schema == [i for i in c]
 

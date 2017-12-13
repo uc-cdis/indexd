@@ -39,7 +39,7 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def update(self, did, rev, size=None, urls=None, hashes=None):
+    def update(self, did, rev, urls):
         '''
         Updates record with new values.
         '''
@@ -70,20 +70,6 @@ class IndexDriverABC(object):
     def get_latest_version(self, did):
         '''
         Get the lattest record version given did
-        '''
-        raise NotImplementedError('TODO')
-
-    @abc.abstractmethod
-    def get_all_versions(self, baseid):
-        '''
-        Get all records with same baseid
-        '''
-        raise NotImplementedError('TODO')
-
-    @abc.abstractmethod
-    def get_latest_version(self, baseid):
-        '''
-        Get the lattest record version
         '''
         raise NotImplementedError('TODO')
 

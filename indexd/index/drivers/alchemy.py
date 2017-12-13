@@ -3,7 +3,6 @@ import datetime
 
 from cdispyutils.log import get_logger
 from contextlib import contextmanager
-
 from sqlalchemy import func
 from sqlalchemy import select
 from sqlalchemy import and_
@@ -20,9 +19,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import IntegrityError
-
 from indexd.index.driver import IndexDriverABC
-
 from indexd.index.errors import NoRecordFound
 from indexd.index.errors import MultipleRecordsFound
 from indexd.index.errors import RevisionMismatch
@@ -47,8 +44,7 @@ class BaseVersion(Base):
         backref='base_version',
         cascade='all, delete-orphan')
 
-
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 
 
 class IndexSchemaVersion(Base):
@@ -68,9 +64,7 @@ class IndexRecord(Base):
     did = Column(String, primary_key=True)
 
     baseid = Column(String, ForeignKey('base_version.baseid'))
-
     rev = Column(String)
-
     form = Column(String)
     size = Column(BigInteger)
     created_date = Column(DateTime, default=datetime.datetime.utcnow)
@@ -127,17 +121,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         self.Session = sessionmaker(bind=self.engine)
 
-        print(auto_migrate)
         if auto_migrate:
-            print('run migrate_index_database')
             self.migrate_index_database()
 
     def migrate_index_database(self):
         '''
         migrate alias database to match CURRENT_SCHEMA_VERSION
         '''
-        print('run migrate_index_database inside')
-        print('SCHEMA_MIGRATION_FUNCTIONS', SCHEMA_MIGRATION_FUNCTIONS[0])
         migrate_database(
             driver=self, migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
             current_schema_version=CURRENT_SCHEMA_VERSION,
@@ -257,17 +247,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             ) for h, v in hashes.items()]
 
             try:
-                if(base_version):
-                    session.add(base_version)
-                else:
-                    # check if baseid is existed in base_version table.
-                    # If no, throw an exception
-                    query = session.query(BaseVersion).filter(BaseVersion.baseid == baseid)
-                    try:
-                        query.one()
-                    except NoResultFound:
-                        raise UserError('{baseid} is not existed'.format(baseid=baseid), 400)
-
+                session.add(base_version)
                 session.add(record)
                 session.commit()
 
@@ -382,9 +362,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound('multiple records found')
 
             baseid = record.baseid
-
             record = IndexRecord()
-
             did = str(uuid.uuid4())
 
             record.did, record.baseid, record.rev = did, baseid, str(uuid.uuid4())[:8]
@@ -404,11 +382,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 session.add(record)
                 session.commit()
-
             except IntegrityError:
                 raise UserError('{did} already exists'.format(did=did), 400)
 
             return record.did, record.baseid, record.rev
+
     def get_all_versions(self, did):
         '''
         Get all record versions given did
@@ -431,10 +409,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             for idx, record in enumerate(records):
                 rev = record.rev
                 did = record.did
-
                 form = record.form
-                size = record.size
 
+                size = record.size
                 urls = [u.url for u in record.urls]
                 hashes = {h.hash_type: h.hash_value for h in record.hashes}
 
@@ -450,7 +427,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     'form': form,
                     'created_date': created_date,
                     'updated_date': updated_date,
-
                 }
 
         return ret
@@ -501,7 +477,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 'form': form,
                 'created_date': created_date,
                 'updated_date': updated_date,
-
             }
 
         return ret
@@ -569,26 +544,30 @@ def migrate_2(session, **kwargs):
                 ADD COLUMN created_date TIMESTAMP DEFAULT NOW(), \
                 ADD COLUMN updated_date TIMESTAMP DEFAULT NOW()".format(IndexRecord.__tablename__))
     except ProgrammingError:
+        session.rollback()
         raise AddExistedColumn('Add existed columns')
+    session.commit()
 
     try:
         session.execute(
             "CREATE TABLE {} (baseid VARCHAR NOT NULL, PRIMARY KEY(baseid))"
             .format(BaseVersion.__tablename__))
     except ProgrammingError:
-        #raise AddExistedTable('Add existed table')
-        print('continue')
+        # The table is already created by the SQLAlchemyIndexDriver constructor
+        session.rollback()
+    session.commit()
 
     count = session.execute(
         "SELECT COUNT(*) FROM {};"
         .format(IndexRecord.__tablename__)).fetchone()[0]
 
-    # create tmp_index_record table
+    # create tmp_index_record table for fast retrival
     try:
         session.execute(
             "CREATE TABLE tmp_index_record AS SELECT did, ROW_NUMBER() OVER (ORDER BY did) AS RowNumber \
             FROM {}".format(IndexRecord.__tablename__))
     except ProgrammingError:
+        session.rollback()
         raise AddExistedTable('Add existed table')
 
     for loop in range(count):
@@ -604,6 +583,7 @@ def migrate_2(session, **kwargs):
         ADD CONSTRAINT baseid_FK FOREIGN KEY (baseid) references base_version(baseid);"
         .format(IndexRecord.__tablename__))
 
+    # drop tmp table
     session.execute(
         "DROP TABLE IF EXISTS tmp_index_record;"
         )
@@ -612,4 +592,4 @@ def migrate_2(session, **kwargs):
 
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
-SCHEMA_MIGRATION_FUNCTIONS = [migrate_2]
+SCHEMA_MIGRATION_FUNCTIONS = [migrate_1, migrate_2]

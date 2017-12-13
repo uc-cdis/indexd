@@ -331,7 +331,6 @@ def test_driver_get_latest_version():
             size = 512
             form = 'object'
             baseid = str(uuid.uuid4())
-
             created_date = datetime.now()
             updated_date = datetime.now()
 
@@ -403,7 +402,6 @@ def test_driver_get_all_version():
 
             dids.append(did)
             revs.append(rev)
-
             created_dates.append(created_date)
             updated_dates.append(updated_date)
 
@@ -417,7 +415,7 @@ def test_driver_get_all_version():
         records = driver.get_all_versions(did)
         assert len(records) == NUMBER_OF_RECORD, 'the number of records does not match'
 
-        for i in xrange(0,NUMBER_OF_RECORD):
+        for i in range(NUMBER_OF_RECORD):
             record = records[i]
             assert record['did'] == dids[i], 'record id does not match'
             assert record['rev'] == revs[i], 'record revision does not match'

@@ -17,7 +17,7 @@ Digital IDs are intended to be publicly readable documents, and therefore contai
 
 The second layer of user defined aliases are introduced to add flexibility of supporting human readable identifiers and allow referencing existing identifiers that are created in other systems.
 
-[View in Swagger](https://editor2.swagger.io/#!/?import=https://raw.githubusercontent.com/uc-cdis/indexd/master/openapis/swagger.json)
+[View in Swagger](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/uc-cdis/indexd/master/openapis/swagger.yaml)
 
 ## Installation
 
@@ -164,7 +164,6 @@ HTTP/1.1 200 OK
 | Parameters        | Values           |
 | ----:|:----|
 | did     | Internal UUID assigned by the index service |
-| baseid  | Internal UUID assigned by the index service |
 | rev     | 8-digit hex revision ID assigned by the index service |
 
 [Full schema for updating an index](indexd/index/schema.py)
