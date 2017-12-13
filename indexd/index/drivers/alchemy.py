@@ -27,8 +27,11 @@ from indexd.index.errors import NoRecordFound
 from indexd.index.errors import MultipleRecordsFound
 from indexd.index.errors import RevisionMismatch
 from indexd.index.errors import UnhealthyCheck
+from indexd.index.errors import AddExistedColumn
 from indexd.errors import UserError
 from indexd.utils import migrate_database
+
+from sqlalchemy.exc import ProgrammingError
 
 Base = declarative_base()
 
@@ -123,13 +126,18 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Base.metadata.create_all()
 
         self.Session = sessionmaker(bind=self.engine)
+
+        print(auto_migrate)
         if auto_migrate:
+            print('run migrate_index_database')
             self.migrate_index_database()
 
     def migrate_index_database(self):
         '''
         migrate alias database to match CURRENT_SCHEMA_VERSION
         '''
+        print('run migrate_index_database inside')
+        print('SCHEMA_MIGRATION_FUNCTIONS', SCHEMA_MIGRATION_FUNCTIONS[0])
         migrate_database(
             driver=self, migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
             current_schema_version=CURRENT_SCHEMA_VERSION,
@@ -553,7 +561,55 @@ def migrate_1(session, **kwargs):
         "ALTER TABLE {} ALTER COLUMN size TYPE bigint;"
         .format(IndexRecord.__tablename__))
 
+def migrate_2(session, **kwargs):
+    try:
+        session.execute(
+            "ALTER TABLE {} \
+                ADD COLUMN baseid VARCHAR DEFAULT NULL, \
+                ADD COLUMN created_date TIMESTAMP DEFAULT NOW(), \
+                ADD COLUMN updated_date TIMESTAMP DEFAULT NOW()".format(IndexRecord.__tablename__))
+    except ProgrammingError:
+        raise AddExistedColumn('Add existed columns')
+
+    try:
+        session.execute(
+            "CREATE TABLE {} (baseid VARCHAR NOT NULL, PRIMARY KEY(baseid))"
+            .format(BaseVersion.__tablename__))
+    except ProgrammingError:
+        #raise AddExistedTable('Add existed table')
+        print('continue')
+
+    count = session.execute(
+        "SELECT COUNT(*) FROM {};"
+        .format(IndexRecord.__tablename__)).fetchone()[0]
+
+    # create tmp_index_record table
+    try:
+        session.execute(
+            "CREATE TABLE tmp_index_record AS SELECT did, ROW_NUMBER() OVER (ORDER BY did) AS RowNumber \
+            FROM {}".format(IndexRecord.__tablename__))
+    except ProgrammingError:
+        raise AddExistedTable('Add existed table')
+
+    for loop in range(count):
+        baseid = str(uuid.uuid4())
+        session.execute(
+            "UPDATE index_record SET baseid = '{}'\
+            WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {});".format(baseid, loop+1))
+        session.execute(
+            "INSERT INTO {}(baseid) VALUES('{}');".format(BaseVersion.__tablename__,baseid))
+
+    session.execute(
+        "ALTER TABLE {} \
+        ADD CONSTRAINT baseid_FK FOREIGN KEY (baseid) references base_version(baseid);"
+        .format(IndexRecord.__tablename__))
+
+    session.execute(
+        "DROP TABLE IF EXISTS tmp_index_record;"
+        )
+
+
 
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
-SCHEMA_MIGRATION_FUNCTIONS = [migrate_1]
+SCHEMA_MIGRATION_FUNCTIONS = [migrate_2]
