@@ -22,3 +22,13 @@ class UnhealthyCheck(BaseIndexError):
     '''
     Health check failed.
     '''
+
+class AddExistedColumn(BaseIndexError):
+    '''
+    Existed column error.
+    '''
+
+class AddExistedTable(BaseIndexError):
+    '''
+    Existed table error.
+    '''
