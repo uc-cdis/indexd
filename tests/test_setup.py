@@ -87,8 +87,6 @@ def test_sqlite3_index_setup_tables():
                 PRAGMA table_info ('{table}')
             '''.format(table=table))
 
-            print(c)
-
             assert schema == [i for i in c]
 
 @util.removes(ALIAS_HOST)
