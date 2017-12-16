@@ -39,10 +39,10 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         Initialize the SQLAlchemy database driver.
         '''
         self.engine = create_engine(conn, **config)
-        
+
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
-        
+
         self.Session = sessionmaker(bind=self.engine)
 
     @property
@@ -52,9 +52,8 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         Provide a transactional scope around a series of operations.
         '''
         session = self.Session()
-        
+
         yield session
-        
         try: session.commit()
         except:
             session.rollback()

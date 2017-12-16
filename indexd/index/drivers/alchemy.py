@@ -1,8 +1,8 @@
 import uuid
+import datetime
 
 from cdispyutils.log import get_logger
 from contextlib import contextmanager
-
 from sqlalchemy import func
 from sqlalchemy import select
 from sqlalchemy import and_
@@ -10,6 +10,7 @@ from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import BigInteger
+from sqlalchemy import DateTime
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.orm import relationship
@@ -18,21 +19,32 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import IntegrityError
-
 from indexd.index.driver import IndexDriverABC
-
 from indexd.index.errors import NoRecordFound
 from indexd.index.errors import MultipleRecordsFound
 from indexd.index.errors import RevisionMismatch
 from indexd.index.errors import UnhealthyCheck
+from indexd.index.errors import AddExistedColumn
 from indexd.errors import UserError
 from indexd.utils import migrate_database
 
+from sqlalchemy.exc import ProgrammingError
 
 Base = declarative_base()
 
+class BaseVersion(Base):
+    '''
+    Base index record version representation.
+    '''
+    __tablename__ = 'base_version'
 
-CURRENT_SCHEMA_VERSION = 1
+    baseid = Column(String, primary_key=True)
+    dids = relationship(
+        'IndexRecord',
+        backref='base_version',
+        cascade='all, delete-orphan')
+
+CURRENT_SCHEMA_VERSION = 2
 
 
 class IndexSchemaVersion(Base):
@@ -50,9 +62,13 @@ class IndexRecord(Base):
     __tablename__ = 'index_record'
 
     did = Column(String, primary_key=True)
+
+    baseid = Column(String, ForeignKey('base_version.baseid'))
     rev = Column(String)
     form = Column(String)
     size = Column(BigInteger)
+    created_date = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_date = Column(DateTime, default=datetime.datetime.utcnow)
 
     urls = relationship(
         'IndexRecordUrl',
@@ -104,6 +120,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Base.metadata.create_all()
 
         self.Session = sessionmaker(bind=self.engine)
+
         if auto_migrate:
             self.migrate_index_database()
 
@@ -138,7 +155,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         '''
         Returns list of records stored by the backend.
         '''
-        # TODO add dids to filter on
         with self.session as session:
             query = session.query(IndexRecord)
 
@@ -197,21 +213,27 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return [r.url for r in query]
 
-    def add(self, form, size=None, urls=[], hashes={}, did=None):
+    def add(self, form, size=None, urls=None, hashes=None):
         '''
         Creates a new record given urls and hashes.
         '''
 
+        if urls is None:
+            urls = []
+        if hashes is None:
+            hashes = {}
         with self.session as session:
             record = IndexRecord()
 
-            if did is None:
-                did = str(uuid.uuid4())
-            record.did = did
-            record.rev = str(uuid.uuid4())[:8]
+            base_version = BaseVersion()
+            baseid = str(uuid.uuid4())
+            base_version.baseid = baseid
 
-            record.form = form
-            record.size = size
+            record.baseid = baseid
+            did = str(uuid.uuid4())
+            record.did, record.rev = did, str(uuid.uuid4())[:8]
+
+            record.form, record.size = form, size
 
             record.urls = [IndexRecordUrl(
                 did=record,
@@ -223,13 +245,16 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 hash_type=h,
                 hash_value=v,
             ) for h, v in hashes.items()]
+
             try:
+                session.add(base_version)
                 session.add(record)
                 session.commit()
-            except IntegrityError as err:
+
+            except IntegrityError:
                 raise UserError('{did} already exists'.format(did=did), 400)
 
-            return record.did, record.rev
+            return record.did, record.rev, record.baseid
 
     def get(self, did):
         '''
@@ -246,6 +271,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
 
+            baseid = record.baseid
             rev = record.rev
 
             form = record.form
@@ -254,18 +280,24 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
 
-        ret = {
-            'did': did,
-            'rev': rev,
-            'size': size,
-            'urls': urls,
-            'hashes': hashes,
-            'form': form,
-        }
+            created_date = record.created_date
+            updated_date = record.updated_date
+
+            ret = {
+                'did': did,
+                'baseid': baseid,
+                'rev': rev,
+                'size': size,
+                'urls': urls,
+                'hashes': hashes,
+                'form': form,
+                'created_date': created_date,
+                "updated_date": updated_date,
+            }
 
         return ret
 
-    def update(self, did, rev, size=None, urls=None, hashes=None):
+    def update(self, did, rev, urls):
         '''
         Updates an existing record with new values.
         '''
@@ -283,28 +315,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
 
-            if size is not None:
-                record.size = size
-
             if urls is not None:
                 record.urls = [IndexRecordUrl(
                     did=record,
                     url=url
                 ) for url in urls]
 
-            if hashes is not None:
-                record.hashes = [
-                    IndexRecordHash(
-                        did=record,
-                        hash_type=h,
-                        hash_value=v,
-                    ) for h, v in hashes.items()]
-
             record.rev = str(uuid.uuid4())[:8]
 
             session.add(record)
 
-            return record.did, record.rev
+            return record.did, record.baseid, record.rev
 
     def delete(self, did, rev):
         '''
@@ -325,6 +346,140 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise RevisionMismatch('revision mismatch')
 
             session.delete(record)
+
+    def add_version(self, did, form, size=None, urls=None, hashes=None):
+        '''
+        Add a record version given did
+        '''
+        with self.session as session:
+            query = session.query(IndexRecord).filter_by(did=did)
+
+            try:
+                record = query.one()
+            except NoResultFound:
+                raise NoRecordFound('no record found')
+            except MultipleResultsFound:
+                raise MultipleRecordsFound('multiple records found')
+
+            baseid = record.baseid
+            record = IndexRecord()
+            did = str(uuid.uuid4())
+
+            record.did, record.baseid, record.rev = did, baseid, str(uuid.uuid4())[:8]
+            record.form, record.size = form, size
+
+            record.urls = [IndexRecordUrl(
+                did=record,
+                url=url,
+            ) for url in urls]
+
+            record.hashes = [IndexRecordHash(
+                did=record,
+                hash_type=h,
+                hash_value=v,
+            ) for h, v in hashes.items()]
+
+            try:
+                session.add(record)
+                session.commit()
+            except IntegrityError:
+                raise UserError('{did} already exists'.format(did=did), 400)
+
+            return record.did, record.baseid, record.rev
+
+    def get_all_versions(self, did):
+        '''
+        Get all record versions given did
+        '''
+        ret = dict()
+        with self.session as session:
+            query = session.query(IndexRecord)
+            query = query.filter(IndexRecord.did == did)
+
+            try:
+                record = query.one()
+            except NoResultFound:
+                raise NoRecordFound('no record found')
+            except MultipleResultsFound:
+                raise MultipleRecordsFound('multiple records found')
+
+            query = session.query(IndexRecord)
+            records = query.filter(IndexRecord.baseid == record.baseid).all()
+
+            for idx, record in enumerate(records):
+                rev = record.rev
+                did = record.did
+                form = record.form
+
+                size = record.size
+                urls = [u.url for u in record.urls]
+                hashes = {h.hash_type: h.hash_value for h in record.hashes}
+
+                created_date = record.created_date
+                updated_date = record.updated_date
+
+                ret[idx] = {
+                    'did': did,
+                    'rev': rev,
+                    'size': size,
+                    'urls': urls,
+                    'hashes': hashes,
+                    'form': form,
+                    'created_date': created_date,
+                    'updated_date': updated_date,
+                }
+
+        return ret
+
+    def get_latest_version(self, did):
+        '''
+        Get the lattest record version given did
+        '''
+        ret = {}
+        with self.session as session:
+            query = session.query(IndexRecord)
+            query = query.filter(IndexRecord.did == did)
+
+            try:
+                record = query.one()
+            except NoResultFound:
+                raise NoRecordFound('no record found')
+            except MultipleResultsFound:
+                raise MultipleRecordsFound('multiple records found')
+
+            query = session.query(IndexRecord)
+            records = query.filter(IndexRecord.baseid == record.baseid) \
+                .order_by(IndexRecord.updated_date).all()
+
+            if(not records):
+                raise NoRecordFound('no record found')
+
+            record = records[-1]
+
+            rev = record.rev
+            did = record.did
+
+            form = record.form
+            size = record.size
+
+            urls = [u.url for u in record.urls]
+            hashes = {h.hash_type: h.hash_value for h in record.hashes}
+
+            created_date = record.created_date
+            updated_date = record.updated_date
+
+            ret = {
+                'did': did,
+                'rev': rev,
+                'size': size,
+                'urls': urls,
+                'hashes': hashes,
+                'form': form,
+                'created_date': created_date,
+                'updated_date': updated_date,
+            }
+
+        return ret
 
     def health_check(self):
         '''
@@ -381,7 +536,60 @@ def migrate_1(session, **kwargs):
         "ALTER TABLE {} ALTER COLUMN size TYPE bigint;"
         .format(IndexRecord.__tablename__))
 
+def migrate_2(session, **kwargs):
+    try:
+        session.execute(
+            "ALTER TABLE {} \
+                ADD COLUMN baseid VARCHAR DEFAULT NULL, \
+                ADD COLUMN created_date TIMESTAMP DEFAULT NOW(), \
+                ADD COLUMN updated_date TIMESTAMP DEFAULT NOW()".format(IndexRecord.__tablename__))
+    except ProgrammingError:
+        session.rollback()
+        raise AddExistedColumn('Add existed columns')
+    session.commit()
+
+    try:
+        session.execute(
+            "CREATE TABLE {} (baseid VARCHAR NOT NULL, PRIMARY KEY(baseid))"
+            .format(BaseVersion.__tablename__))
+    except ProgrammingError:
+        # The table is already created by the SQLAlchemyIndexDriver constructor
+        session.rollback()
+    session.commit()
+
+    count = session.execute(
+        "SELECT COUNT(*) FROM {};"
+        .format(IndexRecord.__tablename__)).fetchone()[0]
+
+    # create tmp_index_record table for fast retrival
+    try:
+        session.execute(
+            "CREATE TABLE tmp_index_record AS SELECT did, ROW_NUMBER() OVER (ORDER BY did) AS RowNumber \
+            FROM {}".format(IndexRecord.__tablename__))
+    except ProgrammingError:
+        session.rollback()
+        raise AddExistedTable('Add existed table')
+
+    for loop in range(count):
+        baseid = str(uuid.uuid4())
+        session.execute(
+            "UPDATE index_record SET baseid = '{}'\
+            WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {});".format(baseid, loop+1))
+        session.execute(
+            "INSERT INTO {}(baseid) VALUES('{}');".format(BaseVersion.__tablename__,baseid))
+
+    session.execute(
+        "ALTER TABLE {} \
+        ADD CONSTRAINT baseid_FK FOREIGN KEY (baseid) references base_version(baseid);"
+        .format(IndexRecord.__tablename__))
+
+    # drop tmp table
+    session.execute(
+        "DROP TABLE IF EXISTS tmp_index_record;"
+        )
+
+
 
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
-SCHEMA_MIGRATION_FUNCTIONS = [migrate_1]
+SCHEMA_MIGRATION_FUNCTIONS = [migrate_1, migrate_2]

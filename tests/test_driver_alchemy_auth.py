@@ -23,13 +23,13 @@ def test_driver_init_does_not_create_records():
     Tests driver init does not have unexpected side-effects.
     '''
     driver = SQLAlchemyAuthDriver('sqlite:///auth.sq3')
-        
+
     with sqlite3.connect('auth.sq3') as conn:
-        
+
         count = conn.execute('''
             SELECT COUNT(*) FROM auth_record
         ''').fetchone()[0]
-        
+
         assert count == 0, 'driver created records upon initilization'
 
 @util.removes('auth.sq3')
@@ -44,7 +44,7 @@ def test_driver_auth_accepts_good_creds():
         conn.execute('''
             INSERT INTO auth_record VALUES (?,?)
         ''', (USERNAME, DIGESTED))
-        
+
     driver.auth(USERNAME, PASSWORD)
 
 @util.removes('auth.sq3')
@@ -78,7 +78,7 @@ def test_driver_auth_returns_user_context():
         conn.execute('''
             INSERT INTO auth_record VALUES (?,?)
         ''', (USERNAME, DIGESTED))
-        
+
     user = driver.auth(USERNAME, PASSWORD)
 
     assert user is not None, 'user context was None'

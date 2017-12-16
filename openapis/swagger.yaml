@@ -108,10 +108,10 @@ paths:
           type: string
         - in: body
           name: body
-          description: Pet object that needs to be added to the store
+          description: index record that needs to be updated
           required: true
           schema:
-            $ref: '#/definitions/InputInfo'
+            $ref: '#/definitions/UpdateInputInfo'
       responses:
         '200':
           description: success
@@ -145,6 +145,58 @@ paths:
       responses:
         '400':
           description: Invalid ID supplied
+      security:
+        - cdis_auth:
+            - 'write:index'
+            - 'read:index'
+  '/index/{UUID}/latest':
+    get:
+      summary: >-
+        Get the metadata of the latest index record version associated with the
+        given id
+      description: Multiple status values can be provided with comma separated strings
+      operationId: getLastestVersion
+      produces:
+        - application/json
+      parameters:
+        - name: UUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/OutputInfo'
+        '400':
+          description: Invalid status value
+      security:
+        - cdis_auth:
+            - 'write:index'
+            - 'read:index'
+  '/index/{UUID}/versions':
+    get:
+      summary: Get the metadata of index record versions associated with the given id
+      description: Multiple status values can be provided with comma separated strings
+      operationId: getAllVersion
+      produces:
+        - application/json
+      parameters:
+        - name: UUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/OutputInfo'
+        '400':
+          description: Invalid status value
       security:
         - cdis_auth:
             - 'write:index'
@@ -314,6 +366,10 @@ definitions:
   InputInfo:
     type: object
     properties:
+      base_id:
+        type: string
+        pattern: >-
+          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
       form:
         type: string
         description: how the entry was submitted to storage
@@ -331,6 +387,17 @@ definitions:
           type: string
       hashes:
         $ref: '#/definitions/HashInfo'
+  UpdateInputInfo:
+    type: object
+    properties:
+      base_id:
+        type: string
+        pattern: >-
+          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+      urls:
+        type: array
+        items:
+          type: string
   OutputRef:
     type: object
     properties:
@@ -338,36 +405,13 @@ definitions:
         type: string
         pattern: >-
           ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
-      rev:
-        type: string
-        pattern: '^[0-9a-f]{8}$'
-  OutputInfo:
-    type: object
-    properties:
-      did:
+      base_id:
         type: string
         pattern: >-
           ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
       rev:
         type: string
         pattern: '^[0-9a-f]{8}$'
-      form:
-        type: string
-        description: how the entry was submitted to storage
-        enum:
-          - object
-          - container
-          - multipart
-      size:
-        type: integer
-        format: int64
-        description: size in bytes
-      urls:
-        type: array
-        items:
-          type: string
-      hashes:
-        $ref: '#/definitions/HashInfo'
   AliasInputInfo:
     type: object
     properties:
@@ -433,6 +477,41 @@ definitions:
         $ref: '#/definitions/HashInfo'
       metadata:
         type: string
+  OutputInfo:
+    type: object
+    properties:
+      did:
+        type: string
+        pattern: >-
+          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+      baseid:
+        type: string
+        pattern: >-
+          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+      rev:
+        type: string
+        pattern: '^[0-9a-f]{8}$'
+      form:
+        type: string
+        description: how the entry was submitted to storage
+        enum:
+          - object
+          - container
+          - multipart
+      size:
+        type: integer
+        format: int64
+        description: size in bytes
+      urls:
+        type: array
+        items:
+          type: string
+      hashes:
+        $ref: '#/definitions/HashInfo'
+      updated_date_by:
+        type: string
+        format: date-time
+        description: last updated time
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'

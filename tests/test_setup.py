@@ -12,11 +12,17 @@ INDEX_HOST = 'index.sq3'
 ALIAS_HOST = 'alias.sq3'
 
 INDEX_TABLES = {
+    'base_version': [
+        (0, u'baseid', u'VARCHAR', 1, None, 1),
+    ],
     'index_record': [
         (0, u'did', u'VARCHAR', 1, None, 1),
-        (1, u'rev', u'VARCHAR', 0, None, 0),
-        (2, u'form', u'VARCHAR', 0, None, 0),
-        (3, u'size', u'BIGINT', 0, None, 0),
+        (1, u'baseid', u'VARCHAR', 0, None, 0),
+        (2, u'rev', u'VARCHAR', 0, None, 0),
+        (3, u'form', u'VARCHAR', 0, None, 0),
+        (4, u'size', u'BIGINT', 0, None, 0),
+        (5, u'created_date', u'DATETIME', 0, None, 0),
+        (6, u'updated_date', u'DATETIME', 0, None, 0),
     ],
     'index_record_hash': [
         (0, u'did', u'VARCHAR', 1, None, 1),
@@ -57,6 +63,7 @@ ALIAS_CONFIG = {
     'driver': SQLAlchemyAliasDriver('sqlite:///alias.sq3'),
 }
 
+
 @util.removes(INDEX_HOST)
 def test_sqlite3_index_setup_tables():
     '''
@@ -68,18 +75,18 @@ def test_sqlite3_index_setup_tables():
         c = conn.execute('''
             SELECT name FROM sqlite_master WHERE type = 'table'
         ''')
-        
+
         tables = [i[0] for i in c]
-        
+
         for table in INDEX_TABLES:
             assert table in tables, '{table} not created'.format(table=table)
-        
+
         for table, schema in INDEX_TABLES.items():
             # NOTE PRAGMA's don't work with parameters...
             c = conn.execute('''
                 PRAGMA table_info ('{table}')
             '''.format(table=table))
-            
+
             assert schema == [i for i in c]
 
 @util.removes(ALIAS_HOST)
@@ -93,16 +100,16 @@ def test_sqlite3_alias_setup_tables():
         c = conn.execute('''
             SELECT name FROM sqlite_master WHERE type = 'table'
         ''')
-        
+
         tables = [i[0] for i in c]
-        
+
         for table in ALIAS_TABLES:
             assert table in tables, '{table} not created'.format(table=table)
-        
+
         for table, schema in ALIAS_TABLES.items():
             # NOTE PRAGMA's don't work with parameters...
             c = conn.execute('''
                 PRAGMA table_info ('{table}')
             '''.format(table=table))
-            
+
             assert schema == [i for i in c]

@@ -18,7 +18,6 @@ from .errors import MultipleRecordsFound
 from .errors import RevisionMismatch
 from .errors import UnhealthyCheck
 
-
 blueprint = flask.Blueprint('index', __name__)
 
 blueprint.config = dict()
@@ -67,7 +66,7 @@ def get_index():
     urls = flask.request.args.getlist('url')
 
     hashes = flask.request.args.getlist('hash')
-    hashes = {h:v for h,v in map(lambda x: x.split(':', 1), hashes)}
+    hashes = {h: v for h, v in map(lambda x: x.split(':', 1), hashes)}
 
     validate_hashes(**hashes)
     hashes = hashes if hashes else None
@@ -100,7 +99,7 @@ def get_urls():
     Returns a list of urls.
     '''
     hashes = flask.request.args.getlist('hash')
-    hashes = {h:v for h,v in map(lambda x: x.split(':', 1), hashes)}
+    hashes = {h: v for h, v in map(lambda x: x.split(':', 1), hashes)}
 
     try: size = int(flask.request.args.get('size'))
     except TypeError as err:
@@ -168,17 +167,18 @@ def post_index_record():
     size = flask.request.json['size']
     urls = flask.request.json['urls']
     hashes = flask.request.json['hashes']
-    did = flask.request.json.get('did')
 
-    did, rev = blueprint.index_driver.add(form, size,
+    did, rev, baseid = blueprint.index_driver.add(
+        form,
+        size,
         urls=urls,
         hashes=hashes,
-        did=did,
     )
 
     ret = {
         'did': did,
         'rev': rev,
+        'baseid': baseid,
     }
 
     return flask.jsonify(ret), 200
@@ -189,24 +189,23 @@ def put_index_record(record):
     '''
     Update an existing record.
     '''
-    try: jsonschema.validate(flask.request.json, PUT_RECORD_SCHEMA)
+    try:
+        jsonschema.validate(flask.request.json, PUT_RECORD_SCHEMA)
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
     rev = flask.request.args.get('rev')
-
-    size = flask.request.json.get('size')
     urls = flask.request.json.get('urls')
-    hashes = flask.request.json.get('hashes')
 
-    did, rev = blueprint.index_driver.update(record, rev,
-        size=size,
-        urls=urls,
-        hashes=hashes,
+    did, baseid, rev = blueprint.index_driver.update(
+        record,
+        rev,
+        urls=urls
     )
 
     ret = {
-        'did': record,
+        'did': did,
+        'baseid': baseid,
         'rev': rev,
     }
 
@@ -216,7 +215,7 @@ def put_index_record(record):
 @authorize
 def delete_index_record(record):
     '''
-    Delete an existing sign.
+    Delete an existing record.
     '''
     rev = flask.request.args.get('rev')
     if rev is None:
@@ -226,12 +225,56 @@ def delete_index_record(record):
 
     return '', 200
 
+@blueprint.route('/index/<record>', methods=['POST'])
+@authorize
+def add_index_record_version(record):
+    '''
+    Add a record version
+    '''
+    form = flask.request.json['form']
+    size = flask.request.json['size']
+    urls = flask.request.json['urls']
+    hashes = flask.request.json['hashes']
+
+    did, baseid,rev = blueprint.index_driver.add_version(
+        record,
+        form,
+        size,
+        urls=urls,
+        hashes=hashes,
+    )
+
+    ret = {
+        'did': did,
+        'baseid': baseid,
+        'rev': rev,
+    }
+
+    return flask.jsonify(ret), 200
+
+@blueprint.route('/index/<record>/versions', methods=['GET'])
+def get_all_index_record_versions(record):
+    '''
+    Get all record versions
+    '''
+    ret = blueprint.index_driver.get_all_versions(record)
+
+    return flask.jsonify(ret), 200
+
+@blueprint.route('/index/<record>/latest', methods=['GET'])
+def get_latest_index_record_versions(record):
+    '''
+    Get the latest record version
+    '''
+    ret = blueprint.index_driver.get_latest_version(record)
+
+    return flask.jsonify(ret), 200
+
 @blueprint.route('/_status', methods=['GET'])
 def health_check():
     '''
     Health Check.
     '''
-
     blueprint.index_driver.health_check()
 
     return 'Healthy', 200
