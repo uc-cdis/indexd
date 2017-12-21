@@ -30,7 +30,9 @@ from indexd.utils import migrate_database
 
 from sqlalchemy.exc import ProgrammingError
 
+CURRENT_SCHEMA_VERSION = 3
 Base = declarative_base()
+
 
 class BaseVersion(Base):
     '''
@@ -43,8 +45,6 @@ class BaseVersion(Base):
         'IndexRecord',
         backref='base_version',
         cascade='all, delete-orphan')
-
-CURRENT_SCHEMA_VERSION = 2
 
 
 class IndexSchemaVersion(Base):
@@ -69,6 +69,7 @@ class IndexRecord(Base):
     size = Column(BigInteger)
     created_date = Column(DateTime, default=datetime.datetime.utcnow)
     updated_date = Column(DateTime, default=datetime.datetime.utcnow)
+    file_name = Column(String, index=True)
 
     urls = relationship(
         'IndexRecordUrl',
@@ -151,7 +152,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         finally:
             session.close()
 
-    def ids(self, limit=100, start=None, size=None, urls=None, hashes=None):
+    def ids(
+            self, limit=100, start=None,
+            size=None, urls=None, hashes=None, file_name=None):
         '''
         Returns list of records stored by the backend.
         '''
@@ -163,6 +166,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             if size is not None:
                 query = query.filter(IndexRecord.size == size)
+
+            if file_name is not None:
+                query = query.filter(IndexRecord.file_name == file_name)
 
             if urls is not None and urls:
                 query = query.join(IndexRecord.urls)
@@ -213,7 +219,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return [r.url for r in query]
 
-    def add(self, form, size=None, urls=None, hashes=None):
+    def add(self, form, size=None, urls=None, hashes=None, file_name=None):
         '''
         Creates a new record given urls and hashes.
         '''
@@ -230,6 +236,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             base_version.baseid = baseid
 
             record.baseid = baseid
+            record.file_name = file_name
+
             did = str(uuid.uuid4())
             record.did, record.rev = did, str(uuid.uuid4())[:8]
 
@@ -276,6 +284,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             form = record.form
             size = record.size
+            file_name = record.file_name
 
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
@@ -288,6 +297,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 'baseid': baseid,
                 'rev': rev,
                 'size': size,
+                'file_name': file_name,
                 'urls': urls,
                 'hashes': hashes,
                 'form': form,
@@ -297,7 +307,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         return ret
 
-    def update(self, did, rev, urls):
+    def update(self, did, rev, urls=None, file_name=None):
         '''
         Updates an existing record with new values.
         '''
@@ -320,6 +330,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     did=record,
                     url=url
                 ) for url in urls]
+            if file_name is not None:
+                record.file_name = file_name
 
             record.rev = str(uuid.uuid4())[:8]
 
@@ -347,7 +359,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             session.delete(record)
 
-    def add_version(self, did, form, size=None, urls=None, hashes=None):
+    def add_version(
+            self, did, form, size=None,
+            file_name=None, urls=None, hashes=None):
         '''
         Add a record version given did
         '''
@@ -365,8 +379,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record = IndexRecord()
             did = str(uuid.uuid4())
 
-            record.did, record.baseid, record.rev = did, baseid, str(uuid.uuid4())[:8]
-            record.form, record.size = form, size
+            record.did = did
+            record.baseid = baseid
+            record.rev = str(uuid.uuid4())[:8]
+            record.form = form
+            record.size = size
+            record.file_name = file_name
 
             record.urls = [IndexRecordUrl(
                 did=record,
@@ -412,6 +430,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 form = record.form
 
                 size = record.size
+                file_name =record.file_name
                 urls = [u.url for u in record.urls]
                 hashes = {h.hash_type: h.hash_value for h in record.hashes}
 
@@ -422,6 +441,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     'did': did,
                     'rev': rev,
                     'size': size,
+                    'file_name': file_name,
                     'urls': urls,
                     'hashes': hashes,
                     'form': form,
@@ -461,6 +481,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             form = record.form
             size = record.size
+            file_name = record.file_name
 
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
@@ -472,6 +493,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 'did': did,
                 'rev': rev,
                 'size': size,
+                'file_name': file_name,
                 'urls': urls,
                 'hashes': hashes,
                 'form': form,
@@ -589,7 +611,15 @@ def migrate_2(session, **kwargs):
         )
 
 
+def migrate_3(session, **kwargs):
+    session.execute(
+        "ALTER TABLE {} ADD COLUMN file_name VARCHAR;"
+        .format(IndexRecord.__tablename__))
+
+    session.execute(
+        "CREATE INDEX {tb}__file_name_idx ON {tb} ( file_name )"
+        .format(tb=IndexRecord.__tablename__))
 
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
-SCHEMA_MIGRATION_FUNCTIONS = [migrate_1, migrate_2]
+SCHEMA_MIGRATION_FUNCTIONS = [migrate_1, migrate_2, migrate_3]

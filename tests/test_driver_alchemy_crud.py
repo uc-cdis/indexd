@@ -10,7 +10,7 @@ from indexd.index.errors import NoRecordFound
 from indexd.index.errors import MultipleRecordsFound
 from indexd.index.errors import RevisionMismatch
 
-from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
+from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver, IndexRecord
 
 from datetime import datetime
 
@@ -234,6 +234,21 @@ def test_driver_add_with_urls():
         '''))
 
         assert urls == new_urls, 'record urls mismatch'
+
+
+@util.removes('index.sq3')
+def test_driver_add_with_filename():
+    '''
+    Tests creation of a record with filename.
+    '''
+    driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
+
+    form = 'object'
+    file_name = 'abc'
+    driver.add(form, file_name=file_name)
+    with driver.session as s:
+        assert s.query(IndexRecord).first().file_name == 'abc'
+
 
 @util.removes('index.sq3')
 def test_driver_add_with_hashes():
@@ -499,13 +514,16 @@ def test_driver_update_record():
             'b': '2',
             'c': '3',
         }
+        file_name = 'test'
 
-        driver.update(did, rev,
-            urls=update_urls
+        driver.update(
+            did, rev,
+            urls=update_urls,
+            file_name=file_name
         )
 
-        new_did, new_rev, new_form, new_size = conn.execute('''
-            SELECT did, rev, form, size FROM index_record
+        new_did, new_rev, new_file_name = conn.execute('''
+            SELECT did, rev, file_name FROM index_record
         ''').fetchone()
 
         new_urls = sorted(url[0] for url in conn.execute('''
@@ -519,6 +537,7 @@ def test_driver_update_record():
         assert did == new_did, 'record id does not match'
         assert rev != new_rev, 'record revision matches prior'
         assert update_urls == new_urls, 'record urls mismatch'
+        assert file_name == new_file_name, 'file_name does not match'
 
 @util.removes('index.sq3')
 def test_driver_update_fails_with_no_records():

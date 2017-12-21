@@ -26,6 +26,10 @@ POST_RECORD_SCHEMA = {
       "type": "integer",
       "minimum": 0
     },
+    "file_name": {
+      "description": "optional file name of the object",
+      "type": "string",
+    },
     "urls": {
       "type": "array",
       "items": {
@@ -87,16 +91,16 @@ PUT_RECORD_SCHEMA = {
   "type": "object",
   "additionalProperties": False,
   "description": "Update an index",
-  "required": [
-    "urls"
-  ],
   "properties": {
     "urls": {
       "type": "array",
       "items": {
         "type": "string"
       }
-    },        
+    },
+    "file_name": {
+        "type": "string"
+    },
     "rev": {
       "type": "string",
       "pattern": "^[0-9a-f]{8}$",

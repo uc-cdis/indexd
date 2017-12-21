@@ -365,6 +365,11 @@ definitions:
         pattern: '^[0-9a-f]{128}$'
   InputInfo:
     type: object
+    required:
+      - size
+      - hashes
+      - urls
+      - form
     properties:
       base_id:
         type: string
@@ -381,6 +386,8 @@ definitions:
         type: integer
         format: int64
         description: size in bytes
+      file_name:
+        type: string
       urls:
         type: array
         items:
@@ -394,6 +401,8 @@ definitions:
         type: string
         pattern: >-
           ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+      file_name:
+        type: string
       urls:
         type: array
         items:
@@ -502,6 +511,8 @@ definitions:
         type: integer
         format: int64
         description: size in bytes
+      file_name:
+        type: string
       urls:
         type: array
         items:

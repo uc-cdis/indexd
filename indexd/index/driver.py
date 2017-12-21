@@ -11,7 +11,9 @@ class IndexDriverABC(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def ids(self, limit=100, start='', size=None, urls=None, hashes=None):
+    def ids(
+            self, limit=100, start=None,
+            size=None, urls=None, hashes=None, file_name=None):
         '''
         Returns a list of records stored by the backend.
         '''
@@ -25,7 +27,7 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def add(self, form, size, urls=None, hashes=None):
+    def add(self, form, size=None, urls=None, hashes=None, file_name=None):
         '''
         Creates record for given data.
         '''
@@ -39,7 +41,7 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def update(self, did, rev, urls):
+    def update(self, did, rev, urls=None, file_name=None):
         '''
         Updates record with new values.
         '''
@@ -53,7 +55,9 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def add_version(self, did, form, size=None, urls=None, hashes=None):
+    def add_version(
+            self, did, form, size=None,
+            file_name=None, urls=None, hashes=None):
         '''
         Add a record version given did
         '''
