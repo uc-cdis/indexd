@@ -17,6 +17,23 @@ def test_index_create(client, user):
         data=json.dumps(data),
         headers=user).status_code == 200
 
+
+def test_index_create_with_file_name(client, user):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'file_name': 'abc',
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+    r = client.get('/index/'+r.json['did'])
+    assert r.json['file_name'] == 'abc'
+
+
 def test_index_update(client, user):
     data = {
         'form': 'object',
@@ -36,6 +53,7 @@ def test_index_update(client, user):
     dataNew = {
         'rev': rev,
         'urls': ['s3://endpointurl/bucket/key'],
+        'file_name': 'test',
         }
     r2 = client.put(
         '/index/' + did + '?rev=' + rev,

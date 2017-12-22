@@ -65,6 +65,8 @@ def get_index():
 
     urls = flask.request.args.getlist('url')
 
+    file_name = flask.request.args.get('file_name')
+
     hashes = flask.request.args.getlist('hash')
     hashes = {h: v for h, v in map(lambda x: x.split(':', 1), hashes)}
 
@@ -78,6 +80,7 @@ def get_index():
         start=start,
         limit=limit,
         size=size,
+        file_name=file_name,
         urls=urls,
         hashes=hashes,
     )
@@ -87,6 +90,7 @@ def get_index():
         'limit': limit,
         'start': start,
         'size': size,
+        'file_name': file_name,
         'urls': urls,
         'hashes': hashes,
     }
@@ -167,10 +171,12 @@ def post_index_record():
     size = flask.request.json['size']
     urls = flask.request.json['urls']
     hashes = flask.request.json['hashes']
+    file_name = flask.request.json.get('file_name')
 
     did, rev, baseid = blueprint.index_driver.add(
         form,
         size,
+        file_name=file_name,
         urls=urls,
         hashes=hashes,
     )
@@ -195,11 +201,13 @@ def put_index_record(record):
         raise UserError(err)
 
     rev = flask.request.args.get('rev')
+    file_name = flask.request.json.get('file_name')
     urls = flask.request.json.get('urls')
 
     did, baseid, rev = blueprint.index_driver.update(
         record,
         rev,
+        file_name=file_name,
         urls=urls
     )
 
@@ -234,6 +242,7 @@ def add_index_record_version(record):
     form = flask.request.json['form']
     size = flask.request.json['size']
     urls = flask.request.json['urls']
+    file_name = flask.request.json.get('file_name')
     hashes = flask.request.json['hashes']
 
     did, baseid,rev = blueprint.index_driver.add_version(
@@ -241,6 +250,7 @@ def add_index_record_version(record):
         form,
         size,
         urls=urls,
+        file_name=file_name,
         hashes=hashes,
     )
 
