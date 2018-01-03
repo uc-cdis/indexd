@@ -559,6 +559,10 @@ def migrate_1(session, **kwargs):
         .format(IndexRecord.__tablename__))
 
 def migrate_2(session, **kwargs):
+    '''
+    Migrate db from version 1 -> 2
+    In the case of the brand new db, we don't need to do migration since all the tables are the newest versions. We side-stepping this issue by catching exceptions 
+    '''
     try:
         session.execute(
             "ALTER TABLE {} \
@@ -567,7 +571,6 @@ def migrate_2(session, **kwargs):
                 ADD COLUMN updated_date TIMESTAMP DEFAULT NOW()".format(IndexRecord.__tablename__))
     except ProgrammingError:
         session.rollback()
-        raise AddExistedColumn('Add existed columns')
     session.commit()
 
     try:
@@ -575,7 +578,6 @@ def migrate_2(session, **kwargs):
             "CREATE TABLE {} (baseid VARCHAR NOT NULL, PRIMARY KEY(baseid))"
             .format(BaseVersion.__tablename__))
     except ProgrammingError:
-        # The table is already created by the SQLAlchemyIndexDriver constructor
         session.rollback()
     session.commit()
 
@@ -590,7 +592,6 @@ def migrate_2(session, **kwargs):
             FROM {}".format(IndexRecord.__tablename__))
     except ProgrammingError:
         session.rollback()
-        raise AddExistedTable('Add existed table')
 
     for loop in range(count):
         baseid = str(uuid.uuid4())
