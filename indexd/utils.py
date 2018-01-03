@@ -1,5 +1,12 @@
 from sqlalchemy import create_engine
 import logging
+import re
+
+def hint_match(record, hints):
+    for hint in hints:
+        if re.match(hint, record):
+           return True
+    return False
 
 def try_drop_test_data(user, database, root_user='postgres', host=''):
 

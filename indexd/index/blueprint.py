@@ -12,6 +12,8 @@ from indexclient.client import IndexClient
 from indexd.errors import AuthError
 from indexd.errors import UserError
 
+from indexd.utils import hint_match
+
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
 
@@ -168,7 +170,9 @@ def get_index_record(record):
     return flask.jsonify(ret), 200
 
 def dist_get_index_record(record):
-    for indexd in blueprint.dist:
+    sorted_dist = sorted(blueprint.dist, key=lambda k: hint_match(record, k['hints']), reverse=True)
+
+    for indexd in sorted_dist:
         signpost = IndexClient(baseurl=indexd['host'])
         res = signpost.get(record)
         if res:
@@ -178,6 +182,7 @@ def dist_get_index_record(record):
                 'name': indexd['name'],
             }
             return flask.jsonify(json), 200
+
     raise NoRecordFound('no record found')
 
 @blueprint.route('/index/', methods=['POST'])
