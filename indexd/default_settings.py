@@ -17,6 +17,8 @@ CONFIG['ALIAS'] = {
         'sqlite:///alias.sq3', auto_migrate=AUTO_MIGRATE),
 }
 
+CONFIG['DIST'] = []
+
 AUTH = SQLAlchemyAuthDriver('sqlite:///auth.sq3')
 
 settings = {'config': CONFIG, 'auth': AUTH}

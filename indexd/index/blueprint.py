@@ -7,6 +7,8 @@ from .version_data import VERSION, COMMIT
 
 from indexd.auth import authorize
 
+from indexclient.client import IndexClient
+
 from indexd.errors import AuthError
 from indexd.errors import UserError
 
@@ -22,6 +24,7 @@ blueprint = flask.Blueprint('index', __name__)
 
 blueprint.config = dict()
 blueprint.index_driver = None
+blueprint.dist = []
 
 ACCEPTABLE_HASHES = {
     'md5': re.compile(r'^[0-9a-f]{32}$').match,
@@ -153,9 +156,29 @@ def get_index_record(record):
     '''
     Returns a record.
     '''
-    ret = blueprint.index_driver.get(record)
+    
+    try:
+        ret = blueprint.index_driver.get(record)
+    except NoRecordFound:
+        if not blueprint.dist or 'no_dist' in flask.request.args:
+            raise
+        return dist_get_index_record(record)
+        
 
     return flask.jsonify(ret), 200
+
+def dist_get_index_record(record):
+    for indexd in blueprint.dist:
+        signpost = IndexClient(baseurl=indexd['host'])
+        res = signpost.get(record)
+        if res:
+            json = res.to_json()
+            json['from_index_service'] = {
+                'host': indexd['host'],
+                'name': indexd['name'],
+            }
+            return flask.jsonify(json), 200
+    raise NoRecordFound('no record found')
 
 @blueprint.route('/index/', methods=['POST'])
 @authorize
@@ -346,3 +369,4 @@ def handle_unhealthy_check(err):
 def get_config(setup_state):
     config = setup_state.app.config['INDEX']
     blueprint.index_driver = config['driver']
+    blueprint.dist = setup_state.app.config['DIST']
