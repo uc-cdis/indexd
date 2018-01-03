@@ -8,6 +8,7 @@ from .version_data import VERSION, COMMIT
 from indexd.auth import authorize
 
 from indexclient.client import IndexClient
+from doiclient.client import DOIClient
 
 from indexd.errors import AuthError
 from indexd.errors import UserError
@@ -153,7 +154,7 @@ def get_urls():
 
     return flask.jsonify(ret), 200
 
-@blueprint.route('/index/<record>', methods=['GET'])
+@blueprint.route('/index/<path:record>', methods=['GET'])
 def get_index_record(record):
     '''
     Returns a record.
@@ -173,7 +174,10 @@ def dist_get_index_record(record):
     sorted_dist = sorted(blueprint.dist, key=lambda k: hint_match(record, k['hints']), reverse=True)
 
     for indexd in sorted_dist:
-        signpost = IndexClient(baseurl=indexd['host'])
+        if indexd['type'] == "doi":
+            signpost = DOIClient(baseurl=indexd['host'])
+        else:
+            signpost = IndexClient(baseurl=indexd['host'])
         res = signpost.get(record)
         if res:
             json = res.to_json()
