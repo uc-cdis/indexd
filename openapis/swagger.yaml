@@ -149,7 +149,7 @@ paths:
         - cdis_auth:
             - 'write:index'
             - 'read:index'
-  '/index/{UUID}/latest':
+  '/index/latest/{UUID}':
     get:
       summary: >-
         Get the metadata of the latest index record version associated with the
@@ -175,7 +175,7 @@ paths:
         - cdis_auth:
             - 'write:index'
             - 'read:index'
-  '/index/{UUID}/versions':
+  '/index/versions/{UUID}':
     get:
       summary: Get the metadata of index record versions associated with the given id
       description: Multiple status values can be provided with comma separated strings

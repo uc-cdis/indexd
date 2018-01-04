@@ -178,7 +178,13 @@ def dist_get_index_record(record):
             signpost = DOIClient(baseurl=indexd['host'])
         else:
             signpost = IndexClient(baseurl=indexd['host'])
-        res = signpost.get(record)
+
+        try:
+            res = signpost.get(record)
+        except:
+            # a lot of things can go wrong with the get, but in general we don't care here.
+            continue
+
         if res:
             json = res.to_json()
             json['from_index_service'] = {
@@ -294,7 +300,7 @@ def add_index_record_version(record):
 
     return flask.jsonify(ret), 200
 
-@blueprint.route('/index/<record>/versions', methods=['GET'])
+@blueprint.route('/index/versions/<path:record>', methods=['GET'])
 def get_all_index_record_versions(record):
     '''
     Get all record versions
@@ -303,7 +309,7 @@ def get_all_index_record_versions(record):
 
     return flask.jsonify(ret), 200
 
-@blueprint.route('/index/<record>/latest', methods=['GET'])
+@blueprint.route('/index/latest/<path:record>', methods=['GET'])
 def get_latest_index_record_versions(record):
     '''
     Get the latest record version
