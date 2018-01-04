@@ -26,8 +26,7 @@ from indexd.index.errors import RevisionMismatch
 from indexd.index.errors import UnhealthyCheck
 from indexd.index.errors import AddExistedColumn
 from indexd.errors import UserError
-from indexd.utils import migrate_database
-
+from indexd.utils import migrate_database, init_schema_version, is_empty_database
 from sqlalchemy.exc import ProgrammingError
 
 CURRENT_SCHEMA_VERSION = 3
@@ -52,7 +51,7 @@ class IndexSchemaVersion(Base):
     Table to track current database's schema version
     '''
     __tablename__ = 'index_schema_version'
-    version = Column(Integer, primary_key=True)
+    version = Column(Integer, default=0, primary_key=True)
 
 
 class IndexRecord(Base):
@@ -118,9 +117,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         self.logger = logger or get_logger('SQLAlchemyIndexDriver')
 
         Base.metadata.bind = self.engine
-        Base.metadata.create_all()
-
         self.Session = sessionmaker(bind=self.engine)
+
+        if is_empty_database(driver=self):
+            Base.metadata.create_all()
+            init_schema_version(driver=self, model=IndexSchemaVersion, version=CURRENT_SCHEMA_VERSION)
 
         if auto_migrate:
             self.migrate_index_database()
@@ -561,7 +562,7 @@ def migrate_1(session, **kwargs):
 def migrate_2(session, **kwargs):
     '''
     Migrate db from version 1 -> 2
-    In the case of the brand new db, we don't need to do migration since all the tables are the newest versions. We side-stepping this issue by catching exceptions 
+    In the case of the brand new db, we don't need to do migration since all the tables are the newest versions. We side-stepping this issue by catching exceptions
     '''
     try:
         session.execute(

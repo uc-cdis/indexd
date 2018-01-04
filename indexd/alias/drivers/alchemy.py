@@ -23,7 +23,7 @@ from indexd.alias.driver import AliasDriverABC
 from indexd.alias.errors import NoRecordFound
 from indexd.alias.errors import MultipleRecordsFound
 from indexd.alias.errors import RevisionMismatch
-from indexd.utils import migrate_database
+from indexd.utils import migrate_database, init_schema_version, is_empty_database
 
 
 Base = declarative_base()
@@ -95,8 +95,12 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         self.logger = logger or get_logger('SQLAlchemyAliasDriver')
 
         Base.metadata.bind = self.engine
-        Base.metadata.create_all()
         self.Session = sessionmaker(bind=self.engine)
+
+        if is_empty_database(driver=self):
+            Base.metadata.create_all()
+            init_schema_version(driver=self, model=AliasSchemaVersion, version=CURRENT_SCHEMA_VERSION)
+
         if auto_migrate:
             self.migrate_alias_database()
 
@@ -132,13 +136,13 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         '''
         with self.session as session:
             query = session.query(AliasRecord)
-            
+
             if start is not None:
                 query = query.filter(AliasRecord.name > start)
-            
+
             if size is not None:
                 query = query.filter(AliasRecord.size == size)
-            
+
             if hashes is not None:
                 for h,v in hashes.items():
                     subq = (
@@ -148,10 +152,10 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
                         AliasRecordHash.hash_value == v))
                     )
                     query = query.filter(AliasRecord.name.in_(subq.subquery()))
-            
+
             query = query.order_by(AliasRecord.name)
             query = query.limit(limit)
-            
+
             return [i.name for i in query]
 
     def upsert(self, name, rev=None, size=None, hashes={}, release=None,
@@ -159,51 +163,51 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         '''
         Updates or inserts a new record.
         '''
-        
+
         with self.session as session:
             query = session.query(AliasRecord)
             query = query.filter(AliasRecord.name == name)
-            
+
             try: record = query.one()
             except NoResultFound as err:
                 record = AliasRecord()
             except MultipleResultsFound as err:
                 raise MultipleRecordsFound('multiple records found')
-            
+
             record.name = name
-            
+
             if rev is not None and record.rev and rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
-            
+
             if size is not None:
                 record.size = size
-            
-            if hashes is not None: 
+
+            if hashes is not None:
                 record.hashes = [AliasRecordHash(
                     name=record,
                     hash_type=h,
                     hash_value=v,
                 ) for h,v in hashes.items()]
-            
+
             if release is not None:
                 record.release = release
-            
+
             if metastring is not None:
                 record.metastring = metastring
-            
+
             if host_authorities is not None:
                 record.host_authorities = [AliasRecordHostAuthority(
                     name=name,
                     host=host,
                 ) for host in host_authorities]
-            
+
             if keeper_authority is not None:
                 record.keeper_authority = keeper_authority
-           
+
             record.rev = str(uuid.uuid4())[:8]
-            
+
             session.add(record)
-            
+
             return record.name, record.rev
 
     def get(self, name):
@@ -213,22 +217,22 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         with self.session as session:
             query = session.query(AliasRecord)
             query = query.filter(AliasRecord.name == name)
-            
+
             try: record = query.one()
             except NoResultFound as err:
                 raise NoRecordFound('no record found')
             except MultipleResultsFound as err:
                 raise MultipleRecordsFound('multiple records found')
-            
+
             rev = record.rev
-            
+
             size = record.size
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
             release = record.release
             metastring = record.metastring
             host_authorities = [h.host for h in record.host_authorities]
             keeper_authority = record.keeper_authority
-        
+
         ret = {
             'name': name,
             'rev': rev,
@@ -239,7 +243,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             'host_authorities': host_authorities,
             'keeper_authority': keeper_authority,
         }
-        
+
         return ret
 
     def delete(self, name, rev=None):
@@ -249,16 +253,16 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         with self.session as session:
             query = session.query(AliasRecord)
             query = query.filter(AliasRecord.name == name)
-            
+
             try: record = query.one()
             except NoResultFound as err:
                 raise NoRecordFound('no record found')
             except MultipleResultsFound as err:
                 raise MultipleRecordsFound('multiple records found')
-            
+
             if rev is not None and rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
-            
+
             session.delete(record)
 
     def __contains__(self, record):
@@ -269,7 +273,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         with self.session as session:
             query = session.query(AliasRecord)
             query = query.filter(AliasRecord.name == name)
-            
+
             return query.exists()
 
     def __iter__(self):
