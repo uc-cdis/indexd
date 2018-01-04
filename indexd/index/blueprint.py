@@ -7,13 +7,8 @@ from .version_data import VERSION, COMMIT
 
 from indexd.auth import authorize
 
-from indexclient.client import IndexClient
-from doiclient.client import DOIClient
-
 from indexd.errors import AuthError
 from indexd.errors import UserError
-
-from indexd.utils import hint_match
 
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
@@ -27,7 +22,6 @@ blueprint = flask.Blueprint('index', __name__)
 
 blueprint.config = dict()
 blueprint.index_driver = None
-blueprint.dist = []
 
 ACCEPTABLE_HASHES = {
     'md5': re.compile(r'^[0-9a-f]{32}$').match,
@@ -154,46 +148,15 @@ def get_urls():
 
     return flask.jsonify(ret), 200
 
-@blueprint.route('/index/<path:record>', methods=['GET'])
+@blueprint.route('/index/<record>', methods=['GET'])
 def get_index_record(record):
     '''
     Returns a record.
     '''
     
-    try:
-        ret = blueprint.index_driver.get(record)
-    except NoRecordFound:
-        if not blueprint.dist or 'no_dist' in flask.request.args:
-            raise
-        return dist_get_index_record(record)
-        
+    ret = blueprint.index_driver.get(record)
 
     return flask.jsonify(ret), 200
-
-def dist_get_index_record(record):
-    sorted_dist = sorted(blueprint.dist, key=lambda k: hint_match(record, k['hints']), reverse=True)
-
-    for indexd in sorted_dist:
-        if indexd['type'] == "doi":
-            signpost = DOIClient(baseurl=indexd['host'])
-        else:
-            signpost = IndexClient(baseurl=indexd['host'])
-
-        try:
-            res = signpost.get(record)
-        except:
-            # a lot of things can go wrong with the get, but in general we don't care here.
-            continue
-
-        if res:
-            json = res.to_json()
-            json['from_index_service'] = {
-                'host': indexd['host'],
-                'name': indexd['name'],
-            }
-            return flask.jsonify(json), 200
-
-    raise NoRecordFound('no record found')
 
 @blueprint.route('/index/', methods=['POST'])
 @authorize
@@ -300,7 +263,7 @@ def add_index_record_version(record):
 
     return flask.jsonify(ret), 200
 
-@blueprint.route('/index/versions/<path:record>', methods=['GET'])
+@blueprint.route('/index/<record>/versions', methods=['GET'])
 def get_all_index_record_versions(record):
     '''
     Get all record versions
@@ -309,7 +272,7 @@ def get_all_index_record_versions(record):
 
     return flask.jsonify(ret), 200
 
-@blueprint.route('/index/latest/<path:record>', methods=['GET'])
+@blueprint.route('/index/<record>/latest', methods=['GET'])
 def get_latest_index_record_versions(record):
     '''
     Get the latest record version
@@ -384,4 +347,3 @@ def handle_unhealthy_check(err):
 def get_config(setup_state):
     config = setup_state.app.config['INDEX']
     blueprint.index_driver = config['driver']
-    blueprint.dist = setup_state.app.config['DIST']

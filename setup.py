@@ -28,7 +28,7 @@ setup(
     ],
     dependency_links=[
         "git+https://github.com/uc-cdis/cdis-python-utils.git@0.1.0#egg=cdispyutils",
-        "git+https://github.com/uc-cdis/indexclient.git@ff62252e6b53226ff2386eef523797fbd158d210#egg=indexclient",
+        "git+https://github.com/uc-cdis/indexclient.git@7544b8fe48d92dcb3817f08c9c79764221ce0c0e#egg=indexclient",
         "git+https://github.com/uc-cdis/doiclient.git@d28867a2916f5873b816ea1d6e2d5046d7865c64#egg=doiclient"
     ],
 )
