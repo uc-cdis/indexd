@@ -1,6 +1,8 @@
 import uuid
 import sqlite3
+import util
 
+from sqlite3 import OperationalError
 from sqlalchemy import create_engine
 
 from indexd.utils import setup_database, create_tables
@@ -37,112 +39,121 @@ INDEX_TABLES = {
     ],
 }
 
-driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
-driver = SQLAlchemyAliasDriver('sqlite:///alias.sq3')
+#driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
+#driver = SQLAlchemyAliasDriver('sqlite:///alias.sq3')
 
 def update_version_table_for_testing(db, tb_name, val):
     with sqlite3.connect(db) as conn:
+        conn.execute('''\
+            CREATE TABLE IF NOT EXISTS {} (version INT)\
+            '''.format(tb_name))
         conn.execute('''
                 DELETE FROM {}
             '''.format(tb_name))
         conn.execute('''
                 INSERT INTO {} (version) VALUES ({})
             '''.format(tb_name, val))
+        conn.commit()
 
-def test_migrate_index(monkeypatch):
-    called = []
+@util.removes('index.sq3')
+def test_migrate_index():
+    def test_migrate_index_internal(monkeypatch):
+        called = []
 
-    def mock_migrate(**kwargs):
-        called.append(True)
+        def mock_migrate(**kwargs):
+            called.append(True)
 
-    monkeypatch.setattr(
-        'indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION', 2)
-    monkeypatch.setattr(
-         'indexd.utils.check_engine_for_migrate',
-         lambda _: True
-    )
+        monkeypatch.setattr(
+            'indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION', 2)
+        monkeypatch.setattr(
+             'indexd.utils.check_engine_for_migrate',
+             lambda _: True
+        )
 
-    monkeypatch.setattr(
-        'indexd.index.drivers.alchemy.SCHEMA_MIGRATION_FUNCTIONS',
-        [mock_migrate, mock_migrate])
+        monkeypatch.setattr(
+            'indexd.index.drivers.alchemy.SCHEMA_MIGRATION_FUNCTIONS',
+            [mock_migrate, mock_migrate])
 
-    update_version_table_for_testing('index.sq3', 'index_schema_version', 0)
-    driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
+        update_version_table_for_testing('index.sq3', 'index_schema_version', 0)
+        driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
 
-    assert len(called) == 2
-    with driver.session as s:
-        v = s.query(IndexSchemaVersion).first()
-        assert v.version == 2
-        s.delete(v)
+        assert len(called) == 2
+        with driver.session as s:
+            v = s.query(IndexSchemaVersion).first()
+            assert v.version == 2
+            s.delete(v)
 
-def test_migrate_index_only_diff(monkeypatch):
-    called = []
 
-    def mock_migrate(**kwargs):
-        called.append(True)
+@util.removes('index.sq3')
+def test_migrate_index_only_diff():
+    def test_migrate_index_only_diff_internal(monkeypatch):
+        called = []
 
-    called_2 = []
-    def mock_migrate_2(**kwargs):
-        called_2.append(True)
+        def mock_migrate(**kwargs):
+            called.append(True)
 
-    monkeypatch.setattr(
-         'indexd.utils.check_engine_for_migrate',
-         lambda _: True
-    )
-    monkeypatch.setattr(
-        'indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION', 1)
-    monkeypatch.setattr(
-        'indexd.index.drivers.alchemy.SCHEMA_MIGRATION_FUNCTIONS',
-        [mock_migrate, mock_migrate_2])
+        called_2 = []
+        def mock_migrate_2(**kwargs):
+            called_2.append(True)
 
-    update_version_table_for_testing('index.sq3', 'index_schema_version', 0)
+        monkeypatch.setattr(
+             'indexd.utils.check_engine_for_migrate',
+             lambda _: True
+        )
+        monkeypatch.setattr(
+            'indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION', 1)
+        monkeypatch.setattr(
+            'indexd.index.drivers.alchemy.SCHEMA_MIGRATION_FUNCTIONS',
+            [mock_migrate, mock_migrate_2])
 
-    driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
-    assert len(called) == 1
-    assert len(called_2) == 0
+        update_version_table_for_testing('index.sq3', 'index_schema_version', 0)
 
-    called = []
-    called_2 = []
-    monkeypatch.setattr(
-        'indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION', 2)
+        driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
+        assert len(called) == 1
+        assert len(called_2) == 0
 
-    update_version_table_for_testing('index.sq3', 'index_schema_version', 1)
-    driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
-    assert len(called) == 0
-    assert len(called_2) == 1
+        called = []
+        called_2 = []
+        monkeypatch.setattr(
+            'indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION', 2)
 
-    with driver.session as s:
-        v = s.query(IndexSchemaVersion).first()
-        assert v.version == 2
-        #s.delete(v)
+        update_version_table_for_testing('index.sq3', 'index_schema_version', 1)
+        driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
+        assert len(called) == 0
+        assert len(called_2) == 1
 
-def test_migrate_alias(monkeypatch):
-    called = []
+        with driver.session as s:
+            v = s.query(IndexSchemaVersion).first()
+            assert v.version == 2
 
-    def mock_migrate(**kwargs):
-        called.append(True)
+@util.removes('alias.sq3')
+def test_migrate_alias():
+    def test_migrate_alias_internal(monkeypatch):
+        called = []
 
-    monkeypatch.setattr(
-        'indexd.alias.drivers.alchemy.CURRENT_SCHEMA_VERSION', 1)
-    monkeypatch.setattr(
-        'indexd.alias.drivers.alchemy.SCHEMA_MIGRATION_FUNCTIONS',
-        [mock_migrate])
+        def mock_migrate(**kwargs):
+            called.append(True)
 
-    monkeypatch.setattr(
-         'indexd.utils.check_engine_for_migrate',
-         lambda _: True
-    )
+        monkeypatch.setattr(
+            'indexd.alias.drivers.alchemy.CURRENT_SCHEMA_VERSION', 1)
+        monkeypatch.setattr(
+            'indexd.alias.drivers.alchemy.SCHEMA_MIGRATION_FUNCTIONS',
+            [mock_migrate])
 
-    update_version_table_for_testing('alias.sq3', 'alias_schema_version', 0)
+        monkeypatch.setattr(
+             'indexd.utils.check_engine_for_migrate',
+             lambda _: True
+        )
 
-    driver = SQLAlchemyAliasDriver('sqlite:///alias.sq3')
-    assert len(called) == 1
-    with driver.session as s:
-        v = s.query(AliasSchemaVersion).first()
-        assert v.version == 1
-        s.delete(v)
+        update_version_table_for_testing('alias.sq3', 'alias_schema_version', 0)
 
-def test_migrate_index_versioning(monkeypatch):
+        driver = SQLAlchemyAliasDriver('sqlite:///alias.sq3')
+        assert len(called) == 1
+        with driver.session as s:
+            v = s.query(AliasSchemaVersion).first()
+            assert v.version == 1
+
+def test_migrate_index_versioning_internal(monkeypatch):
 
     monkeypatch.setattr(
        'indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION', 2)
@@ -195,13 +206,13 @@ def test_migrate_index_versioning(monkeypatch):
     for table in INDEX_TABLES:
         assert table in tables, '{table} not created'.format(table=table)
 
-    # for table, schema in INDEX_TABLES.items():
-    #     cols = conn.execute("\
-    #         SELECT column_name, data_type \
-    #         FROM information_schema.columns \
-    #         WHERE table_schema = 'public' AND table_name = '{table}'".
-    #         format(table=table))
-    #     assert schema == [i for i in cols]
+    for table, schema in INDEX_TABLES.items():
+        cols = conn.execute("\
+            SELECT column_name, data_type \
+            FROM information_schema.columns \
+            WHERE table_schema = 'public' AND table_name = '{table}'".
+            format(table=table))
+        assert schema == [i for i in cols]
 
     vids = conn.execute("SELECT baseid FROM index_record").fetchall()
 

@@ -34,6 +34,9 @@ INDEX_TABLES = {
         (0, u'did', u'VARCHAR', 1, None, 1),
         (1, u'url', u'VARCHAR', 1, None, 1 if OLD_SQLITE else 2),
     ],
+    'index_schema_version': [
+        (0, u'version', u'INTEGER', 1, None, 1),
+    ],
 }
 
 ALIAS_TABLES = {
@@ -53,6 +56,9 @@ ALIAS_TABLES = {
     'alias_record_host_authority': [
         (0, u'name', u'VARCHAR', 1, None, 1),
         (1, u'host', u'VARCHAR', 1, None, 1 if OLD_SQLITE else 2),
+    ],
+    'alias_schema_version': [
+        (0, u'version', u'INTEGER', 1, None, 1),
     ],
 }
 
