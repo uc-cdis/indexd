@@ -1,12 +1,16 @@
 import abc
+from ..driver_base import SQLAlchemyDriverBase
 
 
-class AliasDriverABC(object):
+class AliasDriverABC(SQLAlchemyDriverBase):
     '''
     Alias Driver Abstract Base Class
 
     Driver interface for interacting with alias backends.
     '''
+    def __init__(self, conn, **config):
+        super(AliasDriverABC, self).__init__(conn, **config)
+
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod

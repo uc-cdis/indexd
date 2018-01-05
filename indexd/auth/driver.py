@@ -1,11 +1,17 @@
 import abc
+from ..driver_base import SQLAlchemyDriverBase
 
-class AuthDriverABC(object):
+
+class AuthDriverABC(SQLAlchemyDriverBase):
     '''
     Auth Driver Abstract Base Class
 
     Driver interface for authorization.
     '''
+    def __init__(self, conn, **config):
+        super(AuthDriverABC, self).__init__(conn, **config)
+
+
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod

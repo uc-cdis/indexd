@@ -1,10 +1,9 @@
 import uuid
-import sqlite3
-
+from tests.test_settings import settings
 from sqlalchemy import create_engine
-
-import util
-from indexd.utils import setup_database, create_tables
+from sqlalchemy.ext.declarative import declarative_base
+import sqlite3
+import tests.util as util
 from indexd.index.drivers.alchemy import (
     SQLAlchemyIndexDriver, IndexSchemaVersion)
 
@@ -12,7 +11,10 @@ from indexd.alias.drivers.alchemy import (
     SQLAlchemyAliasDriver, AliasSchemaVersion)
 
 from indexd.index.drivers.alchemy import migrate_1, migrate_2
+from tests.alchemy import SQLAlchemyIndexTestDriver
+from sqlalchemy_utils import database_exists, drop_database
 
+Base = declarative_base()
 
 INDEX_TABLES = {
     'base_version': [
@@ -53,6 +55,7 @@ def update_version_table_for_testing(db, tb_name, val):
                 INSERT INTO {} (version) VALUES ({})
             '''.format(tb_name, val))
         conn.commit()
+
 
 @util.removes('index.sq3')
 def test_migrate_index():
@@ -161,7 +164,11 @@ def test_migrate_alias():
 
 
 def test_migrate_index_versioning(monkeypatch):
+    engine = create_engine(settings['config']['TEST_DB'])
+    if database_exists(engine.url):
+        drop_database(engine.url)
 
+    driver = SQLAlchemyIndexTestDriver(settings['config']['TEST_DB'])
     monkeypatch.setattr(
        'indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION', 2)
     monkeypatch.setattr(
@@ -173,20 +180,11 @@ def test_migrate_index_versioning(monkeypatch):
          lambda _: True
     )
 
-    setup_database('test', 'test', 'test_migration_db',
-                   no_drop=False, no_user=False)
-    create_tables('localhost', 'test', 'test', 'test_migration_db')
-
-    stm = "postgres://test:test@localhost/test_migration_db"
-
-    engine = create_engine(stm)
-    conn = engine.connect()
-
-    conn.execute("\
-        INSERT INTO index_schema_version VALUES(0)\
-        ")
-    conn.execute("commit")
-
+    conn = driver.engine.connect()
+    # conn.execute("\
+    #     INSERT INTO index_schema_version VALUES(0)\
+    #     ")
+    # conn.execute("commit")
     for _ in range(10):
         did = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
@@ -195,24 +193,22 @@ def test_migrate_index_versioning(monkeypatch):
         conn.execute("\
             INSERT INTO index_record(did, rev, form, size) \
             VALUES ('{}','{}','{}',{})".format(did, rev, form, size))
-
     conn.execute("commit")
-    driver = SQLAlchemyIndexDriver(stm)
+    conn.close()
+
+    driver = SQLAlchemyIndexDriver(settings['config']['TEST_DB'])
     with driver.session as s:
         v = s.query(IndexSchemaVersion).first()
         assert v.version == 2
         s.delete(v)
 
-    tables = conn.execute("\
-        SELECT tablename \
-        FROM pg_catalog.pg_tables \
-        WHERE tableowner = 'test'")
-
-    tables = [t[0] for t in tables]
+    Base.metadata.reflect(bind=driver.engine)
+    tables = Base.metadata.tables.keys()
 
     for table in INDEX_TABLES:
         assert table in tables, '{table} not created'.format(table=table)
 
+    conn = driver.engine.connect()
     for table, schema in INDEX_TABLES.items():
         cols = conn.execute("\
             SELECT column_name, data_type \
@@ -229,5 +225,4 @@ def test_migrate_index_versioning(monkeypatch):
             FROM base_version \
             WHERE baseid = '{}';".format(baseid[0])).fetchone()[0]
         assert c == 1
-
     conn.close()

@@ -1,6 +1,6 @@
 import sqlite3
 
-import util
+import tests.util as util
 
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver

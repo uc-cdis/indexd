@@ -34,6 +34,27 @@ def test_index_create_with_file_name(client, user):
     assert r.json['file_name'] == 'abc'
 
 
+def test_index_create_with_metadata(client, user):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'metadata': {
+            'project_id': 'bpa-UChicago'
+        },
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+    print(r.json)
+    r = client.get('/index/'+r.json['did'])
+    assert r.json['metadata'] == {
+            'project_id': 'bpa-UChicago'
+        }
+
+
 def test_index_update(client, user):
     data = {
         'form': 'object',
