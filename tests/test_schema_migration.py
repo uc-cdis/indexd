@@ -1,10 +1,9 @@
 import uuid
 import sqlite3
-import util
 
-from sqlite3 import OperationalError
 from sqlalchemy import create_engine
 
+import util
 from indexd.utils import setup_database, create_tables
 from indexd.index.drivers.alchemy import (
     SQLAlchemyIndexDriver, IndexSchemaVersion)
@@ -83,6 +82,8 @@ def test_migrate_index():
             assert v.version == 2
             s.delete(v)
 
+    return test_migrate_index_internal
+
 
 @util.removes('index.sq3')
 def test_migrate_index_only_diff():
@@ -126,6 +127,9 @@ def test_migrate_index_only_diff():
             v = s.query(IndexSchemaVersion).first()
             assert v.version == 2
 
+    return test_migrate_index_only_diff_internal
+
+
 @util.removes('alias.sq3')
 def test_migrate_alias():
     def test_migrate_alias_internal(monkeypatch):
@@ -153,7 +157,10 @@ def test_migrate_alias():
             v = s.query(AliasSchemaVersion).first()
             assert v.version == 1
 
-def test_migrate_index_versioning_internal(monkeypatch):
+    return test_migrate_alias_internal
+
+
+def test_migrate_index_versioning(monkeypatch):
 
     monkeypatch.setattr(
        'indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION', 2)
