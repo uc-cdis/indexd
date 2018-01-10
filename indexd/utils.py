@@ -1,5 +1,7 @@
-from sqlalchemy import create_engine
 import logging
+
+from sqlalchemy import create_engine
+from sqlalchemy.engine.reflection import Inspector
 
 def try_drop_test_data(user, database, root_user='postgres', host=''):
 
@@ -54,7 +56,7 @@ def setup_database(user, password, database, root_user='postgres',
 
 def create_tables(host, user, password, database):
     """
-    create a table
+    create tables
     """
     engine = create_engine("postgres://{user}:{pwd}@{host}/{db}".format(
         user=user, host=host, pwd=password, db=database))
@@ -68,10 +70,13 @@ def create_tables(host, user, password, database):
     create_record_url_stm = "CREATE TABLE index_record_url( \
         did VARCHAR NOT NULL, url VARCHAR NOT NULL, PRIMARY KEY (did, url),\
         FOREIGN KEY(did) REFERENCES index_record (did) )"
+    create_index_schema_version_stm = "CREATE TABLE index_schema_version (\
+        version INT)"
     try:
         conn.execute(create_index_record_stm)
         conn.execute(create_record_hash_stm)
         conn.execute(create_record_url_stm)
+        conn.execute(create_index_schema_version_stm)
     except Exception:
         logging.warn('Unable to create table')
     conn.close()
@@ -89,9 +94,9 @@ def check_engine_for_migrate(engine):
     return engine.dialect.supports_alter
 
 
-def init_schema_version(driver, model):
+def init_schema_version(driver, model, version):
     '''
-    initialize schema table with a singleton of version 0
+    initialize schema table with a initialized singleton of version
 
     Args:
         driver (object): an alias or index driver instance
@@ -103,7 +108,7 @@ def init_schema_version(driver, model):
     with driver.session as s:
         schema_version = s.query(model).first()
         if not schema_version:
-            schema_version = model(version=0)
+            schema_version = model(version=version)
             s.add(schema_version)
         version = schema_version.version
     return version
@@ -111,7 +116,7 @@ def init_schema_version(driver, model):
 
 def migrate_database(driver, migrate_functions, current_schema_version, model):
     '''
-    migrate current database to match the schema version provded in
+    migrate current database to match the schema version provided in
     current schema
 
     Args:
@@ -123,7 +128,8 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
     Return:
         None
     '''
-    db_schema_version = init_schema_version(driver, model)
+    db_schema_version = init_schema_version(driver, model, 0)
+
     need_migrate = (current_schema_version - db_schema_version) > 0
 
     if not check_engine_for_migrate(driver.engine) and need_migrate:
@@ -142,3 +148,19 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
 
             f(engine=driver.engine, session=s)
             s.add(schema_version)
+
+def is_empty_database(driver):
+    '''
+    check if the database is empty or not
+    Args:
+        driver (object): an alias or index driver instance
+
+    Returns:
+        Boolean
+    '''
+    table_list = Inspector.from_engine(driver.engine).get_table_names()
+
+    return len(table_list) == 0
+
+
+
