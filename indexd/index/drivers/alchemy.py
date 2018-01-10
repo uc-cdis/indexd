@@ -119,8 +119,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
 
-        if is_empty_database(driver=self):
-            Base.metadata.create_all()
+        is_empty_db = is_empty_database(driver=self)
+        Base.metadata.create_all()
+        if is_empty_db:
             init_schema_version(driver=self, model=IndexSchemaVersion, version=CURRENT_SCHEMA_VERSION)
 
         if auto_migrate:
@@ -562,7 +563,6 @@ def migrate_1(session, **kwargs):
 def migrate_2(session, **kwargs):
     '''
     Migrate db from version 1 -> 2
-    In the case of the brand new db, we don't need to do migration since all the tables are the newest versions. We side-stepping this issue by catching exceptions
     '''
     try:
         session.execute(
@@ -570,14 +570,6 @@ def migrate_2(session, **kwargs):
                 ADD COLUMN baseid VARCHAR DEFAULT NULL, \
                 ADD COLUMN created_date TIMESTAMP DEFAULT NOW(), \
                 ADD COLUMN updated_date TIMESTAMP DEFAULT NOW()".format(IndexRecord.__tablename__))
-    except ProgrammingError:
-        session.rollback()
-    session.commit()
-
-    try:
-        session.execute(
-            "CREATE TABLE {} (baseid VARCHAR NOT NULL, PRIMARY KEY(baseid))"
-            .format(BaseVersion.__tablename__))
     except ProgrammingError:
         session.rollback()
     session.commit()

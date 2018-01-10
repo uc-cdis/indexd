@@ -97,8 +97,9 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
 
-        if is_empty_database(driver=self):
-            Base.metadata.create_all()
+        is_empty_db = is_empty_database(driver=self)
+        Base.metadata.create_all()
+        if is_empty_db:
             init_schema_version(driver=self, model=AliasSchemaVersion, version=CURRENT_SCHEMA_VERSION)
 
         if auto_migrate:
