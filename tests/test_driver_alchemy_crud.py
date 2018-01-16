@@ -247,6 +247,18 @@ def test_driver_add_with_filename():
     with driver.session as s:
         assert s.query(IndexRecord).first().file_name == 'abc'
 
+@util.removes('index.sq3')
+def test_driver_add_with_version_string():
+    '''
+    Tests creation of a record with version string.
+    '''
+    driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
+
+    form = 'object'
+    version_string = 'ver_123'
+    driver.add(form, version_string=version_string)
+    with driver.session as s:
+        assert s.query(IndexRecord).first().version_string == 'ver_123'
 
 @util.removes('index.sq3')
 def test_driver_add_with_hashes():
@@ -512,16 +524,19 @@ def test_driver_update_record():
             'b': '2',
             'c': '3',
         }
+        
         file_name = 'test'
+        version_string = 'ver_123'
 
         driver.update(
             did, rev,
             urls=update_urls,
-            file_name=file_name
+            file_name=file_name,
+            version_string=version_string
         )
 
-        new_did, new_rev, new_file_name = conn.execute('''
-            SELECT did, rev, file_name FROM index_record
+        new_did, new_rev, new_file_name, new_version_string = conn.execute('''
+            SELECT did, rev, file_name, version_string FROM index_record
         ''').fetchone()
 
         new_urls = sorted(url[0] for url in conn.execute('''
@@ -536,6 +551,7 @@ def test_driver_update_record():
         assert rev != new_rev, 'record revision matches prior'
         assert update_urls == new_urls, 'record urls mismatch'
         assert file_name == new_file_name, 'file_name does not match'
+        assert version_string == new_version_string, 'version_string does not match'
 
 @util.removes('index.sq3')
 def test_driver_update_fails_with_no_records():

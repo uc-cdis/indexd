@@ -17,7 +17,7 @@ class IndexDriverABC(SQLAlchemyDriverBase):
     @abc.abstractmethod
     def ids(
             self, limit=100, start=None,
-            size=None, urls=None, hashes=None, file_name=None):
+            size=None, urls=None, hashes=None, file_name=None, version_string=None):
         '''
         Returns a list of records stored by the backend.
         '''
@@ -31,7 +31,7 @@ class IndexDriverABC(SQLAlchemyDriverBase):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def add(self, form, size=None, file_name=None, metadata=None, urls=None, hashes=None):
+    def add(self, form, size=None, urls=None, hashes=None, file_name=None, metadata=None, version_string=None):
         '''
         Creates record for given data.
         '''
@@ -45,7 +45,7 @@ class IndexDriverABC(SQLAlchemyDriverBase):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def update(self, did, rev, urls=None, file_name=None):
+    def update(self, did, rev, urls=None, file_name=None, version_string=None):
         '''
         Updates record with new values.
         '''
@@ -61,7 +61,7 @@ class IndexDriverABC(SQLAlchemyDriverBase):
     @abc.abstractmethod
     def add_version(
             self, did, form, size=None,
-            file_name=None, metadata=None, urls=None, hashes=None):
+            file_name=None, metadata=None, urls=None, hashes=None, version_string=None):
         '''
         Add a record version given did
         '''

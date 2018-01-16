@@ -17,7 +17,7 @@ from indexd.errors import UserError
 from indexd.utils import migrate_database, init_schema_version, is_empty_database
 from sqlalchemy.exc import ProgrammingError
 
-CURRENT_SCHEMA_VERSION = 3
+CURRENT_SCHEMA_VERSION = 4
 Base = declarative_base()
 
 
@@ -57,6 +57,7 @@ class IndexRecord(Base):
     created_date = Column(DateTime, default=datetime.datetime.utcnow)
     updated_date = Column(DateTime, default=datetime.datetime.utcnow)
     file_name = Column(String, index=True)
+    version_string = Column(String, index=True)
 
     urls = relationship(
         'IndexRecordUrl',
@@ -186,7 +187,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     def ids(
             self, limit=100, start=None,
-            size=None, urls=None, hashes=None, file_name=None):
+            size=None, urls=None, hashes=None, file_name=None, version_string=None):
         '''
         Returns list of records stored by the backend.
         '''
@@ -201,6 +202,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             if file_name is not None:
                 query = query.filter(IndexRecord.file_name == file_name)
+            
+            if version_string is not None:
+                query = query.filter(IndexRecord.version_string == version_string)
 
             if urls is not None and urls:
                 query = query.join(IndexRecord.urls)
@@ -251,7 +255,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return [r.url for r in query]
 
+<<<<<<< HEAD
     def add(self, form, size=None, file_name=None, metadata=None, urls=None, hashes=None):
+=======
+    def add(self, form, size=None, urls=None, hashes=None, file_name=None, version_string=None):
+>>>>>>> feat(version_string): add optinal version string
         '''
         Creates a new record given size, urls, hashes, metadata, and file name.
         '''
@@ -271,6 +279,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record.baseid = baseid
             record.file_name = file_name
+            record.version_string = version_string
+            
 
             did = str(uuid.uuid4())
             record.did, record.rev = did, str(uuid.uuid4())[:8]
@@ -332,7 +342,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             form = record.form
             size = record.size
+            
             file_name = record.file_name
+            version_string = record.version_string
 
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
@@ -347,6 +359,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 'rev': rev,
                 'size': size,
                 'file_name': file_name,
+                'version_string': version_string,
                 'urls': urls,
                 'hashes': hashes,
                 'metadata': metadata,
@@ -357,7 +370,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         return ret
 
-    def update(self, did, rev, urls=None, file_name=None):
+    def update(self, did, rev, urls=None, file_name=None, version_string=None):
         '''
         Updates an existing record with new values.
         '''
@@ -380,8 +393,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     did=record.did,
                     url=url
                 ) for url in urls]
+            
             if file_name is not None:
                 record.file_name = file_name
+            
+            if version_string is not None:
+                record.version_string = version_string
 
             record.rev = str(uuid.uuid4())[:8]
 
@@ -411,7 +428,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     def add_version(
             self, did, form, size=None,
+<<<<<<< HEAD
             file_name=None, metadata=None, urls=None, hashes=None):
+=======
+            file_name=None, version_string=None, urls=None, hashes=None):
+>>>>>>> feat(version_string): add optinal version string
         '''
         Add a record version given did
         '''
@@ -441,6 +462,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.form = form
             record.size = size
             record.file_name = file_name
+            record.version_string = version_string
 
             record.urls = [IndexRecordUrl(
                 did=record.did,
@@ -492,7 +514,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 form = record.form
 
                 size = record.size
-                file_name =record.file_name
+                file_name = record.file_name
+                version_string = record.version_string
                 urls = [u.url for u in record.urls]
                 hashes = {h.hash_type: h.hash_value for h in record.hashes}
                 metadata = {m.key: m.value for m in record.index_metadata}
@@ -506,6 +529,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     'size': size,
                     'file_name': file_name,
                     'metadata': metadata,
+                    'version_string': version_string,
                     'urls': urls,
                     'hashes': hashes,
                     'form': form,
@@ -547,6 +571,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             size = record.size
             file_name = record.file_name
             metadata = {m.key: m.value for m in record.index_metadata}
+            version_string = record.version_string
 
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
@@ -560,6 +585,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 'size': size,
                 'file_name': file_name,
                 'metadata': metadata,
+                'version_string': version_string,
                 'urls': urls,
                 'hashes': hashes,
                 'form': form,
@@ -679,6 +705,15 @@ def migrate_3(session, **kwargs):
         "CREATE INDEX {tb}__file_name_idx ON {tb} ( file_name )"
         .format(tb=IndexRecord.__tablename__))
 
+def migrate_4(session, **kwargs):
+    session.execute(
+        "ALTER TABLE {} ADD COLUMN version_string VARCHAR;"
+        .format(IndexRecord.__tablename__))
+
+    session.execute(
+        "CREATE INDEX {tb}__version_string_idx ON {tb} ( version_string )"
+        .format(tb=IndexRecord.__tablename__))
+
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
-SCHEMA_MIGRATION_FUNCTIONS = [migrate_1, migrate_2, migrate_3]
+SCHEMA_MIGRATION_FUNCTIONS = [migrate_1, migrate_2, migrate_3, migrate_4]
