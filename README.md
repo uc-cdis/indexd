@@ -97,7 +97,7 @@ Content-Type: application/json
   "form": "object",
   "size": 123,
   "file_name": "abc.txt",
-  "version_string": "ver_123",
+  "version": "ver_123",
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
 }
@@ -108,7 +108,7 @@ Content-Type: application/json
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes (commonly computed via wc -c filename) |
 | file_name |  Optional file name |
-| version_string | Optional version string |
+| version | Optional version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
 
@@ -191,7 +191,7 @@ HTTP/1.1 200 OK
   "form": "object",
   "size": 123,
   "file_name": "abc.txt",
-  "version_string": "ver_123",
+  "version": "ver_123",
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
   "created_date": "Fri, 17 Nov 2017 06:07:29 GMT",
@@ -207,7 +207,7 @@ HTTP/1.1 200 OK
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes |
 | file_name |  Optional file name |
-| version_string | Optional version string |
+| version | Optional version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
 | created_date | File created datetime  |
@@ -222,7 +222,7 @@ Content-Type: application/json
   "form": "object",
   "size": 123,
   "file_name": "abc.txt",
-  "version_string": "ver_123",
+  "version": "ver_123",
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
 }
@@ -233,13 +233,13 @@ Content-Type: application/json
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes (commonly computed via wc -c filename) |
 | file_name |  Optional file name |
-| version_string | Optional version string |
+| version | Optional version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
 
 Curl example:
 ```
-curl http://localhost/index/d5d9a196-f36d-4ab8-bdca-a989e0f21c00? -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"file_name": "abc.txt","version_string": "ver_123","urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
+curl http://localhost/index/d5d9a196-f36d-4ab8-bdca-a989e0f21c00? -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"file_name": "abc.txt","version": "ver_123","urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
 ```
 
 ***Response***
@@ -279,7 +279,7 @@ HTTP/1.1 200 OK
   "form": "object",
   "size": 123,
   "file_name": "abc.txt",
-  "version_string": "ver_123",
+  "version": "ver_123",
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
   "created_date": "Tue, 05 Dec 2017 21:02:59 GMT",
@@ -294,7 +294,7 @@ HTTP/1.1 200 OK
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes |
 | file_name |  File name |
-| version_string | Version string |
+| version | Version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
 | created_date  | File created datetime |
@@ -322,7 +322,7 @@ HTTP/1.1 200 OK
       "rev": "0984a150",
       "size": 123,
       "file_name": "abc.txt",
-      "version_string": "ver_123",
+      "version": "ver_123",
       "created_date": "Fri, 17 Nov 2017 06:11:18 GMT"
       "updated_date": "Fri, 17 Nov 2017 06:11:18 GMT",
       "urls": ["s3://endpointurl/bucket/key"]
@@ -335,7 +335,7 @@ HTTP/1.1 200 OK
       "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
       "rev": "fec0ce30", "size": 123,
       "file_name": "abc.txt",
-      "version_string": "ver_123",
+      "version": "ver_123",
       "created_date": "Fri, 17 Nov 2017 06:17:39 GMT",
       "updated_date": "Fri, 17 Nov 2017 06:17:39 GMT",
       "urls": ["s3://endpointurl/bucket/key"]
@@ -351,7 +351,7 @@ HTTP/1.1 200 OK
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes |
 | file_name |  File name |
-| version_string | Version string |
+| version | Version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
 | created_date | File created datetime  |

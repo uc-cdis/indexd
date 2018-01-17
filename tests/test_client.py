@@ -33,13 +33,13 @@ def test_index_create_with_file_name(client, user):
     r = client.get('/index/'+r.json['did'])
     assert r.json['file_name'] == 'abc'
 
-def test_index_create_with_version_string(client, user):
+def test_index_create_with_version(client, user):
     data = {
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
         'file_name': 'abc',
-        'version_string': 'ver_123',
+        'version': 'ver_123',
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
     r = client.post(
@@ -47,7 +47,7 @@ def test_index_create_with_version_string(client, user):
         data=json.dumps(data),
         headers=user)
     r = client.get('/index/'+r.json['did'])
-    assert r.json['version_string'] == 'ver_123'
+    assert r.json['version'] == 'ver_123'
 
 
 def test_index_create_with_metadata(client, user):
@@ -91,7 +91,7 @@ def test_index_update(client, user):
         'rev': rev,
         'urls': ['s3://endpointurl/bucket/key'],
         'file_name': 'test',
-        'version_string': 'ver123',
+        'version': 'ver123',
         }
     r2 = client.put(
         '/index/' + did + '?rev=' + rev,

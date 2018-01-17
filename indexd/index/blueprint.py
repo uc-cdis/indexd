@@ -69,7 +69,7 @@ def get_index():
 
     file_name = flask.request.args.get('file_name')
 
-    version_string = flask.request.args.get('version_string')
+    version = flask.request.args.get('version')
 
     hashes = flask.request.args.getlist('hash')
     hashes = {h: v for h, v in map(lambda x: x.split(':', 1), hashes)}
@@ -85,7 +85,7 @@ def get_index():
         limit=limit,
         size=size,
         file_name=file_name,
-        version_string=version_string,
+        version=version,
         urls=urls,
         hashes=hashes,
     )
@@ -96,7 +96,7 @@ def get_index():
         'start': start,
         'size': size,
         'file_name': file_name,
-        'version_string': version_string,
+        'version': version,
         'urls': urls,
         'hashes': hashes,
     }
@@ -182,14 +182,14 @@ def post_index_record():
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
     metadata = flask.request.json.get('metadata')
-    version_string = flask.request.json.get('version_string')
+    version = flask.request.json.get('version')
 
     did, rev, baseid = blueprint.index_driver.add(
         form,
         size=size,
         file_name=file_name,
         metadata=metadata,
-        version_string=version_string,
+        version=version,
         urls=urls,
         hashes=hashes,
     )
@@ -216,14 +216,14 @@ def put_index_record(record):
 
     rev = flask.request.args.get('rev')
     file_name = flask.request.json.get('file_name')
-    version_string = flask.request.json.get('version_string')
+    version = flask.request.json.get('version')
     urls = flask.request.json.get('urls')
 
     did, baseid, rev = blueprint.index_driver.update(
         record,
         rev,
         file_name=file_name,
-        version_string=version_string,
+        version=version,
         urls=urls,
     )
 
@@ -263,7 +263,7 @@ def add_index_record_version(record):
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name', None)
     metadata = flask.request.json.get('metadata', None)
-    version_string = flask.request.json.get('version_string', None)
+    version = flask.request.json.get('version', None)
 
     did, baseid,rev = blueprint.index_driver.add_version(
         record,
@@ -272,7 +272,7 @@ def add_index_record_version(record):
         urls=urls,
         file_name=file_name,
         metadata=metadata,
-        version_string=version_string,
+        version=version,
         hashes=hashes,
     )
 

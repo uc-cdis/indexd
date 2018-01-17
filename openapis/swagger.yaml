@@ -388,7 +388,7 @@ definitions:
         description: size in bytes
       file_name:
         type: string
-      version_string:
+      version:
         type: string
       urls:
         type: array
@@ -405,7 +405,7 @@ definitions:
           ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
       file_name:
         type: string
-      version_string:
+      version:
         type: string
       urls:
         type: array
@@ -517,7 +517,7 @@ definitions:
         description: size in bytes
       file_name:
         type: string
-      version_string:
+      version:
         type: string
       urls:
         type: array
