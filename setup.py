@@ -21,10 +21,11 @@ setup(
         'flask==0.10.1',
         'jsonschema==2.5.1',
         'sqlalchemy==1.0.8',
-    	'psycopg2==2.7.3.2',
+        'sqlalchemy-utils>=0.32.21',
+    	'psycopg2>=2.7',
         'cdispyutils',
     ],
     dependency_links=[
-        "git+https://github.com/uc-cdis/cdis-python-utils.git@0.1.0#egg=cdispyutils",
+        "git+https://github.com/uc-cdis/cdis-python-utils.git@0.1.7#egg=cdispyutils",
     ],
 )

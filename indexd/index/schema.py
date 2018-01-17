@@ -30,6 +30,10 @@ POST_RECORD_SCHEMA = {
       "description": "optional file name of the object",
       "type": "string",
     },
+    "metadata": {
+      "description": "optional metadata of the object",
+      "type": "object",
+    },
     "urls": {
       "type": "array",
       "items": {

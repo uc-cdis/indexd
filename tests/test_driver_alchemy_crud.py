@@ -3,11 +3,9 @@ import sqlite3
 
 import pytest
 
-import util
-import indexd
+import tests.util as util
 
 from indexd.index.errors import NoRecordFound
-from indexd.index.errors import MultipleRecordsFound
 from indexd.index.errors import RevisionMismatch
 
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver, IndexRecord

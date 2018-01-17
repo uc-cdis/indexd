@@ -1,13 +1,17 @@
 import abc
-import uuid
+from ..driver_base import SQLAlchemyDriverBase
 
 
-class IndexDriverABC(object):
+class IndexDriverABC(SQLAlchemyDriverBase):
     '''
     Index Driver Abstract Base Class
 
     Driver interface for interacting with index backends.
     '''
+    def __init__(self, conn, **config):
+        super(IndexDriverABC, self).__init__(conn, **config)
+
+
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
@@ -27,7 +31,7 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def add(self, form, size=None, urls=None, hashes=None, file_name=None):
+    def add(self, form, size=None, file_name=None, metadata=None, urls=None, hashes=None):
         '''
         Creates record for given data.
         '''
@@ -57,7 +61,7 @@ class IndexDriverABC(object):
     @abc.abstractmethod
     def add_version(
             self, did, form, size=None,
-            file_name=None, urls=None, hashes=None):
+            file_name=None, metadata=None, urls=None, hashes=None):
         '''
         Add a record version given did
         '''

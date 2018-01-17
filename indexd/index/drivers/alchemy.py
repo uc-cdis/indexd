@@ -3,28 +3,16 @@ import datetime
 
 from cdispyutils.log import get_logger
 from contextlib import contextmanager
-from sqlalchemy import func
-from sqlalchemy import select
-from sqlalchemy import and_
-from sqlalchemy import String
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import BigInteger
-from sqlalchemy import DateTime
-from sqlalchemy import ForeignKey
-from sqlalchemy import create_engine
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy import func, select, and_
+from sqlalchemy import String, Column, Integer, BigInteger, DateTime
+from sqlalchemy import ForeignKey, ForeignKeyConstraint, Index
+from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import IntegrityError
 from indexd.index.driver import IndexDriverABC
-from indexd.index.errors import NoRecordFound
-from indexd.index.errors import MultipleRecordsFound
-from indexd.index.errors import RevisionMismatch
-from indexd.index.errors import UnhealthyCheck
-from indexd.index.errors import AddExistedColumn
+from indexd.index.errors import NoRecordFound, MultipleRecordsFound, \
+    RevisionMismatch, UnhealthyCheck
 from indexd.errors import UserError
 from indexd.utils import migrate_database, init_schema_version, is_empty_database
 from sqlalchemy.exc import ProgrammingError
@@ -82,15 +70,57 @@ class IndexRecord(Base):
         cascade='all, delete-orphan',
     )
 
+    index_metadata = relationship(
+        'IndexRecordMetadata',
+        backref='index_record',
+        cascade='all, delete-orphan',
+    )
+
 
 class IndexRecordUrl(Base):
     '''
     Base index record url representation.
     '''
+
     __tablename__ = 'index_record_url'
 
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
     url = Column(String, primary_key=True)
+
+    url_metadata = relationship(
+        'IndexRecordUrlMetadata',
+        backref='index_record_url',
+        cascade='all, delete-orphan',
+    )
+
+
+class IndexRecordMetadata(Base):
+    '''
+        Table to track current database's schema version
+    '''
+
+    __tablename__ = 'index_record_metadata'
+    key = Column(String, primary_key=True)
+    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    value = Column(String)
+    Index('__did_key_idx', 'did', 'key')
+
+
+class IndexRecordUrlMetadata(Base):
+    '''
+        Table to track current database's schema version
+    '''
+
+    __tablename__ = 'index_record_url_metadata'
+    key = Column(String, primary_key=True)
+    url = Column(String, primary_key=True)
+    did = Column(String, index=True, primary_key=True)
+    value = Column(String)
+    __table_args__ = (
+        ForeignKeyConstraint(['did', 'url'],
+                             ['index_record_url.did', 'index_record_url.url']),
+    )
+    Index('__did_url_key_idx', 'did', 'url', 'key')
 
 
 class IndexRecordHash(Base):
@@ -113,7 +143,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         '''
         Initialize the SQLAlchemy database driver.
         '''
-        self.engine = create_engine(conn, **config)
+        super(SQLAlchemyIndexDriver, self).__init__(conn, **config)
         self.logger = logger or get_logger('SQLAlchemyIndexDriver')
 
         Base.metadata.bind = self.engine
@@ -221,15 +251,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return [r.url for r in query]
 
-    def add(self, form, size=None, urls=None, hashes=None, file_name=None):
+    def add(self, form, size=None, file_name=None, metadata=None, urls=None, hashes=None):
         '''
-        Creates a new record given urls and hashes.
+        Creates a new record given size, urls, hashes, metadata, and file name.
         '''
 
         if urls is None:
             urls = []
         if hashes is None:
             hashes = {}
+        if metadata is None:
+            metadata = {}
         with self.session as session:
             record = IndexRecord()
 
@@ -246,15 +278,29 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.form, record.size = form, size
 
             record.urls = [IndexRecordUrl(
-                did=record,
+                did=record.did,
                 url=url,
             ) for url in urls]
 
             record.hashes = [IndexRecordHash(
-                did=record,
+                did=record.did,
                 hash_type=h,
                 hash_value=v,
             ) for h, v in hashes.items()]
+
+            for url in record.urls:
+                url.url_metadata = [IndexRecordUrlMetadata(
+                    did=record.did,
+                    url=url.url,
+                    key=m_key,
+                    value=m_value
+                ) for m_key, m_value in metadata.items()]
+
+            record.index_metadata = [IndexRecordMetadata(
+                did=record.did,
+                key=m_key,
+                value=m_value
+            ) for m_key, m_value in metadata.items()]
 
             try:
                 session.add(base_version)
@@ -290,6 +336,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
+            metadata = {m.key: m.value for m in record.index_metadata}
 
             created_date = record.created_date
             updated_date = record.updated_date
@@ -302,6 +349,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 'file_name': file_name,
                 'urls': urls,
                 'hashes': hashes,
+                'metadata': metadata,
                 'form': form,
                 'created_date': created_date,
                 "updated_date": updated_date,
@@ -329,7 +377,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             if urls is not None:
                 record.urls = [IndexRecordUrl(
-                    did=record,
+                    did=record.did,
                     url=url
                 ) for url in urls]
             if file_name is not None:
@@ -363,10 +411,16 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     def add_version(
             self, did, form, size=None,
-            file_name=None, urls=None, hashes=None):
+            file_name=None, metadata=None, urls=None, hashes=None):
         '''
         Add a record version given did
         '''
+        if urls is None:
+            urls = []
+        if hashes is None:
+            hashes = {}
+        if metadata is None:
+            metadata = {}
         with self.session as session:
             query = session.query(IndexRecord).filter_by(did=did)
 
@@ -389,15 +443,21 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.file_name = file_name
 
             record.urls = [IndexRecordUrl(
-                did=record,
+                did=record.did,
                 url=url,
             ) for url in urls]
 
             record.hashes = [IndexRecordHash(
-                did=record,
+                did=record.did,
                 hash_type=h,
                 hash_value=v,
             ) for h, v in hashes.items()]
+
+            record.index_metadata = [IndexRecordMetadata(
+                did=record.did,
+                key=m_key,
+                value=m_value
+            ) for m_key, m_value in metadata.items()]
 
             try:
                 session.add(record)
@@ -435,6 +495,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 file_name =record.file_name
                 urls = [u.url for u in record.urls]
                 hashes = {h.hash_type: h.hash_value for h in record.hashes}
+                metadata = {m.key: m.value for m in record.index_metadata}
 
                 created_date = record.created_date
                 updated_date = record.updated_date
@@ -444,6 +505,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     'rev': rev,
                     'size': size,
                     'file_name': file_name,
+                    'metadata': metadata,
                     'urls': urls,
                     'hashes': hashes,
                     'form': form,
@@ -484,6 +546,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             form = record.form
             size = record.size
             file_name = record.file_name
+            metadata = {m.key: m.value for m in record.index_metadata}
 
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
@@ -496,6 +559,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 'rev': rev,
                 'size': size,
                 'file_name': file_name,
+                'metadata': metadata,
                 'urls': urls,
                 'hashes': hashes,
                 'form': form,
@@ -560,6 +624,7 @@ def migrate_1(session, **kwargs):
         "ALTER TABLE {} ALTER COLUMN size TYPE bigint;"
         .format(IndexRecord.__tablename__))
 
+
 def migrate_2(session, **kwargs):
     '''
     Migrate db from version 1 -> 2
@@ -590,13 +655,13 @@ def migrate_2(session, **kwargs):
         baseid = str(uuid.uuid4())
         session.execute(
             "UPDATE index_record SET baseid = '{}'\
-            WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {});".format(baseid, loop+1))
+             WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {});".format(baseid, loop+1))
         session.execute(
             "INSERT INTO {}(baseid) VALUES('{}');".format(BaseVersion.__tablename__,baseid))
 
     session.execute(
         "ALTER TABLE {} \
-        ADD CONSTRAINT baseid_FK FOREIGN KEY (baseid) references base_version(baseid);"
+         ADD CONSTRAINT baseid_FK FOREIGN KEY (baseid) references base_version(baseid);"
         .format(IndexRecord.__tablename__))
 
     # drop tmp table

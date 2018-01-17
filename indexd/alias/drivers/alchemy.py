@@ -91,9 +91,8 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         '''
         Initialize the SQLAlchemy database driver.
         '''
-        self.engine = create_engine(conn, **config)
+        super(SQLAlchemyAliasDriver, self).__init__(conn, **config)
         self.logger = logger or get_logger('SQLAlchemyAliasDriver')
-
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
 
@@ -273,7 +272,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         '''
         with self.session as session:
             query = session.query(AliasRecord)
-            query = query.filter(AliasRecord.name == name)
+            query = query.filter(AliasRecord.name == record)
 
             return query.exists()
 
