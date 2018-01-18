@@ -32,7 +32,11 @@ POST_RECORD_SCHEMA = {
     },
     "metadata": {
       "description": "optional metadata of the object",
-      "type": "object",
+      "type": "object"
+    },
+    "version": {
+      "description": "optional version string of the object",
+      "type": "string",
     },
     "urls": {
       "type": "array",
@@ -103,6 +107,9 @@ PUT_RECORD_SCHEMA = {
       }
     },
     "file_name": {
+        "type": "string"
+    },
+    "version": {
         "type": "string"
     },
     "rev": {
