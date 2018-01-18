@@ -64,7 +64,7 @@ def test_index_create_with_metadata(client, user):
         '/index/',
         data=json.dumps(data),
         headers=user)
-    print(r.json)
+
     r = client.get('/index/'+r.json['did'])
     assert r.json['metadata'] == {
             'project_id': 'bpa-UChicago'

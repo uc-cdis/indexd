@@ -32,7 +32,8 @@ POST_RECORD_SCHEMA = {
     },
     "metadata": {
       "description": "optional metadata of the object",
-      "type": "object",
+      "type": "object"
+    },
     "version": {
       "description": "optional version string of the object",
       "type": "string",

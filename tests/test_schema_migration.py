@@ -40,8 +40,6 @@ INDEX_TABLES = {
     ],
 }
 
-#driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
-#driver = SQLAlchemyAliasDriver('sqlite:///alias.sq3')
 
 def update_version_table_for_testing(db, tb_name, val):
     with sqlite3.connect(db) as conn:
@@ -181,10 +179,6 @@ def test_migrate_index_versioning(monkeypatch):
     )
 
     conn = driver.engine.connect()
-    # conn.execute("\
-    #     INSERT INTO index_schema_version VALUES(0)\
-    #     ")
-    # conn.execute("commit")
     for _ in range(10):
         did = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
