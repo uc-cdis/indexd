@@ -327,8 +327,8 @@ def test_driver_get_record():
         assert record['rev'] == rev, 'record revision does not match'
         assert record['size'] == size, 'record size does not match'
         assert record['form'] == form, 'record form does not match'
-        assert record['created_date'] == created_date, 'created date does not match'
-        assert record['updated_date'] == updated_date, 'updated date does not match'
+        assert record['created_date'] == created_date.isoformat(), 'created date does not match'
+        assert record['updated_date'] == updated_date.isoformat(), 'updated date does not match'
 
 @util.removes('index.sq3')
 def test_driver_get_fails_with_no_records():
@@ -371,8 +371,8 @@ def test_driver_get_latest_version():
         assert record['rev'] == rev, 'record revision does not match'
         assert record['size'] == size, 'record size does not match'
         assert record['form'] == form, 'record form does not match'
-        assert record['created_date'] == created_date, 'created date does not match'
-        assert record['updated_date'] == updated_date, 'updated date does not match'
+        assert record['created_date'] == created_date.isoformat(), 'created date does not match'
+        assert record['updated_date'] == updated_date.isoformat(), 'updated date does not match'
 
 @util.removes('index.sq3')
 def test_driver_get_latest_version_with_no_record():
@@ -446,8 +446,8 @@ def test_driver_get_all_version():
             assert record['rev'] == revs[i], 'record revision does not match'
             assert record['size'] == size, 'record size does not match'
             assert record['form'] == form, 'record form does not match'
-            assert record['created_date'] == created_dates[i], 'created date does not match'
-            assert record['updated_date'] == updated_dates[i], 'updated date does not match'
+            assert record['created_date'] == created_dates[i].isoformat(), 'created date does not match'
+            assert record['updated_date'] == updated_dates[i].isoformat(), 'updated date does not match'
 
 @util.removes('index.sq3')
 def test_driver_get_all_version_with_no_record():
