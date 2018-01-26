@@ -17,6 +17,55 @@ def test_index_create(client, user):
         data=json.dumps(data),
         headers=user).status_code == 200
 
+def test_index_create_with_valid_did(client, user):
+    data = {
+        'did':'3d313755-cbb4-4b08-899d-7bbac1f6e67d',
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    assert client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user).status_code == 200
+
+def test_index_create_with_invalid_did(client, user):
+    data = {
+        'did':'3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd',
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    assert client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user).status_code == 400
+
+def test_index_create_with_duplicate_did(client, user):
+    data = {
+        'did':'3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd',
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+
+    data2 = {
+        'did':'3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd',
+        'form': 'object',
+        'size': 213,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '469942cf415384b27cadf1f4d2d682e5'}}
+
+    assert client.post(
+        '/index/',
+        data=json.dumps(data2),
+        headers=user).status_code == 400
 
 def test_index_create_with_file_name(client, user):
     data = {

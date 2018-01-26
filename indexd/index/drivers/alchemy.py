@@ -270,8 +270,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         with self.session as session:
             record = IndexRecord()
-            if did is not None:
-                record.did = did
 
             base_version = BaseVersion()
             baseid = str(uuid.uuid4())
@@ -281,8 +279,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.file_name = file_name
             record.version = version
 
-            did = str(uuid.uuid4())
-            record.did, record.rev = did, str(uuid.uuid4())[:8]
+            record.did = did or str(uuid.uuid4())
+
+            record.rev = str(uuid.uuid4())[:8]
 
             record.form, record.size = form, size
 
