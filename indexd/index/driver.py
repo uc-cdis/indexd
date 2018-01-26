@@ -31,7 +31,7 @@ class IndexDriverABC(SQLAlchemyDriverBase):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def add(self, form, size=None, urls=None, hashes=None, file_name=None, metadata=None, version=None):
+    def add(self, form, did=None, size=None, urls=None, hashes=None, file_name=None, metadata=None, version=None):
         '''
         Creates record for given data.
         '''

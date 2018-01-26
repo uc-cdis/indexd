@@ -255,9 +255,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return [r.url for r in query]
 
-    def add(self, form, size=None, file_name=None, metadata=None, version=None, urls=None, hashes=None):
+    def add(self, form, did=None, size=None, file_name=None, metadata=None, version=None, urls=None, hashes=None):
         '''
-        Creates a new record given size, urls, hashes, metadata, and file name.
+        Creates a new record given size, urls, hashes, metadata, file name and version
+        if did is provided, update the new record with the did otherwise create it
         '''
 
         if urls is None:
@@ -266,8 +267,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             hashes = {}
         if metadata is None:
             metadata = {}
+
         with self.session as session:
             record = IndexRecord()
+            if did is not None:
+                record.did = did
 
             base_version = BaseVersion()
             baseid = str(uuid.uuid4())
@@ -276,7 +280,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.baseid = baseid
             record.file_name = file_name
             record.version = version
-            
 
             did = str(uuid.uuid4())
             record.did, record.rev = did, str(uuid.uuid4())[:8]
@@ -310,9 +313,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 session.add(base_version)
+            except:
+                raise UserError('{baseid} already exists'.format(baseid=baseid), 400)
+
+            try:
                 session.add(record)
                 session.commit()
-
             except IntegrityError:
                 raise UserError('{did} already exists'.format(did=did), 400)
 
@@ -338,7 +344,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             form = record.form
             size = record.size
-            
+
             file_name = record.file_name
             version = record.version
 
@@ -389,10 +395,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     did=record.did,
                     url=url
                 ) for url in urls]
-            
+
             if file_name is not None:
                 record.file_name = file_name
-            
+
             if version is not None:
                 record.version = version
 
