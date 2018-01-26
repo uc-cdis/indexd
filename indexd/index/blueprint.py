@@ -30,7 +30,6 @@ ACCEPTABLE_HASHES = {
     'sha512': re.compile(r'^[0-9a-f]{128}$').match,
 }
 
-DID_PATTERN = re.compile(r'^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$').match
 
 def validate_hashes(**hashes):
     '''
@@ -178,14 +177,10 @@ def post_index_record():
         raise UserError(err)
 
     did = flask.request.json.get('did')
-
-    if did is not None:
-        if DID_PATTERN(did) is None:
-            raise UserError('wrong did format')
-
     form = flask.request.json['form']
     size = flask.request.json['size']
     urls = flask.request.json['urls']
+
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
     metadata = flask.request.json.get('metadata')
