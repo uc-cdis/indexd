@@ -187,8 +187,8 @@ def post_index_record():
     version = flask.request.json.get('version')
 
     did, rev, baseid = blueprint.index_driver.add(
-        did,
         form,
+        did,
         size=size,
         file_name=file_name,
         metadata=metadata,
