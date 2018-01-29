@@ -243,8 +243,8 @@ HTTP/1.1 200 OK
   "version": "ver_123",
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
-  "created_date": "Fri, 17 Nov 2017 06:07:29 GMT",
-  "updated_date": "Fri, 17 Nov 2017 06:17:39 GMT"
+  "created_date": "2017-11-17T06:07:27.069524",
+  "updated_date": "2017-11-17T06:07:27.069524"
 }
 ```
 
@@ -331,8 +331,8 @@ HTTP/1.1 200 OK
   "version": "ver_123",
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
-  "created_date": "Tue, 05 Dec 2017 21:02:59 GMT",
-  "updated_date": "Tue, 05 Dec 2017 21:02:59 GMT"
+  "created_date": "2017-12-05T21:02:59.05345",
+  "updated_date": "2017-12-05T21:02:59.05345"
 }
 ```
 
@@ -372,8 +372,8 @@ HTTP/1.1 200 OK
       "size": 123,
       "file_name": "abc.txt",
       "version": "ver_123",
-      "created_date": "Fri, 17 Nov 2017 06:11:18 GMT"
-      "updated_date": "Fri, 17 Nov 2017 06:11:18 GMT",
+      "created_date": "2017-11-17T06:11:18.01434"
+      "updated_date": "2017-11-17T06:11:18.01434",
       "urls": ["s3://endpointurl/bucket/key"]
     },
   "1":
@@ -385,8 +385,8 @@ HTTP/1.1 200 OK
       "rev": "fec0ce30", "size": 123,
       "file_name": "abc.txt",
       "version": "ver_123",
-      "created_date": "Fri, 17 Nov 2017 06:17:39 GMT",
-      "updated_date": "Fri, 17 Nov 2017 06:17:39 GMT",
+      "created_date": "2017-11-17T06:07:27.069524",
+      "updated_date": "2017-11-17T06:07:27.069524",
       "urls": ["s3://endpointurl/bucket/key"]
    }
 }

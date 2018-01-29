@@ -351,8 +351,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
             metadata = {m.key: m.value for m in record.index_metadata}
 
-            created_date = record.created_date
-            updated_date = record.updated_date
+            created_date = record.created_date.isoformat()
+            updated_date = record.updated_date.isoformat()
 
             ret = {
                 'did': did,
@@ -517,8 +517,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 hashes = {h.hash_type: h.hash_value for h in record.hashes}
                 metadata = {m.key: m.value for m in record.index_metadata}
 
-                created_date = record.created_date
-                updated_date = record.updated_date
+                created_date = record.created_date.isoformat()
+                updated_date = record.updated_date.isoformat()
 
                 ret[idx] = {
                     'did': did,
@@ -574,8 +574,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             urls = [u.url for u in record.urls]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
 
-            created_date = record.created_date
-            updated_date = record.updated_date
+            created_date = record.created_date.isoformat()
+            updated_date = record.updated_date.isoformat()
 
             ret = {
                 'did': did,
