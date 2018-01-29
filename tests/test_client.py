@@ -25,10 +25,13 @@ def test_index_create_with_valid_did(client, user):
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    assert client.post(
+    r = client.post(
         '/index/',
         data=json.dumps(data),
-        headers=user).status_code == 200
+        headers=user)
+
+    assert r.status_code == 200
+    assert r.json['did'] == '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
 
 def test_index_create_with_invalid_did(client, user):
     data = {
