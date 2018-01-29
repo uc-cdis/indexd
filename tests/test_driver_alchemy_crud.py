@@ -8,12 +8,14 @@ import tests.util as util
 from indexd.index.errors import NoRecordFound
 from indexd.index.errors import RevisionMismatch
 
+from indexd.errors import UserError
+
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver, IndexRecord
 
 from datetime import datetime
 
 
-# TODO check if pytest has utilities for meta-programming of tests
+#TODO check if pytest has utilities for meta-programming of tests
 
 @util.removes('index.sq3')
 def test_driver_init_does_not_create_records():
@@ -143,6 +145,35 @@ def test_driver_add_multipart_record():
         assert record[2], 'record rev not populated'
         assert record[3] == 'multipart', 'record form is not multipart'
         assert record[4] == None, 'record size non-null'
+
+@util.removes('index.sq3')
+def test_driver_add_with_valid_did():
+    '''
+    Tests creation of a record with version string.
+    '''
+    driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
+
+    form = 'object'
+    did = '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
+    driver.add(form, did = did)
+    with driver.session as s:
+        assert s.query(IndexRecord).first().did == did
+
+
+@util.removes('index.sq3')
+def test_driver_add_with_duplicate_did():
+    '''
+    Tests creation of a record with version string.
+    '''
+    driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
+
+    form = 'object'
+    did = '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
+    driver.add(form, did = did)
+
+    with pytest.raises(UserError):
+        driver.add(form, did = did)
+
 
 @util.removes('index.sq3')
 def test_driver_add_multiple_records():

@@ -135,6 +135,55 @@ HTTP/1.1 200 OK
 
 [Full schema for creating an index](indexd/index/schema.py)
 
+### Create an index given did
+
+POST /index/
+Content-Type: application/json
+```
+{
+  "did": "3d313755-cbb4-4b08-899d-7bbac1f6e67d",
+  "form": "object",
+  "size": 123,
+  "file_name": "abc.txt",
+  "version": "ver_123",
+  "urls": ["s3://endpointurl/bucket/key"],
+  "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
+}
+```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| did       | Unique digital ID |
+| form      | Can be one of 'object', 'container', 'multipart' |
+| size      |  File size in bytes (commonly computed via wc -c filename) |
+| file_name |  Optional file name |
+| version | Optional version string |
+| urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+
+Curl example:
+```
+curl http://localhost/index/ -u test:test -H "Content-type: application/json" -X POST -d '{"form": "object","size": 123,"did": "3d313755-cbb4-4b08-899d-7bbac1f6e67d", urls": ["s3://endpointurl/bucket/key"],"hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}'
+```
+
+***Response***
+HTTP/1.1 200 OK
+```
+{
+  "did": "3d313755-cbb4-4b08-899d-7bbac1f6e67d",
+  "baseid": "703d4g20-103f-8452-a672-878vb42ef8a5"
+  "rev": "c6fc83d0"
+}
+```
+
+| Parameters        | Values           |
+| ----:|:----|
+| did     | Unique digital ID |
+| baseid  | Internal UUID assigned by the index service. All versions of a record share the same baseid |
+| rev     | 8-digit hex revision ID assigned by the index service |
+
+[Full schema for creating an index](indexd/index/schema.py)
+
 ### Update an index
 
 PUT /index/UUID?rev=REVSTRING

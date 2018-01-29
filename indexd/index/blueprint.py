@@ -176,15 +176,18 @@ def post_index_record():
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
+    did = flask.request.json.get('did')
     form = flask.request.json['form']
     size = flask.request.json['size']
     urls = flask.request.json['urls']
+
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
     metadata = flask.request.json.get('metadata')
     version = flask.request.json.get('version')
 
     did, rev, baseid = blueprint.index_driver.add(
+        did,
         form,
         size=size,
         file_name=file_name,
