@@ -149,7 +149,7 @@ def test_driver_add_multipart_record():
 @util.removes('index.sq3')
 def test_driver_add_with_valid_did():
     '''
-    Tests creation of a record with version string.
+    Tests creation of a record with given valid did.
     '''
     driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
 
@@ -159,11 +159,10 @@ def test_driver_add_with_valid_did():
     with driver.session as s:
         assert s.query(IndexRecord).first().did == did
 
-
 @util.removes('index.sq3')
 def test_driver_add_with_duplicate_did():
     '''
-    Tests creation of a record with version string.
+    Tests creation of a record with duplicate did.
     '''
     driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
 
