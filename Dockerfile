@@ -12,6 +12,9 @@ RUN python setup.py install
 
 RUN mkdir -p /var/www/indexd/ && chmod 777 /var/www/indexd && cp /indexd/wsgi.py /var/www/indexd/wsgi.py && cp /indexd/bin/indexd /var/www/indexd/indexd
 
+#
+# Custom apache2 logging - see http://www.loadbalancer.org/blog/apache-and-x-forwarded-for-headers/
+#
 RUN echo '<VirtualHost *:80>\n\
     WSGIDaemonProcess indexd processes=1 threads=3 python-path=/var/www/indexd/:/usr/bin/python home=/var/www/indexd\n\
     WSGIScriptAlias / /var/www/indexd/wsgi.py\n\
@@ -26,7 +29,10 @@ RUN echo '<VirtualHost *:80>\n\
     </Directory>\n\
     ErrorLog ${APACHE_LOG_DIR}/error.log\n\
     LogLevel warn\n\
-    CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
+    LogFormat "%{X-Forwarded-For}i %l %{X-UserId}i %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"" aws\n\
+    SetEnvIf X-Forwarded-For "^..*" forwarded\n\
+    CustomLog ${APACHE_LOG_DIR}/access_log combined env=!forwarded\n\
+    CustomLog ${APACHE_LOG_DIR}/access.log aws env=forwarded\n\
 </VirtualHost>\n'\
 >> /etc/apache2/sites-available/apache-indexd.conf
 
