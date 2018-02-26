@@ -30,6 +30,6 @@ setup(
     dependency_links=[
         "git+https://github.com/uc-cdis/cdis-python-utils.git@0.1.7#egg=cdispyutils",
         "git+https://github.com/uc-cdis/indexclient.git@a5ecad645751bc2a68465dd6ebb71cd063f8034f#egg=indexclient",
-        "git+https://github.com/uc-cdis/doiclient.git@d28867a2916f5873b816ea1d6e2d5046d7865c64#egg=doiclient"
+        "git+https://github.com/uc-cdis/doiclient.git@90bd8f687c8106ca207dde9d68c07f1bd4b5f1be#egg=doiclient"
     ],
 )
