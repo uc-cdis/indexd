@@ -76,7 +76,7 @@ def dist_get_record(record):
                 res = signpost.get(record)
             else:
                 signpost = IndexClient(baseurl=indexd['host'])
-                res = signpost.global_get(record)
+                res = signpost.global_get(record, no_dist=True)
         except:
             # a lot of things can go wrong with the get, but in general we don't care here.
             continue
@@ -114,4 +114,5 @@ def get_config(setup_state):
     alias_config = setup_state.app.config['ALIAS']
     blueprint.index_driver = index_config['driver']
     blueprint.alias_driver = alias_config['driver']
-    blueprint.dist = setup_state.app.config['DIST']
+    if 'DIST' in setup_state.app.config:
+        blueprint.dist = setup_state.app.config['DIST']
