@@ -137,7 +137,7 @@ def test_index_get_global_endpoint(client, user):
         data=json.dumps(data),
         headers=user)
 
-    r = client.global_get(r.json['did'])
+    r = client.get(r.json['did'])
     assert r.status_code == 200
     assert r.json['metadata'] == {
             'project_id': 'bpa-UChicago'
@@ -316,7 +316,7 @@ def test_alias_get_global_endpoint(client, user):
         '/alias/' + ark,
         data=json.dumps(data),
         headers=user)
-    r = client.global_get(ark)
+    r = client.get(ark)
     assert r.status_code == 200
     assert r.json['size'] == 123
 
