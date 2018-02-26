@@ -122,6 +122,31 @@ def test_index_create_with_metadata(client, user):
             'project_id': 'bpa-UChicago'
         }
 
+def test_index_get_global_endpoint(client, user):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'metadata': {
+            'project_id': 'bpa-UChicago'
+        },
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+
+    r = client.global_get(r.json['did'])
+    assert r.status_code == 200
+    assert r.json['metadata'] == {
+            'project_id': 'bpa-UChicago'
+        }
+    assert r.json['form'] == 'object'
+    assert r.json['size'] == 123
+    assert r.json['urls'] == ['s3://endpointurl/bucket/key']
+    assert r.json['hashes'] == {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}
+
 
 def test_index_update(client, user):
     data = {
@@ -277,6 +302,23 @@ def test_alias_create(client, user):
     aliases = client.get('/alias/').json['aliases']
     assert len(aliases) == 1
     assert aliases[0] == ark
+
+def test_alias_get_global_endpoint(client, user):
+    data = {
+        'size': 123,
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
+        'release': 'private',
+        'keeper_authority': 'CRI', 'host_authorities': ['PDC'],
+    }
+    ark = 'ark:/31807/TEST-abc'
+
+    r = client.put(
+        '/alias/' + ark,
+        data=json.dumps(data),
+        headers=user)
+    r = client.global_get(ark)
+    assert r.status_code == 200
+    assert r.json['size'] == 123
 
 def test_alias_update(client, user):
     data = {
