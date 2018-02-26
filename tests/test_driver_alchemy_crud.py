@@ -3,19 +3,19 @@ import sqlite3
 
 import pytest
 
-import util
-import indexd
+import tests.util as util
 
 from indexd.index.errors import NoRecordFound
-from indexd.index.errors import MultipleRecordsFound
 from indexd.index.errors import RevisionMismatch
+
+from indexd.errors import UserError
 
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver, IndexRecord
 
 from datetime import datetime
 
 
-# TODO check if pytest has utilities for meta-programming of tests
+#TODO check if pytest has utilities for meta-programming of tests
 
 @util.removes('index.sq3')
 def test_driver_init_does_not_create_records():
@@ -147,6 +147,34 @@ def test_driver_add_multipart_record():
         assert record[4] == None, 'record size non-null'
 
 @util.removes('index.sq3')
+def test_driver_add_with_valid_did():
+    '''
+    Tests creation of a record with given valid did.
+    '''
+    driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
+
+    form = 'object'
+    did = '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
+    driver.add(form, did = did)
+    with driver.session as s:
+        assert s.query(IndexRecord).first().did == did
+
+@util.removes('index.sq3')
+def test_driver_add_with_duplicate_did():
+    '''
+    Tests creation of a record with duplicate did.
+    '''
+    driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
+
+    form = 'object'
+    did = '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
+    driver.add(form, did = did)
+
+    with pytest.raises(UserError):
+        driver.add(form, did = did)
+
+
+@util.removes('index.sq3')
 def test_driver_add_multiple_records():
     '''
     Tests creation of a record.
@@ -249,6 +277,18 @@ def test_driver_add_with_filename():
     with driver.session as s:
         assert s.query(IndexRecord).first().file_name == 'abc'
 
+@util.removes('index.sq3')
+def test_driver_add_with_version():
+    '''
+    Tests creation of a record with version string.
+    '''
+    driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
+
+    form = 'object'
+    version = 'ver_123'
+    driver.add(form, version=version)
+    with driver.session as s:
+        assert s.query(IndexRecord).first().version == 'ver_123'
 
 @util.removes('index.sq3')
 def test_driver_add_with_hashes():
@@ -317,8 +357,8 @@ def test_driver_get_record():
         assert record['rev'] == rev, 'record revision does not match'
         assert record['size'] == size, 'record size does not match'
         assert record['form'] == form, 'record form does not match'
-        assert record['created_date'] == created_date, 'created date does not match'
-        assert record['updated_date'] == updated_date, 'updated date does not match'
+        assert record['created_date'] == created_date.isoformat(), 'created date does not match'
+        assert record['updated_date'] == updated_date.isoformat(), 'updated date does not match'
 
 @util.removes('index.sq3')
 def test_driver_get_fails_with_no_records():
@@ -361,8 +401,8 @@ def test_driver_get_latest_version():
         assert record['rev'] == rev, 'record revision does not match'
         assert record['size'] == size, 'record size does not match'
         assert record['form'] == form, 'record form does not match'
-        assert record['created_date'] == created_date, 'created date does not match'
-        assert record['updated_date'] == updated_date, 'updated date does not match'
+        assert record['created_date'] == created_date.isoformat(), 'created date does not match'
+        assert record['updated_date'] == updated_date.isoformat(), 'updated date does not match'
 
 @util.removes('index.sq3')
 def test_driver_get_latest_version_with_no_record():
@@ -436,8 +476,8 @@ def test_driver_get_all_version():
             assert record['rev'] == revs[i], 'record revision does not match'
             assert record['size'] == size, 'record size does not match'
             assert record['form'] == form, 'record form does not match'
-            assert record['created_date'] == created_dates[i], 'created date does not match'
-            assert record['updated_date'] == updated_dates[i], 'updated date does not match'
+            assert record['created_date'] == created_dates[i].isoformat(), 'created date does not match'
+            assert record['updated_date'] == updated_dates[i].isoformat(), 'updated date does not match'
 
 @util.removes('index.sq3')
 def test_driver_get_all_version_with_no_record():
@@ -514,16 +554,19 @@ def test_driver_update_record():
             'b': '2',
             'c': '3',
         }
+
         file_name = 'test'
+        version = 'ver_123'
 
         driver.update(
             did, rev,
             urls=update_urls,
-            file_name=file_name
+            file_name=file_name,
+            version=version
         )
 
-        new_did, new_rev, new_file_name = conn.execute('''
-            SELECT did, rev, file_name FROM index_record
+        new_did, new_rev, new_file_name, new_version = conn.execute('''
+            SELECT did, rev, file_name, version FROM index_record
         ''').fetchone()
 
         new_urls = sorted(url[0] for url in conn.execute('''
@@ -538,6 +581,7 @@ def test_driver_update_record():
         assert rev != new_rev, 'record revision matches prior'
         assert update_urls == new_urls, 'record urls mismatch'
         assert file_name == new_file_name, 'file_name does not match'
+        assert version == new_version, 'version does not match'
 
 @util.removes('index.sq3')
 def test_driver_update_fails_with_no_records():
