@@ -61,12 +61,12 @@ def get_record(record):
         except AliasNoRecordFound:
             if not blueprint.dist or 'no_dist' in flask.request.args:
                 raise
-            return dist_get_index_record(record)
+            return dist_get_record(record)
 
 
     return flask.jsonify(ret), 200
 
-def dist_get_index_record(record):
+def dist_get_record(record):
     sorted_dist = sorted(blueprint.dist, key=lambda k: hint_match(record, k['hints']), reverse=True)
 
     for indexd in sorted_dist:
