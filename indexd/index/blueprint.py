@@ -30,6 +30,7 @@ ACCEPTABLE_HASHES = {
     'sha512': re.compile(r'^[0-9a-f]{128}$').match,
 }
 
+
 def validate_hashes(**hashes):
     '''
     Validate hashes against known and valid hashing algorithms.
@@ -39,6 +40,7 @@ def validate_hashes(**hashes):
 
     if not all(ACCEPTABLE_HASHES[h](v) for h, v in hashes.items()):
         raise UserError('invalid hash values specified')
+
 
 @blueprint.route('/index/', methods=['GET'])
 def get_index():
@@ -67,6 +69,8 @@ def get_index():
 
     file_name = flask.request.args.get('file_name')
 
+    version = flask.request.args.get('version')
+
     hashes = flask.request.args.getlist('hash')
     hashes = {h: v for h, v in map(lambda x: x.split(':', 1), hashes)}
 
@@ -81,6 +85,7 @@ def get_index():
         limit=limit,
         size=size,
         file_name=file_name,
+        version=version,
         urls=urls,
         hashes=hashes,
     )
@@ -91,11 +96,13 @@ def get_index():
         'start': start,
         'size': size,
         'file_name': file_name,
+        'version': version,
         'urls': urls,
         'hashes': hashes,
     }
 
     return flask.jsonify(base), 200
+
 
 @blueprint.route('/urls/', methods=['GET'])
 def get_urls():
@@ -148,6 +155,7 @@ def get_urls():
 
     return flask.jsonify(ret), 200
 
+
 @blueprint.route('/index/<record>', methods=['GET'])
 def get_index_record(record):
     '''
@@ -157,6 +165,7 @@ def get_index_record(record):
     ret = blueprint.index_driver.get(record)
 
     return flask.jsonify(ret), 200
+
 
 @blueprint.route('/index/', methods=['POST'])
 @authorize
@@ -168,16 +177,23 @@ def post_index_record():
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
+    did = flask.request.json.get('did')
     form = flask.request.json['form']
     size = flask.request.json['size']
     urls = flask.request.json['urls']
+
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
+    metadata = flask.request.json.get('metadata')
+    version = flask.request.json.get('version')
 
     did, rev, baseid = blueprint.index_driver.add(
         form,
-        size,
+        did,
+        size=size,
         file_name=file_name,
+        metadata=metadata,
+        version=version,
         urls=urls,
         hashes=hashes,
     )
@@ -189,6 +205,7 @@ def post_index_record():
     }
 
     return flask.jsonify(ret), 200
+
 
 @blueprint.route('/index/<record>', methods=['PUT'])
 @authorize
@@ -203,13 +220,15 @@ def put_index_record(record):
 
     rev = flask.request.args.get('rev')
     file_name = flask.request.json.get('file_name')
+    version = flask.request.json.get('version')
     urls = flask.request.json.get('urls')
 
     did, baseid, rev = blueprint.index_driver.update(
         record,
         rev,
         file_name=file_name,
-        urls=urls
+        version=version,
+        urls=urls,
     )
 
     ret = {
@@ -219,6 +238,7 @@ def put_index_record(record):
     }
 
     return flask.jsonify(ret), 200
+
 
 @blueprint.route('/index/<record>', methods=['DELETE'])
 @authorize
@@ -234,6 +254,7 @@ def delete_index_record(record):
 
     return '', 200
 
+
 @blueprint.route('/index/<record>', methods=['POST'])
 @authorize
 def add_index_record_version(record):
@@ -243,15 +264,19 @@ def add_index_record_version(record):
     form = flask.request.json['form']
     size = flask.request.json['size']
     urls = flask.request.json['urls']
-    file_name = flask.request.json.get('file_name')
     hashes = flask.request.json['hashes']
+    file_name = flask.request.json.get('file_name', None)
+    metadata = flask.request.json.get('metadata', None)
+    version = flask.request.json.get('version', None)
 
     did, baseid,rev = blueprint.index_driver.add_version(
         record,
         form,
-        size,
+        size=size,
         urls=urls,
         file_name=file_name,
+        metadata=metadata,
+        version=version,
         hashes=hashes,
     )
 
@@ -263,6 +288,7 @@ def add_index_record_version(record):
 
     return flask.jsonify(ret), 200
 
+
 @blueprint.route('/index/<record>/versions', methods=['GET'])
 def get_all_index_record_versions(record):
     '''
@@ -271,6 +297,7 @@ def get_all_index_record_versions(record):
     ret = blueprint.index_driver.get_all_versions(record)
 
     return flask.jsonify(ret), 200
+
 
 @blueprint.route('/index/<record>/latest', methods=['GET'])
 def get_latest_index_record_versions(record):
@@ -281,6 +308,7 @@ def get_latest_index_record_versions(record):
 
     return flask.jsonify(ret), 200
 
+
 @blueprint.route('/_status', methods=['GET'])
 def health_check():
     '''
@@ -289,6 +317,7 @@ def health_check():
     blueprint.index_driver.health_check()
 
     return 'Healthy', 200
+
 
 @blueprint.route('/_stats', methods=['GET'])
 def stats():
@@ -306,6 +335,7 @@ def stats():
 
     return flask.jsonify(base), 200
 
+
 @blueprint.route('/_version', methods=['GET'])
 def version():
     '''
@@ -319,29 +349,36 @@ def version():
 
     return flask.jsonify(base), 200
 
+
 @blueprint.errorhandler(NoRecordFound)
 def handle_no_record_error(err):
     return flask.jsonify(error=str(err)), 404
+
 
 @blueprint.errorhandler(MultipleRecordsFound)
 def handle_multiple_records_error(err):
     return flask.jsonify(error=str(err)), 409
 
+
 @blueprint.errorhandler(UserError)
 def handle_user_error(err):
     return flask.jsonify(error=str(err)), 400
+
 
 @blueprint.errorhandler(AuthError)
 def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
 
+
 @blueprint.errorhandler(RevisionMismatch)
 def handle_revision_mismatch(err):
     return flask.jsonify(error=str(err)), 409
 
+
 @blueprint.errorhandler(UnhealthyCheck)
 def handle_unhealthy_check(err):
     return "Unhealthy", 500
+
 
 @blueprint.record
 def get_config(setup_state):

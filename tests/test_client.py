@@ -17,6 +17,58 @@ def test_index_create(client, user):
         data=json.dumps(data),
         headers=user).status_code == 200
 
+def test_index_create_with_valid_did(client, user):
+    data = {
+        'did':'3d313755-cbb4-4b08-899d-7bbac1f6e67d',
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+
+    assert r.status_code == 200
+    assert r.json['did'] == '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
+
+def test_index_create_with_invalid_did(client, user):
+    data = {
+        'did':'3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd',
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    assert client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user).status_code == 400
+
+def test_index_create_with_duplicate_did(client, user):
+    data = {
+        'did':'3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd',
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+
+    data2 = {
+        'did':'3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd',
+        'form': 'object',
+        'size': 213,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '469942cf415384b27cadf1f4d2d682e5'}}
+
+    assert client.post(
+        '/index/',
+        data=json.dumps(data2),
+        headers=user).status_code == 400
 
 def test_index_create_with_file_name(client, user):
     data = {
@@ -32,6 +84,43 @@ def test_index_create_with_file_name(client, user):
         headers=user)
     r = client.get('/index/'+r.json['did'])
     assert r.json['file_name'] == 'abc'
+
+def test_index_create_with_version(client, user):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'file_name': 'abc',
+        'version': 'ver_123',
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+    r = client.get('/index/'+r.json['did'])
+    assert r.json['version'] == 'ver_123'
+
+
+def test_index_create_with_metadata(client, user):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'metadata': {
+            'project_id': 'bpa-UChicago'
+        },
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+
+    r = client.get('/index/'+r.json['did'])
+    assert r.json['metadata'] == {
+            'project_id': 'bpa-UChicago'
+        }
 
 
 def test_index_update(client, user):
@@ -54,6 +143,7 @@ def test_index_update(client, user):
         'rev': rev,
         'urls': ['s3://endpointurl/bucket/key'],
         'file_name': 'test',
+        'version': 'ver123',
         }
     r2 = client.put(
         '/index/' + did + '?rev=' + rev,

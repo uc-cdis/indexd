@@ -3,7 +3,7 @@ import hashlib
 
 import pytest
 
-import util
+import tests.util as util
 
 from indexd.errors import AuthError
 

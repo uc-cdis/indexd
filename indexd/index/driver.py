@@ -1,19 +1,23 @@
 import abc
-import uuid
+from ..driver_base import SQLAlchemyDriverBase
 
 
-class IndexDriverABC(object):
+class IndexDriverABC(SQLAlchemyDriverBase):
     '''
     Index Driver Abstract Base Class
 
     Driver interface for interacting with index backends.
     '''
+    def __init__(self, conn, **config):
+        super(IndexDriverABC, self).__init__(conn, **config)
+
+
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def ids(
             self, limit=100, start=None,
-            size=None, urls=None, hashes=None, file_name=None):
+            size=None, urls=None, hashes=None, file_name=None, version=None):
         '''
         Returns a list of records stored by the backend.
         '''
@@ -27,7 +31,7 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def add(self, form, size=None, urls=None, hashes=None, file_name=None):
+    def add(self, form, did=None, size=None, urls=None, hashes=None, file_name=None, metadata=None, version=None):
         '''
         Creates record for given data.
         '''
@@ -41,7 +45,7 @@ class IndexDriverABC(object):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def update(self, did, rev, urls=None, file_name=None):
+    def update(self, did, rev, urls=None, file_name=None, version=None):
         '''
         Updates record with new values.
         '''
@@ -57,7 +61,7 @@ class IndexDriverABC(object):
     @abc.abstractmethod
     def add_version(
             self, did, form, size=None,
-            file_name=None, urls=None, hashes=None):
+            file_name=None,  metadata=None, urls=None, hashes=None, version=None):
         '''
         Add a record version given did
         '''

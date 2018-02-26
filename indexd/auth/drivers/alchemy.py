@@ -6,7 +6,6 @@ from contextlib import contextmanager
 
 from sqlalchemy import String
 from sqlalchemy import Column
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.ext.declarative import declarative_base
@@ -38,11 +37,9 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         '''
         Initialize the SQLAlchemy database driver.
         '''
-        self.engine = create_engine(conn, **config)
-
+        super(SQLAlchemyAuthDriver, self).__init__(conn, **config)
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
-
         self.Session = sessionmaker(bind=self.engine)
 
     @property

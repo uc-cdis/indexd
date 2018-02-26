@@ -1,6 +1,6 @@
 import sqlite3
 
-import util
+import tests.util as util
 
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
@@ -24,6 +24,7 @@ INDEX_TABLES = {
         (5, u'created_date', u'DATETIME', 0, None, 0),
         (6, u'updated_date', u'DATETIME', 0, None, 0),
         (7, u'file_name', u'VARCHAR', 0, None, 0),
+        (8, u'version', u'VARCHAR', 0, None, 0),
     ],
     'index_record_hash': [
         (0, u'did', u'VARCHAR', 1, None, 1),
@@ -33,6 +34,9 @@ INDEX_TABLES = {
     'index_record_url': [
         (0, u'did', u'VARCHAR', 1, None, 1),
         (1, u'url', u'VARCHAR', 1, None, 1 if OLD_SQLITE else 2),
+    ],
+    'index_schema_version': [
+        (0, u'version', u'INTEGER', 1, None, 1),
     ],
 }
 
@@ -53,6 +57,9 @@ ALIAS_TABLES = {
     'alias_record_host_authority': [
         (0, u'name', u'VARCHAR', 1, None, 1),
         (1, u'host', u'VARCHAR', 1, None, 1 if OLD_SQLITE else 2),
+    ],
+    'alias_schema_version': [
+        (0, u'version', u'INTEGER', 1, None, 1),
     ],
 }
 
