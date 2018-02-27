@@ -68,19 +68,23 @@ def get_record(record):
     return flask.jsonify(ret), 200
 
 def dist_get_record(record):
+
+    # Sort the list of distributed ID services
+    # Ones with which the request matches a hint will be first
+    # Followed by those that don't match the hint
     sorted_dist = sorted(blueprint.dist, key=lambda k: hint_match(record, k['hints']), reverse=True)
 
     for indexd in sorted_dist:
         try:
             if indexd['type'] == "doi":
-                signpost = DOIClient(baseurl=indexd['host'])
-                res = signpost.get(record)
+                fetcher_client = DOIClient(baseurl=indexd['host'])
+                res = fetcher_client.get(record)
             elif indexd['type'] == "dos":
-                signpost = DOSClient(baseurl=indexd['host'])
-                res = signpost.get(record)
+                fetcher_client = DOSClient(baseurl=indexd['host'])
+                res = fetcher_client.get(record)
             else:
-                signpost = IndexClient(baseurl=indexd['host'])
-                res = signpost.global_get(record, no_dist=True)
+                fetcher_client = IndexClient(baseurl=indexd['host'])
+                res = fetcher_client.global_get(record, no_dist=True)
         except:
             # a lot of things can go wrong with the get, but in general we don't care here.
             continue
