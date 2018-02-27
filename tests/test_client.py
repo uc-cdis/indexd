@@ -316,7 +316,7 @@ def test_alias_get_global_endpoint(client, user):
         '/alias/' + ark,
         data=json.dumps(data),
         headers=user)
-    r = client.get(ark)
+    r = client.get('/' + ark)
     assert r.status_code == 200
     assert r.json['size'] == 123
 

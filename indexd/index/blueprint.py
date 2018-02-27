@@ -161,7 +161,7 @@ def get_index_record(record):
     '''
     Returns a record.
     '''
-    
+
     ret = blueprint.index_driver.get(record)
 
     return flask.jsonify(ret), 200
