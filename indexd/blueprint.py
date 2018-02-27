@@ -4,6 +4,7 @@ import jsonschema
 
 from indexclient.client import IndexClient
 from doiclient.client import DOIClient
+from dosclient.client import DOSClient
 
 from indexd.utils import hint_match
 
@@ -73,6 +74,9 @@ def dist_get_record(record):
         try:
             if indexd['type'] == "doi":
                 signpost = DOIClient(baseurl=indexd['host'])
+                res = signpost.get(record)
+            elif indexd['type'] == "dos":
+                signpost = DOSClient(baseurl=indexd['host'])
                 res = signpost.get(record)
             else:
                 signpost = IndexClient(baseurl=indexd['host'])
