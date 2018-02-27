@@ -1,4 +1,4 @@
-from cdispyutils.log import get_logger
+from cdislogging import get_logger
 from indexd.driver_base import SQLAlchemyDriverBase
 from sqlalchemy import String, Column, BigInteger, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
