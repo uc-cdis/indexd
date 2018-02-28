@@ -1,7 +1,7 @@
 import json
 import uuid
 
-from cdispyutils.log import get_logger
+from cdislogging import get_logger
 from contextlib import contextmanager
 
 from sqlalchemy import and_

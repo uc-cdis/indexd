@@ -10,6 +10,8 @@ from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 
 
+DIST_CONFIG = []
+
 INDEX_CONFIG = {
     'driver': SQLAlchemyIndexDriver('sqlite:///index.sq3'),
 }
@@ -28,6 +30,7 @@ def test_flask_blueprint():
 
     app.config['INDEX'] = INDEX_CONFIG
     app.config['ALIAS'] = ALIAS_CONFIG
+    app.config['DIST'] = []
 
     app.register_blueprint(indexd_index_blueprint)
     app.register_blueprint(indexd_alias_blueprint)
@@ -40,6 +43,7 @@ def test_flask_blueprint_missing_index_config():
     app = flask.Flask(__name__)
 
     app.config['ALIAS'] = ALIAS_CONFIG
+    app.config['DIST'] = []
 
     with pytest.raises(Exception):
         app.register_blueprint(indexd_index_blueprint)
@@ -55,6 +59,7 @@ def test_flask_blueprint_invalid_index_config():
 
     app.config['INDEX'] = None
     app.config['ALIAS'] = ALIAS_CONFIG
+    app.config['DIST'] = []
 
     with pytest.raises(Exception):
         app.register_blueprint(indexd_index_blueprint)
@@ -69,6 +74,7 @@ def test_flask_blueprint_missing_alias_config():
     app = flask.Flask(__name__)
 
     app.config['INDEX'] = INDEX_CONFIG
+    app.config['DIST'] = []
 
     with pytest.raises(Exception):
         app.register_blueprint(indexd_alias_blueprint)
@@ -84,6 +90,7 @@ def test_flask_blueprint_invalid_alias_config():
 
     app.config['INDEX'] = INDEX_CONFIG
     app.config['ALIAS'] = None
+    app.config['DIST'] = []
 
     with pytest.raises(Exception):
         app.register_blueprint(indexd_alias_blueprint)

@@ -23,9 +23,15 @@ setup(
         'sqlalchemy==1.0.8',
         'sqlalchemy-utils>=0.32.21',
     	'psycopg2>=2.7',
-        'cdispyutils',
+        'cdislogging',
+        'indexclient',
+        'doiclient',
+        'dosclient',
     ],
     dependency_links=[
-        "git+https://github.com/uc-cdis/cdis-python-utils.git@0.1.7#egg=cdispyutils",
+        "git+https://github.com/uc-cdis/cdislogging.git@0.0.2#egg=cdislogging",
+        "git+https://github.com/uc-cdis/indexclient.git@1.3.1#egg=indexclient",
+        "git+https://github.com/uc-cdis/doiclient.git@1.0.0#egg=doiclient",
+        "git+https://github.com/uc-cdis/dosclient.git@1.0.0#egg=dosclient",
     ],
 )

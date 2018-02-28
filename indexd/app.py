@@ -4,11 +4,11 @@ from .alias.blueprint import blueprint as indexd_alias_blueprint
 from .blueprint import blueprint as cross_blueprint
 import os
 import sys
-from cdispyutils.log import get_handler
+import cdislogging
 
 
 def app_init(app, settings=None):
-    app.logger.addHandler(get_handler())
+    app.logger.addHandler(cdislogging.get_stream_handler())
     if not settings:
         from .default_settings import settings
     app.config.update(settings['config'])

@@ -1,4 +1,11 @@
 import logging
+import re
+
+def hint_match(record, hints):
+    for hint in hints:
+        if re.match(hint, record):
+           return True
+    return False
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine.reflection import Inspector

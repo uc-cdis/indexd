@@ -17,6 +17,27 @@ CONFIG['ALIAS'] = {
         'sqlite:///alias.sq3', auto_migrate=AUTO_MIGRATE),
 }
 
+CONFIG['DIST'] = [
+    {
+        'name': 'Other IndexD',
+        'host': 'https://indexd.example.io/index/',
+        'hints': ['.*ROCKS.*'],
+        'type': 'indexd',
+    },
+    {
+        'name': 'DX DOI',
+        'host': 'https://dx.doi.org/',
+        'hints': ['10\..*'],
+        'type': 'doi',
+    },
+    {
+        'name': 'DOS System',
+        'host': 'https://example.com/api/ga4gh/dos/v1/',
+        'hints': [],
+        'type': 'dos',
+    },
+]
+
 AUTH = SQLAlchemyAuthDriver('sqlite:///auth.sq3')
 
 settings = {'config': CONFIG, 'auth': AUTH}

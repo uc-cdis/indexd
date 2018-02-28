@@ -1,8 +1,8 @@
 swagger: '2.0'
 info:
   description: >-
-    Indexd is a prototype data indexing and tracking service. The code is open
-    source on [github](https://github.com/LabAdvComp/indexd)
+    Indexd is a data indexing and tracking service. The code is open
+    source on [github](https://github.com/uc-cdis/indexd)
   version: 1.0.0
   title: Indexd OpenAPI Specification
   termsOfService: 'http://cdis.uchicago.edu/terms/'
@@ -14,21 +14,53 @@ info:
 host: data.example.domain
 basePath: /
 tags:
+  - name: global
+    description: 'Search for an alias or index, potentially even a distributed search.'
+    externalDocs:
+      description: Find out more
+      url: 'https://github.com/uc-cdis/indexd'
   - name: index
     description: 'Associate a file (object) with a unique id, and store some basic metadata.'
     externalDocs:
       description: Find out more
-      url: 'https://github.com/LabAdvComp/indexd'
+      url: 'https://github.com/uc-cdis/indexd'
   - name: alias
     description: >-
       create an alias for an entity stored in an external system managed by some
       other authority
     externalDocs:
       description: Find out more
-      url: 'https://github.com/LabAdvComp/indexd'
+      url: 'https://github.com/uc-cdis/indexd'
 schemes:
   - https
 paths:
+  '/{UUID}':
+    get:
+      tags:
+        - global
+      summary: Get the metadata associated with the given id, alias, or distributed identifier
+      description: Multiple status values can be provided with comma separated strings
+      operationId: getMetadata
+      produces:
+        - application/json
+      parameters:
+        - name: UUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/OutputInfo'
+        '400':
+          description: Invalid status value
+        '404':
+          description: Record not found
+      security:
+        - cdis_auth:
+            - 'read:index'
   /index:
     post:
       tags:
