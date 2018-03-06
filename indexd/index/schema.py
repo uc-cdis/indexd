@@ -68,7 +68,7 @@ POST_RECORD_SCHEMA = {
           "pattern": "^[0-9a-f]{128}$"
         },
       },
-      "oneOf": [
+      "anyOf": [
         {
           "required": [
             "md5"
