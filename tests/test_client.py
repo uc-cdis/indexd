@@ -17,6 +17,22 @@ def test_index_create(client, user):
         data=json.dumps(data),
         headers=user).status_code == 200
 
+
+def test_index_create_with_multiple_hashes(client, user):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {
+            'md5': '8b9942cf415384b27cadf1f4d2d682e5',
+            'sha1': 'fdbbca63fbec1c2b0d4eb2494ce91520ec9f55f5'
+        }
+    }
+    assert client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user).status_code == 200
+
 def test_index_create_with_valid_did(client, user):
     data = {
         'did':'3d313755-cbb4-4b08-899d-7bbac1f6e67d',
@@ -349,6 +365,7 @@ def test_alias_create(client, user):
     aliases = client.get('/alias/').json['aliases']
     assert len(aliases) == 1
     assert aliases[0] == ark
+
 
 def test_alias_get_global_endpoint(client, user):
     data = {
