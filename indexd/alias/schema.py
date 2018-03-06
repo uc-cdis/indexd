@@ -55,6 +55,14 @@ PUT_RECORD_SCHEMA = {
         "sha512": {
           "type": "string",
           "pattern": "^[0-9a-f]{128}$"
+        },
+        "crc": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}$"
+        },
+        "etag": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}(-\d+)?$"
         }
       },
       "anyOf": [
@@ -76,6 +84,16 @@ PUT_RECORD_SCHEMA = {
         {
           "required": [
             "sha512"
+          ]
+        },
+        {
+          "required": [
+            "crc"
+          ]
+        },
+        {
+          "required": [
+            "etag"
           ]
         }
       ]

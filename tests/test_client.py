@@ -1,4 +1,7 @@
 import json
+import pytest
+
+from indexd.index.blueprint import ACCEPTABLE_HASHES
 
 
 def test_index_list(client):
@@ -440,3 +443,67 @@ def test_alias_delete(client, user):
         '/alias/' + ark,
         headers=user)
     assert r.status_code == 404
+
+
+@pytest.mark.parametrize('typ,h', [
+    ('md5', '8b9942cf415384b27cadf1f4d2d682e5'),
+    ('etag', '8b9942cf415384b27cadf1f4d2d682e5'),
+    ('etag', '8b9942cf415384b27cadf1f4d2d682e5-2311'),
+    ('sha1', '1b64db0c5ef4fa349b5e37403c745e7ef4caa350'),
+    ('sha256', '4ff2d1da9e33bb0c45f7b0e5faa1a5f5' +
+        'e6250856090ff808e2c02be13b6b4258'),
+    ('sha512', '65de2c01a38d2d88bd182526305' +
+        '56ed443b56fd51474cb7c0930d0b62b608' +
+        'a3c7d9e27d53269f9a356a2af9bd4c18d5' +
+        '368e66dd9f2412b82e325de3c5a4c21b3'),
+    ('crc', '997a6f5c'),
+])
+def test_good_hashes(client, user, typ, h):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'file_name': 'abc',
+        'version': 'ver_123',
+        'hashes': {typ: h}
+    }
+
+    resp = client.post('/index/', data=json.dumps(data), headers=user)
+
+    assert resp.status_code == 200
+    json_resp = resp.json
+    assert 'error' not in json_resp
+
+
+@pytest.mark.parametrize('typ,h', [
+    ('', ''),
+    ('blah', 'aaa'),
+    ('not_supported', '8b9942cf415384b27cadf1f4d2d682e5'),
+    ('md5', 'not valid'),
+    ('crc', 'not valid'),
+    ('etag', ''),
+    ('etag', '8b9942cf415384b27cadf1f4d2d682e5-'),
+    ('etag', '8b9942cf415384b27cadf1f4d2d682e5-afffafb'),
+    ('sha1', '8b9942cf415384b27cadf1f4d2d682e5'),
+    ('sha256', 'not valid'),
+    ('sha512', 'not valid'),
+])
+def test_bad_hashes(client, user, typ, h):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'file_name': 'abc',
+        'version': 'ver_123',
+        'hashes': {typ: h}
+    }
+
+    resp = client.post('/index/', data=json.dumps(data), headers=user)
+
+    assert resp.status_code == 400
+    json_resp = resp.json
+    assert 'error' in json_resp
+    if typ not in ACCEPTABLE_HASHES:
+        assert 'is not valid' in json_resp['error']
+    else:
+        assert 'does not match' in json_resp['error']
