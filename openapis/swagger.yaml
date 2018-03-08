@@ -395,6 +395,13 @@ definitions:
       sha512:
         type: string
         pattern: '^[0-9a-f]{128}$'
+      crc:
+        type: string
+        pattern: '^[0-9a-f]{8}$'
+      etag:
+        type: string
+        pattern: '^[0-9a-f]{32}(-\d+)?$'
+
   InputInfo:
     type: object
     required:

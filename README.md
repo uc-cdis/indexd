@@ -110,7 +110,7 @@ Content-Type: application/json
 | file_name |  Optional file name |
 | version | Optional version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
-| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512, crc, etag hash types |
 
 Curl example:
 ```
@@ -159,7 +159,7 @@ Content-Type: application/json
 | file_name |  Optional file name |
 | version | Optional version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
-| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512, crc, etag hash types |
 
 Curl example:
 ```
@@ -258,7 +258,7 @@ HTTP/1.1 200 OK
 | file_name |  Optional file name |
 | version | Optional version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
-| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512, crc, etag hash types |
 | created_date | File created datetime  |
 | updated_date | File updated datetime  |
 
@@ -284,7 +284,7 @@ Content-Type: application/json
 | file_name |  Optional file name |
 | version | Optional version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
-| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512, crc, etag hash types |
 
 Curl example:
 ```
@@ -345,7 +345,7 @@ HTTP/1.1 200 OK
 | file_name |  File name |
 | version | Version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
-| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512, crc, etag hash types |
 | created_date  | File created datetime |
 | updated_date | File updated datetime  |
 
@@ -402,7 +402,7 @@ HTTP/1.1 200 OK
 | file_name |  File name |
 | version | Version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
-| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512 hash types |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512, crc, etag hash types |
 | created_date | File created datetime  |
 | updated_date | File updated datetime  |
 
@@ -437,7 +437,7 @@ Content-Type: application/json
 | Parameters        | Values           |
 | -----:|:-----|
 | size      |  File size in bytes (commonly computed via wc -c filename) |
-| hashes    |  Dictionary is a string:string datastore supporting md5, sha1, sha256, sha512 hash types |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha1, sha256, sha512, crc, etag hash types |
 | release      | How has this data been released? Options are public, private, and controlled |
 | keeper_authority  | Who is the authority keeping this metadata/index up to date? |
 | host_authority | Who are the authorities hosting this data? |
@@ -477,7 +477,7 @@ Content-Type: application/json
 | Parameters        | Values           |
 | -----:|:-----|
 | size      |  File size in bytes (commonly computed via wc -c filename) |
-| hashes    |  Dictionary is a string:string datastore supporting md5, sha1, sha256, sha512 hash types |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha1, sha256, sha512, crc, etag hash types |
 | release      | How has this data been released? Options are public, private, and controlled |
 | keeper_authority  | Who is the authority keeping this metadata/index up to date? |
 | host_authority | Who are the authorities hosting this data? |
@@ -533,7 +533,7 @@ HTTP/1.1 200 OK
 | name      |  The alias string you specified |
 | rev    | 8-digit hex revision ID assigned by the alias service |
 | size      |  File size in bytes (commonly computed via wc -c filename) |
-| hashes    |  Dictionary is a string:string datastore supporting md5, sha1, sha256, sha512 hash types |
+| hashes    |  Dictionary is a string:string datastore supporting md5, sha1, sha256, sha512, crc, etag hash types |
 | release      | How has this data been released? Options are public, private, and controlled |
 | keeper_authority  | Who is the authority keeping this metadata/index up to date? |
 | host_authority | Who are the authorities hosting this data? |

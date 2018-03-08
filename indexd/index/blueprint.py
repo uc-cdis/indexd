@@ -28,6 +28,8 @@ ACCEPTABLE_HASHES = {
     'sha1': re.compile(r'^[0-9a-f]{40}$').match,
     'sha256': re.compile(r'^[0-9a-f]{64}$').match,
     'sha512': re.compile(r'^[0-9a-f]{128}$').match,
+    'crc': re.compile(r'^[0-9a-f]{8}$').match,
+    'etag': re.compile(r'^[0-9a-f]{32}(-\d+)?$').match
 }
 
 
