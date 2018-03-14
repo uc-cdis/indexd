@@ -93,7 +93,7 @@ paths:
     get:
       tags:
         - index
-      summary: List all meta data records
+      summary: List all records
       description: ''
       operationId: listMetadata
       produces:
@@ -139,6 +139,8 @@ paths:
             - 'write:index'
             - 'read:index'
     post:
+      tags:
+        - index
       summary: >-
         Add new version for the document associated to the provided uuid.
       description: 'Since data content is immutable, a new index document with new uuid is created as its new version. That uuid is returned in the did field of the response'
@@ -231,6 +233,8 @@ paths:
             - 'read:index'
   '/index/{UUID}/latest':
     get:
+      tags:
+        - index
       summary: >-
         Get the metadata of the latest index record version associated with the
         given id
@@ -257,6 +261,8 @@ paths:
             - 'read:index'
   '/index/{UUID}/versions':
     get:
+      tags:
+        - index
       summary: Get the metadata of index record versions associated with the given id
       description: Multiple status values can be provided with comma separated strings
       operationId: getAllVersion
