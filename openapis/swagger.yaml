@@ -143,7 +143,7 @@ paths:
         - index
       summary: >-
         Add new version for the document associated to the provided uuid.
-      description: 'Since data content is immutable, a new index document with new uuid is created as its new version. That uuid is returned in the did field of the response'
+      description: Since data content is immutable, when you want change the size or hash, a new index document with new uuid need to be created as its new version. That uuid is returned in the did field of the response
       operationId: addNewVersion
       produces:
         - application/json
