@@ -61,7 +61,7 @@ paths:
       security:
         - cdis_auth:
             - 'read:index'
-  /index:
+  '/index':
     post:
       tags:
         - index
@@ -90,6 +90,27 @@ paths:
         - cdis_auth:
             - 'write:index'
             - 'read:index'
+    get:
+      tags:
+        - index
+      summary: List all meta data
+      description: ''
+      operationId: listMetadata
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: array
+            $ref: '#/definitions/OutputInfo'
+        '400':
+          description: Invalid status value
+      security:
+        - cdis_auth:
+            - 'write:index'
+            - 'read:index'
+            
   '/index/{UUID}':
     get:
       tags:
@@ -116,6 +137,27 @@ paths:
         - cdis_auth:
             - 'write:index'
             - 'read:index'
+    post:
+      summary: >-
+        Add a new version of the index record associated with the given id
+      description: ''
+      operationId: addNewVersion
+      produces:
+        - application/json
+      parameters:
+        - name: UUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: array
+            $ref: '#/definitions/OutputRef'
+        '400':
+          description: Invalid status value
   '/index/{UUID}?rev={REV}':
     put:
       tags:
