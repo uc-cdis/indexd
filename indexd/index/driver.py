@@ -15,9 +15,15 @@ class IndexDriverABC(SQLAlchemyDriverBase):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def ids(
-            self, limit=100, start=None,
-            size=None, urls=None, hashes=None, file_name=None, version=None):
+    def ids(self,
+              limit=100,
+              start=None,
+              size=None,
+              urls=None,
+              hashes=None,
+              file_name=None,
+              version=None,
+              metadata=None):
         '''
         Returns a list of records stored by the backend.
         '''

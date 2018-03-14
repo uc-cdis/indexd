@@ -79,6 +79,9 @@ def get_index():
     validate_hashes(**hashes)
     hashes = hashes if hashes else None
 
+    metadata = flask.request.args.getlist('metadata')
+    metadata = {k: v for k, v in map(lambda x: x.split(':', 1), metadata)}
+
     if limit < 0 or limit > 1024:
         raise UserError('limit must be between 0 and 1024')
 
@@ -90,6 +93,7 @@ def get_index():
         version=version,
         urls=urls,
         hashes=hashes,
+        metadata=metadata,
     )
 
     base = {
@@ -101,6 +105,7 @@ def get_index():
         'version': version,
         'urls': urls,
         'hashes': hashes,
+        'metadata': metadata,
     }
 
     return flask.jsonify(base), 200
@@ -271,7 +276,7 @@ def add_index_record_version(record):
     metadata = flask.request.json.get('metadata', None)
     version = flask.request.json.get('version', None)
 
-    did, baseid,rev = blueprint.index_driver.add_version(
+    did, baseid, rev = blueprint.index_driver.add_version(
         record,
         form,
         size=size,

@@ -153,7 +153,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         is_empty_db = is_empty_database(driver=self)
         Base.metadata.create_all()
         if is_empty_db:
-            init_schema_version(driver=self, model=IndexSchemaVersion, version=CURRENT_SCHEMA_VERSION)
+            init_schema_version(
+                driver=self,
+                model=IndexSchemaVersion,
+                version=CURRENT_SCHEMA_VERSION)
 
         if auto_migrate:
             self.migrate_index_database()
@@ -163,7 +166,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         migrate alias database to match CURRENT_SCHEMA_VERSION
         '''
         migrate_database(
-            driver=self, migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
+            driver=self,
+            migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
             current_schema_version=CURRENT_SCHEMA_VERSION,
             model=IndexSchemaVersion)
 
@@ -185,9 +189,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         finally:
             session.close()
 
-    def ids(
-            self, limit=100, start=None,
-            size=None, urls=None, hashes=None, file_name=None, version=None):
+    def ids(self,
+            limit=100,
+            start=None,
+            size=None,
+            urls=None,
+            hashes=None,
+            file_name=None,
+            version=None,
+            metadata=None):
         '''
         Returns list of records stored by the backend.
         '''
@@ -218,6 +228,16 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                         IndexRecordHash.hash_type == h,
                         IndexRecordHash.hash_value == v,
                     ))
+                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
+
+            if metadata is not None and metadata:
+                for k, v in metadata.items():
+                    sub = session.query(IndexRecordMetadata.did)
+                    sub = sub.filter(
+                        and_(
+                            IndexRecordMetadata.key == k,
+                            IndexRecordMetadata.value == v,
+                        ))
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
             query = query.order_by(IndexRecord.did)
@@ -255,7 +275,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return [r.url for r in query]
 
-    def add(self, form, did=None, size=None, file_name=None, metadata=None, version=None, urls=None, hashes=None):
+    def add(self,
+            form,
+            did=None,
+            size=None,
+            file_name=None,
+            metadata=None,
+            version=None,
+            urls=None,
+            hashes=None):
         '''
         Creates a new record given size, urls, hashes, metadata, file name and version
         if did is provided, update the new record with the did otherwise create it
@@ -427,9 +455,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             session.delete(record)
 
-    def add_version(
-            self, did, form, size=None,
-            file_name=None, metadata=None, version=None, urls=None, hashes=None):
+    def add_version(self,
+                    did,
+                    form,
+                    size=None,
+                    file_name=None,
+                    metadata=None,
+                    version=None,
+                    urls=None,
+                    hashes=None):
         '''
         Add a record version given did
         '''
@@ -556,7 +590,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             records = query.filter(IndexRecord.baseid == record.baseid) \
                 .order_by(IndexRecord.updated_date).all()
 
-            if(not records):
+            if (not records):
                 raise NoRecordFound('no record found')
 
             record = records[-1]
@@ -679,9 +713,9 @@ def migrate_2(session, **kwargs):
         baseid = str(uuid.uuid4())
         session.execute(
             "UPDATE index_record SET baseid = '{}'\
-             WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {});".format(baseid, loop+1))
+             WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {});".format(baseid, loop + 1))
         session.execute(
-            "INSERT INTO {}(baseid) VALUES('{}');".format(BaseVersion.__tablename__,baseid))
+            "INSERT INTO {}(baseid) VALUES('{}');".format(BaseVersion.__tablename__, baseid))
 
     session.execute(
         "ALTER TABLE {} \
