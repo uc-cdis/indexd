@@ -93,7 +93,7 @@ paths:
     get:
       tags:
         - index
-      summary: List all meta data
+      summary: List all meta data records
       description: ''
       operationId: listMetadata
       produces:
@@ -103,7 +103,8 @@ paths:
           description: successful operation
           schema:
             type: array
-            $ref: '#/definitions/OutputInfo'
+            items:
+              $ref: '#/definitions/OutputInfo'
         '400':
           description: Invalid status value
       security:
@@ -139,22 +140,27 @@ paths:
             - 'read:index'
     post:
       summary: >-
-        Add a new version of the index record associated with the given id
-      description: ''
+        Add new version for the document associated to the provided uuid.
+      description: 'Since data content is immutable, a new index document with new uuid is created as its new version. That uuid is returned in the did field of the response'
       operationId: addNewVersion
       produces:
         - application/json
       parameters:
         - name: UUID
           in: path
-          description: entry id
+          description: the uuid associated to the record needed to have new version
           required: true
           type: string
+        - in: body
+          name: body
+          description: index record metadata for the new version
+          required: true
+          schema:
+            $ref: '#/definitions/VersionInputInfo'
       responses:
         '200':
           description: successful operation
           schema:
-            type: array
             $ref: '#/definitions/OutputRef'
         '400':
           description: Invalid status value
@@ -443,7 +449,37 @@ definitions:
       etag:
         type: string
         pattern: '^[0-9a-f]{32}(-\d+)?$'
-
+  VersionInputInfo:
+    type: object
+    required:
+      - size
+      - hashes
+      - urls
+      - form
+    properties:
+      form:
+        type: string
+        description: how the entry was submitted to storage
+        enum:
+          - object
+          - container
+          - multipart
+      size:
+        type: integer
+        format: int64
+        description: size in bytes
+      file_name:
+        type: string
+      meta_data:
+        type: string
+      version:
+        type: string
+      urls:
+        type: array
+        items:
+          type: string
+      hashes:
+        $ref: '#/definitions/HashInfo'
   InputInfo:
     type: object
     required:
@@ -473,6 +509,8 @@ definitions:
         description: size in bytes
       file_name:
         type: string
+      meta_data:
+        type: string
       version:
         type: string
       urls:
@@ -489,6 +527,8 @@ definitions:
         pattern: >-
           ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
       file_name:
+        type: string
+      meta_data:
         type: string
       version:
         type: string
