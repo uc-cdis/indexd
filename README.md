@@ -97,7 +97,7 @@ Content-Type: application/json
   "form": "object",
   "size": 123,
   "file_name": "abc.txt",
-  "meta_data": "metadata",
+  "metadata": "metadata",
   "version": "ver_123",
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
@@ -109,7 +109,7 @@ Content-Type: application/json
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes (commonly computed via wc -c filename) |
 | file_name |  Optional file name |
-| meta_data |  Optional meta data |
+| metadata |  Optional metadata |
 | version | Optional version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512, crc, etag hash types |
@@ -147,7 +147,7 @@ Content-Type: application/json
   "form": "object",
   "size": 123,
   "file_name": "abc.txt",
-  "meta_data": "metadata",
+  "metadata": "metadata",
   "version": "ver_123",
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
@@ -160,7 +160,7 @@ Content-Type: application/json
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes (commonly computed via wc -c filename) |
 | file_name |  Optional file name |
-| meta_data |  Optional meta data |
+| metadata |  Optional metadata |
 | version | Optional version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512, crc, etag hash types |
@@ -201,6 +201,7 @@ Content-Type: application/json
 
 | Parameters        | Values           |
 | -----:|:-----|
+| UUID      | The did of the record that you want to update |
 | rev      | Rev string of the index you wish to update |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 
@@ -244,7 +245,7 @@ HTTP/1.1 200 OK
   "form": "object",
   "size": 123,
   "file_name": "abc.txt",
-  "meta_data": "metadata",
+  "metadata": "metadata",
   "version": "ver_123",
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
@@ -255,13 +256,14 @@ HTTP/1.1 200 OK
 
 | Parameters        | Values           |
 | ----:|:----|
+| UUID      | The did of the record that you want to retrieve |
 | did     | Internal UUID assigned by the index service |
 | baseid  | Internal UUID assigned by the index service. All the versions of a record share the same baseid |
 | rev     | 8-digit hex revision ID assigned by the index service |
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes |
 | file_name |  Optional file name |
-| meta_data |  Optional meta data |
+| metadata |  Optional metadata |
 | version | Optional version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512, crc, etag hash types |
@@ -277,7 +279,7 @@ Content-Type: application/json
   "form": "object",
   "size": 123,
   "file_name": "abc.txt",
-  "meta_data": "metadata",
+  "metadata": "metadata",
   "version": "ver_123",
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}
@@ -286,10 +288,11 @@ Content-Type: application/json
 
 | Parameters        | Values           |
 | -----:|:-----|
+| UUID      | The did of the record that you want to create new version of |
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes (commonly computed via wc -c filename) |
 | file_name |  Optional file name |
-| meta_data |  Optional meta data |
+| metadata |  Optional metadata |
 | version | Optional version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512, crc, etag hash types |
@@ -336,7 +339,7 @@ HTTP/1.1 200 OK
   "form": "object",
   "size": 123,
   "file_name": "abc.txt",
-  "meta_data": "metadata",
+  "metadata": "metadata",
   "version": "ver_123",
   "urls": ["s3://endpointurl/bucket/key"],
   "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
@@ -347,12 +350,13 @@ HTTP/1.1 200 OK
 
 | Parameters        | Values           |
 | ----:|:----|
+| UUID      | The did of the record that you want to get the latest verison |
 | did     | Internal UUID assigned by the index service |
 | rev     | 8-digit hex revision ID assigned by the index service |
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes |
 | file_name |  File name |
-| meta_data |  Metadata  |
+| metadata |  Metadata  |
 | version | Version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512, crc, etag hash types |
@@ -381,7 +385,7 @@ HTTP/1.1 200 OK
       "rev": "0984a150",
       "size": 123,
       "file_name": "abc.txt",
-      "meta_data": "metadata1",
+      "metadata": "metadata1",
       "version": "ver_123",
       "created_date": "2017-11-17T06:11:18.01434"
       "updated_date": "2017-11-17T06:11:18.01434",
@@ -395,7 +399,7 @@ HTTP/1.1 200 OK
       "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
       "rev": "fec0ce30", "size": 123,
       "file_name": "abc.txt",
-      "meta_data": "metadata2",
+      "metadata": "metadata2",
       "version": "ver_123",
       "created_date": "2017-11-17T06:07:27.069524",
       "updated_date": "2017-11-17T06:07:27.069524",
@@ -406,13 +410,14 @@ HTTP/1.1 200 OK
 
 | Parameters        | Values           |
 | ----:|:----|
+| UUID      | The did of the record that you want to trieve all the versions |
 | did     | Internal UUID assigned by the index service |
 | baseid     | Internal UUID assigned by the index service. All the versions of a record share the same baseid |
 | rev     | 8-digit hex revision ID assigned by the index service |
 | form      | Can be one of 'object', 'container', 'multipart' |
 | size      |  File size in bytes |
 | file_name |  File name |
-| meta_data |  Optional meta data |
+| metadata |  Optional metadata |
 | version | Version string |
 | urls      | URLs where the datafile is stored, can be multiple locations both internally and externally |
 | hashes    |  Dictionary is a string:string datastore supporting md5, sha, sha256, sha512, crc, etag hash types |
@@ -428,6 +433,10 @@ Curl example:
 ```
 curl http://localhost/index/82eb97e1-7c2f-4a73-9b65-ad08ef81379e?rev=80cf1989 -u test:test -X DELETE
 ```
+
+| Parameters        | Values           |
+| -----:|:-----|
+| UUID      | The did of the record that you want to delete |
 
 ***Response***
 HTTP/1.1 200 OK
