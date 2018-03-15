@@ -8,6 +8,39 @@ def test_index_list(client):
     assert client.get('/index/').status_code == 200
 
 
+def test_index_list_with_params(client, user):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'metadata': {
+            'project_id': 'bpa-UChicago'
+        },
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r_1 = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+
+    data['metadata'] = {'project_id': 'other-project'}
+
+    r_2 = client.post(
+        '/index/',
+        data=json.dumps(data),
+        headers=user)
+
+    r = client.get('/index/?metadata=project_id%3Abpa-UChicago')
+    assert r_1.json['did'] in r.json['ids']
+
+    r = client.get('/index/?metadata=project_id%3Aother-project')
+    assert r_2.json['did'] in r.json['ids']
+
+    r = client.get('/index/?hashes=md5%3A8b9942cf415384b27cadf1f4d2d682e5')
+    assert r_1.json['did'] in r.json['ids']
+    assert r_2.json['did'] in r.json['ids']
+
+
 def test_index_create(client, user):
     data = {
         'form': 'object',
