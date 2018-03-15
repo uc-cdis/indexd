@@ -61,7 +61,7 @@ paths:
       security:
         - cdis_auth:
             - 'read:index'
-  /index:
+  '/index':
     post:
       tags:
         - index
@@ -90,6 +90,28 @@ paths:
         - cdis_auth:
             - 'write:index'
             - 'read:index'
+    get:
+      tags:
+        - index
+      summary: List all records
+      description: ''
+      operationId: listMetadata
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/OutputInfo'
+        '400':
+          description: Invalid status value
+      security:
+        - cdis_auth:
+            - 'write:index'
+            - 'read:index'
+            
   '/index/{UUID}':
     get:
       tags:
@@ -116,6 +138,34 @@ paths:
         - cdis_auth:
             - 'write:index'
             - 'read:index'
+    post:
+      tags:
+        - index
+      summary: >-
+        Add new version for the document associated to the provided uuid.
+      description: Since data content is immutable, when you want to change the size or hash, a new index document with new uuid need to be created as its new version. That uuid is returned in the did field of the response
+      operationId: addNewVersion
+      produces:
+        - application/json
+      parameters:
+        - name: UUID
+          in: path
+          description: the uuid associated to the record needed to have new version
+          required: true
+          type: string
+        - in: body
+          name: body
+          description: index record metadata for the new version
+          required: true
+          schema:
+            $ref: '#/definitions/VersionInputInfo'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/OutputRef'
+        '400':
+          description: Invalid status value
   '/index/{UUID}?rev={REV}':
     put:
       tags:
@@ -183,6 +233,8 @@ paths:
             - 'read:index'
   '/index/{UUID}/latest':
     get:
+      tags:
+        - index
       summary: >-
         Get the metadata of the latest index record version associated with the
         given id
@@ -209,6 +261,8 @@ paths:
             - 'read:index'
   '/index/{UUID}/versions':
     get:
+      tags:
+        - index
       summary: Get the metadata of index record versions associated with the given id
       description: Multiple status values can be provided with comma separated strings
       operationId: getAllVersion
@@ -401,7 +455,37 @@ definitions:
       etag:
         type: string
         pattern: '^[0-9a-f]{32}(-\d+)?$'
-
+  VersionInputInfo:
+    type: object
+    required:
+      - size
+      - hashes
+      - urls
+      - form
+    properties:
+      form:
+        type: string
+        description: how the entry was submitted to storage
+        enum:
+          - object
+          - container
+          - multipart
+      size:
+        type: integer
+        format: int64
+        description: size in bytes
+      file_name:
+        type: string
+      metadata:
+        type: string
+      version:
+        type: string
+      urls:
+        type: array
+        items:
+          type: string
+      hashes:
+        $ref: '#/definitions/HashInfo'
   InputInfo:
     type: object
     required:
@@ -431,6 +515,8 @@ definitions:
         description: size in bytes
       file_name:
         type: string
+      metadata:
+        type: string
       version:
         type: string
       urls:
@@ -447,6 +533,8 @@ definitions:
         pattern: >-
           ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
       file_name:
+        type: string
+      metadata:
         type: string
       version:
         type: string
