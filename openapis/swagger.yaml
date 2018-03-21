@@ -58,9 +58,7 @@ paths:
           description: Invalid status value
         '404':
           description: Record not found
-      security:
-        - cdis_auth:
-            - 'read:index'
+      security: []
   '/index':
     post:
       tags:
@@ -87,38 +85,59 @@ paths:
         '400':
           description: Invalid input
       security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+        - basic_auth: []
     get:
       tags:
         - index
       summary: List all records
       description: ''
-      operationId: listMetadata
+      operationId: listEntries
+      parameters:
+        - name: metadata
+          in: query
+          description: metadata associated with the entry
+          required: false
+          type: string
       produces:
         - application/json
       responses:
         '200':
           description: successful operation
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/OutputInfo'
-        '400':
-          description: Invalid status value
-      security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
-            
+            type: object
+            properties:
+              ids:
+                type: array
+                items:
+                  $ref: '#/definitions/DID'
+              size:
+                type: integer
+                format: int64
+                description: size in bytes
+              start:
+                type: integer
+                format: int64
+                description: start index for the pagination
+              limit:
+                type: integer
+                format: int64
+                description: number of dids to return
+              file_name:
+                type: string
+              urls:
+                type: array
+                items:
+                  type: string
+              hashes:
+                $ref: '#/definitions/HashInfo'
+      security: []
   '/index/{UUID}':
     get:
       tags:
         - index
       summary: Get the metadata associated with the given id
       description: Multiple status values can be provided with comma separated strings
-      operationId: getMetadata
+      operationId: getEntry
       produces:
         - application/json
       parameters:
@@ -134,10 +153,7 @@ paths:
             $ref: '#/definitions/OutputInfo'
         '400':
           description: Invalid status value
-      security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+      security: []
     post:
       tags:
         - index
@@ -172,7 +188,7 @@ paths:
         - index
       summary: Update an existing entry in the index
       description: ''
-      operationId: updatePet
+      operationId: updateEntry
       consumes:
         - application/json
       produces:
@@ -202,9 +218,7 @@ paths:
         '400':
           description: Invalid input
       security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+        - basic_auth: []
     delete:
       tags:
         - index
@@ -228,9 +242,7 @@ paths:
         '400':
           description: Invalid ID supplied
       security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+        - basic_auth: []
   '/index/{UUID}/latest':
     get:
       tags:
@@ -255,10 +267,7 @@ paths:
             $ref: '#/definitions/OutputInfo'
         '400':
           description: Invalid status value
-      security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+      security: []
   '/index/{UUID}/versions':
     get:
       tags:
@@ -283,10 +292,7 @@ paths:
               $ref: '#/definitions/OutputInfo'
         '400':
           description: Invalid status value
-      security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+      security: []
   '/alias/{ALIASSTRING}':
     put:
       tags:
@@ -318,9 +324,7 @@ paths:
         '400':
           description: Invalid input
       security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+        - basic_auth: []
     get:
       tags:
         - alias
@@ -344,10 +348,7 @@ paths:
             $ref: '#/definitions/AliasOutputInfo'
         '400':
           description: Invalid input
-      security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+      security: []
   '/alias/{ALIASSTRING}?rev={REV}':
     put:
       tags:
@@ -385,9 +386,7 @@ paths:
         '400':
           description: Invalid input
       security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+        - basic_auth: []
     delete:
       tags:
         - alias
@@ -418,9 +417,7 @@ paths:
         '400':
           description: Invalid input
       security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+        - basic_auth: []
 securityDefinitions:
   cdis_auth:
     type: oauth2
@@ -429,9 +426,9 @@ securityDefinitions:
     scopes:
       'write:index': modify any entry in the index
       'read:index': read any entry from the index
-  api_key:
-    type: apiKey
-    name: api_key
+  basic_auth:
+    type: basic
+    name: basic_auth
     in: header
 definitions:
   HashInfo:
@@ -495,13 +492,9 @@ definitions:
       - form
     properties:
       did:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
-      base_id:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+        $ref: "#/definitions/DID"
+      baseid:
+        $ref: "#/definitions/UUID"
       form:
         type: string
         description: how the entry was submitted to storage
@@ -546,13 +539,9 @@ definitions:
     type: object
     properties:
       did:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
-      base_id:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+        $ref: "#/definitions/DID"
+      baseid:
+        $ref: "#/definitions/UUID"
       rev:
         type: string
         pattern: '^[0-9a-f]{8}$'
@@ -621,17 +610,21 @@ definitions:
         $ref: '#/definitions/HashInfo'
       metadata:
         type: string
+  DID:
+    type: string
+    pattern: >-
+      ^.*[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+  UUID:
+    type: string
+    pattern: >-
+      ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
   OutputInfo:
     type: object
     properties:
       did:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+        $ref: "#/definitions/DID"
       baseid:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+        $ref: "#/definitions/UUID"
       rev:
         type: string
         pattern: '^[0-9a-f]{8}$'

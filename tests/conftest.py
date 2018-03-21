@@ -2,6 +2,11 @@ from indexd import get_app
 import os
 import base64
 import pytest
+from cdisutilstest.code.conftest import indexd_server, indexd_client
+from cdisutilstest.code.indexd_fixture import clear_database
+import swagger_client
+
+
 try:
     reload  # Python 2.7
 except NameError:
@@ -19,9 +24,8 @@ def app():
     reload(default_settings)
     yield get_app()
     try:
-        os.remove('auth.sq3')
-        os.remove('index.sq3')
-        os.remove('alias.sq3')
+        clear_database()
+
     except:
         pass
 
@@ -36,3 +40,13 @@ def user(app):
         'Content-Type': 'application/json'
     }
     app.auth.delete('test')
+
+
+@pytest.fixture
+def swg_client(indexd_client): # noqa
+    config = swagger_client.Configuration()
+    config.host = indexd_client.url
+    config.username = indexd_client.auth[0]
+    config.password = indexd_client.auth[1]
+    api = swagger_client.IndexApi(swagger_client.ApiClient(config))
+    yield api
