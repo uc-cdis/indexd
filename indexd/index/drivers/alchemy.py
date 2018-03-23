@@ -324,14 +324,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 hash_value=v,
             ) for h, v in hashes.items()]
 
-            for url in record.urls:
-                url.url_metadata = [IndexRecordUrlMetadata(
-                    did=record.did,
-                    url=url.url,
-                    key=m_key,
-                    value=m_value
-                ) for m_key, m_value in metadata.items()]
-
             record.index_metadata = [IndexRecordMetadata(
                 did=record.did,
                 key=m_key,
