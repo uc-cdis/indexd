@@ -93,6 +93,7 @@ class IndexRecordUrl(Base):
         backref='index_record_url',
         cascade='all, delete-orphan',
     )
+    Index('index_record_url_idx', 'did')
 
 
 class IndexRecordMetadata(Base):
@@ -104,6 +105,7 @@ class IndexRecordMetadata(Base):
     key = Column(String, primary_key=True)
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
     value = Column(String)
+    Index('index_record_metadata_idx', 'did')
     Index('__did_key_idx', 'did', 'key')
 
 
@@ -121,6 +123,7 @@ class IndexRecordUrlMetadata(Base):
         ForeignKeyConstraint(['did', 'url'],
                              ['index_record_url.did', 'index_record_url.url']),
     )
+    Index('index_record_url_metadata_idx', 'did')
     Index('__did_url_key_idx', 'did', 'url', 'key')
 
 
@@ -133,6 +136,7 @@ class IndexRecordHash(Base):
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
     hash_type = Column(String, primary_key=True)
     hash_value = Column(String)
+    Index('index_record_hash_idx', 'did')
 
 
 class SQLAlchemyIndexDriver(IndexDriverABC):
@@ -729,6 +733,7 @@ def migrate_3(session, **kwargs):
         "CREATE INDEX {tb}__file_name_idx ON {tb} ( file_name )"
         .format(tb=IndexRecord.__tablename__))
 
+
 def migrate_4(session, **kwargs):
     session.execute(
         "ALTER TABLE {} ADD COLUMN version VARCHAR;"
@@ -738,6 +743,28 @@ def migrate_4(session, **kwargs):
         "CREATE INDEX {tb}__version_idx ON {tb} ( version )"
         .format(tb=IndexRecord.__tablename__))
 
+
+def migrate_5(session, **kwargs):
+    """
+    Create Index did on IndexRecordUrl, IndexRecordMetadata and
+    IndexRecordUrlMetadata tables
+    """
+    session.execute(
+        "CREATE INDEX {tb}_idx ON {tb} ( did )"
+            .format(tb=IndexRecordUrl.__tablename__))
+
+    session.execute(
+        "CREATE INDEX {tb}_idx ON {tb} ( did )"
+            .format(tb=IndexRecordHash.__tablename__))
+
+    session.execute(
+        "CREATE INDEX {tb}_idx ON {tb} ( did )"
+        .format(tb=IndexRecordMetadata.__tablename__))
+
+    session.execute(
+        "CREATE INDEX {tb}_idx ON {tb} ( did )"
+            .format(tb=IndexRecordUrlMetadata.__tablename__))
+
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
-SCHEMA_MIGRATION_FUNCTIONS = [migrate_1, migrate_2, migrate_3, migrate_4]
+SCHEMA_MIGRATION_FUNCTIONS = [migrate_1, migrate_2, migrate_3, migrate_4, migrate_5]
