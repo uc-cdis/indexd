@@ -17,7 +17,7 @@ from indexd.errors import UserError
 from indexd.utils import migrate_database, init_schema_version, is_empty_database
 from sqlalchemy.exc import ProgrammingError
 
-CURRENT_SCHEMA_VERSION = 4
+CURRENT_SCHEMA_VERSION = 5
 Base = declarative_base()
 
 

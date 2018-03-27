@@ -11,6 +11,7 @@ from indexd.alias.drivers.alchemy import (
     SQLAlchemyAliasDriver, AliasSchemaVersion)
 
 from indexd.index.drivers.alchemy import migrate_1, migrate_2
+from indexd.index.drivers.alchemy import CURRENT_SCHEMA_VERSION, SCHEMA_MIGRATION_FUNCTIONS
 from tests.alchemy import SQLAlchemyIndexTestDriver
 from sqlalchemy_utils import database_exists, drop_database
 
@@ -220,3 +221,8 @@ def test_migrate_index_versioning(monkeypatch):
             WHERE baseid = '{}';".format(baseid[0])).fetchone()[0]
         assert c == 1
     conn.close()
+
+
+def test_schema_version():
+
+    assert CURRENT_SCHEMA_VERSION == len(SCHEMA_MIGRATION_FUNCTIONS)
