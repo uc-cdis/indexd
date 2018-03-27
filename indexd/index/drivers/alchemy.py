@@ -287,7 +287,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             metadata=None,
             version=None,
             urls=None,
-            hashes=None):
+            hashes=None,
+            baseid=None):
         '''
         Creates a new record given size, urls, hashes, metadata, file name and version
         if did is provided, update the new record with the did otherwise create it
@@ -304,7 +305,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record = IndexRecord()
 
             base_version = BaseVersion()
-            baseid = str(uuid.uuid4())
+            if not baseid:
+                baseid = str(uuid.uuid4())
+
             base_version.baseid = baseid
 
             record.baseid = baseid
