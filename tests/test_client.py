@@ -42,16 +42,17 @@ def test_index_list_with_params(client, user):
 
 
 def test_index_create(client, user):
+
     data = {
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
+        'baseid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'}
 
-    assert client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user).status_code == 200
+    resp = client.post( '/index/', data=json.dumps(data), headers=user)
+    assert resp.status_code == 200
+    assert resp.json['baseid'] == data['baseid']
 
 
 def test_index_create_with_multiple_hashes(client, user):
