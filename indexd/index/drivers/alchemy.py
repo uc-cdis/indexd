@@ -17,7 +17,6 @@ from indexd.errors import UserError
 from indexd.utils import migrate_database, init_schema_version, is_empty_database
 from sqlalchemy.exc import ProgrammingError
 
-CURRENT_SCHEMA_VERSION = 5
 Base = declarative_base()
 
 
@@ -771,3 +770,4 @@ def migrate_5(session, **kwargs):
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
 SCHEMA_MIGRATION_FUNCTIONS = [migrate_1, migrate_2, migrate_3, migrate_4, migrate_5]
+CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)

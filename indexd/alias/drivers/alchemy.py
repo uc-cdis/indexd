@@ -28,8 +28,6 @@ from indexd.utils import migrate_database, init_schema_version, is_empty_databas
 
 Base = declarative_base()
 
-CURRENT_SCHEMA_VERSION = 1
-
 
 class AliasSchemaVersion(Base):
     '''
@@ -301,3 +299,4 @@ def migrate_1(session, **kwargs):
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
 SCHEMA_MIGRATION_FUNCTIONS = [migrate_1]
+CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
