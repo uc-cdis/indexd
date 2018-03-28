@@ -31,8 +31,8 @@ def main(path, action=None, username=None, password=None):
     elif action == 'migrate_database':
         try:
             logger.info('Start database migration')
-            alias_driver.migrate_database()
-            index_driver.migrate_database()
+            alias_driver.migrate_alias_database()
+            index_driver.migrate_index_database()
         except Exception as e:
             logger.error(e.message)
 if __name__ == '__main__':

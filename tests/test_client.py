@@ -1,11 +1,14 @@
 import json
+
 import pytest
+from swagger_client.rest import ApiException
 
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 
 
-def test_index_list(client):
-    assert client.get('/index/').status_code == 200
+def test_index_list(swg_index_client):
+    r = swg_index_client.list_entries()
+    assert r.ids == []
 
 
 def test_index_list_with_params(client, user):
@@ -41,8 +44,7 @@ def test_index_list_with_params(client, user):
     assert r_2.json['did'] in r.json['ids']
 
 
-def test_index_create(client, user):
-
+def test_index_create(swg_index_client):
     data = {
         'form': 'object',
         'size': 123,
@@ -50,12 +52,12 @@ def test_index_create(client, user):
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
         'baseid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'}
 
-    resp = client.post( '/index/', data=json.dumps(data), headers=user)
-    assert resp.status_code == 200
-    assert resp.json['baseid'] == data['baseid']
+    result = swg_index_client.add_entry(data)
+    assert result.did
+    assert result.baseid == data['baseid']
 
 
-def test_index_create_with_multiple_hashes(client, user):
+def test_index_create_with_multiple_hashes(swg_index_client):
     data = {
         'form': 'object',
         'size': 123,
@@ -65,12 +67,12 @@ def test_index_create_with_multiple_hashes(client, user):
             'sha1': 'fdbbca63fbec1c2b0d4eb2494ce91520ec9f55f5'
         }
     }
-    assert client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user).status_code == 200
 
-def test_index_create_with_valid_did(client, user):
+    result = swg_index_client.add_entry(data)
+    assert result.did
+
+
+def test_index_create_with_valid_did(swg_index_client):
     data = {
         'did':'3d313755-cbb4-4b08-899d-7bbac1f6e67d',
         'form': 'object',
@@ -78,68 +80,58 @@ def test_index_create_with_valid_did(client, user):
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
+    result = swg_index_client.add_entry(data)
+    assert result.did == '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
 
-    assert r.status_code == 200
-    assert r.json['did'] == '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
 
-def test_index_create_with_invalid_did(client, user):
+def test_index_create_with_invalid_did(swg_index_client):
     data = {
-        'did':'3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd',
+        'did': '3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd',
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    assert client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user).status_code == 400
+    with pytest.raises(ApiException) as e:
+        swg_index_client.add_entry(data)
+        assert e.status == 400
 
-def test_index_create_with_prefix(client, user):
+
+def test_index_create_with_prefix(swg_index_client):
     data = {
-        'did':'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d',
+        'did': 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d',
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
+    r = swg_index_client.add_entry(data)
+    assert r.did == 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d'
 
-    assert r.status_code == 200
-    assert r.json['did'] == 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d'
 
-def test_index_create_with_duplicate_did(client, user):
+def test_index_create_with_duplicate_did(swg_index_client):
     data = {
-        'did':'3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd',
+        'did':'3d313755-cbb4-4b08-899d-7bbac1f6e67d',
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
-    client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
+
+    swg_index_client.add_entry(data)
 
     data2 = {
-        'did':'3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd',
+        'did':'3d313755-cbb4-4b08-899d-7bbac1f6e67d',
         'form': 'object',
         'size': 213,
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '469942cf415384b27cadf1f4d2d682e5'}}
 
-    assert client.post(
-        '/index/',
-        data=json.dumps(data2),
-        headers=user).status_code == 400
+    with pytest.raises(ApiException) as e:
+        swg_index_client.add_entry(data2)
+        assert e.status == 400
 
-def test_index_create_with_file_name(client, user):
+
+def test_index_create_with_file_name(swg_index_client):
     data = {
         'form': 'object',
         'size': 123,
@@ -147,14 +139,12 @@ def test_index_create_with_file_name(client, user):
         'file_name': 'abc',
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
-    r = client.get('/index/'+r.json['did'])
-    assert r.json['file_name'] == 'abc'
+    r = swg_index_client.add_entry(data)
+    r = swg_index_client.get_entry(r.did)
+    assert r.file_name == 'abc'
 
-def test_index_create_with_version(client, user):
+
+def test_index_create_with_version(swg_index_client):
     data = {
         'form': 'object',
         'size': 123,
@@ -163,15 +153,12 @@ def test_index_create_with_version(client, user):
         'version': 'ver_123',
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
-    r = client.get('/index/'+r.json['did'])
-    assert r.json['version'] == 'ver_123'
+    r = swg_index_client.add_entry(data)
+    r = swg_index_client.get_entry(r.did)
+    assert r.version == data['version']
 
 
-def test_index_create_with_metadata(client, user):
+def test_index_create_with_metadata(swg_index_client):
     data = {
         'form': 'object',
         'size': 123,
@@ -181,17 +168,14 @@ def test_index_create_with_metadata(client, user):
         },
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
-
-    r = client.get('/index/'+r.json['did'])
-    assert r.json['metadata'] == {
+    r = swg_index_client.add_entry(data)
+    r = swg_index_client.get_entry(r.did)
+    assert r.metadata == {
             'project_id': 'bpa-UChicago'
         }
 
-def test_index_get_global_endpoint(client, user):
+
+def test_index_get_global_endpoint(swg_global_client, swg_index_client):
     data = {
         'form': 'object',
         'size': 123,
@@ -201,123 +185,87 @@ def test_index_get_global_endpoint(client, user):
         },
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
+    r = swg_index_client.add_entry(data)
+    r = swg_global_client.get_entry(r.did)
 
-    r = client.get(r.json['did'])
-    assert r.status_code == 200
-    assert r.json['metadata'] == {
+    assert r.metadata == {
             'project_id': 'bpa-UChicago'
         }
-    assert r.json['form'] == 'object'
-    assert r.json['size'] == 123
-    assert r.json['urls'] == ['s3://endpointurl/bucket/key']
-    assert r.json['hashes'] == {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}
+    assert r.form == 'object'
+    assert r.size == 123
+    assert r.urls == ['s3://endpointurl/bucket/key']
+    assert r.hashes.md5 == '8b9942cf415384b27cadf1f4d2d682e5'
 
 
-def test_index_update(client, user):
+def test_index_update(swg_index_client):
     data = {
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
-    assert r.status_code == 200
-    assert 'did' in r.json
-    did = r.json['did']
-    assert 'rev' in r.json
-    rev = r.json['rev']
+    r = swg_index_client.add_entry(data)
+    assert r.did
+    assert r.rev
     dataNew = {
-        'rev': rev,
         'urls': ['s3://endpointurl/bucket/key'],
         'file_name': 'test',
         'version': 'ver123',
         }
-    r2 = client.put(
-        '/index/' + did + '?rev=' + rev,
-        data=json.dumps(dataNew),
-        headers=user)
-    assert r2.status_code == 200
-    assert 'rev' in r2.json
-    assert r2.json['rev'] != rev
+    r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
+    assert r2.rev != r.rev
 
-def test_index_update_prefix(client, user):
     data = {
-        'did':'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d',
+        'did': 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d',
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
-    assert r.status_code == 200
-    assert 'did' in r.json
-    did = r.json['did']
-    assert 'rev' in r.json
-    rev = r.json['rev']
+    r = swg_index_client.add_entry(data)
+    assert r.did
+    assert r.rev
     dataNew = {
-        'rev': rev,
         'urls': ['s3://endpointurl/bucket/key'],
         'file_name': 'test',
         'version': 'ver123',
         }
-    r2 = client.put(
-        '/index/' + did + '?rev=' + rev,
-        data=json.dumps(dataNew),
-        headers=user)
-    assert r2.status_code == 200
-    assert 'rev' in r2.json
-    assert r2.json['rev'] != rev
+    r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
+    assert r2.rev != r.rev
 
-def test_index_delete(client, user):
+
+def test_index_delete(swg_index_client):
     data = {
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
-    assert r.status_code == 200
-    assert 'did' in r.json
-    did = r.json['did']
-    assert 'rev' in r.json
-    rev = r.json['rev']
-    r = client.get('/index/' + did)
-    assert r.status_code == 200
-    r = client.delete('/index/' + did + '?rev=' + rev, headers=user)
-    assert r.status_code == 200
-    r = client.get('/index/' + did)
-    assert r.status_code == 404
+    r = swg_index_client.add_entry(data)
+    assert r.did
+    assert r.rev
 
-def test_create_index_version(client, user):
+    r = swg_index_client.get_entry(r.did)
+    assert r.did
+
+    swg_index_client.delete_entry(r.did, rev=r.rev)
+
+    with pytest.raises(ApiException) as e:
+        r = swg_index_client.get_entry(r.did)
+        assert e.status == 400
+
+
+def test_create_index_version(swg_index_client):
     data = {
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
-
-    assert r.status_code == 200
-    assert 'did' in r.json
-    did = r.json['did']
-    assert 'baseid' in r.json
-    baseid = r.json['baseid']
+    r = swg_index_client.add_entry(data)
+    assert r.did
+    assert r.rev
+    assert r.baseid
 
     dataNew = {
         'form': 'object',
@@ -326,64 +274,75 @@ def test_create_index_version(client, user):
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
         }
 
-    r2 = client.post(
-        '/index/' + did,
-        data=json.dumps(dataNew),
-        headers=user)
-    assert r2.status_code == 200
-    assert 'baseid' in r2.json
-    assert r2.json['baseid'] == baseid
-    assert 'rev' in r2.json
+    r2 = swg_index_client.add_new_version(r.did, body=dataNew)
+    assert r2.baseid == r.baseid
 
-def test_get_latest_version(client, user):
+
+def test_get_latest_version(swg_index_client):
     data = {
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
+    r = swg_index_client.add_entry(data)
+    assert r.did
 
-    assert r.status_code == 200
-    assert 'did' in r.json
-    did = r.json['did']
+    dataNew = {
+        'form': 'object',
+        'size': 244,
+        'urls': ['s3://endpointurl/bucket2/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
+        }
 
-    r2 = client.get(
-        '/index/' + did + '/latest',
-        )
+    r2 = swg_index_client.add_new_version(r.did, body=dataNew)
 
-    assert r2.status_code == 200
+    r3 = swg_index_client.get_latest_version(r.did)
+    assert r3.did == r2.did
 
-def test_get_all_versions(client, user):
+
+def test_get_all_versions(swg_index_client):
     data = {
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
 
-    r = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
+    r = swg_index_client.add_entry(data)
+    assert r.did
 
-    assert r.status_code == 200
-    assert 'did' in r.json
-    did = r.json['did']
+    dataNew = {
+        'form': 'object',
+        'size': 244,
+        'urls': ['s3://endpointurl/bucket2/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
+        }
 
-    r2 = client.get(
-        '/index/' + did + '/versions',
-        )
-
-    assert r2.status_code == 200
-
-def test_alias_list(client):
-    assert client.get('/alias/').status_code == 200
+    swg_index_client.add_new_version(r.did, body=dataNew)
+    r3 = swg_index_client.get_all_versions(r.did)
+    assert len(r3) == 2
 
 
-def test_alias_create(client, user):
+def test_alias_list(swg_alias_client):
+    assert swg_alias_client.list_entries().aliases == []
+
+
+def test_alias_create(swg_alias_client):
+    data = {
+        'size': 123,
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
+        'release': 'private',
+        'keeper_authority': 'CRI', 'host_authorities': ['PDC'],
+    }
+    ark = 'ark:/31807/TEST-abc'
+    r = swg_alias_client.upsert_entry(ark, body=data)
+    assert r.name == ark
+
+    assert len(swg_alias_client.list_entries().aliases) == 1
+    assert swg_alias_client.get_entry(r.name).name
+
+
+def test_alias_get_global_endpoint(swg_alias_client, swg_global_client):
     data = {
         'size': 123,
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
@@ -392,19 +351,12 @@ def test_alias_create(client, user):
     }
     ark = 'ark:/31807/TEST-abc'
 
-    r = client.put(
-        '/alias/' + ark,
-        data=json.dumps(data),
-        headers=user)
-    assert r.json['name'] == ark
-    assert 'rev' in r.json
+    swg_alias_client.upsert_entry(ark, body=data)
 
-    aliases = client.get('/alias/').json['aliases']
-    assert len(aliases) == 1
-    assert aliases[0] == ark
+    assert swg_global_client.get_entry(ark).size == 123
 
 
-def test_alias_get_global_endpoint(client, user):
+def test_alias_update(swg_alias_client):
     data = {
         'size': 123,
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
@@ -413,30 +365,8 @@ def test_alias_get_global_endpoint(client, user):
     }
     ark = 'ark:/31807/TEST-abc'
 
-    r = client.put(
-        '/alias/' + ark,
-        data=json.dumps(data),
-        headers=user)
-    r = client.get('/' + ark)
-    assert r.status_code == 200
-    assert r.json['size'] == 123
-
-def test_alias_update(client, user):
-    data = {
-        'size': 123,
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
-        'release': 'private',
-        'keeper_authority': 'CRI', 'host_authorities': ['PDC'],
-    }
-    ark = 'ark:/31807/TEST-abc'
-
-    r = client.put(
-        '/alias/' + ark,
-        data=json.dumps(data),
-        headers=user)
-    assert r.status_code == 200
-    assert 'rev' in r.json
-    rev = r.json['rev']
+    r = swg_alias_client.upsert_entry(ark, body=data)
+    assert r.rev
 
     dataNew = {
         'size': 456,
@@ -444,14 +374,11 @@ def test_alias_update(client, user):
         'release': 'private',
         'keeper_authority': 'CRI', 'host_authorities': ['PDC'],
     }
-    r = client.put(
-        '/alias/' + ark + '?rev=' + rev,
-        data=json.dumps(dataNew),
-        headers=user)
-    assert r.status_code == 200
-    assert r.json['rev'] != rev
+    r2 = swg_alias_client.upsert_entry(ark, rev=r.rev, body=dataNew)
+    assert r2.rev != r.rev
 
-def test_alias_delete(client, user):
+
+def test_alias_delete(swg_alias_client):
     data = {
         'size': 123,
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
@@ -460,23 +387,12 @@ def test_alias_delete(client, user):
     }
     ark = 'ark:/31807/TEST-abc'
 
-    r = client.put(
-        '/alias/' + ark,
-        data=json.dumps(data),
-        headers=user)
-    assert r.status_code == 200
-    assert 'rev' in r.json
-    rev = r.json['rev']
+    r = swg_alias_client.upsert_entry(ark, body=data)
+    assert r.rev
 
-    r = client.delete(
-        '/alias/' + ark + '?rev=' + rev,
-        headers=user)
-    assert r.status_code == 200
+    swg_alias_client.delete_entry(ark, rev=r.rev)
 
-    r = client.get(
-        '/alias/' + ark,
-        headers=user)
-    assert r.status_code == 404
+    assert len(swg_alias_client.list_entries().aliases) == 0
 
 
 @pytest.mark.parametrize('typ,h', [

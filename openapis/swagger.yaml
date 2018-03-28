@@ -40,7 +40,7 @@ paths:
         - global
       summary: Get the metadata associated with the given id, alias, or distributed identifier
       description: Multiple status values can be provided with comma separated strings
-      operationId: getMetadata
+      operationId: getEntry
       produces:
         - application/json
       parameters:
@@ -58,9 +58,7 @@ paths:
           description: Invalid status value
         '404':
           description: Record not found
-      security:
-        - cdis_auth:
-            - 'read:index'
+      security: []
   '/index':
     post:
       tags:
@@ -87,38 +85,59 @@ paths:
         '400':
           description: Invalid input
       security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+        - basic_auth: []
     get:
       tags:
         - index
       summary: List all records
       description: ''
-      operationId: listMetadata
+      operationId: listEntries
+      parameters:
+        - name: metadata
+          in: query
+          description: metadata associated with the entry
+          required: false
+          type: string
       produces:
         - application/json
       responses:
         '200':
           description: successful operation
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/OutputInfo'
-        '400':
-          description: Invalid status value
-      security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
-            
+            type: object
+            properties:
+              ids:
+                type: array
+                items:
+                  $ref: '#/definitions/DID'
+              size:
+                type: integer
+                format: int64
+                description: size in bytes
+              start:
+                type: integer
+                format: int64
+                description: start index for the pagination
+              limit:
+                type: integer
+                format: int64
+                description: number of dids to return
+              file_name:
+                type: string
+              urls:
+                type: array
+                items:
+                  type: string
+              hashes:
+                $ref: '#/definitions/HashInfo'
+      security: []
   '/index/{UUID}':
     get:
       tags:
         - index
       summary: Get the metadata associated with the given id
       description: Multiple status values can be provided with comma separated strings
-      operationId: getMetadata
+      operationId: getEntry
       produces:
         - application/json
       parameters:
@@ -134,10 +153,7 @@ paths:
             $ref: '#/definitions/OutputInfo'
         '400':
           description: Invalid status value
-      security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+      security: []
     post:
       tags:
         - index
@@ -166,25 +182,27 @@ paths:
             $ref: '#/definitions/OutputRef'
         '400':
           description: Invalid status value
-  '/index/{UUID}?rev={REV}':
+      security:
+        - basic_auth: []
+  '/index/{DID}':
     put:
       tags:
         - index
       summary: Update an existing entry in the index
       description: ''
-      operationId: updatePet
+      operationId: updateEntry
       consumes:
         - application/json
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: DID
           in: path
           description: entry id
           required: true
           type: string
-        - name: REV
-          in: path
+        - name: rev
+          in: query
           description: data revision - simple consistency mechanism
           required: true
           type: string
@@ -202,9 +220,7 @@ paths:
         '400':
           description: Invalid input
       security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+        - basic_auth: []
     delete:
       tags:
         - index
@@ -214,23 +230,23 @@ paths:
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: DID
           in: path
           description: entry id
           required: true
           type: string
-        - name: REV
-          in: path
+        - name: rev
+          in: query
           description: data revision - simple consistency mechanism
           required: true
           type: string
       responses:
         '400':
           description: Invalid ID supplied
+        '200':
+          description: Record is deleted successfully
       security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+        - basic_auth: []
   '/index/{UUID}/latest':
     get:
       tags:
@@ -239,7 +255,7 @@ paths:
         Get the metadata of the latest index record version associated with the
         given id
       description: Multiple status values can be provided with comma separated strings
-      operationId: getLastestVersion
+      operationId: getLatestVersion
       produces:
         - application/json
       parameters:
@@ -255,17 +271,14 @@ paths:
             $ref: '#/definitions/OutputInfo'
         '400':
           description: Invalid status value
-      security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+      security: []
   '/index/{UUID}/versions':
     get:
       tags:
         - index
       summary: Get the metadata of index record versions associated with the given id
       description: Multiple status values can be provided with comma separated strings
-      operationId: getAllVersion
+      operationId: getAllVersions
       produces:
         - application/json
       parameters:
@@ -283,17 +296,70 @@ paths:
               $ref: '#/definitions/OutputInfo'
         '400':
           description: Invalid status value
-      security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+      security: []
+  '/alias/':
+    get:
+      tags:
+        - alias
+      summary: list aliases with pagination
+      operationId: listEntries
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: size
+          in: query
+          type: integer
+          format: int64
+          required: false
+          description: size in bytes
+        - name: start
+          in: query
+          type: integer
+          format: int64
+          required: false
+          description: start index for the pagination
+        - name: limit
+          in: query
+          type: integer
+          required: false
+          description: number of aliases to return
+        - name: hash
+          in: query
+          required: false
+          format: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              aliases:
+                type: array
+                items:
+                  type: string
+              size:
+                type: integer
+                format: int64
+                description: size in bytes
+              start:
+                type: integer
+                format: int64
+                description: start index for the pagination
+              limit:
+                type: integer
+                format: int64
+                description: number of aliases to return
+              hashes:
+                $ref: '#/definitions/HashInfo'
   '/alias/{ALIASSTRING}':
     put:
       tags:
         - alias
-      summary: Add a new alias to the index
+      summary: Create or update an alias
       description: ''
-      operationId: addAlias
+      operationId: upsertEntry
       consumes:
         - application/json
       produces:
@@ -304,69 +370,8 @@ paths:
           type: string
           required: true
           description: 'alias like ark:/31807/DC1-TESTARK'
-        - in: body
-          name: body
-          description: Metadata object that needs to be added to the store
-          required: true
-          schema:
-            $ref: '#/definitions/AliasInputInfo'
-      responses:
-        '200':
-          description: successful operation
-          schema:
-            $ref: '#/definitions/AliasRef'
-        '400':
-          description: Invalid input
-      security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
-    get:
-      tags:
-        - alias
-      summary: Fetch an alias
-      description: ''
-      operationId: getAlias
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - name: ALIASSTRING
-          in: path
-          type: string
-          required: true
-          description: 'alias like ark:/31807/DC1-TESTARK'
-      responses:
-        '200':
-          description: successful operation
-          schema:
-            $ref: '#/definitions/AliasOutputInfo'
-        '400':
-          description: Invalid input
-      security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
-  '/alias/{ALIASSTRING}?rev={REV}':
-    put:
-      tags:
-        - alias
-      summary: Update an alias
-      description: ''
-      operationId: updateAlias
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - name: ALIASSTRING
-          in: path
-          type: string
-          required: true
-          description: 'alias like ark:/31807/DC1-TESTARK'
-        - name: REV
-          in: path
+        - name: rev
+          in: query
           type: string
           pattern: '^[a-z,0-9]{8}$'
           required: false
@@ -385,15 +390,13 @@ paths:
         '400':
           description: Invalid input
       security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
-    delete:
+        - basic_auth: []
+    get:
       tags:
         - alias
-      summary: Delete an alias
+      summary: Fetch an alias
       description: ''
-      operationId: deleteAlias
+      operationId: getEntry
       consumes:
         - application/json
       produces:
@@ -404,8 +407,32 @@ paths:
           type: string
           required: true
           description: 'alias like ark:/31807/DC1-TESTARK'
-        - name: REV
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/AliasOutputInfo'
+        '400':
+          description: Invalid input
+      security: []
+    delete:
+      tags:
+        - alias
+      summary: Delete an alias
+      description: ''
+      operationId: deleteEntry
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: ALIASSTRING
           in: path
+          type: string
+          required: true
+          description: 'alias like ark:/31807/DC1-TESTARK'
+        - name: rev
+          in: query
           type: string
           pattern: '^[a-z,0-9]{8}$'
           required: false
@@ -418,9 +445,7 @@ paths:
         '400':
           description: Invalid input
       security:
-        - cdis_auth:
-            - 'write:index'
-            - 'read:index'
+        - basic_auth: []
 securityDefinitions:
   cdis_auth:
     type: oauth2
@@ -429,9 +454,9 @@ securityDefinitions:
     scopes:
       'write:index': modify any entry in the index
       'read:index': read any entry from the index
-  api_key:
-    type: apiKey
-    name: api_key
+  basic_auth:
+    type: basic
+    name: basic_auth
     in: header
 definitions:
   HashInfo:
@@ -495,13 +520,9 @@ definitions:
       - form
     properties:
       did:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
-      base_id:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+        $ref: "#/definitions/DID"
+      baseid:
+        $ref: "#/definitions/UUID"
       form:
         type: string
         description: how the entry was submitted to storage
@@ -546,13 +567,9 @@ definitions:
     type: object
     properties:
       did:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
-      base_id:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+        $ref: "#/definitions/DID"
+      baseid:
+        $ref: "#/definitions/UUID"
       rev:
         type: string
         pattern: '^[0-9a-f]{8}$'
@@ -621,17 +638,21 @@ definitions:
         $ref: '#/definitions/HashInfo'
       metadata:
         type: string
+  DID:
+    type: string
+    pattern: >-
+      ^.*[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+  UUID:
+    type: string
+    pattern: >-
+      ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
   OutputInfo:
     type: object
     properties:
       did:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+        $ref: "#/definitions/DID"
       baseid:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+        $ref: "#/definitions/UUID"
       rev:
         type: string
         pattern: '^[0-9a-f]{8}$'
@@ -660,6 +681,9 @@ definitions:
         type: string
         format: date-time
         description: last updated time
+      metadata:
+        type: object
+        description: user defined optional metadata
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'
