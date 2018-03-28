@@ -1,8 +1,8 @@
 from indexd import get_app
-import os
 import base64
 import pytest
-from cdisutilstest.code.conftest import indexd_server, indexd_client
+# indexd_server and indexd_client is needed as fixtures
+from cdisutilstest.code.conftest import indexd_server, indexd_client # noqa
 from cdisutilstest.code.indexd_fixture import clear_database
 import swagger_client
 
@@ -43,10 +43,27 @@ def user(app):
 
 
 @pytest.fixture
-def swg_client(indexd_client): # noqa
+def swg_config(indexd_client): # noqa
     config = swagger_client.Configuration()
     config.host = indexd_client.url
     config.username = indexd_client.auth[0]
     config.password = indexd_client.auth[1]
-    api = swagger_client.IndexApi(swagger_client.ApiClient(config))
+    yield config
+
+
+@pytest.fixture
+def swg_index_client(swg_config):
+    api = swagger_client.IndexApi(swagger_client.ApiClient(swg_config))
+    yield api
+
+
+@pytest.fixture
+def swg_global_client(swg_config):
+    api = swagger_client.GlobalApi(swagger_client.ApiClient(swg_config))
+    yield api
+
+
+@pytest.fixture
+def swg_alias_client(swg_config):
+    api = swagger_client.AliasApi(swagger_client.ApiClient(swg_config))
     yield api
