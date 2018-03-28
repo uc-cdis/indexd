@@ -202,18 +202,22 @@ def test_index_update(swg_index_client):
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
+        'metadata': {'test': 'abc'}}
 
     r = swg_index_client.add_entry(data)
     assert r.did
     assert r.rev
+    assert swg_index_client.get_entry(r.did).metadata == data['metadata']
     dataNew = {
         'urls': ['s3://endpointurl/bucket/key'],
         'file_name': 'test',
         'version': 'ver123',
-        }
+        'metadata': {'test': 'abcd'},
+    }
     r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
+    assert swg_index_client.get_entry(r.did).metadata == dataNew['metadata']
 
     data = {
         'did': 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d',

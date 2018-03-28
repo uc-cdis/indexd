@@ -556,7 +556,7 @@ definitions:
       file_name:
         type: string
       metadata:
-        type: string
+        type: object
       version:
         type: string
       urls:
