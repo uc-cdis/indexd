@@ -336,16 +336,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 value=m_value
             ) for m_key, m_value in metadata.items()]
 
-            try:
-                session.add(base_version)
-            except:
-                raise UserError('{baseid} already exists'.format(baseid=baseid), 400)
+            session.merge(base_version)
 
             try:
                 session.add(record)
                 session.commit()
             except IntegrityError:
-                raise UserError('{did} already exists'.format(did=did), 400)
+                raise UserError('did "{did}" already exists'.format(did=record.did), 400)
 
             return record.did, record.rev, record.baseid
 
