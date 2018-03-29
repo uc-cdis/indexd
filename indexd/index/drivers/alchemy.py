@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from sqlalchemy import func, select, and_
 from sqlalchemy import String, Column, Integer, BigInteger, DateTime
 from sqlalchemy import ForeignKey, ForeignKeyConstraint, Index
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import relationship, sessionmaker, scoped_session
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import IntegrityError
@@ -151,7 +151,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         self.logger = logger or get_logger('SQLAlchemyIndexDriver')
 
         Base.metadata.bind = self.engine
-        self.Session = sessionmaker(bind=self.engine)
+        self.Session = scoped_session(sessionmaker(bind=self.engine))
 
         is_empty_db = is_empty_database(driver=self)
         Base.metadata.create_all()

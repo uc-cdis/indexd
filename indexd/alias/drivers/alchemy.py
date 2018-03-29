@@ -13,6 +13,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
@@ -92,7 +93,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         super(SQLAlchemyAliasDriver, self).__init__(conn, **config)
         self.logger = logger or get_logger('SQLAlchemyAliasDriver')
         Base.metadata.bind = self.engine
-        self.Session = sessionmaker(bind=self.engine)
+        self.Session = scoped_session(sessionmaker(bind=self.engine))
 
         is_empty_db = is_empty_database(driver=self)
         Base.metadata.create_all()

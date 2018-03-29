@@ -32,4 +32,12 @@ def get_app():
 
     app_init(app, settings)
 
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        app.auth.Session.remove()
+        indexd_index_blueprint.index_driver.Session.remove()
+        indexd_alias_blueprint.alias_driver.Session.remove()
+        cross_blueprint.index_driver.Session.remove()
+        cross_blueprint.alias_driver.Session.remove()
+
     return app
