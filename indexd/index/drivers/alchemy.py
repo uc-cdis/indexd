@@ -182,9 +182,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         '''
         session = self.Session()
 
-        yield session
-
         try:
+            yield session
             session.commit()
         except:
             session.rollback()
