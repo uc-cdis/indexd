@@ -119,9 +119,9 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         '''
         session = self.Session()
 
-        yield session
-
-        try: session.commit()
+        try:
+            yield session
+            session.commit()
         except:
             session.rollback()
             raise
