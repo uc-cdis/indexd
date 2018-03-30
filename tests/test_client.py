@@ -50,11 +50,62 @@ def test_index_create(swg_index_client):
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
-        'baseid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'}
+        'baseid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    }
 
     result = swg_index_client.add_entry(data)
     assert result.did
     assert result.baseid == data['baseid']
+
+def test_delete_and_recreate(swg_index_client):
+    """
+    Test that you can delete an IndexDocument and be able to
+    recreate it with the same fields.
+    """
+
+    old_data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
+        'baseid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    }
+    new_data = {
+        'did': None, # populated after one is assigned
+        'form': 'object',
+        'size': 321,
+        'urls': ['s3://endpointurl/bucket/key2'],
+        'hashes': {'md5': '11111111111111111111111111111111'},
+        'baseid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    }
+
+    old_result = swg_index_client.add_entry(old_data)
+    assert old_result.did
+    assert old_result.baseid == old_data['baseid']
+
+    # create a new doc with the same did
+    new_data['did'] = old_result.did
+
+    # delete the old doc
+    swg_index_client.delete_entry(old_result.did, old_result.rev)
+    with pytest.raises(ApiException):
+        # make sure it's deleted
+        swg_index_client.get_entry(old_result.did)
+
+    # create new doc with the same baseid and did
+    new_result = swg_index_client.add_entry(new_data)
+
+    assert new_result.did
+    # verify that they are the same
+    assert new_result.baseid == new_data['baseid']
+    assert new_result.did == old_result.did
+    assert new_result.baseid == old_result.baseid
+
+    # verify that new data is in the new node
+    new_doc = swg_index_client.get_entry(new_result.did)
+    assert new_data['baseid'] == new_doc.baseid
+    assert new_data['urls'] == new_doc.urls
+    assert new_data['hashes']['md5'] == new_doc.hashes.md5
 
 
 def test_index_create_with_multiple_hashes(swg_index_client):
