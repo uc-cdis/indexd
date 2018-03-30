@@ -1,2 +1,4 @@
 pytest==3.0.6
 pytest-flask==0.8.1
+-e git+https://github.com/uc-cdis/cdisutils-test.git@0.2.2#egg=cdisutilstest
+-e git+https://github.com/uc-cdis/indexclient.git@1.4.0#egg=indexclient

@@ -3,10 +3,17 @@ language: python
 python:
   - "2.7"
   - "3.4"
+addons:
+  apt:
+    packages:
+      - oracle-java8-installer
 
 sudo: false
 
 install:
+    - "wget https://oss.sonatype.org/content/repositories/releases/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar"
+    - "java -jar swagger-codegen-cli-2.3.1.jar generate -i openapis/swagger.yaml -l python -o swagger_client"
+    - "cd swagger_client; python setup.py install; cd .."
     - "python setup.py install --force"
     - "pip install -r test-requirements.txt"
 
