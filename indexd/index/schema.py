@@ -130,6 +130,9 @@ PUT_RECORD_SCHEMA = {
     "version": {
         "type": "string"
     },
+    "metadata": {
+        "type": "object"
+    },
     "rev": {
       "type": "string",
       "pattern": "^[0-9a-f]{8}$",

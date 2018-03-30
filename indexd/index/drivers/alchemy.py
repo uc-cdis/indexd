@@ -396,7 +396,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         return ret
 
-    def update(self, did, rev, urls=None, file_name=None, version=None):
+    def update(self,
+               did, rev, urls=None, file_name=None,
+               version=None, metadata=None):
         '''
         Updates an existing record with new values.
         '''
@@ -415,10 +417,23 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise RevisionMismatch('revision mismatch')
 
             if urls is not None:
+                for url in record.urls:
+                    session.delete(url)
+
                 record.urls = [IndexRecordUrl(
                     did=record.did,
                     url=url
                 ) for url in urls]
+
+            if metadata is not None:
+                for md_record in record.index_metadata:
+                    session.delete(md_record)
+
+                record.index_metadata = [IndexRecordMetadata(
+                    did=record.did,
+                    key=m_key,
+                    value=m_value
+                ) for m_key, m_value in metadata.items()]
 
             if file_name is not None:
                 record.file_name = file_name

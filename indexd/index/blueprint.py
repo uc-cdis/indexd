@@ -231,6 +231,7 @@ def put_index_record(record):
     file_name = flask.request.json.get('file_name')
     version = flask.request.json.get('version')
     urls = flask.request.json.get('urls')
+    metadata = flask.request.json.get('metadata')
 
     did, baseid, rev = blueprint.index_driver.update(
         record,
@@ -238,6 +239,7 @@ def put_index_record(record):
         file_name=file_name,
         version=version,
         urls=urls,
+        metadata=metadata,
     )
 
     ret = {
