@@ -69,6 +69,8 @@ def get_index():
 
     urls = flask.request.args.getlist('url')
 
+    acl = flask.request.args.getlist('url')
+
     file_name = flask.request.args.get('file_name')
 
     version = flask.request.args.get('version')
@@ -92,6 +94,7 @@ def get_index():
         file_name=file_name,
         version=version,
         urls=urls,
+        acl=acl,
         hashes=hashes,
         metadata=metadata,
     )
@@ -104,6 +107,7 @@ def get_index():
         'file_name': file_name,
         'version': version,
         'urls': urls,
+        'acl': acl,
         'hashes': hashes,
         'metadata': metadata,
     }
@@ -188,6 +192,7 @@ def post_index_record():
     form = flask.request.json['form']
     size = flask.request.json['size']
     urls = flask.request.json['urls']
+    acl = flask.request.json.get('acl', [])
 
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
@@ -203,6 +208,7 @@ def post_index_record():
         metadata=metadata,
         version=version,
         urls=urls,
+        acl=acl,
         hashes=hashes,
         baseid=baseid,
     )
@@ -231,6 +237,7 @@ def put_index_record(record):
     file_name = flask.request.json.get('file_name')
     version = flask.request.json.get('version')
     urls = flask.request.json.get('urls')
+    acl = flask.request.json.get('acl')
     metadata = flask.request.json.get('metadata')
 
     did, baseid, rev = blueprint.index_driver.update(
@@ -239,6 +246,7 @@ def put_index_record(record):
         file_name=file_name,
         version=version,
         urls=urls,
+        acl=acl,
         metadata=metadata,
     )
 
@@ -281,6 +289,7 @@ def add_index_record_version(record):
     form = flask.request.json['form']
     size = flask.request.json['size']
     urls = flask.request.json['urls']
+    acl = flask.request.json.get('acl', [])
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name', None)
     metadata = flask.request.json.get('metadata', None)
@@ -292,6 +301,7 @@ def add_index_record_version(record):
         new_did=new_did,
         size=size,
         urls=urls,
+        acl=acl,
         file_name=file_name,
         metadata=metadata,
         version=version,

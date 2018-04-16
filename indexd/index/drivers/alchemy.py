@@ -64,6 +64,12 @@ class IndexRecord(Base):
         cascade='all, delete-orphan',
     )
 
+    acl = relationship(
+        'IndexRecordACE',
+        backref='index_record',
+        cascade='all, delete-orphan',
+    )
+
     hashes = relationship(
         'IndexRecordHash',
         backref='index_record',
@@ -92,7 +98,25 @@ class IndexRecordUrl(Base):
         backref='index_record_url',
         cascade='all, delete-orphan',
     )
-    Index('index_record_url_idx', 'did')
+    __table_args__ = (
+        Index('index_record_url_idx', 'did'),
+    )
+
+
+class IndexRecordACE(Base):
+    '''
+    index record access control entry representation.
+    '''
+
+    __tablename__ = 'index_record_ace'
+
+    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    # access control entry
+    ace = Column(String, primary_key=True)
+
+    __table_args__ = (
+        Index('index_record_ace_idx', 'did'),
+    )
 
 
 class IndexRecordMetadata(Base):
@@ -104,9 +128,9 @@ class IndexRecordMetadata(Base):
     key = Column(String, primary_key=True)
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
     value = Column(String)
-    Index('index_record_metadata_idx', 'did')
-    Index('__did_key_idx', 'did', 'key')
-
+    __table_args__ = (
+        Index('index_record_metadata_idx', 'did'),
+    )
 
 class IndexRecordUrlMetadata(Base):
     """
@@ -121,9 +145,9 @@ class IndexRecordUrlMetadata(Base):
     __table_args__ = (
         ForeignKeyConstraint(['did', 'url'],
                              ['index_record_url.did', 'index_record_url.url']),
+        Index('index_record_url_metadata_idx', 'did'),
     )
-    Index('index_record_url_metadata_idx', 'did')
-    Index('__did_url_key_idx', 'did', 'url', 'key')
+
 
 
 class IndexRecordHash(Base):
@@ -135,7 +159,9 @@ class IndexRecordHash(Base):
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
     hash_type = Column(String, primary_key=True)
     hash_value = Column(String)
-    Index('index_record_hash_idx', 'did')
+    __table_args__ = (
+        Index('index_record_hash_idx', 'did'),
+    )
 
 
 class SQLAlchemyIndexDriver(IndexDriverABC):
@@ -196,6 +222,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             start=None,
             size=None,
             urls=None,
+            acl=None,
             hashes=None,
             file_name=None,
             version=None,
@@ -222,6 +249,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.join(IndexRecord.urls)
                 for u in urls:
                     query = query.filter(IndexRecordUrl.url == u)
+
+            if acl is not None and acl:
+                query = query.join(IndexRecord.acl)
+                for u in acl:
+                    query = query.filter(IndexRecordACE.ace == u)
 
             if hashes is not None and hashes:
                 for h, v in hashes.items():
@@ -285,15 +317,18 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             metadata=None,
             version=None,
             urls=None,
+            acl=None,
             hashes=None,
             baseid=None):
         """
-        Creates a new record given size, urls, hashes, metadata, file name and version
+        Creates a new record given size, urls, acl, hashes, metadata, file name and version
         if did is provided, update the new record with the did otherwise create it
         """
 
         if urls is None:
             urls = []
+        if acl is None:
+            acl = []
         if hashes is None:
             hashes = {}
         if metadata is None:
@@ -322,6 +357,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 did=record.did,
                 url=url,
             ) for url in urls]
+
+            record.acl = [IndexRecordACE(
+                did=record.did,
+                ace=ace,
+            ) for ace in acl]
 
             record.hashes = [IndexRecordHash(
                 did=record.did,
@@ -374,6 +414,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             version = record.version
 
             urls = [u.url for u in record.urls]
+            acl = [u.ace for u in record.acl]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
             metadata = {m.key: m.value for m in record.index_metadata}
 
@@ -388,6 +429,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 'file_name': file_name,
                 'version': version,
                 'urls': urls,
+                'acl': acl,
                 'hashes': hashes,
                 'metadata': metadata,
                 'form': form,
@@ -398,7 +440,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         return ret
 
     def update(self,
-               did, rev, urls=None, file_name=None,
+               did, rev, urls=None, acl=None, file_name=None,
                version=None, metadata=None):
         """
         Updates an existing record with new values.
@@ -425,6 +467,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     did=record.did,
                     url=url
                 ) for url in urls]
+
+            if acl is not None:
+                for ace in record.acl:
+                    session.delete(ace)
+
+                record.acl = [IndexRecordACE(
+                    did=record.did,
+                    ace=ace
+                ) for ace in acl]
 
             if metadata is not None:
                 for md_record in record.index_metadata:
@@ -477,12 +528,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     metadata=None,
                     version=None,
                     urls=None,
+                    acl=None,
                     hashes=None):
         """
         Add a record version given did
         """
         if urls is None:
             urls = []
+        if acl is None:
+            acl = []
         if hashes is None:
             hashes = {}
         if metadata is None:
@@ -513,6 +567,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 did=record.did,
                 url=url,
             ) for url in urls]
+
+            record.acl = [IndexRecordACE(
+                did=record.did,
+                ace=ace,
+            ) for ace in acl]
 
             record.hashes = [IndexRecordHash(
                 did=record.did,
@@ -568,6 +627,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 file_name = record.file_name
                 version = record.version
                 urls = [u.url for u in record.urls]
+                acl = [u.ace for u in record.acl]
                 hashes = {h.hash_type: h.hash_value for h in record.hashes}
                 metadata = {m.key: m.value for m in record.index_metadata}
 
@@ -583,6 +643,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     'metadata': metadata,
                     'version': version,
                     'urls': urls,
+                    'acl': acl,
                     'hashes': hashes,
                     'form': form,
                     'created_date': created_date,
@@ -628,6 +689,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             version = record.version
 
             urls = [u.url for u in record.urls]
+            acl = [u.ace for u in record.acl]
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
 
             created_date = record.created_date.isoformat()
@@ -642,6 +704,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 'metadata': metadata,
                 'version': version,
                 'urls': urls,
+                'acl': acl,
                 'hashes': hashes,
                 'form': form,
                 'created_date': created_date,
