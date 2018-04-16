@@ -855,7 +855,24 @@ def migrate_5(session, **kwargs):
         "CREATE INDEX {tb}_idx ON {tb} ( did )"
             .format(tb=IndexRecordUrlMetadata.__tablename__))
 
+
+def migrate_6(session, **kwargs):
+    existing_acls = (
+        session.query(IndexRecordMetadata).filter_by(key='acl').yield_per(1000)
+    )
+    for metadata in existing_acls:
+        acl = metadata.value.split(',')
+        for ace in acl:
+            entry = IndexRecordACE(
+                did=metadata.did,
+                ace=ace)
+            session.add(entry)
+            session.delete(metadata)
+
+
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
-SCHEMA_MIGRATION_FUNCTIONS = [migrate_1, migrate_2, migrate_3, migrate_4, migrate_5]
+SCHEMA_MIGRATION_FUNCTIONS = [
+    migrate_1, migrate_2, migrate_3, migrate_4, migrate_5,
+    migrate_6]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
