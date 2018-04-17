@@ -77,27 +77,9 @@ def test_delete_and_recreate(swg_index_client):
     recreate it with the same fields.
     """
 
-<<<<<<< HEAD
     old_data = get_doc(has_baseid=True)
     new_data = get_doc(has_baseid=True)
     new_data['hashes'] = {'md5': '11111111111111111111111111111111'}
-=======
-    old_data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
-        'baseid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    }
-    new_data = {
-        'did': None,  # populated after one is assigned
-        'form': 'object',
-        'size': 321,
-        'urls': ['s3://endpointurl/bucket/key2'],
-        'hashes': {'md5': '11111111111111111111111111111111'},
-        'baseid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    }
->>>>>>> feat(acl): add acl table
 
     old_result = swg_index_client.add_entry(old_data)
     assert old_result.did
@@ -226,7 +208,6 @@ def test_index_update(swg_index_client):
     r = swg_index_client.add_entry(data)
     assert r.did
     assert r.rev
-<<<<<<< HEAD
     assert swg_index_client.get_entry(r.did).metadata == data['metadata']
     dataNew = get_doc()
     del dataNew['hashes']
@@ -234,18 +215,7 @@ def test_index_update(swg_index_client):
     del dataNew['form']
     dataNew['metadata'] = {'test': 'abcd'}
     dataNew['version'] = 'ver123'
-=======
-    result = swg_index_client.get_entry(r.did)
-    assert result.metadata == data['metadata']
-    assert result.acl == []
-    dataNew = {
-        'urls': ['s3://endpointurl/bucket/key'],
-        'file_name': 'test',
-        'version': 'ver123',
-        'acl': ['a', 'b'],
-        'metadata': {'test': 'abcd'},
-    }
->>>>>>> feat(acl): add acl table
+    dataNew['acl'] = ['a', 'b']
     r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
     result = swg_index_client.get_entry(r.did)
