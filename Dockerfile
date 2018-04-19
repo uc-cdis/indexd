@@ -38,6 +38,7 @@ RUN echo '<VirtualHost *:80>\n\
 
 RUN a2ensite apache-indexd
 RUN a2enmod headers
+RUN a2enmod reqtimeout
 RUN a2dissite 000-default.conf
 
 EXPOSE 80

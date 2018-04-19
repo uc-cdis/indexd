@@ -272,6 +272,11 @@ def add_index_record_version(record):
     '''
     Add a record version
     '''
+    try:
+        jsonschema.validate(flask.request.json, POST_RECORD_SCHEMA)
+    except jsonschema.ValidationError as err:
+        raise UserError(err)
+
     new_did = flask.request.json.get('did')
     form = flask.request.json['form']
     size = flask.request.json['size']
