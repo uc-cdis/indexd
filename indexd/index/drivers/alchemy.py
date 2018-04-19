@@ -465,8 +465,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             session.delete(record)
 
     def add_version(self,
-                    did,
+                    current_did,
                     form,
+                    new_did=None,
                     size=None,
                     file_name=None,
                     metadata=None,
@@ -483,7 +484,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         if metadata is None:
             metadata = {}
         with self.session as session:
-            query = session.query(IndexRecord).filter_by(did=did)
+            query = session.query(IndexRecord).filter_by(did=current_did)
 
             try:
                 record = query.one()
@@ -494,7 +495,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             baseid = record.baseid
             record = IndexRecord()
-            did = str(uuid.uuid4())
+            did = new_did or str(uuid.uuid4())
 
             record.did = did
             record.baseid = baseid
