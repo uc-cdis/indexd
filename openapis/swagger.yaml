@@ -529,6 +529,8 @@ definitions:
       - urls
       - form
     properties:
+      did:
+        $ref: "#/definitions/DID"
       form:
         type: string
         description: how the entry was submitted to storage
