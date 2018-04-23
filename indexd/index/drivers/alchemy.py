@@ -21,9 +21,9 @@ Base = declarative_base()
 
 
 class BaseVersion(Base):
-    '''
+    """
     Base index record version representation.
-    '''
+    """
     __tablename__ = 'base_version'
 
     baseid = Column(String, primary_key=True)
@@ -34,17 +34,17 @@ class BaseVersion(Base):
 
 
 class IndexSchemaVersion(Base):
-    '''
+    """
     Table to track current database's schema version
-    '''
+    """
     __tablename__ = 'index_schema_version'
     version = Column(Integer, default=0, primary_key=True)
 
 
 class IndexRecord(Base):
-    '''
+    """
     Base index record representation.
-    '''
+    """
     __tablename__ = 'index_record'
 
     did = Column(String, primary_key=True)
@@ -78,9 +78,9 @@ class IndexRecord(Base):
 
 
 class IndexRecordUrl(Base):
-    '''
+    """
     Base index record url representation.
-    '''
+    """
 
     __tablename__ = 'index_record_url'
 
@@ -96,9 +96,9 @@ class IndexRecordUrl(Base):
 
 
 class IndexRecordMetadata(Base):
-    '''
+    """
         Table to track current database's schema version
-    '''
+    """
 
     __tablename__ = 'index_record_metadata'
     key = Column(String, primary_key=True)
@@ -109,9 +109,9 @@ class IndexRecordMetadata(Base):
 
 
 class IndexRecordUrlMetadata(Base):
-    '''
+    """
         Table to track current database's schema version
-    '''
+    """
 
     __tablename__ = 'index_record_url_metadata'
     key = Column(String, primary_key=True)
@@ -127,9 +127,9 @@ class IndexRecordUrlMetadata(Base):
 
 
 class IndexRecordHash(Base):
-    '''
+    """
     Base index record hash representation.
-    '''
+    """
     __tablename__ = 'index_record_hash'
 
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
@@ -139,14 +139,14 @@ class IndexRecordHash(Base):
 
 
 class SQLAlchemyIndexDriver(IndexDriverABC):
-    '''
+    """
     SQLAlchemy implementation of index driver.
-    '''
+    """
 
     def __init__(self, conn, logger=None, auto_migrate=True, **config):
-        '''
+        """
         Initialize the SQLAlchemy database driver.
-        '''
+        """
         super(SQLAlchemyIndexDriver, self).__init__(conn, **config)
         self.logger = logger or get_logger('SQLAlchemyIndexDriver')
 
@@ -165,9 +165,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             self.migrate_index_database()
 
     def migrate_index_database(self):
-        '''
+        """
         migrate alias database to match CURRENT_SCHEMA_VERSION
-        '''
+        """
         migrate_database(
             driver=self,
             migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
@@ -177,9 +177,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     @property
     @contextmanager
     def session(self):
-        '''
+        """
         Provide a transactional scope around a series of operations.
-        '''
+        """
         session = self.Session()
 
         try:
@@ -200,9 +200,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             file_name=None,
             version=None,
             metadata=None):
-        '''
+        """
         Returns list of records stored by the backend.
-        '''
+        """
         with self.session as session:
             query = session.query(IndexRecord)
 
@@ -248,9 +248,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return [i.did for i in query]
 
     def hashes_to_urls(self, size, hashes, start=0, limit=100):
-        '''
+        """
         Returns a list of urls matching supplied size and hashes.
-        '''
+        """
         with self.session as session:
             query = session.query(IndexRecordUrl)
 
@@ -287,10 +287,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             urls=None,
             hashes=None,
             baseid=None):
-        '''
+        """
         Creates a new record given size, urls, hashes, metadata, file name and version
         if did is provided, update the new record with the did otherwise create it
-        '''
+        """
 
         if urls is None:
             urls = []
@@ -346,9 +346,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return record.did, record.rev, record.baseid
 
     def get(self, did):
-        '''
-        Gets a record given the record id.
-        '''
+        """
+        Gets a record given the record id or baseid.
+        If the given id is a baseid, it will return the latest version
+        """
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
@@ -356,10 +357,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record = query.one()
             except NoResultFound:
-                raise NoRecordFound('no record found')
+                record = session.query(IndexRecord).filter_by(baseid=did) \
+                    .order_by(IndexRecord.created_date).first()
+                if not record:
+                    raise NoRecordFound('no record found')
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
-
+            did = record.did
             baseid = record.baseid
             rev = record.rev
 
@@ -396,9 +400,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     def update(self,
                did, rev, urls=None, file_name=None,
                version=None, metadata=None):
-        '''
+        """
         Updates an existing record with new values.
-        '''
+        """
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
@@ -445,9 +449,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return record.did, record.baseid, record.rev
 
     def delete(self, did, rev):
-        '''
+        """
         Removes record if stored by backend.
-        '''
+        """
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
@@ -474,9 +478,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     version=None,
                     urls=None,
                     hashes=None):
-        '''
+        """
         Add a record version given did
-        '''
+        """
         if urls is None:
             urls = []
         if hashes is None:
@@ -531,9 +535,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return record.did, record.baseid, record.rev
 
     def get_all_versions(self, did):
-        '''
+        """
         Get all record versions given did
-        '''
+        """
         ret = dict()
         with self.session as session:
             query = session.query(IndexRecord)
@@ -541,17 +545,23 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 record = query.one()
+                baseid = record.baseid
             except NoResultFound:
-                raise NoRecordFound('no record found')
+                record = session.query(BaseVersion).filter_by(baseid=did).first()
+                if not record:
+                    raise NoRecordFound('no record found')
+                else:
+                    baseid = record.baseid
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
 
             query = session.query(IndexRecord)
-            records = query.filter(IndexRecord.baseid == record.baseid).all()
+            records = query.filter(IndexRecord.baseid == baseid).all()
 
             for idx, record in enumerate(records):
                 rev = record.rev
                 did = record.did
+                baseid = record.baseid
                 form = record.form
 
                 size = record.size
@@ -566,6 +576,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
                 ret[idx] = {
                     'did': did,
+                    'baseid': baseid,
                     'rev': rev,
                     'size': size,
                     'file_name': file_name,
@@ -581,9 +592,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         return ret
 
     def get_latest_version(self, did):
-        '''
+        """
         Get the lattest record version given did
-        '''
+        """
         ret = {}
         with self.session as session:
             query = session.query(IndexRecord)
@@ -591,22 +602,23 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 record = query.one()
+                baseid = record.baseid
             except NoResultFound:
-                raise NoRecordFound('no record found')
+                baseid = did
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
 
             query = session.query(IndexRecord)
-            records = query.filter(IndexRecord.baseid == record.baseid) \
-                .order_by(IndexRecord.updated_date).all()
+            record = query.filter(IndexRecord.baseid == baseid) \
+                .order_by(IndexRecord.created_date.desc()).first()
 
-            if (not records):
+            if (not record):
                 raise NoRecordFound('no record found')
 
-            record = records[-1]
 
             rev = record.rev
             did = record.did
+            baseid = record.baseid
 
             form = record.form
             size = record.size
@@ -623,6 +635,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             ret = {
                 'did': did,
+                'baseid': baseid,
                 'rev': rev,
                 'size': size,
                 'file_name': file_name,
@@ -638,9 +651,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         return ret
 
     def health_check(self):
-        '''
+        """
         Does a health check of the backend.
-        '''
+        """
         with self.session as session:
             try:
                 query = session.execute('SELECT 1')
@@ -650,10 +663,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return True
 
     def __contains__(self, record):
-        '''
+        """
         Returns True if record is stored by backend.
         Returns False otherwise.
-        '''
+        """
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == record)
@@ -661,17 +674,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return query.exists()
 
     def __iter__(self):
-        '''
+        """
         Iterator over unique records stored by backend.
-        '''
+        """
         with self.session as session:
             for i in session.query(IndexRecord):
                 yield i.did
 
     def totalbytes(self):
-        '''
+        """
         Total number of bytes of data represented in the index.
-        '''
+        """
         with self.session as session:
             result = session.execute(select([func.sum(IndexRecord.size)])).scalar()
             if result is None:
@@ -679,9 +692,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return long(result)
 
     def len(self):
-        '''
+        """
         Number of unique records stored by backend.
-        '''
+        """
         with self.session as session:
 
             return session.execute(select([func.count()]).select_from(IndexRecord)).scalar()
@@ -694,9 +707,9 @@ def migrate_1(session, **kwargs):
 
 
 def migrate_2(session, **kwargs):
-    '''
+    """
     Migrate db from version 1 -> 2
-    '''
+    """
     try:
         session.execute(
             "ALTER TABLE {} \
