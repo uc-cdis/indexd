@@ -6,26 +6,32 @@ from swagger_client.rest import ApiException
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 
 
+def get_doc(has_metadata=True, has_baseid=False):
+    doc = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}
+    }
+    if has_metadata:
+        doc['metadata'] = {'project_id': 'bpa-UChicago'}
+    if has_baseid:
+        doc['baseid'] = 'e044a62c-fd60-4203-b1e5-a62d1005f027'
+    return doc
+
+
 def test_index_list(swg_index_client):
     r = swg_index_client.list_entries()
     assert r.ids == []
 
 
 def test_index_list_with_params(client, user):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'metadata': {
-            'project_id': 'bpa-UChicago'
-        },
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    data = get_doc()
 
     r_1 = client.post(
         '/index/',
         data=json.dumps(data),
         headers=user)
-
     data['metadata'] = {'project_id': 'other-project'}
 
     r_2 = client.post(
@@ -45,17 +51,22 @@ def test_index_list_with_params(client, user):
 
 
 def test_index_create(swg_index_client):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
-        'baseid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    }
+    data = get_doc(has_baseid=True)
 
     result = swg_index_client.add_entry(data)
     assert result.did
     assert result.baseid == data['baseid']
+
+
+def test_index_get(swg_index_client):
+    data = get_doc(has_baseid=True)
+
+    result = swg_index_client.add_entry(data)
+    r = swg_index_client.get_entry(result.did)
+    r2 = swg_index_client.get_entry(result.baseid)
+    assert r.did == result.did
+    assert r2.did == result.did
+
 
 def test_delete_and_recreate(swg_index_client):
     """
@@ -63,21 +74,9 @@ def test_delete_and_recreate(swg_index_client):
     recreate it with the same fields.
     """
 
-    old_data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
-        'baseid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    }
-    new_data = {
-        'did': None, # populated after one is assigned
-        'form': 'object',
-        'size': 321,
-        'urls': ['s3://endpointurl/bucket/key2'],
-        'hashes': {'md5': '11111111111111111111111111111111'},
-        'baseid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    }
+    old_data = get_doc(has_baseid=True)
+    new_data = get_doc(has_baseid=True)
+    new_data['hashes'] = {'md5': '11111111111111111111111111111111'}
 
     old_result = swg_index_client.add_entry(old_data)
     assert old_result.did
@@ -109,14 +108,10 @@ def test_delete_and_recreate(swg_index_client):
 
 
 def test_index_create_with_multiple_hashes(swg_index_client):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {
-            'md5': '8b9942cf415384b27cadf1f4d2d682e5',
-            'sha1': 'fdbbca63fbec1c2b0d4eb2494ce91520ec9f55f5'
-        }
+    data = get_doc()
+    data['hashes'] = {
+        'md5': '8b9942cf415384b27cadf1f4d2d682e5',
+        'sha1': 'fdbbca63fbec1c2b0d4eb2494ce91520ec9f55f5'
     }
 
     result = swg_index_client.add_entry(data)
@@ -124,24 +119,17 @@ def test_index_create_with_multiple_hashes(swg_index_client):
 
 
 def test_index_create_with_valid_did(swg_index_client):
-    data = {
-        'did':'3d313755-cbb4-4b08-899d-7bbac1f6e67d',
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    data = get_doc()
+    data['did'] = '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
 
     result = swg_index_client.add_entry(data)
     assert result.did == '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
 
 
 def test_index_create_with_invalid_did(swg_index_client):
-    data = {
-        'did': '3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd',
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    data = get_doc()
+
+    data['did'] = '3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd'
 
     with pytest.raises(ApiException) as e:
         swg_index_client.add_entry(data)
@@ -149,46 +137,27 @@ def test_index_create_with_invalid_did(swg_index_client):
 
 
 def test_index_create_with_prefix(swg_index_client):
-    data = {
-        'did': 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d',
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    data = get_doc()
+    data['did'] = 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d'
 
     r = swg_index_client.add_entry(data)
     assert r.did == 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d'
 
 
 def test_index_create_with_duplicate_did(swg_index_client):
-    data = {
-        'did':'3d313755-cbb4-4b08-899d-7bbac1f6e67d',
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    data = get_doc()
+    data['did'] = '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
 
     swg_index_client.add_entry(data)
 
-    data2 = {
-        'did':'3d313755-cbb4-4b08-899d-7bbac1f6e67d',
-        'form': 'object',
-        'size': 213,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '469942cf415384b27cadf1f4d2d682e5'}}
-
     with pytest.raises(ApiException) as e:
-        swg_index_client.add_entry(data2)
+        swg_index_client.add_entry(data)
         assert e.status == 400
 
 
 def test_index_create_with_file_name(swg_index_client):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'file_name': 'abc',
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    data = get_doc()
+    data['file_name'] = 'abc'
 
     r = swg_index_client.add_entry(data)
     r = swg_index_client.get_entry(r.did)
@@ -196,87 +165,46 @@ def test_index_create_with_file_name(swg_index_client):
 
 
 def test_index_create_with_version(swg_index_client):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'file_name': 'abc',
-        'version': 'ver_123',
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    data = get_doc()
+    data['version'] = 'ver_123'
 
     r = swg_index_client.add_entry(data)
     r = swg_index_client.get_entry(r.did)
     assert r.version == data['version']
 
 
-def test_index_create_with_metadata(swg_index_client):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'metadata': {
-            'project_id': 'bpa-UChicago'
-        },
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
-
-    r = swg_index_client.add_entry(data)
-    r = swg_index_client.get_entry(r.did)
-    assert r.metadata == {
-            'project_id': 'bpa-UChicago'
-        }
-
-
 def test_index_get_global_endpoint(swg_global_client, swg_index_client):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'metadata': {
-            'project_id': 'bpa-UChicago'
-        },
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    data = get_doc()
 
     r = swg_index_client.add_entry(data)
     r = swg_global_client.get_entry(r.did)
 
-    assert r.metadata == {
-            'project_id': 'bpa-UChicago'
-        }
+    assert r.metadata == data['metadata']
     assert r.form == 'object'
-    assert r.size == 123
-    assert r.urls == ['s3://endpointurl/bucket/key']
-    assert r.hashes.md5 == '8b9942cf415384b27cadf1f4d2d682e5'
+    assert r.size == data['size']
+    assert r.urls == data['urls']
+    assert r.hashes.md5 == data['hashes']['md5']
 
 
 def test_index_update(swg_index_client):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
-        'metadata': {'test': 'abc'}}
+    data = get_doc()
 
     r = swg_index_client.add_entry(data)
     assert r.did
     assert r.rev
     assert swg_index_client.get_entry(r.did).metadata == data['metadata']
-    dataNew = {
-        'urls': ['s3://endpointurl/bucket/key'],
-        'file_name': 'test',
-        'version': 'ver123',
-        'metadata': {'test': 'abcd'},
-    }
+    dataNew = get_doc()
+    del dataNew['hashes']
+    del dataNew['size']
+    del dataNew['form']
+    dataNew['metadata'] = {'test': 'abcd'}
+    dataNew['version'] = 'ver123'
     r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
     assert swg_index_client.get_entry(r.did).metadata == dataNew['metadata']
 
-    data = {
-        'did': 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d',
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
-
+    data = get_doc()
+    data['did'] = 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d'
     r = swg_index_client.add_entry(data)
     assert r.did
     assert r.rev
@@ -290,11 +218,7 @@ def test_index_update(swg_index_client):
 
 
 def test_index_delete(swg_index_client):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    data = get_doc(has_metadata=False, has_baseid=False)
 
     r = swg_index_client.add_entry(data)
     assert r.did
@@ -311,11 +235,7 @@ def test_index_delete(swg_index_client):
 
 
 def test_create_index_version(swg_index_client):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+    data = get_doc(has_metadata=False, has_baseid=False)
 
     r = swg_index_client.add_entry(data)
     assert r.did
@@ -334,48 +254,27 @@ def test_create_index_version(swg_index_client):
 
 
 def test_get_latest_version(swg_index_client):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
-
+    data = get_doc(has_metadata=False, has_baseid=False)
     r = swg_index_client.add_entry(data)
     assert r.did
 
-    dataNew = {
-        'form': 'object',
-        'size': 244,
-        'urls': ['s3://endpointurl/bucket2/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
-        }
-
-    r2 = swg_index_client.add_new_version(r.did, body=dataNew)
+    r2 = swg_index_client.add_new_version(r.did, body=data)
 
     r3 = swg_index_client.get_latest_version(r.did)
     assert r3.did == r2.did
+    r4 = swg_index_client.get_latest_version(r.baseid)
+    assert r4.did == r2.did
 
 
 def test_get_all_versions(swg_index_client):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
-
+    data = get_doc(has_metadata=False, has_baseid=False)
     r = swg_index_client.add_entry(data)
     assert r.did
-
-    dataNew = {
-        'form': 'object',
-        'size': 244,
-        'urls': ['s3://endpointurl/bucket2/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
-        }
-
-    swg_index_client.add_new_version(r.did, body=dataNew)
+    swg_index_client.add_new_version(r.did, body=data)
     r3 = swg_index_client.get_all_versions(r.did)
     assert len(r3) == 2
+    r4 = swg_index_client.get_all_versions(r.baseid)
+    assert len(r4) == 2
 
 
 def test_alias_list(swg_alias_client):
