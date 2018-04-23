@@ -130,6 +130,10 @@ paths:
                 type: array
                 items:
                   type: string
+              acl:
+                type: array
+                items:
+                  type: string
               hashes:
                 $ref: '#/definitions/HashInfo'
       security: []
@@ -552,6 +556,10 @@ definitions:
         type: array
         items:
           type: string
+      acl:
+        type: array
+        items:
+          type: string
       hashes:
         $ref: '#/definitions/HashInfo'
   InputInfo:
@@ -587,6 +595,10 @@ definitions:
         type: array
         items:
           type: string
+      acl:
+        type: array
+        items:
+          type: string
       hashes:
         $ref: '#/definitions/HashInfo'
   UpdateInputInfo:
@@ -603,6 +615,10 @@ definitions:
       version:
         type: string
       urls:
+        type: array
+        items:
+          type: string
+      acl:
         type: array
         items:
           type: string
@@ -715,6 +731,10 @@ definitions:
       version:
         type: string
       urls:
+        type: array
+        items:
+          type: string
+      acl:
         type: array
         items:
           type: string

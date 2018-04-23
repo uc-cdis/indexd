@@ -56,6 +56,9 @@ def test_index_create(swg_index_client):
     result = swg_index_client.add_entry(data)
     assert result.did
     assert result.baseid == data['baseid']
+    r = swg_index_client.get_entry(result.did)
+    assert r.acl == []
+
 
 
 def test_index_get(swg_index_client):
@@ -124,6 +127,19 @@ def test_index_create_with_valid_did(swg_index_client):
 
     result = swg_index_client.add_entry(data)
     assert result.did == '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
+
+
+def test_index_create_with_acl(swg_index_client):
+    data = {
+        'acl': ['a', 'b'],
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = swg_index_client.add_entry(data)
+    result = swg_index_client.get_entry(r.did)
+    assert result.acl == ['a', 'b']
 
 
 def test_index_create_with_invalid_did(swg_index_client):
@@ -199,9 +215,12 @@ def test_index_update(swg_index_client):
     del dataNew['form']
     dataNew['metadata'] = {'test': 'abcd'}
     dataNew['version'] = 'ver123'
+    dataNew['acl'] = ['a', 'b']
     r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
-    assert swg_index_client.get_entry(r.did).metadata == dataNew['metadata']
+    result = swg_index_client.get_entry(r.did)
+    assert result.metadata == dataNew['metadata']
+    assert result.acl == dataNew['acl']
 
     data = get_doc()
     data['did'] = 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d'
@@ -248,6 +267,7 @@ def test_create_index_version(swg_index_client):
         'size': 244,
         'urls': ['s3://endpointurl/bucket2/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
+        'acl': ['a'],
     }
 
     r2 = swg_index_client.add_new_version(r.did, body=dataNew)

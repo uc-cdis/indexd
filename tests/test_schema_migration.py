@@ -5,7 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 import sqlite3
 import tests.util as util
 from indexd.index.drivers.alchemy import (
-    SQLAlchemyIndexDriver, IndexSchemaVersion)
+    SQLAlchemyIndexDriver, IndexSchemaVersion, migrate_6)
 
 from indexd.alias.drivers.alchemy import (
     SQLAlchemyAliasDriver, AliasSchemaVersion)
@@ -55,6 +55,24 @@ def update_version_table_for_testing(db, tb_name, val):
             '''.format(tb_name, val))
         conn.commit()
 
+
+def test_migrate_6(swg_index_client, indexd_server):
+    data = {
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'metadata': {
+            'acl': 'a,b'
+        },
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}
+    }
+
+    r = swg_index_client.add_entry(data)
+    with settings['config']['INDEX']['driver'].session as session:
+        migrate_6(session)
+    r = swg_index_client.get_entry(r.did)
+    assert r.acl == ['a', 'b']
+    assert r.metadata == {}
 
 @util.removes('index.sq3')
 def test_migrate_index():
@@ -226,3 +244,4 @@ def test_migrate_index_versioning(monkeypatch):
 def test_schema_version():
 
     assert CURRENT_SCHEMA_VERSION == len(SCHEMA_MIGRATION_FUNCTIONS)
+
