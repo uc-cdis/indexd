@@ -277,6 +277,7 @@ def add_index_record_version(record):
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
+    new_did = flask.request.json.get('did')
     form = flask.request.json['form']
     size = flask.request.json['size']
     urls = flask.request.json['urls']
@@ -288,6 +289,7 @@ def add_index_record_version(record):
     did, baseid, rev = blueprint.index_driver.add_version(
         record,
         form,
+        new_did=new_did,
         size=size,
         urls=urls,
         file_name=file_name,

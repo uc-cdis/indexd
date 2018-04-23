@@ -243,14 +243,16 @@ def test_create_index_version(swg_index_client):
     assert r.baseid
 
     dataNew = {
+        'did': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
         'form': 'object',
         'size': 244,
         'urls': ['s3://endpointurl/bucket2/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
-        }
+    }
 
     r2 = swg_index_client.add_new_version(r.did, body=dataNew)
     assert r2.baseid == r.baseid
+    assert r2.did == dataNew['did']
 
 
 def test_get_latest_version(swg_index_client):
@@ -259,9 +261,9 @@ def test_get_latest_version(swg_index_client):
     assert r.did
 
     r2 = swg_index_client.add_new_version(r.did, body=data)
-
     r3 = swg_index_client.get_latest_version(r.did)
     assert r3.did == r2.did
+
     r4 = swg_index_client.get_latest_version(r.baseid)
     assert r4.did == r2.did
 
