@@ -560,6 +560,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             for idx, record in enumerate(records):
                 rev = record.rev
                 did = record.did
+                baseid = record.baseid
                 form = record.form
 
                 size = record.size
@@ -574,6 +575,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
                 ret[idx] = {
                     'did': did,
+                    'baseid': baseid,
                     'rev': rev,
                     'size': size,
                     'file_name': file_name,
@@ -615,6 +617,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             rev = record.rev
             did = record.did
+            baseid = record.baseid
 
             form = record.form
             size = record.size
@@ -631,6 +634,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             ret = {
                 'did': did,
+                'baseid': baseid,
                 'rev': rev,
                 'size': size,
                 'file_name': file_name,
