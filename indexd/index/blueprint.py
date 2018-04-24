@@ -69,7 +69,7 @@ def get_index():
 
     urls = flask.request.args.getlist('url')
 
-    acl = flask.request.args.getlist('url')
+    acl = flask.request.args.getlist('acl')
 
     file_name = flask.request.args.get('file_name')
 
