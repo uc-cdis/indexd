@@ -857,8 +857,11 @@ def migrate_5(session, **kwargs):
 
 
 def migrate_6(session, **kwargs):
+    pass
+
+def migrate_7(session, **kwargs):
     existing_acls = (
-        session.query(IndexRecordMetadata).filter_by(key='acl').yield_per(1000)
+        session.query(IndexRecordMetadata).filter_by(key='acls').yield_per(1000)
     )
     for metadata in existing_acls:
         acl = metadata.value.split(',')
@@ -874,5 +877,5 @@ def migrate_6(session, **kwargs):
 # CURRENT_SCHEMA_VERSION - 1 when it's written
 SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_1, migrate_2, migrate_3, migrate_4, migrate_5,
-    migrate_6]
+    migrate_6, migrate_7]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
