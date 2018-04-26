@@ -184,7 +184,8 @@ def post_index_record():
     '''
     Create a new record.
     '''
-    try: jsonschema.validate(flask.request.json, POST_RECORD_SCHEMA)
+    try:
+        jsonschema.validate(flask.request.json, POST_RECORD_SCHEMA)
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
@@ -197,6 +198,7 @@ def post_index_record():
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
     metadata = flask.request.json.get('metadata')
+    urls_metadata = flask.request.json.get('urls_metadata')
     version = flask.request.json.get('version')
     baseid = flask.request.json.get('baseid')
 
@@ -206,6 +208,7 @@ def post_index_record():
         size=size,
         file_name=file_name,
         metadata=metadata,
+        urls_metadata=urls_metadata,
         version=version,
         urls=urls,
         acl=acl,
@@ -239,6 +242,7 @@ def put_index_record(record):
     urls = flask.request.json.get('urls')
     acl = flask.request.json.get('acl')
     metadata = flask.request.json.get('metadata')
+    urls_metadata = flask.request.json.get('urls_metadata')
 
     did, baseid, rev = blueprint.index_driver.update(
         record,
@@ -248,6 +252,7 @@ def put_index_record(record):
         urls=urls,
         acl=acl,
         metadata=metadata,
+        urls_metadata=urls_metadata,
     )
 
     ret = {
@@ -291,9 +296,10 @@ def add_index_record_version(record):
     urls = flask.request.json['urls']
     acl = flask.request.json.get('acl', [])
     hashes = flask.request.json['hashes']
-    file_name = flask.request.json.get('file_name', None)
-    metadata = flask.request.json.get('metadata', None)
-    version = flask.request.json.get('version', None)
+    file_name = flask.request.json.get('file_name')
+    metadata = flask.request.json.get('metadata')
+    urls_metadata = flask.request.json.get('urls_metadata')
+    version = flask.request.json.get('version')
 
     did, baseid, rev = blueprint.index_driver.add_version(
         record,
@@ -304,6 +310,7 @@ def add_index_record_version(record):
         acl=acl,
         file_name=file_name,
         metadata=metadata,
+        urls_metadata=urls_metadata,
         version=version,
         hashes=hashes,
     )

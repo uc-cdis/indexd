@@ -1,5 +1,6 @@
-import uuid
 import datetime
+from future.utils import iteritems
+import uuid
 
 from cdislogging import get_logger
 from contextlib import contextmanager
@@ -82,6 +83,37 @@ class IndexRecord(Base):
         cascade='all, delete-orphan',
     )
 
+    def to_document_dict(self):
+        """
+        Get the full index document
+        """
+        urls = [u.url for u in self.urls]
+        acl = [u.ace for u in self.acl]
+        hashes = {h.hash_type: h.hash_value for h in self.hashes}
+        metadata = {m.key: m.value for m in self.index_metadata}
+
+        urls_metadata = {
+            u.url: {m.key: m.value for m in u.url_metadata} for u in self.urls}
+        created_date = self.created_date.isoformat()
+        updated_date = self.updated_date.isoformat()
+
+        return {
+            'did': self.did,
+            'baseid': self.baseid,
+            'rev': self.rev,
+            'size': self.size,
+            'file_name': self.file_name,
+            'version': self.version,
+            'urls': urls,
+            'urls_metadata': urls_metadata,
+            'acl': acl,
+            'hashes': hashes,
+            'metadata': metadata,
+            'form': self.form,
+            'created_date': created_date,
+            "updated_date": updated_date,
+        }
+
 
 class IndexRecordUrl(Base):
     """
@@ -104,9 +136,9 @@ class IndexRecordUrl(Base):
 
 
 class IndexRecordACE(Base):
-    '''
+    """
     index record access control entry representation.
-    '''
+    """
 
     __tablename__ = 'index_record_ace'
 
@@ -121,7 +153,7 @@ class IndexRecordACE(Base):
 
 class IndexRecordMetadata(Base):
     """
-        Table to track current database's schema version
+    Metadata attached to index document
     """
 
     __tablename__ = 'index_record_metadata'
@@ -134,7 +166,7 @@ class IndexRecordMetadata(Base):
 
 class IndexRecordUrlMetadata(Base):
     """
-        Table to track current database's schema version
+    Metadata attached to url
     """
 
     __tablename__ = 'index_record_url_metadata'
@@ -162,6 +194,20 @@ class IndexRecordHash(Base):
     __table_args__ = (
         Index('index_record_hash_idx', 'did'),
     )
+
+
+def create_urls_metadata(urls_metadata, record, session):
+    """
+    create url metadata record in database
+    """
+    urls = {u.url for u in record.urls}
+    for url, url_metadata in iteritems(urls_metadata):
+        if url not in urls:
+            raise UserError(
+                'url {} in urls_metadata does not exist'.format(url))
+        for k, v in iteritems(url_metadata):
+            session.add(IndexRecordUrlMetadata(
+                url=url, key=k, value=v, did=record.did))
 
 
 class SQLAlchemyIndexDriver(IndexDriverABC):
@@ -315,13 +361,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             size=None,
             file_name=None,
             metadata=None,
+            urls_metadata=None,
             version=None,
             urls=None,
             acl=None,
             hashes=None,
             baseid=None):
         """
-        Creates a new record given size, urls, acl, hashes, metadata, file name and version
+        Creates a new record given size, urls, acl, hashes, metadata,
+        urls_metadata file name and version
         if did is provided, update the new record with the did otherwise create it
         """
 
@@ -334,6 +382,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         if metadata is None:
             metadata = {}
 
+        if urls_metadata is None:
+            urls_metadata = {}
         with self.session as session:
             record = IndexRecord()
 
@@ -374,11 +424,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 key=m_key,
                 value=m_value
             ) for m_key, m_value in metadata.items()]
-
             session.merge(base_version)
 
             try:
                 session.add(record)
+                create_urls_metadata(urls_metadata, record, session)
                 session.commit()
             except IntegrityError:
                 raise UserError('did "{did}" already exists'.format(did=record.did), 400)
@@ -403,45 +453,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     raise NoRecordFound('no record found')
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
-            did = record.did
-            baseid = record.baseid
-            rev = record.rev
-
-            form = record.form
-            size = record.size
-
-            file_name = record.file_name
-            version = record.version
-
-            urls = [u.url for u in record.urls]
-            acl = [u.ace for u in record.acl]
-            hashes = {h.hash_type: h.hash_value for h in record.hashes}
-            metadata = {m.key: m.value for m in record.index_metadata}
-
-            created_date = record.created_date.isoformat()
-            updated_date = record.updated_date.isoformat()
-
-            ret = {
-                'did': did,
-                'baseid': baseid,
-                'rev': rev,
-                'size': size,
-                'file_name': file_name,
-                'version': version,
-                'urls': urls,
-                'acl': acl,
-                'hashes': hashes,
-                'metadata': metadata,
-                'form': form,
-                'created_date': created_date,
-                "updated_date": updated_date,
-            }
-
-        return ret
+            return record.to_document_dict()
 
     def update(self,
                did, rev, urls=None, acl=None, file_name=None,
-               version=None, metadata=None):
+               version=None, metadata=None, urls_metadata=None):
         """
         Updates an existing record with new values.
         """
@@ -487,6 +503,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     value=m_value
                 ) for m_key, m_value in metadata.items()]
 
+            if urls_metadata is not None:
+                for url in record.urls:
+                    for url_metadata in url.url_metadata:
+                        session.delete(url_metadata)
+
+                create_urls_metadata(urls_metadata, record, session)
+
             if file_name is not None:
                 record.file_name = file_name
 
@@ -526,6 +549,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     size=None,
                     file_name=None,
                     metadata=None,
+                    urls_metadata=None,
                     version=None,
                     urls=None,
                     acl=None,
@@ -541,6 +565,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             hashes = {}
         if metadata is None:
             metadata = {}
+        if urls_metadata is None:
+            urls_metadata = {}
         with self.session as session:
             query = session.query(IndexRecord).filter_by(did=current_did)
 
@@ -587,6 +613,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 session.add(record)
+                create_urls_metadata(urls_metadata, record, session)
                 session.commit()
             except IntegrityError:
                 raise UserError('{did} already exists'.format(did=did), 400)
@@ -618,37 +645,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             records = query.filter(IndexRecord.baseid == baseid).all()
 
             for idx, record in enumerate(records):
-                rev = record.rev
-                did = record.did
-                baseid = record.baseid
-                form = record.form
 
-                size = record.size
-                file_name = record.file_name
-                version = record.version
-                urls = [u.url for u in record.urls]
-                acl = [u.ace for u in record.acl]
-                hashes = {h.hash_type: h.hash_value for h in record.hashes}
-                metadata = {m.key: m.value for m in record.index_metadata}
-
-                created_date = record.created_date.isoformat()
-                updated_date = record.updated_date.isoformat()
-
-                ret[idx] = {
-                    'did': did,
-                    'baseid': baseid,
-                    'rev': rev,
-                    'size': size,
-                    'file_name': file_name,
-                    'metadata': metadata,
-                    'version': version,
-                    'urls': urls,
-                    'acl': acl,
-                    'hashes': hashes,
-                    'form': form,
-                    'created_date': created_date,
-                    'updated_date': updated_date,
-                }
+                ret[idx] = record.to_document_dict()
 
         return ret
 
@@ -676,42 +674,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if (not record):
                 raise NoRecordFound('no record found')
 
-
-            rev = record.rev
-            did = record.did
-            baseid = record.baseid
-
-            form = record.form
-            size = record.size
-            file_name = record.file_name
-
-            metadata = {m.key: m.value for m in record.index_metadata}
-            version = record.version
-
-            urls = [u.url for u in record.urls]
-            acl = [u.ace for u in record.acl]
-            hashes = {h.hash_type: h.hash_value for h in record.hashes}
-
-            created_date = record.created_date.isoformat()
-            updated_date = record.updated_date.isoformat()
-
-            ret = {
-                'did': did,
-                'baseid': baseid,
-                'rev': rev,
-                'size': size,
-                'file_name': file_name,
-                'metadata': metadata,
-                'version': version,
-                'urls': urls,
-                'acl': acl,
-                'hashes': hashes,
-                'form': form,
-                'created_date': created_date,
-                'updated_date': updated_date,
-            }
-
-        return ret
+            return record.to_document_dict()
 
     def health_check(self):
         """

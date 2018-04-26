@@ -34,6 +34,10 @@ POST_RECORD_SCHEMA = {
       "description": "optional metadata of the object",
       "type": "object"
     },
+    "urls_metadata": {
+      "description": "optional urls metadata of the object",
+      "type": "object",
+    },
     "version": {
       "description": "optional version string of the object",
       "type": "string",
@@ -143,6 +147,9 @@ PUT_RECORD_SCHEMA = {
         "type": "string"
     },
     "metadata": {
+        "type": "object"
+    },
+    "urls_metadata": {
         "type": "object"
     },
     "rev": {

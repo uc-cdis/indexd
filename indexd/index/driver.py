@@ -37,7 +37,10 @@ class IndexDriverABC(SQLAlchemyDriverBase):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def add(self, form, did=None, size=None, urls=None, hashes=None, file_name=None, metadata=None, version=None):
+    def add(
+            self, form, did=None, size=None, urls=None,
+            hashes=None, file_name=None, metadata=None,
+            urls_metadata=None, version=None):
         '''
         Creates record for given data.
         '''
@@ -53,7 +56,7 @@ class IndexDriverABC(SQLAlchemyDriverBase):
     @abc.abstractmethod
     def update(self,
                did, rev, urls=None, file_name=None,
-               version=None, metadata=None):
+               urls_metadata=None, version=None, metadata=None):
         '''
         Updates record with new values.
         '''
@@ -69,7 +72,8 @@ class IndexDriverABC(SQLAlchemyDriverBase):
     @abc.abstractmethod
     def add_version(
             self, did, form, size=None,
-            file_name=None,  metadata=None, urls=None, hashes=None, version=None):
+            file_name=None,  metadata=None, urls=None,
+            urls_metadata=None, hashes=None, version=None):
         '''
         Add a record version given did
         '''

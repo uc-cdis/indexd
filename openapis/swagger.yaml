@@ -549,7 +549,9 @@ definitions:
       file_name:
         type: string
       metadata:
-        type: string
+        type: object
+      urls_metadata:
+        type: object
       version:
         type: string
       urls:
@@ -588,7 +590,9 @@ definitions:
       file_name:
         type: string
       metadata:
-        type: string
+        type: object
+      urls_metadata:
+        type: object
       version:
         type: string
       urls:
@@ -611,6 +615,8 @@ definitions:
       file_name:
         type: string
       metadata:
+        type: object
+      urls_metadata:
         type: object
       version:
         type: string
@@ -747,6 +753,9 @@ definitions:
       metadata:
         type: object
         description: user defined optional metadata
+      urls_metadata:
+        type: object
+        description: url level optional metadata
   SystemVersionOutputRef:
     type: object
     properties:
