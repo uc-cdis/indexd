@@ -6,7 +6,7 @@ from swagger_client.rest import ApiException
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 
 
-def get_doc(has_metadata=True, has_baseid=False):
+def get_doc(has_metadata=True, has_baseid=False, has_urls_metadata=False):
     doc = {
         'form': 'object',
         'size': 123,
@@ -17,6 +17,9 @@ def get_doc(has_metadata=True, has_baseid=False):
         doc['metadata'] = {'project_id': 'bpa-UChicago'}
     if has_baseid:
         doc['baseid'] = 'e044a62c-fd60-4203-b1e5-a62d1005f027'
+    if has_urls_metadata:
+        doc['urls_metadata'] = {
+            's3://endpointurl/bucket/key': {'file_state': 'uploaded'}}
     return doc
 
 
@@ -48,6 +51,20 @@ def test_index_list_with_params(client, user):
     r = client.get('/index/?hashes=md5%3A8b9942cf415384b27cadf1f4d2d682e5')
     assert r_1.json['did'] in r.json['ids']
     assert r_2.json['did'] in r.json['ids']
+
+
+def test_urls_metadata(swg_index_client):
+    data = get_doc(has_urls_metadata=True)
+    result = swg_index_client.add_entry(data)
+
+    doc = swg_index_client.get_entry(result.did)
+    assert doc.urls_metadata == data['urls_metadata']
+
+    updated = {'urls_metadata': {data['urls'][0]: {'test': 'b'}}}
+    swg_index_client.update_entry(doc.did, rev=doc.rev, body=updated)
+
+    doc = swg_index_client.get_entry(result.did)
+    assert doc.urls_metadata == updated['urls_metadata']
 
 
 def test_index_create(swg_index_client):
