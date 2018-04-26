@@ -1,5 +1,6 @@
-import uuid
 import datetime
+from future.utils import iteritems
+import uuid
 
 from cdislogging import get_logger
 from contextlib import contextmanager
@@ -82,7 +83,7 @@ class IndexRecord(Base):
         cascade='all, delete-orphan',
     )
 
-    def to_document(self):
+    def to_document_dict(self):
         """
         Get the full index document
         """
@@ -193,6 +194,20 @@ class IndexRecordHash(Base):
     __table_args__ = (
         Index('index_record_hash_idx', 'did'),
     )
+
+
+def create_urls_metadata(urls_metadata, record, session):
+    """
+    create url metadata record in database
+    """
+    urls = {u.url for u in record.urls}
+    for url, url_metadata in iteritems(urls_metadata):
+        if url not in urls:
+            raise UserError(
+                'url {} in urls_metadata does not exist'.format(url))
+        for k, v in iteritems(url_metadata):
+            session.add(IndexRecordUrlMetadata(
+                url=url, key=k, value=v, did=record.did))
 
 
 class SQLAlchemyIndexDriver(IndexDriverABC):
@@ -413,22 +428,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 session.add(record)
-                self._create_urls_metadata(urls_metadata, record, session)
+                create_urls_metadata(urls_metadata, record, session)
                 session.commit()
             except IntegrityError:
                 raise UserError('did "{did}" already exists'.format(did=record.did), 400)
 
             return record.did, record.rev, record.baseid
-
-    def _create_urls_metadata(self, urls_metadata, record, session):
-        urls = {u.url for u in record.urls}
-        for url, url_metadata in urls_metadata.iteritems():
-            if url not in urls:
-                raise UserError(
-                    'url {} in urls_metadata does not exist'.format(url))
-            for k, v in url_metadata.iteritems():
-                session.add(IndexRecordUrlMetadata(
-                    url=url, key=k, value=v, did=record.did))
 
     def get(self, did):
         """
@@ -448,7 +453,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     raise NoRecordFound('no record found')
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
-            return record.to_document()
+            return record.to_document_dict()
 
     def update(self,
                did, rev, urls=None, acl=None, file_name=None,
@@ -503,7 +508,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     for url_metadata in url.url_metadata:
                         session.delete(url_metadata)
 
-                self._create_urls_metadata(urls_metadata, record, session)
+                create_urls_metadata(urls_metadata, record, session)
 
             if file_name is not None:
                 record.file_name = file_name
@@ -608,7 +613,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 session.add(record)
-                self._create_urls_metadata(urls_metadata, record, session)
+                create_urls_metadata(urls_metadata, record, session)
                 session.commit()
             except IntegrityError:
                 raise UserError('{did} already exists'.format(did=did), 400)
@@ -641,7 +646,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             for idx, record in enumerate(records):
 
-                ret[idx] = record.to_document()
+                ret[idx] = record.to_document_dict()
 
         return ret
 
@@ -669,7 +674,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if (not record):
                 raise NoRecordFound('no record found')
 
-            return record.to_document()
+            return record.to_document_dict()
 
     def health_check(self):
         """
