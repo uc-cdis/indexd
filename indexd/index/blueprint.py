@@ -120,23 +120,28 @@ def get_urls():
     '''
     Returns a list of urls.
     '''
+    ids = flask.request.args.getlist('ids')
     hashes = flask.request.args.getlist('hash')
     hashes = {h: v for h, v in map(lambda x: x.split(':', 1), hashes)}
+    size = flask.request.args.get('size')
+    if size:
+        try:
+            size = int(size)
+        except TypeError:
+            raise UserError('size must be an integer')
 
-    try: size = int(flask.request.args.get('size'))
-    except TypeError as err:
-        raise UserError('size must be an integer')
+        if size < 0:
+            raise UserError('size must be >= 0')
 
-    try: start = int(flask.request.args.get('start', 0))
-    except TypeError as err:
+    try:
+        start = int(flask.request.args.get('start', 0))
+    except TypeError:
         raise UserError('start must be an integer')
 
-    try: limit = int(flask.request.args.get('limit', 100))
-    except TypeError as err:
+    try:
+        limit = int(flask.request.args.get('limit', 100))
+    except TypeError:
         raise UserError('limit must be an integer')
-
-    if size < 0:
-        raise UserError('size must be >= 0')
 
     if start < 0:
         raise UserError('start must be >= 0')
@@ -149,8 +154,9 @@ def get_urls():
 
     validate_hashes(**hashes)
 
-    urls = blueprint.index_driver.hashes_to_urls(
+    urls = blueprint.index_driver.get_urls(
         size=size,
+        ids=ids,
         hashes=hashes,
         start=start,
         limit=limit,

@@ -71,6 +71,16 @@ def test_urls_metadata(swg_index_client):
     assert doc.urls_metadata == updated['urls_metadata']
 
 
+def test_get_urls(swg_index_client, swg_global_client):
+    data = get_doc(has_urls_metadata=True)
+    result = swg_index_client.add_entry(data)
+
+    result = swg_global_client.list_urls(ids=result.did)
+    url = data['urls'][0]
+    assert result.urls[0].url == url
+    assert result.urls[0].metadata == data['urls_metadata'][url]
+
+
 def test_index_create(swg_index_client):
     data = get_doc(has_baseid=True)
 
