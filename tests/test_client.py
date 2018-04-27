@@ -6,7 +6,9 @@ from swagger_client.rest import ApiException
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 
 
-def get_doc(has_metadata=True, has_baseid=False, has_urls_metadata=False):
+def get_doc(
+        has_metadata=True, has_baseid=False,
+        has_urls_metadata=False, has_version=False):
     doc = {
         'form': 'object',
         'size': 123,
@@ -20,6 +22,8 @@ def get_doc(has_metadata=True, has_baseid=False, has_urls_metadata=False):
     if has_urls_metadata:
         doc['urls_metadata'] = {
             's3://endpointurl/bucket/key': {'file_state': 'uploaded'}}
+    if has_version:
+        doc['version'] = '1'
     return doc
 
 
@@ -296,16 +300,20 @@ def test_create_index_version(swg_index_client):
 
 
 def test_get_latest_version(swg_index_client):
-    data = get_doc(has_metadata=False, has_baseid=False)
+    data = get_doc(has_metadata=False, has_baseid=False, has_version=True)
     r = swg_index_client.add_entry(data)
     assert r.did
 
+    data = get_doc(has_metadata=False, has_baseid=False, has_version=False)
     r2 = swg_index_client.add_new_version(r.did, body=data)
     r3 = swg_index_client.get_latest_version(r.did)
     assert r3.did == r2.did
 
     r4 = swg_index_client.get_latest_version(r.baseid)
     assert r4.did == r2.did
+
+    r5 = swg_index_client.get_latest_version(r.baseid, has_version=True)
+    assert r5.did == r.did
 
 
 def test_get_all_versions(swg_index_client):

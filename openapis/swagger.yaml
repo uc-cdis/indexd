@@ -270,6 +270,11 @@ paths:
           description: entry id
           required: true
           type: string
+        - name: has_version
+          in: query
+          description: filter by latest doc that has version value populated
+          required: false
+          type: boolean
       responses:
         '200':
           description: successful operation
