@@ -58,11 +58,14 @@ def get_record(record):
         ret = blueprint.index_driver.get(record)
     except IndexNoRecordFound:
         try:
-            ret = blueprint.alias_driver.get(record)
-        except AliasNoRecordFound:
-            if not blueprint.dist or 'no_dist' in flask.request.args:
-                raise
-            return dist_get_record(record)
+            ret = blueprint.index_driver.get_by_alias(record)
+        except IndexNoRecordFound:
+            try:
+                ret = blueprint.alias_driver.get(record)
+            except AliasNoRecordFound:
+                if not blueprint.dist or 'no_dist' in flask.request.args:
+                    raise
+                return dist_get_record(record)
 
 
     return flask.jsonify(ret), 200

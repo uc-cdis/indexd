@@ -9,7 +9,10 @@ AUTO_MIGRATE = True
 
 CONFIG['INDEX'] = {
     'driver':  SQLAlchemyIndexDriver(
-        'sqlite:///index.sq3', auto_migrate=AUTO_MIGRATE),
+        'sqlite:///index.sq3', auto_migrate=AUTO_MIGRATE,
+        index_config={
+            'DEFAULT_PREFIX': 'testprefix:', 'ADD_PREFIX_ALIAS': True}
+    ),
 }
 
 CONFIG['ALIAS'] = {
@@ -41,3 +44,5 @@ CONFIG['DIST'] = [
 AUTH = SQLAlchemyAuthDriver('sqlite:///auth.sq3')
 
 settings = {'config': CONFIG, 'auth': AUTH}
+
+
