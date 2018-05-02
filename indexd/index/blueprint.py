@@ -167,7 +167,7 @@ def get_urls():
     return flask.jsonify(ret), 200
 
 
-@blueprint.route('/index/<record>', methods=['GET'])
+@blueprint.route('/index/<path:record>', methods=['GET'])
 def get_index_record(record):
     '''
     Returns a record.
@@ -225,7 +225,7 @@ def post_index_record():
     return flask.jsonify(ret), 200
 
 
-@blueprint.route('/index/<record>', methods=['PUT'])
+@blueprint.route('/index/<path:record>', methods=['PUT'])
 @authorize
 def put_index_record(record):
     '''
@@ -264,7 +264,7 @@ def put_index_record(record):
     return flask.jsonify(ret), 200
 
 
-@blueprint.route('/index/<record>', methods=['DELETE'])
+@blueprint.route('/index/<path:record>', methods=['DELETE'])
 @authorize
 def delete_index_record(record):
     '''
@@ -279,7 +279,7 @@ def delete_index_record(record):
     return '', 200
 
 
-@blueprint.route('/index/<record>', methods=['POST'])
+@blueprint.route('/index/<path:record>', methods=['POST'])
 @authorize
 def add_index_record_version(record):
     '''
@@ -324,7 +324,7 @@ def add_index_record_version(record):
     return flask.jsonify(ret), 200
 
 
-@blueprint.route('/index/<record>/versions', methods=['GET'])
+@blueprint.route('/index/<path:record>/versions', methods=['GET'])
 def get_all_index_record_versions(record):
     '''
     Get all record versions
@@ -334,7 +334,7 @@ def get_all_index_record_versions(record):
     return flask.jsonify(ret), 200
 
 
-@blueprint.route('/index/<record>/latest', methods=['GET'])
+@blueprint.route('/index/<path:record>/latest', methods=['GET'])
 def get_latest_index_record_versions(record):
     '''
     Get the latest record version
