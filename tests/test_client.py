@@ -218,6 +218,9 @@ def test_index_get_global_endpoint(swg_global_client, swg_index_client):
     assert r.urls == data['urls']
     assert r.hashes.md5 == data['hashes']['md5']
 
+    r2 = swg_global_client.get_entry('testprefix:'+r.did)
+    r2.did == r.did
+
 
 def test_index_update(swg_index_client):
     data = get_doc()

@@ -83,6 +83,12 @@ class IndexRecord(Base):
         cascade='all, delete-orphan',
     )
 
+    aliases = relationship(
+        'IndexRecordAlias',
+        backref='index_record',
+        cascade='all, delete-orphan',
+    )
+
     def to_document_dict(self):
         """
         Get the full index document
@@ -113,6 +119,22 @@ class IndexRecord(Base):
             'created_date': created_date,
             "updated_date": updated_date,
         }
+
+
+class IndexRecordAlias(Base):
+    """
+    Alias attached to index record
+    """
+
+    __tablename__ = 'index_record_alias'
+
+    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    name = Column(String, primary_key=True)
+
+    __table_args__ = (
+        Index('index_record_alias_idx', 'did'),
+        Index('index_record_alias_name', 'name'),
+    )
 
 
 class IndexRecordUrl(Base):
@@ -215,12 +237,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     SQLAlchemy implementation of index driver.
     """
 
-    def __init__(self, conn, logger=None, auto_migrate=True, **config):
+    def __init__(
+            self, conn, logger=None, auto_migrate=True,
+            index_config=None, **config):
         """
         Initialize the SQLAlchemy database driver.
         """
         super(SQLAlchemyIndexDriver, self).__init__(conn, **config)
         self.logger = logger or get_logger('SQLAlchemyIndexDriver')
+        self.config = index_config or {}
 
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
@@ -429,11 +454,38 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 session.add(record)
                 create_urls_metadata(urls_metadata, record, session)
+
+                if self.config.get('ADD_PREFIX_ALIAS'):
+                    self.add_prefix_alias(record, session)
                 session.commit()
             except IntegrityError:
                 raise UserError('did "{did}" already exists'.format(did=record.did), 400)
 
             return record.did, record.rev, record.baseid
+
+    def add_prefix_alias(self, record, session):
+        """
+        Create a index alias with the alias as {prefix:did}
+        """
+        prefix = self.config['DEFAULT_PREFIX']
+        alias = IndexRecordAlias(did=record.did, name=prefix+record.did)
+        session.add(alias)
+
+    def get_by_alias(self, alias):
+        """
+        Gets a record given a record alias
+        """
+        with self.session as session:
+            try:
+                record = (
+                    session.query(IndexRecord)
+                    .filter(IndexRecord.aliases.any(name=alias)).one()
+                )
+            except NoResultFound:
+                raise NoRecordFound('no record found')
+            except MultipleResultsFound:
+                raise MultipleRecordsFound('multiple records found')
+            return record.to_document_dict()
 
     def get(self, did):
         """
@@ -447,8 +499,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record = query.one()
             except NoResultFound:
-                record = session.query(IndexRecord).filter_by(baseid=did) \
-                    .order_by(IndexRecord.created_date).first()
+                by_base = session.query(IndexRecord).filter_by(baseid=did) \
+                    .order_by(IndexRecord.created_date)
+                record = by_base.first()
                 if not record:
                     raise NoRecordFound('no record found')
             except MultipleResultsFound:
