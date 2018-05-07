@@ -25,7 +25,7 @@ setup(
         'psycopg2>=2.7',
         'future>=0.16.0,<1.0.0',
         'cdislogging',
-        'indexclient>=1.3.1,<2.0.0',
+        'indexclient',
         'doiclient',
         'dosclient',
     ],
