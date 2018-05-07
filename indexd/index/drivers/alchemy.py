@@ -703,11 +703,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         return ret
 
-    def get_latest_version(self, did):
+    def get_latest_version(self, did, has_version=None):
         """
         Get the lattest record version given did
         """
-        ret = {}
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
@@ -721,9 +720,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound('multiple records found')
 
             query = session.query(IndexRecord)
-            record = query.filter(IndexRecord.baseid == baseid) \
-                .order_by(IndexRecord.created_date.desc()).first()
-
+            query = query.filter(IndexRecord.baseid == baseid) \
+                .order_by(IndexRecord.created_date.desc())
+            if has_version:
+                query = query.filter(IndexRecord.version.isnot(None))
+            record = query.first()
             if (not record):
                 raise NoRecordFound('no record found')
 
