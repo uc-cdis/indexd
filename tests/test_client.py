@@ -84,7 +84,7 @@ def test_index_get(swg_index_client):
     result = swg_index_client.add_entry(data)
     r = swg_index_client.get_entry(result.did)
     assert r.did == result.did
-    
+  
 
 def test_delete_and_recreate(swg_index_client):
     """
