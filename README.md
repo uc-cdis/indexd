@@ -31,7 +31,7 @@ highly recommended to use pip and a virtualenv to isolate the installation.
 To install the prototype implementation, simply run
 
 ```bash
-pip install .
+python setup.py install
 ```
 
 ## Installation with Docker
