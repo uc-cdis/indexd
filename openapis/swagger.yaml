@@ -112,7 +112,9 @@ paths:
           type: string
         - name: ids
           in: query
-          description: comma delimited ids
+          description: |
+            comma delimited ids, when provided,
+            pagination params(start, limit) are not supported
           required: false
           type: string
         - name: urls
@@ -120,6 +122,16 @@ paths:
           description: comma delimited urls
           required: false
           type: string
+        - name: start
+          in: query
+          description: start did
+          required: false
+          type: string
+        - name: limit
+          in: query
+          description: number of records to return for this page, default to 100
+          required: false
+          type: integer
       produces:
         - application/json
       responses:

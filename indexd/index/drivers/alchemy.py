@@ -346,11 +346,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                         ))
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
+            query = query.order_by(IndexRecord.did)
+
             if ids:
                 query = query.filter(IndexRecord.did.in_(ids))
-
-            query = query.order_by(IndexRecord.did)
-            query = query.limit(limit)
+            else:
+                # only apply limit when ids is not provided
+                query = query.limit(limit)
 
             return [i.to_document_dict() for i in query]
 
