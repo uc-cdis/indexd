@@ -50,7 +50,16 @@ def get_index():
     Returns a list of records.
     '''
     limit = flask.request.args.get('limit')
-    try: limit = 100 if limit is None else int(limit)
+    start = flask.request.args.get('start')
+
+    ids = flask.request.args.get('ids')
+    if ids:
+        ids = ids.split(',')
+        if start is not None or limit is not None:
+            raise UserError(
+                'pagination is not supported when ids is provided')
+    try:
+        limit = 100 if limit is None else int(limit)
     except ValueError as err:
         raise UserError('limit must be an integer')
 
@@ -58,18 +67,19 @@ def get_index():
         raise UserError('limit must be between 1 and 1024')
 
     size = flask.request.args.get('size')
-    try: size = size if size is None else int(size)
+    try:
+        size = size if size is None else int(size)
     except ValueError as err:
         raise UserError('size must be an integer')
 
     if size is not None and size < 0:
         raise UserError('size must be > 0')
 
-    start = flask.request.args.get('start')
 
     urls = flask.request.args.getlist('url')
 
     acl = flask.request.args.getlist('acl')
+
 
     file_name = flask.request.args.get('file_name')
 
@@ -87,7 +97,7 @@ def get_index():
     if limit < 0 or limit > 1024:
         raise UserError('limit must be between 0 and 1024')
 
-    ids = blueprint.index_driver.ids(
+    records = blueprint.index_driver.ids(
         start=start,
         limit=limit,
         size=size,
@@ -96,11 +106,13 @@ def get_index():
         urls=urls,
         acl=acl,
         hashes=hashes,
+        ids=ids,
         metadata=metadata,
     )
 
     base = {
         'ids': ids,
+        'records': records,
         'limit': limit,
         'start': start,
         'size': size,
