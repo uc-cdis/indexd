@@ -71,6 +71,10 @@ def get_index():
 
     acl = flask.request.args.getlist('acl')
 
+    ids = flask.request.args.get('ids')
+    if ids:
+        ids = ids.split(',')
+
     file_name = flask.request.args.get('file_name')
 
     version = flask.request.args.get('version')
@@ -87,7 +91,7 @@ def get_index():
     if limit < 0 or limit > 1024:
         raise UserError('limit must be between 0 and 1024')
 
-    ids = blueprint.index_driver.ids(
+    records = blueprint.index_driver.ids(
         start=start,
         limit=limit,
         size=size,
@@ -96,11 +100,13 @@ def get_index():
         urls=urls,
         acl=acl,
         hashes=hashes,
+        ids=ids,
         metadata=metadata,
     )
 
     base = {
         'ids': ids,
+        'records': records,
         'limit': limit,
         'start': start,
         'size': size,

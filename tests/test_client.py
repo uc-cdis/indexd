@@ -29,32 +29,37 @@ def get_doc(
 
 def test_index_list(swg_index_client):
     r = swg_index_client.list_entries()
-    assert r.ids == []
+    assert r.records == []
 
 
-def test_index_list_with_params(client, user):
+def test_index_list_with_params(swg_index_client):
     data = get_doc()
 
-    r_1 = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
+    r_1 = swg_index_client.add_entry(data)
     data['metadata'] = {'project_id': 'other-project'}
 
-    r_2 = client.post(
-        '/index/',
-        data=json.dumps(data),
-        headers=user)
+    r_2 = swg_index_client.add_entry(data)
 
-    r = client.get('/index/?metadata=project_id%3Abpa-UChicago')
-    assert r_1.json['did'] in r.json['ids']
+    r = swg_index_client.list_entries(metadata='project_id:bpa-UChicago')
+    ids = [record.did for record in r.records]
+    assert r_1.did in ids
 
-    r = client.get('/index/?metadata=project_id%3Aother-project')
-    assert r_2.json['did'] in r.json['ids']
+    r = swg_index_client.list_entries(metadata='project_id:other-project')
+    ids = [record.did for record in r.records]
+    assert r_2.did in ids
 
-    r = client.get('/index/?hashes=md5%3A8b9942cf415384b27cadf1f4d2d682e5')
-    assert r_1.json['did'] in r.json['ids']
-    assert r_2.json['did'] in r.json['ids']
+    r = swg_index_client.list_entries(
+        hash='md5:8b9942cf415384b27cadf1f4d2d682e5')
+    ids = [record.did for record in r.records]
+    assert r_1.did in ids
+    assert r_2.did in ids
+
+    r = swg_index_client.list_entries(
+        ids=','.join(ids))
+
+    ids = [record.did for record in r.records]
+    assert r_1.did in ids
+    assert r_2.did in ids
 
 
 def test_urls_metadata(swg_index_client):
