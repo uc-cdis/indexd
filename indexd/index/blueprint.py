@@ -1,4 +1,5 @@
 import re
+import json
 import flask
 import jsonschema
 import os.path
@@ -75,11 +76,9 @@ def get_index():
     if size is not None and size < 0:
         raise UserError('size must be > 0')
 
-
     urls = flask.request.args.getlist('url')
 
     acl = flask.request.args.getlist('acl')
-
 
     file_name = flask.request.args.get('file_name')
 
@@ -93,6 +92,9 @@ def get_index():
 
     metadata = flask.request.args.getlist('metadata')
     metadata = {k: v for k, v in map(lambda x: x.split(':', 1), metadata)}
+
+    urls_metadata = flask.request.args.get('urls_metadata')
+    urls_metadata = urls_metadata and json.loads(urls_metadata)
 
     if limit < 0 or limit > 1024:
         raise UserError('limit must be between 0 and 1024')
@@ -108,6 +110,7 @@ def get_index():
         hashes=hashes,
         ids=ids,
         metadata=metadata,
+        urls_metadata=urls_metadata
     )
 
     base = {

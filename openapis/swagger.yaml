@@ -95,6 +95,11 @@ paths:
       description: ''
       operationId: listEntries
       parameters:
+        - name: urls_metadata
+          in: query
+          description: urls metadata
+          required: false
+          type: string
         - name: metadata
           in: query
           description: metadata in format key:value
