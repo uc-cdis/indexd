@@ -131,9 +131,41 @@ paths:
       parameters:
         - name: metadata
           in: query
-          description: metadata associated with the entry
+          description: metadata in format key:value
           required: false
           type: string
+        - name: size
+          in: query
+          description: object size
+          required: false
+          type: integer
+        - name: hash
+          in: query
+          description: hash in format hash_type:hash_value
+          required: false
+          type: string
+        - name: ids
+          in: query
+          description: |
+            comma delimited ids, when provided,
+            pagination params(start, limit) are not supported
+          required: false
+          type: string
+        - name: urls
+          in: query
+          description: comma delimited urls
+          required: false
+          type: string
+        - name: start
+          in: query
+          description: start did
+          required: false
+          type: string
+        - name: limit
+          in: query
+          description: number of records to return for this page, default to 100
+          required: false
+          type: integer
       produces:
         - application/json
       responses:
@@ -146,6 +178,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/definitions/DID'
+              records:
+                type: array
+                items:
+                  $ref: "#/definitions/OutputInfo"
               size:
                 type: integer
                 format: int64

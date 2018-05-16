@@ -297,7 +297,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             hashes=None,
             file_name=None,
             version=None,
-            metadata=None):
+            metadata=None,
+            ids=None):
         """
         Returns list of records stored by the backend.
         """
@@ -346,9 +347,14 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
             query = query.order_by(IndexRecord.did)
-            query = query.limit(limit)
 
-            return [i.did for i in query]
+            if ids:
+                query = query.filter(IndexRecord.did.in_(ids))
+            else:
+                # only apply limit when ids is not provided
+                query = query.limit(limit)
+
+            return [i.to_document_dict() for i in query]
 
     def get_urls(self, size=None, hashes=None, ids=None, start=0, limit=100):
         """
