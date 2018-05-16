@@ -898,7 +898,7 @@ def migrate_8(session, **kwargs):
     create index on IndexRecord.baseid
     """
     session.execute(
-        "CREATE INDEX {tb}_baseid_idx ON {tb} ( baseid )"
+        "CREATE INDEX ix_{tb}_baseid ON {tb} ( baseid )"
         .format(tb=IndexRecord.__tablename__))
 
 
