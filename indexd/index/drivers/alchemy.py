@@ -505,11 +505,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record = query.one()
             except NoResultFound:
-                by_base = session.query(IndexRecord).filter_by(baseid=did) \
-                    .order_by(IndexRecord.created_date)
-                record = by_base.first()
-                if not record:
-                    raise NoRecordFound('no record found')
+                raise NoRecordFound('no record found')
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
             return record.to_document_dict()

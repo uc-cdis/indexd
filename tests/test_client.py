@@ -88,13 +88,11 @@ def test_index_create(swg_index_client):
 
 
 def test_index_get(swg_index_client):
-    data = get_doc(has_baseid=True)
+    data = get_doc(has_baseid=False)
 
     result = swg_index_client.add_entry(data)
     r = swg_index_client.get_entry(result.did)
-    r2 = swg_index_client.get_entry(result.baseid)
     assert r.did == result.did
-    assert r2.did == result.did
 
 
 def test_delete_and_recreate(swg_index_client):
