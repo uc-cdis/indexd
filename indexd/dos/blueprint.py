@@ -49,7 +49,7 @@ def indexd_to_dos(record):
         "mime_type": ""
     }
 
-    data_object['aliases']: []
+    data_object['aliases'] = []
 
     # parse out checksums
     data_object['checksums'] = []
