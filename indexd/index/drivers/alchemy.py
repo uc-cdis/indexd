@@ -4,7 +4,7 @@ import uuid
 
 from cdislogging import get_logger
 from contextlib import contextmanager
-from sqlalchemy import func, select, and_
+from sqlalchemy import func, select, and_, or_
 from sqlalchemy import String, Column, Integer, BigInteger, DateTime
 from sqlalchemy import ForeignKey, ForeignKeyConstraint, Index
 from sqlalchemy.orm import relationship, sessionmaker
@@ -50,7 +50,7 @@ class IndexRecord(Base):
 
     did = Column(String, primary_key=True)
 
-    baseid = Column(String, ForeignKey('base_version.baseid'))
+    baseid = Column(String, ForeignKey('base_version.baseid'), index=True)
     rev = Column(String)
     form = Column(String)
     size = Column(BigInteger)
@@ -500,18 +500,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             query = session.query(IndexRecord)
-            query = query.filter(IndexRecord.did == did)
+            query = query.filter(
+                or_(IndexRecord.did == did, IndexRecord.baseid == did)
+                ).order_by(IndexRecord.created_date.desc())
 
-            try:
-                record = query.one()
-            except NoResultFound:
-                by_base = session.query(IndexRecord).filter_by(baseid=did) \
-                    .order_by(IndexRecord.created_date)
-                record = by_base.first()
-                if not record:
-                    raise NoRecordFound('no record found')
-            except MultipleResultsFound:
-                raise MultipleRecordsFound('multiple records found')
+            record = query.first()
+            if record is None:
+                raise NoRecordFound('no record found')
             return record.to_document_dict()
 
     def update(self,
@@ -876,15 +871,17 @@ def migrate_5(session, **kwargs):
 
     session.execute(
         "CREATE INDEX {tb}_idx ON {tb} ( did )"
-            .format(tb=IndexRecordUrlMetadata.__tablename__))
+        .format(tb=IndexRecordUrlMetadata.__tablename__))
 
 
 def migrate_6(session, **kwargs):
     pass
 
+
 def migrate_7(session, **kwargs):
     existing_acls = (
-        session.query(IndexRecordMetadata).filter_by(key='acls').yield_per(1000)
+        session.query(IndexRecordMetadata)
+        .filter_by(key='acls').yield_per(1000)
     )
     for metadata in existing_acls:
         acl = metadata.value.split(',')
@@ -896,9 +893,18 @@ def migrate_7(session, **kwargs):
             session.delete(metadata)
 
 
+def migrate_8(session, **kwargs):
+    """
+    create index on IndexRecord.baseid
+    """
+    session.execute(
+        "CREATE INDEX {tb}_baseid_idx ON {tb} ( baseid )"
+        .format(tb=IndexRecord.__tablename__))
+
+
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
 SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_1, migrate_2, migrate_3, migrate_4, migrate_5,
-    migrate_6, migrate_7]
+    migrate_6, migrate_7, migrate_8]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
