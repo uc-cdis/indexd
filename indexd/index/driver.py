@@ -30,7 +30,7 @@ class IndexDriverABC(SQLAlchemyDriverBase):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def hashes_to_urls(self, size, hashes, start=0, limit=100):
+    def get_urls(self, size=None, hashes=None, ids=None, start=0, limit=100):
         '''
         Returns a list of urls matching supplied size and hashes.
         '''
