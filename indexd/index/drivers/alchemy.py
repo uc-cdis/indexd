@@ -356,27 +356,32 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return [i.to_document_dict() for i in query]
 
-    def hashes_to_urls(self, size, hashes, start=0, limit=100):
+    def get_urls(self, size=None, hashes=None, ids=None, start=0, limit=100):
         """
-        Returns a list of urls matching supplied size and hashes.
+        Returns a list of urls matching supplied size/hashes/dids.
         """
+        if not (size or hashes or ids):
+            raise UserError("Please provide size/hashes/ids to filter")
+
         with self.session as session:
             query = session.query(IndexRecordUrl)
 
             query = query.join(IndexRecordUrl.index_record)
-            query = query.filter(IndexRecord.size == size)
+            if size:
+                query = query.filter(IndexRecord.size == size)
+            if hashes:
+                for h, v in hashes.items():
+                    # Select subset that matches given hash.
+                    sub = session.query(IndexRecordHash.did)
+                    sub = sub.filter(and_(
+                        IndexRecordHash.hash_type == h,
+                        IndexRecordHash.hash_value == v,
+                    ))
 
-            for h, v in hashes.items():
-                # Select subset that matches given hash.
-                sub = session.query(IndexRecordHash.did)
-                sub = sub.filter(and_(
-                    IndexRecordHash.hash_type == h,
-                    IndexRecordHash.hash_value == v,
-                ))
-
-                # Filter anything that does not match.
-                query = query.filter(IndexRecordUrl.did.in_(sub.subquery()))
-
+                    # Filter anything that does not match.
+                    query = query.filter(IndexRecordUrl.did.in_(sub.subquery()))
+            if ids:
+                query = query.filter(IndexRecordUrl.did.in_(ids))
             # Remove duplicates.
             query = query.distinct()
 
@@ -384,7 +389,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query = query.offset(start)
             query = query.limit(limit)
 
-            return [r.url for r in query]
+            return [
+                {'url': r.url,
+                 'metadata': {m.key: m.value for m in r.url_metadata}}
+                for r in query
+            ]
 
     def add(self,
             form,
