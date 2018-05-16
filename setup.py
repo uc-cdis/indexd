@@ -11,6 +11,7 @@ setup(
         'indexd.index.drivers',
         'indexd.alias',
         'indexd.alias.drivers',
+        'indexd.dos',
     ],
     package_data={
         'index': [
