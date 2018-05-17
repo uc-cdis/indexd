@@ -5,7 +5,6 @@ from swagger_client.rest import ApiException
 
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 
-
 def get_doc(
         has_metadata=True, has_baseid=False,
         has_urls_metadata=False, has_version=False):
@@ -87,6 +86,12 @@ def test_urls_metadata_partial_match(swg_index_client):
         urls_metadata=json.dumps({"s3://do_not_exist": {"test": "test"}})
     )
     assert len(docs.records) == 0
+
+    with pytest.raises(ApiException) as e:
+        swg_index_client.list_entries(
+            urls_metadata="invalid json."
+        )
+        assert e.status == 400
 
     docs = swg_index_client.list_entries(
         urls_metadata=json.dumps({'s3://endpointurl/': {'state': 'uploaded'}})
