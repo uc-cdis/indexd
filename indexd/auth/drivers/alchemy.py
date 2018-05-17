@@ -6,7 +6,7 @@ from contextlib import contextmanager
 
 from sqlalchemy import String
 from sqlalchemy import Column
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -40,7 +40,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         super(SQLAlchemyAuthDriver, self).__init__(conn, **config)
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
-        self.Session = sessionmaker(bind=self.engine)
+        self.Session = scoped_session(sessionmaker(bind=self.engine))
 
     @property
     @contextmanager
