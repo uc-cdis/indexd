@@ -106,6 +106,16 @@ def test_index_get(swg_index_client):
     assert r.did == result.did
     assert r2.did == result.did
 
+def test_index_get_with_baseid(swg_index_client):
+    data1 = get_doc(has_baseid=True)
+    swg_index_client.add_entry(data1)
+
+    data2 = get_doc(has_baseid=True)
+    r2 = swg_index_client.add_entry(data2)
+
+    r = swg_index_client.get_entry(data1['baseid'])
+    assert r.did == r2.did
+
 
 def test_delete_and_recreate(swg_index_client):
     """
