@@ -102,6 +102,16 @@ def test_urls_metadata_partial_match(swg_index_client):
     assert ids == {r1.did, r2.did}
 
 
+def test_get_urls(swg_index_client, swg_global_client):
+    data = get_doc(has_urls_metadata=True)
+    result = swg_index_client.add_entry(data)
+
+    result = swg_global_client.list_urls(ids=result.did)
+    url = data['urls'][0]
+    assert result.urls[0].url == url
+    assert result.urls[0].metadata == data['urls_metadata'][url]
+
+
 def test_index_create(swg_index_client):
     data = get_doc(has_baseid=True)
 
@@ -120,6 +130,16 @@ def test_index_get(swg_index_client):
     r2 = swg_index_client.get_entry(result.baseid)
     assert r.did == result.did
     assert r2.did == result.did
+
+def test_index_get_with_baseid(swg_index_client):
+    data1 = get_doc(has_baseid=True)
+    swg_index_client.add_entry(data1)
+
+    data2 = get_doc(has_baseid=True)
+    r2 = swg_index_client.add_entry(data2)
+
+    r = swg_index_client.get_entry(data1['baseid'])
+    assert r.did == r2.did
 
 
 def test_delete_and_recreate(swg_index_client):
