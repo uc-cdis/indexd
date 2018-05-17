@@ -186,6 +186,7 @@ class IndexRecordMetadata(Base):
         Index('index_record_metadata_idx', 'did'),
     )
 
+
 class IndexRecordUrlMetadata(Base):
     """
     Metadata attached to url
@@ -201,7 +202,6 @@ class IndexRecordUrlMetadata(Base):
                              ['index_record_url.did', 'index_record_url.url']),
         Index('index_record_url_metadata_idx', 'did'),
     )
-
 
 
 class IndexRecordHash(Base):
@@ -298,7 +298,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             file_name=None,
             version=None,
             metadata=None,
-            ids=None):
+            ids=None,
+            urls_metadata=None):
         """
         Returns list of records stored by the backend.
         """
@@ -344,6 +345,20 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                             IndexRecordMetadata.key == k,
                             IndexRecordMetadata.value == v,
                         ))
+                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
+
+            if urls_metadata is not None and urls_metadata:
+                query = query.join(IndexRecord.urls).join(IndexRecordUrl.url_metadata)
+                for url_key, url_dict in urls_metadata.items():
+                    query = query.filter(IndexRecordUrlMetadata.url.contains(url_key))
+                    for k, v in url_dict.items():
+                        sub = session.query(IndexRecordUrlMetadata.did)
+                        sub = sub.filter(
+                            and_(
+                                IndexRecordUrlMetadata.key == k,
+                                IndexRecordUrlMetadata.value == v
+                            )
+                        )
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
             query = query.order_by(IndexRecord.did)

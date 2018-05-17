@@ -129,6 +129,14 @@ paths:
       description: ''
       operationId: listEntries
       parameters:
+        - name: urls_metadata
+          in: query
+          description: |
+            urls_metadata in json string format as {url_key: {key: value}, ...}
+            check doc.url_metadata has key that contains substring url_key
+            and regular filter on key: value
+          required: false
+          type: string
         - name: metadata
           in: query
           description: metadata in format key:value
