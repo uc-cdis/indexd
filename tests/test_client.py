@@ -466,3 +466,12 @@ def test_bad_hashes(client, user, typ, h):
         assert 'is not valid' in json_resp['error']
     else:
         assert 'does not match' in json_resp['error']
+
+def test_dos_get(swg_index_client, swg_dos_client):
+    data = get_doc(has_baseid=True)
+
+    result = swg_index_client.add_entry(data)
+    r = swg_dos_client.get_data_object(result.did)
+    r2 = swg_dos_client.get_data_object(result.baseid)
+    assert r.did == result.did
+    assert r2.did == result.did

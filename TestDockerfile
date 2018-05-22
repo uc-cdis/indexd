@@ -32,4 +32,4 @@ COPY . /indexd
 RUN java -jar /swagger-codegen-cli-2.3.1.jar generate -i openapis/swagger.yaml -l python -o swagger_client \
   && cd swagger_client; python setup.py install; cd .. \
   && python setup.py install --force \
-  && pwd && py.test -vv tests swagger_client/test
+  && pwd && py.test -vv tests
