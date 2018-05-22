@@ -17,4 +17,4 @@ install:
     - "python setup.py install --force"
     - "pip install -r test-requirements.txt"
 
-script: "py.test -vv tests"
+script: "py.test -vv tests swagger_client/test"
