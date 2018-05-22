@@ -468,10 +468,16 @@ def test_bad_hashes(client, user, typ, h):
         assert 'does not match' in json_resp['error']
 
 def test_dos_get(swg_index_client, swg_dos_client):
-    data = get_doc(has_baseid=True)
+    data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
     result = swg_index_client.add_entry(data)
     r = swg_dos_client.get_data_object(result.did)
+    assert r.data_object.id == result.did
+    assert r.data_object.size == "123"
+    assert r.data_object.checksums[0].checksum == "8b9942cf415384b27cadf1f4d2d682e5"
+    assert r.data_object.checksums[0].type == "md5"
+    assert r.data_object.urls[0].url == "s3://endpointurl/bucket/key"
+    assert r.data_object.urls[0].user_metadata['file_state'] == "uploaded"
+    assert r.data_object.urls[0].system_metadata['project_id'] == "bpa-UChicago"
     r2 = swg_dos_client.get_data_object(result.baseid)
-    assert r.did == result.did
-    assert r2.did == result.did
+    assert r2.data_object.id == result.did

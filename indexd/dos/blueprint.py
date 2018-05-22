@@ -14,6 +14,7 @@ blueprint = flask.Blueprint('dos', __name__)
 blueprint.config = dict()
 blueprint.index_driver = None
 blueprint.alias_driver = None
+blueprint.dist = []
 
 @blueprint.route('/ga4gh/dos/v1/dataobjects/<path:record>', methods=['GET'])
 def get_dos_record(record):
@@ -60,12 +61,16 @@ def indexd_to_dos(record):
     # parse out the urls
     data_object['urls'] = []
     for url in record['urls']:
-        data_object['urls'].append({
-            'url': url,
-            'system_metadata': None,
-            'user_metadata': record['metadata']})
+        url_object = {
+            'url': url }
+        if 'metadata' in record and record['metadata']:
+           url_object['system_metadata'] = record['metadata']
+        if 'urls_metadata' in record and url in record['urls_metadata'] and record['urls_metadata'][url]:
+            url_object['user_metadata'] = record['urls_metadata'][url]
+        data_object['urls'].append(url_object)
 
-    return data_object
+    result = { "data_object": data_object }
+    return result
 
 
 @blueprint.errorhandler(UserError)
@@ -94,3 +99,5 @@ def get_config(setup_state):
     alias_config = setup_state.app.config['ALIAS']
     blueprint.index_driver = index_config['driver']
     blueprint.alias_driver = alias_config['driver']
+    if 'DIST' in setup_state.app.config:
+        blueprint.dist = setup_state.app.config['DIST']
