@@ -377,7 +377,7 @@ paths:
         - name: hash
           in: query
           required: false
-          format: string
+          type: string
       responses:
         '200':
           description: successful operation
@@ -613,8 +613,6 @@ securityDefinitions:
       'read:index': read any entry from the index
   basic_auth:
     type: basic
-    name: basic_auth
-    in: header
 definitions:
   HashInfo:
     type: object
@@ -958,6 +956,68 @@ definitions:
           These aliases can be used to represent the Data Object's location in
           a directory (e.g. "bucket/folder/file.name") to make Data Objects
           more discoverable. They might also be used to represent
+  ListDataObjectsRequest:
+    type: object
+    properties:
+      alias:
+        type: string
+        description: |-
+          OPTIONAL
+          If provided will only return Data Objects with the given alias.
+      url:
+        type: string
+        description: |-
+          OPTIONAL
+          If provided will return only Data Objects with a that URL matches
+          this string.
+      checksum:
+        $ref: '#/definitions/ChecksumRequest'
+        description: |-
+          OPTIONAL
+          If provided will only return data object messages with the provided
+          checksum. If the checksum type is provided
+      page_size:
+        type: integer
+        format: int32
+        description: |-
+          OPTIONAL
+          Specifies the maximum number of results to return in a single page.
+          If unspecified, a system default will be used.
+      page_token:
+        type: string
+        description: |-
+          OPTIONAL
+          The continuation token, which is used to page through large result sets.
+          To get the next page of results, set this parameter to the value of
+          `next_page_token` from the previous response.
+    description: |-
+      Allows a requester to list and filter Data Objects. Only Data Objects
+      matching all of the requested parameters will be returned.
+  ListDataObjectsResponse:
+    type: object
+    properties:
+      data_objects:
+        type: array
+        items:
+          $ref: '#/definitions/DataObject'
+        description: The list of Data Objects.
+      next_page_token:
+        type: string
+        description: |-
+          The continuation token, which is used to page through large result sets.
+          Provide this value in a subsequent request to return the next page of
+          results. This field will be empty if there aren't any additional results.
+    description:  |-
+      A list of Data Objects matching the requested parameters, and a paging
+      token, that can be used to retrieve more results.
+  GetDataObjectResponse:
+    type: object
+    properties:
+      data_object:
+        $ref: '#/definitions/DataObject'
+        description: |-
+          REQUIRED
+          The Data Object that coincides with a specific GetDataObjectRequest.
   URL:
     type: object
     properties:
@@ -997,6 +1057,25 @@ definitions:
           OPTIONAL
           The digest method used to create the checksum. If left unspecified md5
           will be assumed.
+          possible values:
+          md5                # most blob stores provide a checksum using this
+          multipart-md5      # multipart uploads provide a specialized tag in S3
+          sha256
+          sha512
+  ChecksumRequest:
+    type: object
+    properties:
+      checksum:
+        type: string
+        description: |-
+          REQUIRED
+          The hexlified checksum that one would like to match on.
+      type:
+        type: string
+        description: |-
+          OPTIONAL
+          If provided will restrict responses to those that match the provided
+          type.
           possible values:
           md5                # most blob stores provide a checksum using this
           multipart-md5      # multipart uploads provide a specialized tag in S3

@@ -1,7 +1,6 @@
 import codecs
 import json
 import sys
-from fnmatch import fnmatch
 
 import swagger_spec_validator.util
 import yaml
@@ -10,7 +9,7 @@ from swagger_spec_validator.common import SwaggerValidationError
 def test_valid_openapi():
   filename = 'openapis/swagger.yaml'
   with codecs.open(filename, encoding='utf-8') as f:
-    url = filename + '#'
+    url = 'file://' + filename + '#'
     spec = yaml.safe_load(f)
     if not isinstance(spec, dict):
       raise SwaggerValidationError('root node is not a mapping')
