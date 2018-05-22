@@ -31,6 +31,8 @@ tags:
     externalDocs:
       description: Find out more
       url: 'https://github.com/uc-cdis/indexd'
+  - name: DOS
+    description: 'Data Object Service Retrieval Endpoints'
   - name: system
     description: System endpoints
 schemes:
@@ -532,6 +534,75 @@ paths:
           description: successful operation
           schema:
             $ref: '#/definitions/SystemStatsOutputRef'
+  /ga4gh/dos/v1/dataobjects/list:
+    post:
+      summary: List the Data Objects
+      operationId: ListDataObjects
+      responses:
+        '200':
+          description: The Data Objects were listed successfully.
+          schema:
+            $ref: '#/definitions/ListDataObjectsResponse'
+        '400':
+          description: The request is malformed.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: The request is unauthorized.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: The requester is not authorized to perform this action.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: An unexpected error occurred.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ListDataObjectsRequest'
+      tags:
+        - DOS
+  '/ga4gh/dos/v1/dataobjects/{DID}':
+    get:
+      summary: Retrieve a Data Object
+      operationId: GetDataObject
+      responses:
+        '200':
+          description: The Data Object was found successfully.
+          schema:
+            $ref: '#/definitions/GetDataObjectResponse'
+        '400':
+          description: The request is malformed.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: The request is unauthorized.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: The requested Data Object wasn't found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: The requester is not authorized to perform this action.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: An unexpected error occurred.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      parameters:
+        - name: DID
+          in: path
+          required: true
+          type: string
+      tags:
+        - DOS
 securityDefinitions:
   cdis_auth:
     type: oauth2
@@ -815,6 +886,133 @@ definitions:
       totalFileSize:
         type: integer
         description: the accumulated size of the object files recorded in IndexD
+  DataObject:
+    type: object
+    properties:
+      id:
+        type: string
+        description: |-
+          REQUIRED
+          An identifier unique to this Data Object.
+      name:
+        type: string
+        description: |-
+          OPTIONAL
+          A string that can be optionally used to name a Data Object.
+      size:
+        type: string
+        format: int64
+        description: |-
+          REQUIRED
+          The computed size in bytes.
+      created:
+        type: string
+        format: date-time
+        description: |-
+          REQUIRED
+          Timestamp of object creation in RFC3339.
+      updated:
+        type: string
+        format: date-time
+        description: |-
+          OPTIONAL
+          Timestamp of update in RFC3339, identical to create timestamp in systems
+          that do not support updates.
+      version:
+        type: string
+        description: |-
+          OPTIONAL
+          A string representing a version.
+      mime_type:
+        type: string
+        description: |-
+          OPTIONAL
+          A string providing the mime-type of the Data Object.
+          For example, "application/json".
+      checksums:
+        type: array
+        items:
+          $ref: '#/definitions/Checksum'
+        description: |-
+          REQUIRED
+          The checksum of the Data Object. At least one checksum must be provided.
+      urls:
+        type: array
+        items:
+          $ref: '#/definitions/URL'
+        description: |-
+          OPTIONAL
+          The list of URLs that can be used to access the Data Object.
+      description:
+        type: string
+        description: |-
+          OPTIONAL
+          A human readable description of the contents of the Data Object.
+      aliases:
+        type: array
+        items:
+          type: string
+        description: |-
+          OPTIONAL
+          A list of strings that can be used to find this Data Object.
+          These aliases can be used to represent the Data Object's location in
+          a directory (e.g. "bucket/folder/file.name") to make Data Objects
+          more discoverable. They might also be used to represent
+  URL:
+    type: object
+    properties:
+      url:
+        type: string
+        description: |-
+          REQUIRED
+          A URL that can be used to access the file.
+      system_metadata:
+        $ref: '#/definitions/SystemMetadata'
+      user_metadata:
+        $ref: '#/definitions/UserMetadata'
+  SystemMetadata:
+    type: object
+    additionalProperties: true
+    description: |-
+            OPTIONAL
+            These values are reported by the underlying object store.
+            A set of key-value pairs that represent system metadata about the object.
+  UserMetadata:
+    type: object
+    additionalProperties: true
+    description: |-
+            OPTIONAL
+            A set of key-value pairs that represent metadata provided by the uploader.
+  Checksum:
+    type: object
+    properties:
+      checksum:
+        type: string
+        description: |-
+          REQUIRED
+          The hex-string encoded checksum for the Data.
+      type:
+        type: string
+        description: |-
+          OPTIONAL
+          The digest method used to create the checksum. If left unspecified md5
+          will be assumed.
+          possible values:
+          md5                # most blob stores provide a checksum using this
+          multipart-md5      # multipart uploads provide a specialized tag in S3
+          sha256
+          sha512
+  ErrorResponse:
+    description:
+      An object that can optionally include information about the error.
+    type: object
+    properties:
+      msg:
+        type: string
+        description: A detailed error message.
+      status_code:
+        type: integer
+        description: The integer representing the HTTP status code (e.g. 200, 404).
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'
