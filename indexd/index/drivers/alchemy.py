@@ -433,7 +433,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             else:
                 new_did = str(uuid.uuid4())
                 if self.config.get('PREPEND_PREFIX'):
-                    new_did = self.config['DEFAULT_PREFIX'] + newdid
+                    new_did = self.config['DEFAULT_PREFIX'] + new_did
                 record.did = new_did
 
             record.rev = str(uuid.uuid4())[:8]
