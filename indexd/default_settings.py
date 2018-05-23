@@ -11,7 +11,8 @@ CONFIG['INDEX'] = {
     'driver':  SQLAlchemyIndexDriver(
         'sqlite:///index.sq3', auto_migrate=AUTO_MIGRATE,
         index_config={
-            'DEFAULT_PREFIX': 'testprefix:', 'ADD_PREFIX_ALIAS': True}
+            'DEFAULT_PREFIX': 'testprefix:', 'ADD_PREFIX_ALIAS': True,
+            'PREPEND_PREFIX': True}
     ),
 }
 

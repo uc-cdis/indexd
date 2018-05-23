@@ -428,7 +428,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.file_name = file_name
             record.version = version
 
-            record.did = did or str(uuid.uuid4())
+            if did:
+                record.did = did
+            else:
+                new_did = str(uuid.uuid4())
+                if self.config.get('PREPEND_PREFIX'):
+                    new_did = self.config['DEFAULT_PREFIX'] + newdid
+                record.did = new_did
 
             record.rev = str(uuid.uuid4())[:8]
 
@@ -492,6 +498,20 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
             return record.to_document_dict()
+
+    def get_aliases_for_did(self, did):
+        """
+        Gets the aliases for a did
+        """
+        with self.session as session:
+            try:
+                query = (
+                    session.query(IndexRecordAlias)
+                    .filter(IndexRecordAlias.did == did)
+                )
+            except NoResultFound:
+                return []
+        return [i.name for i in query]
 
     def get(self, did):
         """

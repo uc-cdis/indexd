@@ -25,9 +25,11 @@ def get_dos_record(record):
 
     try:
         ret = blueprint.index_driver.get(record)
+        ret['alias'] = blueprint.index_driver.get_aliases_for_did(record)
     except IndexNoRecordFound:
         try:
             ret = blueprint.index_driver.get_by_alias(record)
+            ret['alias'] = blueprint.index_driver.get_aliases_for_did(ret['did'])
         except IndexNoRecordFound:
             try:
                 ret = blueprint.alias_driver.get(record)
@@ -37,6 +39,47 @@ def get_dos_record(record):
                 ret = dist_get_record(record)
 
     return flask.jsonify(indexd_to_dos(ret)), 200
+
+@blueprint.route('/ga4gh/dos/v1/dataobjects/list', methods=['POST'])
+def list_dos_records():
+    '''
+    Returns a record from the local ids, alias, or global resolvers.
+    Returns DOS Schema
+    '''
+    start = flask.request.json.get('page_token')
+    limit = flask.request.json.get('page_size')
+
+    try:
+        limit = 100 if limit is None else int(limit)
+    except ValueError as err:
+        raise UserError('limit must be an integer')
+
+    if limit <= 0 or limit > 1024:
+        raise UserError('limit must be between 1 and 1024')
+
+    url = flask.request.json.get('url')
+    
+    alias = flask.request.json.get('alias')
+
+    checksum = flask.request.json.get('checksum')
+    if checksum:
+        hashes = {checksum['type']: checksum['checksum']}
+    else:
+        hashes = None
+
+    records = blueprint.index_driver.ids(
+        start=start,
+        limit=limit,
+        urls=(url),
+        hashes=hashes
+    )
+
+    for record in records:
+        record['alias'] = blueprint.index_driver.get_aliases_for_did(record['did'])
+
+    ret = {"data_objects": [indexd_to_dos(record)['data_object'] for record in records]}
+
+    return flask.jsonify(ret), 200
 
 def indexd_to_dos(record):
     data_object = {
@@ -50,7 +93,7 @@ def indexd_to_dos(record):
         "mime_type": ""
     }
 
-    data_object['aliases'] = []
+    data_object['aliases'] = record['alias']
 
     # parse out checksums
     data_object['checksums'] = []
