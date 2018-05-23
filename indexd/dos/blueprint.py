@@ -70,7 +70,7 @@ def list_dos_records():
     records = blueprint.index_driver.ids(
         start=start,
         limit=limit,
-        urls=(url),
+        urls=url,
         hashes=hashes
     )
 

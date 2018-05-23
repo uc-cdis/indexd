@@ -1,3 +1,6 @@
+# A dockerfile based on our .travis.yml
+# Useful for running the tests locally 
+# in a self contained environment
 FROM python:2-slim
 
 RUN echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main" | tee /etc/apt/sources.list.d/webupd8team-java.list \
