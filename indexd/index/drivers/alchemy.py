@@ -533,9 +533,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     session.query(IndexRecordAlias)
                     .filter(IndexRecordAlias.did == did)
                 )
+                return [i.name for i in query]
             except NoResultFound:
                 return []
-        return [i.name for i in query]
 
     def get(self, did):
         """
