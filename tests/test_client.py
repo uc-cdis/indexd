@@ -532,7 +532,7 @@ def test_dos_get(swg_index_client, swg_dos_client):
     assert r.data_object.checksums[0].checksum == "8b9942cf415384b27cadf1f4d2d682e5"
     assert r.data_object.checksums[0].type == "md5"
     assert r.data_object.urls[0].url == "s3://endpointurl/bucket/key"
-    assert r.data_object.urls[0].user_metadata['file_state'] == "uploaded"
+    assert r.data_object.urls[0].user_metadata['state'] == "uploaded"
     assert r.data_object.urls[0].system_metadata['project_id'] == "bpa-UChicago"
     r2 = swg_dos_client.get_data_object(result.baseid)
     assert r2.data_object.id == result.did
@@ -548,5 +548,5 @@ def test_dos_list(swg_index_client, swg_dos_client):
     assert r.data_objects[0].checksums[0].checksum == "8b9942cf415384b27cadf1f4d2d682e5"
     assert r.data_objects[0].checksums[0].type == "md5"
     assert r.data_objects[0].urls[0].url == "s3://endpointurl/bucket/key"
-    assert r.data_objects[0].urls[0].user_metadata['file_state'] == "uploaded"
+    assert r.data_objects[0].urls[0].user_metadata['state'] == "uploaded"
     assert r.data_objects[0].urls[0].system_metadata['project_id'] == "bpa-UChicago"
