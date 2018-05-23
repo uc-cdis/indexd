@@ -1,6 +1,4 @@
-import re
 import flask
-import jsonschema
 
 from indexd.blueprint import dist_get_record
 
@@ -51,15 +49,17 @@ def list_dos_records():
 
     try:
         limit = 100 if limit is None else int(limit)
-    except ValueError as err:
+    except ValueError:
         raise UserError('limit must be an integer')
 
     if limit <= 0 or limit > 1024:
         raise UserError('limit must be between 1 and 1024')
 
     url = flask.request.json.get('url')
-    
-    alias = flask.request.json.get('alias')
+
+    # Support this in the future when we have
+    # more fully featured aliases?
+    #alias = flask.request.json.get('alias')
 
     checksum = flask.request.json.get('checksum')
     if checksum:
@@ -127,13 +127,13 @@ def handle_auth_error(err):
     return flask.jsonify(ret), 403
 
 @blueprint.errorhandler(AliasNoRecordFound)
-def handle_no_record_error(err):
+def handle_no_alias_record_error(err):
     ret = { msg: str(err), status_code: 0 }
     return flask.jsonify(ret), 404
 
 @blueprint.errorhandler(IndexNoRecordFound)
-def handle_no_record_error(err):
-    ret = { msg: str(err), status_code: 0 } 
+def handle_no_index_record_error(err):
+    ret = { msg: str(err), status_code: 0 }
     return flask.jsonify(ret), 404
 
 @blueprint.record

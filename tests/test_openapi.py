@@ -1,6 +1,5 @@
 import codecs
 import json
-import sys
 
 import swagger_spec_validator.util
 import yaml
