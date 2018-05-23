@@ -63,6 +63,40 @@ paths:
         '404':
           description: Record not found
       security: []
+  '/urls':
+    get:
+      tags:
+        - global
+      summary: Get a list of urls that match query params
+      description: ''
+      operationId: listUrls
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: size
+          in: query
+          description: object size
+          required: false
+          type: integer
+        - name: hash
+          in: query
+          type: string
+          description: hashes specified as algorithm:value
+        - name: ids
+          in: query
+          type: string
+          description: comma delimited ids
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/UrlOutputRef'
+        '400':
+          description: Invalid input
+      security:
+        - basic_auth: []
   '/index':
     post:
       tags:
@@ -97,6 +131,14 @@ paths:
       description: ''
       operationId: listEntries
       parameters:
+        - name: urls_metadata
+          in: query
+          description: |
+            urls_metadata in json string format as {url_key: {key: value}, ...}
+            check doc.url_metadata has key that contains substring url_key
+            and regular filter on key: value
+          required: false
+          type: string
         - name: metadata
           in: query
           description: metadata in format key:value
@@ -1092,6 +1134,36 @@ definitions:
       status_code:
         type: integer
         description: The integer representing the HTTP status code (e.g. 200, 404).
+  UrlObject:
+    type: object
+    properties:
+      url:
+        type: string
+      metadata:
+        type: object
+  UrlOutputRef:
+    type: object
+    properties:
+      urls:
+        type: array
+        items:
+          $ref: "#/definitions/UrlObject"
+      size:
+        type: integer
+        format: int64
+        description: size in bytes
+      start:
+        type: integer
+        format: int64
+        description: start index for the pagination
+      limit:
+        type: integer
+        format: int64
+        description: number of aliases to return
+      ids:
+        type: array
+        items:
+          type: string
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'

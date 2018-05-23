@@ -5,8 +5,6 @@ from swagger_client.rest import ApiException
 
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 
-from indexd.default_settings import settings
-
 def get_doc(
         has_metadata=True, has_baseid=False,
         has_urls_metadata=False, has_version=False):
@@ -22,7 +20,7 @@ def get_doc(
         doc['baseid'] = 'e044a62c-fd60-4203-b1e5-a62d1005f027'
     if has_urls_metadata:
         doc['urls_metadata'] = {
-            's3://endpointurl/bucket/key': {'file_state': 'uploaded'}}
+            's3://endpointurl/bucket/key': {'state': 'uploaded'}}
     if has_version:
         doc['version'] = '1'
     return doc
@@ -35,10 +33,9 @@ def test_index_list(swg_index_client):
 
 def test_index_list_with_params(swg_index_client):
     data = get_doc()
-
     r_1 = swg_index_client.add_entry(data)
-    data['metadata'] = {'project_id': 'other-project'}
 
+    data['metadata'] = {'project_id': 'other-project'}
     r_2 = swg_index_client.add_entry(data)
 
     r = swg_index_client.list_entries(metadata='project_id:bpa-UChicago')
@@ -77,6 +74,44 @@ def test_urls_metadata(swg_index_client):
     assert doc.urls_metadata == updated['urls_metadata']
 
 
+def test_urls_metadata_partial_match(swg_index_client):
+    data = get_doc(has_urls_metadata=True)
+    r1 = swg_index_client.add_entry(data)
+
+    data['urls'] = ['s3://endpointurl/bucket_2/key_2']
+    data['urls_metadata'] = {'s3://endpointurl/bucket_2/key_2': {'state': 'uploaded'}}
+    r2 = swg_index_client.add_entry(data)
+
+    docs = swg_index_client.list_entries(
+        urls_metadata=json.dumps({"s3://do_not_exist": {"test": "test"}})
+    )
+    assert len(docs.records) == 0
+
+    with pytest.raises(ApiException) as e:
+        swg_index_client.list_entries(
+            urls_metadata="invalid json."
+        )
+        assert e.status == 400
+
+    docs = swg_index_client.list_entries(
+        urls_metadata=json.dumps({'s3://endpointurl/': {'state': 'uploaded'}})
+    )
+    assert len(docs.records) == 2
+
+    ids = {record.did for record in docs.records}
+    assert ids == {r1.did, r2.did}
+
+
+def test_get_urls(swg_index_client, swg_global_client):
+    data = get_doc(has_urls_metadata=True)
+    result = swg_index_client.add_entry(data)
+
+    result = swg_global_client.list_urls(ids=result.did)
+    url = data['urls'][0]
+    assert result.urls[0].url == url
+    assert result.urls[0].metadata == data['urls_metadata'][url]
+
+
 def test_index_create(swg_index_client):
     data = get_doc(has_baseid=True)
 
@@ -85,7 +120,6 @@ def test_index_create(swg_index_client):
     assert result.baseid == data['baseid']
     r = swg_index_client.get_entry(result.did)
     assert r.acl == []
-
 
 
 def test_index_get(swg_index_client):
@@ -97,6 +131,7 @@ def test_index_get(swg_index_client):
     assert r.did == result.did
     assert r2.did == result.did
 
+
 def test_index_prepend_prefix(swg_index_client):
     data = get_doc()
 
@@ -105,6 +140,16 @@ def test_index_prepend_prefix(swg_index_client):
     r = swg_index_client.get_entry(result.did)
     assert r.did == result.did
     assert r.did.startswith('testprefix:')
+
+def test_index_get_with_baseid(swg_index_client):
+    data1 = get_doc(has_baseid=True)
+    swg_index_client.add_entry(data1)
+
+    data2 = get_doc(has_baseid=True)
+    r2 = swg_index_client.add_entry(data2)
+
+    r = swg_index_client.get_entry(data1['baseid'])
+    assert r.did == r2.did
 
 
 def test_delete_and_recreate(swg_index_client):
@@ -238,7 +283,7 @@ def test_index_get_global_endpoint(swg_global_client, swg_index_client):
     assert r.hashes.md5 == data['hashes']['md5']
 
     r2 = swg_global_client.get_entry('testprefix:'+r.did)
-    r2.did == r.did
+    assert r2.did == r.did
 
 
 def test_index_update(swg_index_client):

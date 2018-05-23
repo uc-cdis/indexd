@@ -1,4 +1,5 @@
 import re
+import json
 import flask
 import jsonschema
 import os.path
@@ -75,11 +76,9 @@ def get_index():
     if size is not None and size < 0:
         raise UserError('size must be > 0')
 
-
     urls = flask.request.args.getlist('url')
 
     acl = flask.request.args.getlist('acl')
-
 
     file_name = flask.request.args.get('file_name')
 
@@ -93,6 +92,13 @@ def get_index():
 
     metadata = flask.request.args.getlist('metadata')
     metadata = {k: v for k, v in map(lambda x: x.split(':', 1), metadata)}
+
+    urls_metadata = flask.request.args.get('urls_metadata')
+    if urls_metadata:
+        try:
+            urls_metadata = json.loads(urls_metadata)
+        except ValueError:
+            raise UserError('urls_metadata must be a valid json string')
 
     if limit < 0 or limit > 1024:
         raise UserError('limit must be between 0 and 1024')
@@ -108,6 +114,7 @@ def get_index():
         hashes=hashes,
         ids=ids,
         metadata=metadata,
+        urls_metadata=urls_metadata
     )
 
     base = {
@@ -132,23 +139,28 @@ def get_urls():
     '''
     Returns a list of urls.
     '''
+    ids = flask.request.args.getlist('ids')
     hashes = flask.request.args.getlist('hash')
     hashes = {h: v for h, v in map(lambda x: x.split(':', 1), hashes)}
+    size = flask.request.args.get('size')
+    if size:
+        try:
+            size = int(size)
+        except TypeError:
+            raise UserError('size must be an integer')
 
-    try: size = int(flask.request.args.get('size'))
-    except TypeError as err:
-        raise UserError('size must be an integer')
+        if size < 0:
+            raise UserError('size must be >= 0')
 
-    try: start = int(flask.request.args.get('start', 0))
-    except TypeError as err:
+    try:
+        start = int(flask.request.args.get('start', 0))
+    except TypeError:
         raise UserError('start must be an integer')
 
-    try: limit = int(flask.request.args.get('limit', 100))
-    except TypeError as err:
+    try:
+        limit = int(flask.request.args.get('limit', 100))
+    except TypeError:
         raise UserError('limit must be an integer')
-
-    if size < 0:
-        raise UserError('size must be >= 0')
 
     if start < 0:
         raise UserError('start must be >= 0')
@@ -161,8 +173,9 @@ def get_urls():
 
     validate_hashes(**hashes)
 
-    urls = blueprint.index_driver.hashes_to_urls(
+    urls = blueprint.index_driver.get_urls(
         size=size,
+        ids=ids,
         hashes=hashes,
         start=start,
         limit=limit,

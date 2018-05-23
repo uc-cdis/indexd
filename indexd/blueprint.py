@@ -33,7 +33,7 @@ def get_alias(alias):
     size = info['size']
     hashes = info['hashes']
 
-    urls = blueprint.index_driver.hashes_to_urls(
+    urls = blueprint.index_driver.get_urls(
         size=size,
         hashes=hashes,
         start=start,
