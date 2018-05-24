@@ -91,3 +91,11 @@ swagger-codegen generate -i openapis/swagger.yaml -l python -o swagger_client
 cd swagger_client; python setup.py develop; cd -
 py.test -v tests/
 ```
+
+## Testing with Docker
+
+Doesn't work with all the DB tests yet, but you can adjust to run specific tests as necessary.
+
+```
+docker build -t indexd -f TestDockerfile .
+```

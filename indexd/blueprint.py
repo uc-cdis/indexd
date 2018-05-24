@@ -65,7 +65,7 @@ def get_record(record):
             except AliasNoRecordFound:
                 if not blueprint.dist or 'no_dist' in flask.request.args:
                     raise
-                return dist_get_record(record)
+                ret = dist_get_record(record)
 
 
     return flask.jsonify(ret), 200
@@ -98,7 +98,7 @@ def dist_get_record(record):
                 'host': indexd['host'],
                 'name': indexd['name'],
             }
-            return flask.jsonify(json), 200
+            return json
 
     raise IndexNoRecordFound('no record found')
 
