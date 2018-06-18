@@ -299,7 +299,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             version=None,
             metadata=None,
             ids=None,
-            urls_metadata=None):
+            urls_metadata=None,
+            negate_params=None):
         """
         Returns list of records stored by the backend.
         """
@@ -361,6 +362,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                         )
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
+            if negate_params:
+                query = self._negate_filter(session, query, **negate_params)
+
             query = query.order_by(IndexRecord.did)
 
             if ids:
@@ -370,6 +374,66 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.limit(limit)
 
             return [i.to_document_dict() for i in query]
+
+    @staticmethod
+    def _negate_filter(session,
+                       query,
+                       urls=None,
+                       acl=None,
+                       file_name=None,
+                       version=None,
+                       metadata=None,
+                       urls_metadata=None):
+        if file_name is not None:
+            query = query.filter(IndexRecord.file_name != file_name)
+
+        if version is not None:
+            query = query.filter(IndexRecord.version != version)
+
+        if urls is not None and urls:
+            query = query.join(IndexRecord.urls)
+            for u in urls:
+                query = query.filter(~IndexRecord.url.any(IndexRecordUrl.url == u))
+
+        if acl is not None and acl:
+            query = query.join(IndexRecord.acl)
+            for u in acl:
+                query = query.filter(~IndexRecord.acl.any(IndexRecordACE.ace == u))
+
+        if metadata is not None and metadata:
+            for k, v in metadata.items():
+                if not v:
+                    query = query.filter(~IndexRecord.index_metadata.any(IndexRecordMetadata.key == k))
+                else:
+                    sub = session.query(IndexRecordMetadata.did)
+                    sub = sub.filter(
+                        and_(
+                            IndexRecordMetadata.key == k,
+                            IndexRecordMetadata.value != v
+                        )
+                    )
+                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
+
+        if urls_metadata is not None and urls_metadata:
+            query = query.join(IndexRecord.urls).join(IndexRecordUrl.url_metadata)
+            for url_key, url_dict in urls_metadata.items():
+                if not url_dict:
+                    query = query.filter(~IndexRecordUrlMetadata.url.contains(url_key))
+                else:
+                    query = query.filter(IndexRecordUrlMetadata.url.contains(url_key))
+                    for k, v in url_dict.items():
+                        if not v:
+                            query = query.filter(~IndexRecordUrl.url_metadata.any(IndexRecordUrlMetadata.key == k))
+                        else:
+                            sub = session.query(IndexRecordUrlMetadata.did)
+                            sub = sub.filter(
+                                and_(
+                                    IndexRecordUrlMetadata.key == k,
+                                    IndexRecordUrlMetadata.value != v
+                                )
+                            )
+                            query = query.filter(IndexRecord.did.in_(sub.subquery()))
+        return query
 
     def get_urls(self, size=None, hashes=None, ids=None, start=0, limit=100):
         """

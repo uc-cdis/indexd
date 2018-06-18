@@ -60,6 +60,59 @@ def test_index_list_with_params(swg_index_client):
     assert r_2.did in ids
 
 
+def test_index_list_with_params_negate(swg_index_client):
+    data = get_doc()
+    r_1 = swg_index_client.add_entry(data)
+
+    data['metadata'] = {'testkey': 'test', 'project_id': 'negate-project'}
+    r_2 = swg_index_client.add_entry(data)
+
+    data['urls'] = ['s3://endpointurl/bucket_2/key_2']
+    data['urls_metadata'] = {'s3://endpointurl/bucket_2/key_2': {'state': 'error'}}
+    r_3 = swg_index_client.add_entry(data)
+
+    data['urls'] = ['s3://endpointurl/bucket_2/key_2']
+    data['urls_metadata'] = {'s3://endpointurl/bucket_2/key_2': {'no_state': 'uploaded'}}
+    r_4 = swg_index_client.add_entry(data)
+
+    data['urls'] = ['s3://anotherurl/bucket/key']
+    data['urls_metadata'] = {'s3://anotherurl/bucket/key': {'state': 'error'}}
+    r_5 = swg_index_client.add_entry(data)
+
+    negate_params = {'metadata': {'testkey': ''}}
+    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
+    ids = {record.did for record in r.records}
+    assert {r_1.did} == ids
+
+    negate_params = {'metadata': {'project_id': 'bpa-UChicago'}}
+    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
+    ids = {record.did for record in r.records}
+    assert {r_2.did, r_3.did, r_4.did, r_5.did} == ids
+
+    # negate url key
+    negate_params = {'urls_metadata': {'s3://endpointurl/': {}}}
+    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
+    ids = {record.did for record in r.records}
+    assert ids == {r_5.did}
+
+    negate_params = {'urls_metadata': {'s3://endpointurl/': {}, 's3://anotherurl/': {}}}
+    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
+    ids = {record.did for record in r.records}
+    assert ids == set()
+
+    # negate url_metadata key
+    negate_params = {'urls_metadata': {'s3://endpointurl/': {'state': ''}, 's3://anotherurl/': {}}}
+    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
+    ids = {record.did for record in r.records}
+    assert ids == {r_4.did}
+
+    # negate url_metadata value
+    negate_params = {'urls_metadata': {'s3://endpointurl/': {'state': 'uploaded'}}}
+    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
+    ids = {record.did for record in r.records}
+    assert ids == {r_3.did}
+
+
 def test_urls_metadata(swg_index_client):
     data = get_doc(has_urls_metadata=True)
     result = swg_index_client.add_entry(data)
@@ -96,8 +149,6 @@ def test_urls_metadata_partial_match(swg_index_client):
     docs = swg_index_client.list_entries(
         urls_metadata=json.dumps({'s3://endpointurl/': {'state': 'uploaded'}})
     )
-    assert len(docs.records) == 2
-
     ids = {record.did for record in docs.records}
     assert ids == {r1.did, r2.did}
 
@@ -140,6 +191,7 @@ def test_index_prepend_prefix(swg_index_client):
     r = swg_index_client.get_entry(result.did)
     assert r.did == result.did
     assert r.did.startswith('testprefix:')
+
 
 def test_index_get_with_baseid(swg_index_client):
     data1 = get_doc(has_baseid=True)
