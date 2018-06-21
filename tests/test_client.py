@@ -116,7 +116,7 @@ def test_index_list_with_params_negate(swg_index_client):
     negate_params = {'urls_metadata': {'s3://endpointurl/': {'state': 'uploaded'}}}
     r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
     ids = {record.did for record in r.records}
-    assert ids == {r_3.did}
+    assert ids == {r_3.did, r_4.did, r_5.did}
 
 
 def test_urls_metadata(swg_index_client):

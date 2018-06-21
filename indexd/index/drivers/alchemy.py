@@ -409,10 +409,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     sub = sub.filter(
                         and_(
                             IndexRecordMetadata.key == k,
-                            IndexRecordMetadata.value != v
+                            IndexRecordMetadata.value == v
                         )
                     )
-                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
+                    query = query.filter(~IndexRecord.did.in_(sub.subquery()))
 
         if urls_metadata is not None and urls_metadata:
             query = query.join(IndexRecord.urls).join(IndexRecordUrl.url_metadata)
@@ -420,19 +420,22 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 if not url_dict:
                     query = query.filter(~IndexRecordUrlMetadata.url.contains(url_key))
                 else:
-                    query = query.filter(IndexRecordUrlMetadata.url.contains(url_key))
                     for k, v in url_dict.items():
                         if not v:
-                            query = query.filter(~IndexRecordUrl.url_metadata.any(IndexRecordUrlMetadata.key == k))
+                            query = query.filter(~IndexRecordUrl.url_metadata.any(
+                                and_(IndexRecordUrlMetadata.key == k,
+                                     IndexRecordUrlMetadata.url.contains(url_key)
+                                     ))
+                                )
                         else:
                             sub = session.query(IndexRecordUrlMetadata.did)
                             sub = sub.filter(
                                 and_(
                                     IndexRecordUrlMetadata.key == k,
-                                    IndexRecordUrlMetadata.value != v
+                                    IndexRecordUrlMetadata.value == v
                                 )
                             )
-                            query = query.filter(IndexRecord.did.in_(sub.subquery()))
+                            query = query.filter(~IndexRecord.did.in_(sub.subquery()))
         return query
 
     def get_urls(self, size=None, hashes=None, ids=None, start=0, limit=100):
