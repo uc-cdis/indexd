@@ -393,7 +393,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         if urls is not None and urls:
             query = query.join(IndexRecord.urls)
             for u in urls:
-                query = query.filter(~IndexRecord.url.any(IndexRecordUrl.url == u))
+                query = query.filter(~IndexRecord.urls.any(IndexRecordUrl.url == u))
 
         if acl is not None and acl:
             query = query.join(IndexRecord.acl)

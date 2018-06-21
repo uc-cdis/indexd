@@ -67,7 +67,7 @@ def test_index_list_with_params_negate(swg_index_client):
     data['metadata'] = {'testkey': 'test', 'project_id': 'negate-project'}
     r_2 = swg_index_client.add_entry(data)
 
-    data['urls'] = ['s3://endpointurl/bucket_2/key_2']
+    data['urls'] = ['s3://endpointurl/bucket_2/key_2', 's3://anotherurl/bucket_2/key_2']
     data['urls_metadata'] = {'s3://endpointurl/bucket_2/key_2': {'state': 'error'}}
     r_3 = swg_index_client.add_entry(data)
 
@@ -88,6 +88,12 @@ def test_index_list_with_params_negate(swg_index_client):
     r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
     ids = {record.did for record in r.records}
     assert {r_2.did, r_3.did, r_4.did, r_5.did} == ids
+
+    # negate url
+    negate_params = {'urls': ['s3://endpointurl/bucket_2/key_2']}
+    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
+    ids = {record.did for record in r.records}
+    assert ids == {r_1.did, r_2.did, r_5.did}
 
     # negate url key
     negate_params = {'urls_metadata': {'s3://endpointurl/': {}}}
