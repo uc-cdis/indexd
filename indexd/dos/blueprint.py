@@ -98,7 +98,7 @@ def indexd_to_dos(record):
         data_object['updated'] = record['updated_date']
 
     if 'rev' in record:
-        data_object['version' = record['rev']
+        data_object['version'] = record['rev']
 
     if 'size' in record:
         data_object['size'] = record['size']
