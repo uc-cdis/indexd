@@ -109,7 +109,7 @@ def get_index():
         try:
             negate_params = json.loads(negate_params)
         except ValueError:
-            raise UserError('urls_metadata must be a valid json string')
+            raise UserError('negate_params must be a valid json string')
 
     records = blueprint.index_driver.ids(
         start=start,

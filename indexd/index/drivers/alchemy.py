@@ -384,6 +384,28 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                        version=None,
                        metadata=None,
                        urls_metadata=None):
+        """
+        param_values passed in here will be negated
+
+        for string (version, file_name), filter with value != <value>
+        for list (urls, acl), filter with doc that don't HAS <value>
+        for dict (metadata, urls_metadata). In each (key,value) pair:
+        - if value is None or empty: then filter with key doesn't exist
+        - if value is provided, then filter with value != <value> OR key doesn't exist
+
+        Args:
+            session: db session
+            query: sqlalchemy query
+            urls (list): doc.urls don't have any <url> in the urls list
+            acl (list): doc.acl don't have any <acl> in the acl list
+            file_name (str): doc.file_name != <file_name>
+            version (str): doc.version != <version>
+            metadata (dict): see above for dict
+            urls_metadata (dict): see above for dict
+
+        Returns:
+            Database query
+        """
         if file_name is not None:
             query = query.filter(IndexRecord.file_name != file_name)
 
