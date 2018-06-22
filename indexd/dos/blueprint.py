@@ -84,14 +84,24 @@ def list_dos_records():
 def indexd_to_dos(record):
     data_object = {
         "id": record['did'],
-        "name": record['file_name'],
-        'created': record['created_date'],
-        'updated': record['updated_date'],
-        "size": record['size'],
-        "version": record['rev'],
         "description": "",
         "mime_type": ""
     }
+
+    if 'file_name' in record:
+        data_object['name'] = record['file_name']
+
+    if 'created_date' in record:
+        data_object['created'] = record['created_date']
+
+    if 'updated_date' in record:
+        data_object['updated'] = record['updated_date']
+
+    if 'rev' in record:
+        data_object['version' = record['rev']
+
+    if 'size' in record:
+        data_object['size'] = record['size']
 
     if 'alias' in record:
         data_object['aliases'] = record['alias']
