@@ -360,7 +360,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                                 IndexRecordUrlMetadata.value == v
                             )
                         )
-                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
+                        query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
             if negate_params:
                 query = self._negate_filter(session, query, **negate_params)
@@ -453,6 +453,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                             sub = session.query(IndexRecordUrlMetadata.did)
                             sub = sub.filter(
                                 and_(
+                                    IndexRecordUrlMetadata.url.contains(url_key),
                                     IndexRecordUrlMetadata.key == k,
                                     IndexRecordUrlMetadata.value == v
                                 )
