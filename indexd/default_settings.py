@@ -30,7 +30,7 @@ CONFIG['DIST'] = [
     },
     {
         'name': 'DX DOI',
-        'host': 'https://dx.doi.org/',
+        'host': 'https://doi.org/',
         'hints': ['10\..*'],
         'type': 'doi',
     },
