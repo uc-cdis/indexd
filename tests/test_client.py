@@ -147,6 +147,15 @@ def test_urls_metadata_partial_match(swg_index_client):
     data['urls_metadata'] = {key3: {'state': 'uploaded', 'type': 'ceph'}}
     r3 = swg_index_client.add_entry(data)
 
+    key4 = 's3://endpointurl/bucket_2/key_4'
+    key5 = 's3://endpointurl/bucket_2/key_5'
+    data['urls'] = [key4, key5]
+    data['urls_metadata'] = {
+        key4: {'state': 'validated', 'type': 'ceph'},
+        key5: {'state': 'uploaded', 'type': 'cleversafe'}
+    }
+    r4 = swg_index_client.add_entry(data)
+
     docs = swg_index_client.list_entries(
         urls_metadata=json.dumps({"s3://do_not_exist": {"test": "test"}})
     )
@@ -162,7 +171,7 @@ def test_urls_metadata_partial_match(swg_index_client):
         urls_metadata=json.dumps({'s3://endpointurl/': {'state': 'uploaded'}})
     )
     ids = {record.did for record in docs.records}
-    assert ids == {r1.did, r2.did, r3.did}
+    assert ids == {r1.did, r2.did, r3.did, r4.did}
 
     docs = swg_index_client.list_entries(
         urls_metadata=json.dumps({
@@ -171,6 +180,16 @@ def test_urls_metadata_partial_match(swg_index_client):
     )
     ids = {record.did for record in docs.records}
     assert ids == {r3.did}
+
+    docs = swg_index_client.list_entries(
+        urls_metadata=json.dumps({
+            's3://endpointurl/': {
+                'state': 'validated', 'type': 'ceph'
+            }
+        })
+    )
+    ids = {record.did for record in docs.records}
+    assert ids == {r4.did}
 
 
 def test_get_urls(swg_index_client, swg_global_client):
