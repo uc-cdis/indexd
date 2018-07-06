@@ -348,19 +348,19 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                         ))
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
-            if urls_metadata is not None and urls_metadata:
-                query = query.join(IndexRecord.urls).join(IndexRecordUrl.url_metadata)
+            if urls_metadata:
+                query = query.join(IndexRecord.urls).join(
+                    IndexRecordUrl.url_metadata)
                 for url_key, url_dict in urls_metadata.items():
-                    query = query.filter(IndexRecordUrlMetadata.url.contains(url_key))
+                    query = query.filter(
+                        IndexRecordUrlMetadata.url.contains(url_key))
                     for k, v in url_dict.items():
-                        sub = session.query(IndexRecordUrlMetadata.did)
-                        sub = sub.filter(
+                        query = query.filter(IndexRecordUrl.url_metadata.any(
                             and_(
                                 IndexRecordUrlMetadata.key == k,
                                 IndexRecordUrlMetadata.value == v
                             )
-                        )
-                        query = query.filter(IndexRecord.did.in_(sub.subquery()))
+                        ))
 
             if negate_params:
                 query = self._negate_filter(session, query, **negate_params)
