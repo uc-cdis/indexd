@@ -133,63 +133,71 @@ def test_urls_metadata(swg_index_client):
     assert doc.urls_metadata == updated['urls_metadata']
 
 
-def test_urls_metadata_partial_match(swg_index_client):
-    data = get_doc(has_urls_metadata=True)
-    r1 = swg_index_client.add_entry(data)
+@pytest.mark.parametrize('doc_urls,urls_meta,params,expected', [
+    (
+        [
+            ['s3://endpoint/key_1'], ['s3://endpoint/key_2'],
+            ['s3://endpoint/key_3']
+        ],
+        {
+            's3://endpoint/key_1': {'state': 'uploaded'},
+            's3://endpoint/key_2': {'state': 'validated'},
+            's3://endpoint/key_3': {'state': 'uploaded', 'type': 'ceph'}
+        },
+        {'s3://endpoint': {'state': 'uploaded'}},
+        ['s3://endpoint/key_1', 's3://endpoint/key_3']
+    ),
+    (
+        [['s3://endpoint/key_1'], ['s3://endpoint/key_2']],
+        {
+            's3://endpoint/key_1': {'state': 'uploaded'},
+            's3://endpoint/key_2': {'state': 'validated'},
+        },
+        {'s3://endpoint': {'key': 'nonexistent'}},
+        []
+    ),
+    (
+        [
+            ['s3://endpoint/key_1'],
+            ['s3://endpoint/key_2', 's3://endpoint/key_3'],
+            ['s3://endpoint/key_4']
+        ],
+        {
+            's3://endpoint/key_1': {'state': 'uploaded', 'type': 'cleversafe'},
+            's3://endpoint/key_2': {'state': 'uploaded', 'type': 'ceph'},
+            's3://endpoint/key_3': {'state': 'validated', 'type': 'cleversafe'},
+            's3://endpoint/key_4': {'state': 'uploaded'},
+        },
+        {'s3://endpoint': {'state': 'uploaded', 'type': 'cleversafe'}},
+        ['s3://endpoint/key_1']
+    ),
+    (
+        [['s3://endpoint/key']],
+        {'s3://endpoint/key': {'state': 'whatever'}},
+        {'s3://endpoint': {}},
+        ['s3://endpoint/key']
+    )
+])
+def test_urls_metadata_partial_match(swg_index_client, doc_urls, urls_meta,
+                                     params, expected):
+    url_doc_mapping = {}
+    for url_group in doc_urls:
+        data = get_doc(has_urls_metadata=True)
+        data['urls'] = url_group
+        data['urls_metadata'] = {}
+        for url in url_group:
+            data['urls_metadata'][url] = urls_meta[url]
 
-    key1 = 's3://endpointurl/bucket_2/key_2'
-    data['urls'] = [key1]
-    data['urls_metadata'] = {key1: {'state': 'uploaded', 'type': 'cleversafe'}}
-    r2 = swg_index_client.add_entry(data)
-
-    key3 = 's3://endpointurl/bucket_2/key_3'
-    data['urls'] = [key3]
-    data['urls_metadata'] = {key3: {'state': 'uploaded', 'type': 'ceph'}}
-    r3 = swg_index_client.add_entry(data)
-
-    key4 = 's3://endpointurl/bucket_2/key_4'
-    key5 = 's3://endpointurl/bucket_2/key_5'
-    data['urls'] = [key4, key5]
-    data['urls_metadata'] = {
-        key4: {'state': 'validated', 'type': 'ceph'},
-        key5: {'state': 'uploaded', 'type': 'cleversafe'}
-    }
-    r4 = swg_index_client.add_entry(data)
+        record = swg_index_client.add_entry(data)
+        for url in url_group:
+            url_doc_mapping[url] = record
 
     docs = swg_index_client.list_entries(
-        urls_metadata=json.dumps({"s3://do_not_exist": {"test": "test"}})
+        urls_metadata=json.dumps(params)
     )
-    assert len(docs.records) == 0
 
-    with pytest.raises(ApiException) as e:
-        swg_index_client.list_entries(
-            urls_metadata="invalid json."
-        )
-        assert e.status == 400
-
-    docs = swg_index_client.list_entries(
-        urls_metadata=json.dumps({'s3://endpointurl/': {'state': 'uploaded'}})
-    )
-    ids = {record.did for record in docs.records}
-    assert ids == {r1.did, r2.did, r3.did, r4.did}
-
-    docs = swg_index_client.list_entries(
-        urls_metadata=json.dumps({
-            's3://endpointurl/': {'state': 'uploaded', 'type': 'ceph'}
-        })
-    )
-    ids = {record.did for record in docs.records}
-    assert ids == {r3.did}
-
-    docs = swg_index_client.list_entries(
-        urls_metadata=json.dumps({
-            's3://endpointurl/': {
-                'state': 'validated', 'type': 'ceph'
-            }
-        })
-    )
-    ids = {record.did for record in docs.records}
-    assert ids == {r4.did}
+    ids = {r.did for r in docs.records}
+    assert ids == {url_doc_mapping[url].did for url in expected}
 
 
 def test_get_urls(swg_index_client, swg_global_client):
