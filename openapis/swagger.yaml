@@ -166,6 +166,18 @@ paths:
           description: comma delimited urls
           required: false
           type: string
+        - name: negate_params
+          in: query
+          description: |
+            All the negate params go in here as the same format with regular params:
+            pass a Document as a json string with all the negated values.
+            For string (version, file_name), filter with value != <value>
+            For list (urls, acl), filter with doc that don't HAS <value>
+            For dict (metadata, urls_metadata). In each (key,value) pair:
+            - if value is None or empty: then filter with key doesn't exist
+            - if value is provided, then filter with value != <value> OR key doesn't exist
+          required: false
+          type: string
         - name: start
           in: query
           description: start did
