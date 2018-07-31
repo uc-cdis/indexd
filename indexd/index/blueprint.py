@@ -76,6 +76,7 @@ def get_index():
     if size is not None and size < 0:
         raise UserError('size must be > 0')
 
+    # TODO: Based on indexclient, url here should be urls instead. Or change urls to url in indexclient.
     urls = flask.request.args.getlist('url')
 
     acl = flask.request.args.getlist('acl')
@@ -103,6 +104,13 @@ def get_index():
     if limit < 0 or limit > 1024:
         raise UserError('limit must be between 0 and 1024')
 
+    negate_params = flask.request.args.get('negate_params')
+    if negate_params:
+        try:
+            negate_params = json.loads(negate_params)
+        except ValueError:
+            raise UserError('negate_params must be a valid json string')
+
     records = blueprint.index_driver.ids(
         start=start,
         limit=limit,
@@ -114,7 +122,8 @@ def get_index():
         hashes=hashes,
         ids=ids,
         metadata=metadata,
-        urls_metadata=urls_metadata
+        urls_metadata=urls_metadata,
+        negate_params=negate_params
     )
 
     base = {
