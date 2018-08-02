@@ -640,15 +640,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise NoRecordFound('no record found')
             return record.to_document_dict()
 
-    def update(self,
-               did, rev, urls=None, acl=None, file_name=None,
-               version=None, metadata=None, urls_metadata=None):
+    def update(self, did, rev, changing_fields):
         """
         Updates an existing record with new values.
         """
         with self.session as session:
-            query = session.query(IndexRecord)
-            query = query.filter(IndexRecord.did == did)
+            query = session.query(IndexRecord).filter(IndexRecord.did == did)
 
             try:
                 record = query.one()
@@ -660,45 +657,48 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
 
-            if urls is not None:
-                for url in record.urls:
-                    session.delete(url)
+            for key, value in changing_fields.items():
+                if key == 'urls':
+                    for url in record.urls:
+                        session.delete(url)
 
-                record.urls = [IndexRecordUrl(
-                    did=record.did,
-                    url=url
-                ) for url in urls]
+                    record.urls = [
+                        IndexRecordUrl(did=record.did, url=url)
+                        for url in value
+                    ]
 
-            if acl is not None:
-                for ace in record.acl:
-                    session.delete(ace)
+                elif key == 'acl':
+                    for ace in record.acl:
+                        session.delete(ace)
 
-                record.acl = [IndexRecordACE(
-                    did=record.did,
-                    ace=ace
-                ) for ace in acl]
+                    record.acl = [
+                        IndexRecordACE(did=record.did,ace=ace)
+                        for ace in value
+                    ]
 
-            if metadata is not None:
-                for md_record in record.index_metadata:
-                    session.delete(md_record)
+                elif key == 'metadata':
+                    for md_record in record.index_metadata:
+                        session.delete(md_record)
 
-                record.index_metadata = [IndexRecordMetadata(
-                    did=record.did,
-                    key=m_key,
-                    value=m_value
-                ) for m_key, m_value in metadata.items()]
+                    record.index_metadata = [
+                        IndexRecordMetadata(
+                            did=record.did,
+                            key=m_key,
+                            value=m_value
+                        )
+                        for m_key, m_value in value.items()]
 
-            if urls_metadata is not None:
-                for url in record.urls:
-                    for url_metadata in url.url_metadata:
-                        session.delete(url_metadata)
+                elif key == 'urls_metadata':
+                    for url in record.urls:
+                        for url_metadata in url.url_metadata:
+                            session.delete(url_metadata)
 
-                create_urls_metadata(urls_metadata, record, session)
+                    create_urls_metadata(value, record, session)
 
-            if file_name is not None:
-                record.file_name = file_name
-
-            record.version = version
+                # No special logic needed for other updates.
+                # ie file_name, version, etc
+                else:
+                    setattr(record, key, value)
 
             record.rev = str(uuid.uuid4())[:8]
 

@@ -54,9 +54,7 @@ class IndexDriverABC(SQLAlchemyDriverBase):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def update(self,
-               did, rev, urls=None, file_name=None,
-               urls_metadata=None, version=None, metadata=None):
+    def update(self, did, rev, changing_fields):
         '''
         Updates record with new values.
         '''

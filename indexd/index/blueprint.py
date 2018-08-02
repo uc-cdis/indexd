@@ -262,31 +262,19 @@ def post_index_record():
 @blueprint.route('/index/<path:record>', methods=['PUT'])
 @authorize
 def put_index_record(record):
-    '''
+    """
     Update an existing record.
-    '''
+    """
     try:
         jsonschema.validate(flask.request.json, PUT_RECORD_SCHEMA)
     except jsonschema.ValidationError as err:
         raise UserError(err)
-
     rev = flask.request.args.get('rev')
-    file_name = flask.request.json.get('file_name')
-    version = flask.request.json.get('version')
-    urls = flask.request.json.get('urls')
-    acl = flask.request.json.get('acl')
-    metadata = flask.request.json.get('metadata')
-    urls_metadata = flask.request.json.get('urls_metadata')
 
     did, baseid, rev = blueprint.index_driver.update(
         record,
         rev,
-        file_name=file_name,
-        version=version,
-        urls=urls,
-        acl=acl,
-        metadata=metadata,
-        urls_metadata=urls_metadata,
+        flask.request.json,
     )
 
     ret = {
