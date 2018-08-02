@@ -698,8 +698,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if file_name is not None:
                 record.file_name = file_name
 
-            if version is not None:
-                record.version = version
+            record.version = version
 
             record.rev = str(uuid.uuid4())[:8]
 
