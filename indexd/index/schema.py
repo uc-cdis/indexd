@@ -144,7 +144,7 @@ PUT_RECORD_SCHEMA = {
         "type": "string"
     },
     "version": {
-        "type": "string"
+        "type": ["string", "null"]
     },
     "metadata": {
         "type": "object"
@@ -152,9 +152,5 @@ PUT_RECORD_SCHEMA = {
     "urls_metadata": {
         "type": "object"
     },
-    "rev": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{8}$",
-     },
   }
 }
