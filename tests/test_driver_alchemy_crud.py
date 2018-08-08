@@ -558,12 +558,13 @@ def test_driver_update_record():
         file_name = 'test'
         version = 'ver_123'
 
-        driver.update(
-            did, rev,
-            urls=update_urls,
-            file_name=file_name,
-            version=version
-        )
+        changing_fields = {
+            'urls': update_urls,
+            'file_name': file_name,
+            'version': version,
+        }
+
+        driver.update(did, rev, changing_fields)
 
         new_did, new_rev, new_file_name, new_version = conn.execute('''
             SELECT did, rev, file_name, version FROM index_record
