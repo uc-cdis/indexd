@@ -649,3 +649,36 @@ def test_dos_list(swg_index_client, swg_dos_client):
     assert r.data_objects[0].urls[0].url == "s3://endpointurl/bucket/key"
     assert r.data_objects[0].urls[0].user_metadata['state'] == "uploaded"
     assert r.data_objects[0].urls[0].system_metadata['project_id'] == "bpa-UChicago"
+
+
+def test_update_without_changing_fields(swg_index_client):
+    # setup test
+    data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
+
+    result = swg_index_client.add_entry(data)
+    first_doc = swg_index_client.get_entry(result.did)
+
+    # update
+    updated = {'version': 'at least 2'}
+    swg_index_client.update_entry(first_doc.did, rev=first_doc.rev, body=updated)
+
+    # Check if update successful.
+    second_doc = swg_index_client.get_entry(first_doc.did)
+    # Only `version` changed.
+    assert first_doc.version != second_doc.version
+
+    # The rest is the same.
+    assert first_doc.urls == second_doc.urls
+    assert first_doc.size == second_doc.size
+    assert first_doc.file_name == second_doc.file_name
+    assert first_doc.metadata == second_doc.metadata
+
+    # Change `version` to null.
+    # update
+    updated = {'version': None}
+    swg_index_client.update_entry(second_doc.did, rev=second_doc.rev, body=updated)
+
+    # check if update successful
+    third_doc = swg_index_client.get_entry(result.did)
+    # Only `version` changed.
+    assert second_doc.version != third_doc.version
