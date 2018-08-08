@@ -211,7 +211,7 @@ class IndexRecordHash(Base):
     __tablename__ = 'index_record_hash'
 
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
-    hash_type = Column(String)
+    hash_type = Column(String, primary_key=True)
     hash_value = Column(String)
     __table_args__ = (
         Index('index_record_hash_idx', 'did'),
