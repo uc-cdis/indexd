@@ -53,7 +53,7 @@ class IndexRecord(Base):
     baseid = Column(String, ForeignKey('base_version.baseid'), index=True)
     rev = Column(String)
     form = Column(String)
-    size = Column(BigInteger)
+    size = Column(BigInteger, index=True)
     created_date = Column(DateTime, default=datetime.datetime.utcnow)
     updated_date = Column(DateTime, default=datetime.datetime.utcnow)
     file_name = Column(String, index=True)
@@ -211,10 +211,11 @@ class IndexRecordHash(Base):
     __tablename__ = 'index_record_hash'
 
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
-    hash_type = Column(String, primary_key=True)
+    hash_type = Column(String)
     hash_value = Column(String)
     __table_args__ = (
         Index('index_record_hash_idx', 'did'),
+        Index('index_record_hash_type_value_idx', 'hash_value', 'hash_type'),
     )
 
 
@@ -1031,10 +1032,23 @@ def migrate_8(session, **kwargs):
         "CREATE INDEX ix_{tb}_baseid ON {tb} ( baseid )"
         .format(tb=IndexRecord.__tablename__))
 
+def migrate_9(session, **kwargs):
+    """
+    create index on IndexRecordHash.hash_value
+    create index on IndexRecord.size
+    """
+    session.execute(
+        "CREATE INDEX ix_{tb}_size ON {tb} ( size )"
+        .format(tb=IndexRecord.__tablename__))
+
+    session.execute(
+        "CREATE INDEX index_record_hash_type_value_idx ON {tb} ( hash_value, hash_type )"
+        .format(tb=IndexRecordHash.__tablename__))
+
 
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
 SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_1, migrate_2, migrate_3, migrate_4, migrate_5,
-    migrate_6, migrate_7, migrate_8]
+    migrate_6, migrate_7, migrate_8, migrate_9]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
