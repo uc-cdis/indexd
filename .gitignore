@@ -65,3 +65,6 @@ docs/_build/
 local_settings.py
 settings.yaml
 *.sq3
+
+# swagger
+swagger-codegen-cli-2.3.1.jar

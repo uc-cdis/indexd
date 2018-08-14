@@ -3,6 +3,7 @@ import pytest
 
 import tests.util as util
 
+from indexd.bulk.blueprint import blueprint as indexd_bulk_blueprint
 from indexd.index.blueprint import blueprint as indexd_index_blueprint
 from indexd.alias.blueprint import blueprint as indexd_alias_blueprint
 
@@ -32,6 +33,7 @@ def test_flask_blueprint():
     app.config['ALIAS'] = ALIAS_CONFIG
     app.config['DIST'] = []
 
+    app.register_blueprint(indexd_bulk_blueprint)
     app.register_blueprint(indexd_index_blueprint)
     app.register_blueprint(indexd_alias_blueprint)
 
