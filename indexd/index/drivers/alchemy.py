@@ -1,22 +1,41 @@
 import datetime
-from future.utils import iteritems
 import uuid
+from contextlib import contextmanager
 
 from cdislogging import get_logger
-from contextlib import contextmanager
-from sqlalchemy import func, select, and_, or_
-from sqlalchemy import String, Column, Integer, BigInteger, DateTime
-from sqlalchemy import ForeignKey, ForeignKeyConstraint, Index
-from sqlalchemy.orm import relationship, sessionmaker
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from future.utils import iteritems
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    String,
+    and_,
+    func,
+    or_,
+    select,
+)
+from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.exc import IntegrityError
-from indexd.index.driver import IndexDriverABC
-from indexd.index.errors import NoRecordFound, MultipleRecordsFound, \
-    RevisionMismatch, UnhealthyCheck
+from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
+
 from indexd.errors import UserError
-from indexd.utils import migrate_database, init_schema_version, is_empty_database
-from sqlalchemy.exc import ProgrammingError
+from indexd.index.driver import IndexDriverABC
+from indexd.index.errors import (
+    MultipleRecordsFound,
+    NoRecordFound,
+    RevisionMismatch,
+    UnhealthyCheck,
+)
+from indexd.utils import (
+    init_schema_version,
+    is_empty_database,
+    migrate_database,
+)
 
 Base = declarative_base()
 
@@ -645,6 +664,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Updates an existing record with new values.
         """
+        special_fields = ['urls', 'acl', 'metadata','urls_metadata']
         with self.session as session:
             query = session.query(IndexRecord).filter(IndexRecord.did == did)
 
@@ -658,47 +678,51 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
 
+            if 'urls' in changing_fields:
+                for url in record.urls:
+                    session.delete(url)
+
+                record.urls = [
+                    IndexRecordUrl(did=record.did, url=url)
+                    for url in changing_fields['urls']
+                ]
+
+            if 'acl' in changing_fields:
+                for ace in record.acl:
+                    session.delete(ace)
+
+                record.acl = [
+                    IndexRecordACE(did=record.did, ace=ace)
+                    for ace in changing_fields['acl']
+                ]
+
+            if 'metadata' in changing_fields:
+                for md_record in record.index_metadata:
+                    session.delete(md_record)
+
+                record.index_metadata = [
+                    IndexRecordMetadata(
+                        did=record.did,
+                        key=m_key,
+                        value=m_value
+                    )
+                    for m_key, m_value in changing_fields['metadata'].items()]
+
+            if 'urls_metadata' in changing_fields:
+                for url in record.urls:
+                    for url_metadata in url.url_metadata:
+                        session.delete(url_metadata)
+
+                create_urls_metadata(
+                    changing_fields['urls_metadata'],
+                    record,
+                    session,
+                )
+
             for key, value in changing_fields.items():
-                if key == 'urls':
-                    for url in record.urls:
-                        session.delete(url)
-
-                    record.urls = [
-                        IndexRecordUrl(did=record.did, url=url)
-                        for url in value
-                    ]
-
-                elif key == 'acl':
-                    for ace in record.acl:
-                        session.delete(ace)
-
-                    record.acl = [
-                        IndexRecordACE(did=record.did,ace=ace)
-                        for ace in value
-                    ]
-
-                elif key == 'metadata':
-                    for md_record in record.index_metadata:
-                        session.delete(md_record)
-
-                    record.index_metadata = [
-                        IndexRecordMetadata(
-                            did=record.did,
-                            key=m_key,
-                            value=m_value
-                        )
-                        for m_key, m_value in value.items()]
-
-                elif key == 'urls_metadata':
-                    for url in record.urls:
-                        for url_metadata in url.url_metadata:
-                            session.delete(url_metadata)
-
-                    create_urls_metadata(value, record, session)
-
-                # No special logic needed for other updates.
-                # ie file_name, version, etc
-                else:
+                if key not in special_fields:
+                    # No special logic needed for other updates.
+                    # ie file_name, version, etc
                     setattr(record, key, value)
 
             record.rev = str(uuid.uuid4())[:8]
