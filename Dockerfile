@@ -49,4 +49,4 @@ WORKDIR /var/www/indexd
 
 
 RUN ln -sf /dev/stdout /var/log/apache2/access.log && ln -sf /dev/stderr /var/log/apache2/error.log
-CMD  rm -f /var/run/apache2/apache2.pid && /indexd/dockerrun.bash
+CMD  rm -rf /var/run/apache2/apache2.pid && /indexd/dockerrun.bash
