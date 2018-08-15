@@ -664,7 +664,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Updates an existing record with new values.
         """
-        special_fields = ['urls', 'acl', 'metadata','urls_metadata']
+
+        composite_fields = ['urls', 'acl', 'metadata', 'urls_metadata']
+
         with self.session as session:
             query = session.query(IndexRecord).filter(IndexRecord.did == did)
 
@@ -678,6 +680,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
 
+            # Some operations are dependant on other operations. For example
+            # urls has to be updated before urls_metadata because of schema
+            # constraints.
             if 'urls' in changing_fields:
                 for url in record.urls:
                     session.delete(url)
@@ -720,7 +725,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 )
 
             for key, value in changing_fields.items():
-                if key not in special_fields:
+                if key not in composite_fields:
                     # No special logic needed for other updates.
                     # ie file_name, version, etc
                     setattr(record, key, value)
