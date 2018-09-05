@@ -27,12 +27,15 @@ def bulk_get_documents():
         raise UserError('ids is not a list')
 
     with blueprint.index_driver.session as session:
-        """"query = session.query(IndexRecord)
-        query = query.filter(IndexRecord.did.in_(ids))"""
+        
+        # Comment it out to compare against the eager loading option.
+        #query = session.query(IndexRecord)
+        #query = query.filter(IndexRecord.did.in_(ids)
 
-        """use eager loading """
+        # Use eager loading.
         query = session.query(IndexRecord)
-        query = query.options(joinedload(IndexRecord.urls).joinedload(IndexRecordUrl.url_metadata))
+        query = query.options(joinedload(IndexRecord.urls).
+                              joinedload(IndexRecordUrl.url_metadata))
         query = query.options(joinedload(IndexRecord.acl))
         query = query.options(joinedload(IndexRecord.hashes))
         query = query.options(joinedload(IndexRecord.index_metadata))
