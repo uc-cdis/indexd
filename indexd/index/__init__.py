@@ -13,6 +13,7 @@ def request_args_to_params(func):
         try:
             args_dict = request.args
             for arg, value in args_dict.items():
+                print(arg, value)
                 kwargs[arg] = value
             return func(*args, **kwargs)
         except Exception as e:

@@ -1,4 +1,4 @@
-from indexd.index.drivers.alchemy import IndexRecord, IndexRecordUrlMetadata
+from indexd.index.drivers.alchemy import IndexRecord, IndexRecordUrl, IndexRecordUrlMetadata
 from indexd.index.drivers.query import URLsQueryDriver
 
 
@@ -11,7 +11,27 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         """
         self.driver = alchemy_driver
 
-    def get_metadata_by_key(self, key, value, url=None, only_versioned=True, offset=0, limit=1000):
+    def query_urls(self, exclude=None, include=None, only_versioned=True, offset=0, limit=1000):
+
+        with self.driver.session as sxn:
+            sql = "SELECT u.did, array_agg(u.url) as urls, count(*) FROM index_record_url u, index_record r " \
+                  "WHERE u.did = r.did "
+
+        include = include or ""
+
+        if only_versioned:
+            sql = "{} AND r.version IS NOT NULL".format(sql)
+        sql = "{} GROUP BY u.did HAVING string_agg(u.url, ',') LIKE '%{}%'".format(sql, include)
+        if exclude:
+            sql = "{} AND string_agg(u.url, ',') NOT LIKE '%{}%'".format(sql, exclude)
+        sql = "{} offset {} limit {}".format(sql, offset, limit)
+
+        with self.driver.session as sxn:
+            records = sxn.execute(sql)
+        # [('did', 'urls')]
+        return records
+
+    def query_metadata_by_key(self, key, value, url=None, only_versioned=True, offset=0, limit=1000):
 
         with self.driver.session as sxn:
             query = sxn.query(IndexRecordUrlMetadata.did,
@@ -26,5 +46,5 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 query = query.filter(IndexRecordUrlMetadata.url.like("%{}%".format(url)))
 
             # [('did', 'url', 'rev')]
-            records = query.order_by(IndexRecordUrlMetadata.did.asc()).limit(limit).offset(offset).all()
+            records = query.order_by(IndexRecordUrlMetadata.did.asc()).offset(offset).limit(limit).all()
         return records

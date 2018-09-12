@@ -16,7 +16,7 @@ urls.driver = None  # type: AlchemyURLsQueryDriver
 
 @urls.route("/q", methods=["GET"])
 @request_args_to_params
-def query(exclude=None, include=None, version=True, fields=None, limit=100, offset=0, **kwargs):
+def query(exclude=None, include=None, version="f", fields=None, limit=100, offset=0, **kwargs):
     """ Queries indexes based on URLs
     Args:
         exclude (str): only include documents (did) with urls that does not match this pattern
@@ -34,13 +34,29 @@ def query(exclude=None, include=None, version=True, fields=None, limit=100, offs
                 ]
             `
     """
+    records = urls.driver.query_urls(exclude=exclude, include=include,
+                                     only_versioned=version and version.lower() in ["true", "t", "yes", "y"],
+                                     offset=int(offset), limit=int(limit))
 
-    return jsonify([dict(did="AAAAA", urls=["sss", "ddd"]), dict(did="AAAAA", urls=["sss", "ddd"])]), 200
+    fields = fields or "did,urls"
+    fields_dict = requested_fields(fields)
+
+    results = []
+    for record in records:
+        c_response = {}
+        if fields_dict.get("did"):
+            c_response["did"] = record[0]
+        if fields_dict.get("urls"):
+            c_response["urls"] = record[1]
+        results.append(c_response)
+
+    response = Response(json.dumps(results, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
+    return response
 
 
 @urls.route("/metadata/q")
 @request_args_to_params
-def query_metadata(key, value, url=None, version=False, fields=None, limit="100", offset="0", **kwargs):
+def query_metadata(key, value, url=None, version="t", fields=None, limit="100", offset="0", **kwargs):
     """ Queries indexes by URLs metadata key and value
     Args:
         key (str): metadata key
@@ -51,15 +67,31 @@ def query_metadata(key, value, url=None, version=False, fields=None, limit="100"
         limit (str): max results to return
         offset (str): where to start the next query from
     """
-    records = urls.driver.get_metadata_by_key(key, value, url=url,
-                                              only_versioned=version and version.lower() in ["true", "t", "yes", "y"],
-                                              offset=int(offset), limit=int(limit))
-    records = [dict(did=x[0], urls=[x[1]], rev=x[2]) for x in records]
-    return Response(json.dumps(records, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
+
+    logger.debug("unused args: {}".format(kwargs))
+    records = urls.driver.query_metadata_by_key(key, value, url=url,
+                                                only_versioned=version and version.lower() in ["true", "t", "yes", "y"],
+                                                offset=int(offset), limit=int(limit))
+    fields = fields or "did,urls,rev"
+    fields_dict = requested_fields(fields)
+
+    results = []
+    for record in records:
+        c_response = {}
+        if fields_dict.get("did"):
+            c_response["did"] = record[0]
+        if fields_dict.get("urls"):
+            c_response["urls"] = [record[1]]
+        if fields_dict.get("rev"):
+            c_response["rev"] = record[2]
+        results.append(c_response)
+
+    response = Response(json.dumps(results, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
+    return response
 
 
 @urls.errorhandler(UserError)
-def handle_unhealthy_check(err):
+def handle_user_error(err):
     return err.message, 404
 
 
@@ -67,3 +99,31 @@ def handle_unhealthy_check(err):
 def pre_config(state):
     driver = state.app.config["INDEX"]["driver"]
     urls.driver = AlchemyURLsQueryDriver(driver)
+
+
+def requested_fields(fields):
+    fields_dict = {}
+    provided_fields_list = fields.split(",")
+    for field in provided_fields_list:
+        fields_dict[field] = True
+
+    return fields_dict
+
+
+def format_urls_response(result_list, fields=None):
+
+    results = []
+    fields_dict = requested_fields(fields)
+    for result in result_list:
+        # did
+        c_response = {}
+        if fields_dict.get("did"):
+            c_response["did"] = result[0]
+        if fields_dict.get("urls"):
+            c_response["urls"] = result[1]
+        if fields_dict.get("rev"):
+            c_response["rev"] = result[2]
+        results.append(c_response)
+
+    response = Response(json.dumps(results, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
+    return response
