@@ -21,9 +21,9 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 .filter(IndexRecordUrlMetadata.key == key) \
                 .filter(IndexRecordUrlMetadata.value == value)
             if only_versioned:
-                query.filter(IndexRecord.version.isnot(None))
+                query = query.filter(IndexRecord.version.isnot(None))
             if url:
-                query.filter(IndexRecordUrlMetadata.url.like("%{}%".format(url)))
+                query = query.filter(IndexRecordUrlMetadata.url.like("%{}%".format(url)))
 
             # [('did', 'url', 'rev')]
             records = query.order_by(IndexRecordUrlMetadata.did.asc()).limit(limit).offset(offset).all()
