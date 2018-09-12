@@ -14,7 +14,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
     def query_urls(self, exclude=None, include=None, only_versioned=True, offset=0, limit=1000):
 
         with self.driver.session as sxn:
-            sql = "SELECT u.did, array_agg(u.url) as urls, count(*) FROM index_record_url u, index_record r " \
+            sql = "SELECT u.did, array_agg(u.url) as urls FROM index_record_url u, index_record r " \
                   "WHERE u.did = r.did "
 
         include = include or ""
