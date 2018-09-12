@@ -11,19 +11,20 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         """
         self.driver = alchemy_driver
 
-    def get_metadata_by_key(self, url, key, value, only_versioned=True, offset=0, limit=1000):
+    def get_metadata_by_key(self, key, value, url=None, only_versioned=True, offset=0, limit=1000):
 
         with self.driver.session as sxn:
             query = sxn.query(IndexRecordUrlMetadata.did,
                               IndexRecordUrlMetadata.url,
                               IndexRecord.rev)\
                 .filter(IndexRecord.did == IndexRecordUrlMetadata.did) \
-                .filter(IndexRecordUrlMetadata.url.like("%{}%".format(url))) \
                 .filter(IndexRecordUrlMetadata.key == key) \
                 .filter(IndexRecordUrlMetadata.value == value)
-
             if only_versioned:
                 query.filter(IndexRecord.version.isnot(None))
+            if url:
+                query.filter(IndexRecordUrlMetadata.url.like("%{}%".format(url)))
+
             # [('did', 'url', 'rev')]
             records = query.order_by(IndexRecordUrlMetadata.did.asc()).limit(limit).offset(offset).all()
         return records
