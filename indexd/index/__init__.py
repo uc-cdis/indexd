@@ -1,6 +1,8 @@
 from functools import wraps
 from flask import request
 
+from indexd.errors import UserError
+
 
 def request_args_to_params(func):
     """ A decorator to extract query args from flask request and pass them as parameter"""
@@ -15,6 +17,7 @@ def request_args_to_params(func):
             return func(*args, **kwargs)
         except Exception as e:
             print(e)
+            raise UserError(request.path, "Invalid Parameters, please try again")
 
     return wrapper
 

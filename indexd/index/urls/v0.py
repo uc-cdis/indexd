@@ -1,11 +1,12 @@
 from flask import Blueprint, jsonify
 
+from indexd.errors import UserError
 from indexd.index import request_args_to_params
 from indexd.index.drivers.query.urls import AlchemyURLsQueryDriver
 
 urls = Blueprint("urls", __name__)
 
-query_driver = None
+urls.driver = None  # type: AlchemyURLsQueryDriver
 
 
 @urls.route("/q", methods=["GET"])
@@ -28,8 +29,8 @@ def query(exclude=None, include=None, version=True, fields=None, limit=100, offs
                 ]
             `
     """
-    
-    return jsonify(dict(id="AAAAA")), 200
+
+    return jsonify([dict(did="AAAAA", urls=["sss", "ddd"]), dict(did="AAAAA", urls=["sss", "ddd"])]), 200
 
 
 @urls.route("/metadata/q")
@@ -45,16 +46,16 @@ def query_metadata(url, key, value, version=True, fields=None, limit=100, offset
         limit (int): max results to return
         offset (int): where to start the next query from
     """
-    return jsonify(dict(id="AAA")), 200
+    records = urls.driver.get_metadata_by_key(url, key, value, only_versioned=version, offset=offset, limit=limit)
+    return jsonify(records), 200
 
 
-@urls.errorhandler(Exception)
+@urls.errorhandler(UserError)
 def handle_unhealthy_check(err):
-    print(err)
-    return "It's pay time", 500
+    return err.message, 404
 
 
 @urls.record
 def pre_config(state):
     driver = state.app.config["INDEX"]["driver"]
-    query_driver = AlchemyURLsQueryDriver(driver)
+    urls.driver = AlchemyURLsQueryDriver(driver)
