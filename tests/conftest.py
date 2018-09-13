@@ -1,8 +1,9 @@
 from indexd import get_app
 import base64
 import pytest
+
 # indexd_server and indexd_client is needed as fixtures
-from cdisutilstest.code.conftest import indexd_server, indexd_client # noqa
+from cdisutilstest.code.conftest import indexd_server, indexd_client  # noqa
 from cdisutilstest.code.indexd_fixture import clear_database
 import swagger_client
 
@@ -21,6 +22,7 @@ def app():
     # this is to make sure sqlite is initialized
     # for every unittest
     from indexd import default_settings
+
     reload(default_settings)
     yield get_app()
     try:
@@ -32,18 +34,16 @@ def app():
 
 @pytest.fixture
 def user(app):
-    app.auth.add('test', 'test')
+    app.auth.add("test", "test")
     yield {
-        'Authorization': (
-            'Basic ' +
-            base64.b64encode(b'test:test').decode('ascii')),
-        'Content-Type': 'application/json'
+        "Authorization": ("Basic " + base64.b64encode(b"test:test").decode("ascii")),
+        "Content-Type": "application/json",
     }
-    app.auth.delete('test')
+    app.auth.delete("test")
 
 
 @pytest.fixture
-def swg_config(indexd_client): # noqa
+def swg_config(indexd_client):  # noqa
     config = swagger_client.Configuration()
     config.host = indexd_client.url
     config.username = indexd_client.auth[0]
@@ -67,6 +67,7 @@ def swg_global_client(swg_config):
 def swg_alias_client(swg_config):
     api = swagger_client.AliasApi(swagger_client.ApiClient(swg_config))
     yield api
+
 
 @pytest.fixture
 def swg_dos_client(swg_config):

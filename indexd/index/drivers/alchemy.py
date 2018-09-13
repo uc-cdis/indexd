@@ -31,11 +31,7 @@ from indexd.index.errors import (
     RevisionMismatch,
     UnhealthyCheck,
 )
-from indexd.utils import (
-    init_schema_version,
-    is_empty_database,
-    migrate_database,
-)
+from indexd.utils import init_schema_version, is_empty_database, migrate_database
 
 Base = declarative_base()
 
@@ -44,20 +40,21 @@ class BaseVersion(Base):
     """
     Base index record version representation.
     """
-    __tablename__ = 'base_version'
+
+    __tablename__ = "base_version"
 
     baseid = Column(String, primary_key=True)
     dids = relationship(
-        'IndexRecord',
-        backref='base_version',
-        cascade='all, delete-orphan')
+        "IndexRecord", backref="base_version", cascade="all, delete-orphan"
+    )
 
 
 class IndexSchemaVersion(Base):
     """
     Table to track current database's schema version
     """
-    __tablename__ = 'index_schema_version'
+
+    __tablename__ = "index_schema_version"
     version = Column(Integer, default=0, primary_key=True)
 
 
@@ -65,11 +62,12 @@ class IndexRecord(Base):
     """
     Base index record representation.
     """
-    __tablename__ = 'index_record'
+
+    __tablename__ = "index_record"
 
     did = Column(String, primary_key=True)
 
-    baseid = Column(String, ForeignKey('base_version.baseid'), index=True)
+    baseid = Column(String, ForeignKey("base_version.baseid"), index=True)
     rev = Column(String)
     form = Column(String)
     size = Column(BigInteger, index=True)
@@ -79,33 +77,23 @@ class IndexRecord(Base):
     version = Column(String, index=True)
 
     urls = relationship(
-        'IndexRecordUrl',
-        backref='index_record',
-        cascade='all, delete-orphan',
+        "IndexRecordUrl", backref="index_record", cascade="all, delete-orphan"
     )
 
     acl = relationship(
-        'IndexRecordACE',
-        backref='index_record',
-        cascade='all, delete-orphan',
+        "IndexRecordACE", backref="index_record", cascade="all, delete-orphan"
     )
 
     hashes = relationship(
-        'IndexRecordHash',
-        backref='index_record',
-        cascade='all, delete-orphan',
+        "IndexRecordHash", backref="index_record", cascade="all, delete-orphan"
     )
 
     index_metadata = relationship(
-        'IndexRecordMetadata',
-        backref='index_record',
-        cascade='all, delete-orphan',
+        "IndexRecordMetadata", backref="index_record", cascade="all, delete-orphan"
     )
 
     aliases = relationship(
-        'IndexRecordAlias',
-        backref='index_record',
-        cascade='all, delete-orphan',
+        "IndexRecordAlias", backref="index_record", cascade="all, delete-orphan"
     )
 
     def to_document_dict(self):
@@ -118,24 +106,25 @@ class IndexRecord(Base):
         metadata = {m.key: m.value for m in self.index_metadata}
 
         urls_metadata = {
-            u.url: {m.key: m.value for m in u.url_metadata} for u in self.urls}
+            u.url: {m.key: m.value for m in u.url_metadata} for u in self.urls
+        }
         created_date = self.created_date.isoformat()
         updated_date = self.updated_date.isoformat()
 
         return {
-            'did': self.did,
-            'baseid': self.baseid,
-            'rev': self.rev,
-            'size': self.size,
-            'file_name': self.file_name,
-            'version': self.version,
-            'urls': urls,
-            'urls_metadata': urls_metadata,
-            'acl': acl,
-            'hashes': hashes,
-            'metadata': metadata,
-            'form': self.form,
-            'created_date': created_date,
+            "did": self.did,
+            "baseid": self.baseid,
+            "rev": self.rev,
+            "size": self.size,
+            "file_name": self.file_name,
+            "version": self.version,
+            "urls": urls,
+            "urls_metadata": urls_metadata,
+            "acl": acl,
+            "hashes": hashes,
+            "metadata": metadata,
+            "form": self.form,
+            "created_date": created_date,
             "updated_date": updated_date,
         }
 
@@ -145,14 +134,14 @@ class IndexRecordAlias(Base):
     Alias attached to index record
     """
 
-    __tablename__ = 'index_record_alias'
+    __tablename__ = "index_record_alias"
 
-    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    did = Column(String, ForeignKey("index_record.did"), primary_key=True)
     name = Column(String, primary_key=True)
 
     __table_args__ = (
-        Index('index_record_alias_idx', 'did'),
-        Index('index_record_alias_name', 'name'),
+        Index("index_record_alias_idx", "did"),
+        Index("index_record_alias_name", "name"),
     )
 
 
@@ -161,19 +150,17 @@ class IndexRecordUrl(Base):
     Base index record url representation.
     """
 
-    __tablename__ = 'index_record_url'
+    __tablename__ = "index_record_url"
 
-    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    did = Column(String, ForeignKey("index_record.did"), primary_key=True)
     url = Column(String, primary_key=True)
 
     url_metadata = relationship(
-        'IndexRecordUrlMetadata',
-        backref='index_record_url',
-        cascade='all, delete-orphan',
+        "IndexRecordUrlMetadata",
+        backref="index_record_url",
+        cascade="all, delete-orphan",
     )
-    __table_args__ = (
-        Index('index_record_url_idx', 'did'),
-    )
+    __table_args__ = (Index("index_record_url_idx", "did"),)
 
 
 class IndexRecordACE(Base):
@@ -181,15 +168,13 @@ class IndexRecordACE(Base):
     index record access control entry representation.
     """
 
-    __tablename__ = 'index_record_ace'
+    __tablename__ = "index_record_ace"
 
-    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    did = Column(String, ForeignKey("index_record.did"), primary_key=True)
     # access control entry
     ace = Column(String, primary_key=True)
 
-    __table_args__ = (
-        Index('index_record_ace_idx', 'did'),
-    )
+    __table_args__ = (Index("index_record_ace_idx", "did"),)
 
 
 class IndexRecordMetadata(Base):
@@ -197,13 +182,11 @@ class IndexRecordMetadata(Base):
     Metadata attached to index document
     """
 
-    __tablename__ = 'index_record_metadata'
+    __tablename__ = "index_record_metadata"
     key = Column(String, primary_key=True)
-    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    did = Column(String, ForeignKey("index_record.did"), primary_key=True)
     value = Column(String)
-    __table_args__ = (
-        Index('index_record_metadata_idx', 'did'),
-    )
+    __table_args__ = (Index("index_record_metadata_idx", "did"),)
 
 
 class IndexRecordUrlMetadata(Base):
@@ -211,15 +194,16 @@ class IndexRecordUrlMetadata(Base):
     Metadata attached to url
     """
 
-    __tablename__ = 'index_record_url_metadata'
+    __tablename__ = "index_record_url_metadata"
     key = Column(String, primary_key=True)
     url = Column(String, primary_key=True)
     did = Column(String, index=True, primary_key=True)
     value = Column(String)
     __table_args__ = (
-        ForeignKeyConstraint(['did', 'url'],
-                             ['index_record_url.did', 'index_record_url.url']),
-        Index('index_record_url_metadata_idx', 'did'),
+        ForeignKeyConstraint(
+            ["did", "url"], ["index_record_url.did", "index_record_url.url"]
+        ),
+        Index("index_record_url_metadata_idx", "did"),
     )
 
 
@@ -227,14 +211,15 @@ class IndexRecordHash(Base):
     """
     Base index record hash representation.
     """
-    __tablename__ = 'index_record_hash'
 
-    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    __tablename__ = "index_record_hash"
+
+    did = Column(String, ForeignKey("index_record.did"), primary_key=True)
     hash_type = Column(String, primary_key=True)
     hash_value = Column(String)
     __table_args__ = (
-        Index('index_record_hash_idx', 'did'),
-        Index('index_record_hash_type_value_idx', 'hash_value', 'hash_type'),
+        Index("index_record_hash_idx", "did"),
+        Index("index_record_hash_type_value_idx", "hash_value", "hash_type"),
     )
 
 
@@ -245,11 +230,9 @@ def create_urls_metadata(urls_metadata, record, session):
     urls = {u.url for u in record.urls}
     for url, url_metadata in iteritems(urls_metadata):
         if url not in urls:
-            raise UserError(
-                'url {} in urls_metadata does not exist'.format(url))
+            raise UserError("url {} in urls_metadata does not exist".format(url))
         for k, v in iteritems(url_metadata):
-            session.add(IndexRecordUrlMetadata(
-                url=url, key=k, value=v, did=record.did))
+            session.add(IndexRecordUrlMetadata(url=url, key=k, value=v, did=record.did))
 
 
 class SQLAlchemyIndexDriver(IndexDriverABC):
@@ -258,13 +241,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     """
 
     def __init__(
-            self, conn, logger=None, auto_migrate=True,
-            index_config=None, **config):
+        self, conn, logger=None, auto_migrate=True, index_config=None, **config
+    ):
         """
         Initialize the SQLAlchemy database driver.
         """
         super(SQLAlchemyIndexDriver, self).__init__(conn, **config)
-        self.logger = logger or get_logger('SQLAlchemyIndexDriver')
+        self.logger = logger or get_logger("SQLAlchemyIndexDriver")
         self.config = index_config or {}
 
         Base.metadata.bind = self.engine
@@ -274,9 +257,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Base.metadata.create_all()
         if is_empty_db:
             init_schema_version(
-                driver=self,
-                model=IndexSchemaVersion,
-                version=CURRENT_SCHEMA_VERSION)
+                driver=self, model=IndexSchemaVersion, version=CURRENT_SCHEMA_VERSION
+            )
 
         if auto_migrate:
             self.migrate_index_database()
@@ -289,7 +271,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             driver=self,
             migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
             current_schema_version=CURRENT_SCHEMA_VERSION,
-            model=IndexSchemaVersion)
+            model=IndexSchemaVersion,
+        )
 
     @property
     @contextmanager
@@ -308,19 +291,21 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         finally:
             session.close()
 
-    def ids(self,
-            limit=100,
-            start=None,
-            size=None,
-            urls=None,
-            acl=None,
-            hashes=None,
-            file_name=None,
-            version=None,
-            metadata=None,
-            ids=None,
-            urls_metadata=None,
-            negate_params=None):
+    def ids(
+        self,
+        limit=100,
+        start=None,
+        size=None,
+        urls=None,
+        acl=None,
+        hashes=None,
+        file_name=None,
+        version=None,
+        metadata=None,
+        ids=None,
+        urls_metadata=None,
+        negate_params=None,
+    ):
         """
         Returns list of records stored by the backend.
         """
@@ -352,10 +337,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if hashes is not None and hashes:
                 for h, v in hashes.items():
                     sub = session.query(IndexRecordHash.did)
-                    sub = sub.filter(and_(
-                        IndexRecordHash.hash_type == h,
-                        IndexRecordHash.hash_value == v,
-                    ))
+                    sub = sub.filter(
+                        and_(
+                            IndexRecordHash.hash_type == h,
+                            IndexRecordHash.hash_value == v,
+                        )
+                    )
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
             if metadata is not None and metadata:
@@ -363,24 +350,24 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     sub = session.query(IndexRecordMetadata.did)
                     sub = sub.filter(
                         and_(
-                            IndexRecordMetadata.key == k,
-                            IndexRecordMetadata.value == v,
-                        ))
+                            IndexRecordMetadata.key == k, IndexRecordMetadata.value == v
+                        )
+                    )
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
             if urls_metadata:
-                query = query.join(IndexRecord.urls).join(
-                    IndexRecordUrl.url_metadata)
+                query = query.join(IndexRecord.urls).join(IndexRecordUrl.url_metadata)
                 for url_key, url_dict in urls_metadata.items():
-                    query = query.filter(
-                        IndexRecordUrlMetadata.url.contains(url_key))
+                    query = query.filter(IndexRecordUrlMetadata.url.contains(url_key))
                     for k, v in url_dict.items():
-                        query = query.filter(IndexRecordUrl.url_metadata.any(
-                            and_(
-                                IndexRecordUrlMetadata.key == k,
-                                IndexRecordUrlMetadata.value == v
+                        query = query.filter(
+                            IndexRecordUrl.url_metadata.any(
+                                and_(
+                                    IndexRecordUrlMetadata.key == k,
+                                    IndexRecordUrlMetadata.value == v,
+                                )
                             )
-                        ))
+                        )
 
             if negate_params:
                 query = self._negate_filter(session, query, **negate_params)
@@ -396,14 +383,16 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return [i.to_document_dict() for i in query]
 
     @staticmethod
-    def _negate_filter(session,
-                       query,
-                       urls=None,
-                       acl=None,
-                       file_name=None,
-                       version=None,
-                       metadata=None,
-                       urls_metadata=None):
+    def _negate_filter(
+        session,
+        query,
+        urls=None,
+        acl=None,
+        file_name=None,
+        version=None,
+        metadata=None,
+        urls_metadata=None,
+    ):
         """
         param_values passed in here will be negated
 
@@ -445,13 +434,14 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         if metadata is not None and metadata:
             for k, v in metadata.items():
                 if not v:
-                    query = query.filter(~IndexRecord.index_metadata.any(IndexRecordMetadata.key == k))
+                    query = query.filter(
+                        ~IndexRecord.index_metadata.any(IndexRecordMetadata.key == k)
+                    )
                 else:
                     sub = session.query(IndexRecordMetadata.did)
                     sub = sub.filter(
                         and_(
-                            IndexRecordMetadata.key == k,
-                            IndexRecordMetadata.value == v
+                            IndexRecordMetadata.key == k, IndexRecordMetadata.value == v
                         )
                     )
                     query = query.filter(~IndexRecord.did.in_(sub.subquery()))
@@ -464,18 +454,21 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 else:
                     for k, v in url_dict.items():
                         if not v:
-                            query = query.filter(~IndexRecordUrl.url_metadata.any(
-                                and_(IndexRecordUrlMetadata.key == k,
-                                     IndexRecordUrlMetadata.url.contains(url_key)
-                                     ))
+                            query = query.filter(
+                                ~IndexRecordUrl.url_metadata.any(
+                                    and_(
+                                        IndexRecordUrlMetadata.key == k,
+                                        IndexRecordUrlMetadata.url.contains(url_key),
+                                    )
                                 )
+                            )
                         else:
                             sub = session.query(IndexRecordUrlMetadata.did)
                             sub = sub.filter(
                                 and_(
                                     IndexRecordUrlMetadata.url.contains(url_key),
                                     IndexRecordUrlMetadata.key == k,
-                                    IndexRecordUrlMetadata.value == v
+                                    IndexRecordUrlMetadata.value == v,
                                 )
                             )
                             query = query.filter(~IndexRecord.did.in_(sub.subquery()))
@@ -498,10 +491,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 for h, v in hashes.items():
                     # Select subset that matches given hash.
                     sub = session.query(IndexRecordHash.did)
-                    sub = sub.filter(and_(
-                        IndexRecordHash.hash_type == h,
-                        IndexRecordHash.hash_value == v,
-                    ))
+                    sub = sub.filter(
+                        and_(
+                            IndexRecordHash.hash_type == h,
+                            IndexRecordHash.hash_value == v,
+                        )
+                    )
 
                     # Filter anything that does not match.
                     query = query.filter(IndexRecordUrl.did.in_(sub.subquery()))
@@ -515,23 +510,24 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query = query.limit(limit)
 
             return [
-                {'url': r.url,
-                 'metadata': {m.key: m.value for m in r.url_metadata}}
+                {"url": r.url, "metadata": {m.key: m.value for m in r.url_metadata}}
                 for r in query
             ]
 
-    def add(self,
-            form,
-            did=None,
-            size=None,
-            file_name=None,
-            metadata=None,
-            urls_metadata=None,
-            version=None,
-            urls=None,
-            acl=None,
-            hashes=None,
-            baseid=None):
+    def add(
+        self,
+        form,
+        did=None,
+        size=None,
+        file_name=None,
+        metadata=None,
+        urls_metadata=None,
+        version=None,
+        urls=None,
+        acl=None,
+        hashes=None,
+        baseid=None,
+    ):
         """
         Creates a new record given size, urls, acl, hashes, metadata,
         urls_metadata file name and version
@@ -566,46 +562,40 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 record.did = did
             else:
                 new_did = str(uuid.uuid4())
-                if self.config.get('PREPEND_PREFIX'):
-                    new_did = self.config['DEFAULT_PREFIX'] + new_did
+                if self.config.get("PREPEND_PREFIX"):
+                    new_did = self.config["DEFAULT_PREFIX"] + new_did
                 record.did = new_did
 
             record.rev = str(uuid.uuid4())[:8]
 
             record.form, record.size = form, size
 
-            record.urls = [IndexRecordUrl(
-                did=record.did,
-                url=url,
-            ) for url in urls]
+            record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
 
-            record.acl = [IndexRecordACE(
-                did=record.did,
-                ace=ace,
-            ) for ace in acl]
+            record.acl = [IndexRecordACE(did=record.did, ace=ace) for ace in acl]
 
-            record.hashes = [IndexRecordHash(
-                did=record.did,
-                hash_type=h,
-                hash_value=v,
-            ) for h, v in hashes.items()]
+            record.hashes = [
+                IndexRecordHash(did=record.did, hash_type=h, hash_value=v)
+                for h, v in hashes.items()
+            ]
 
-            record.index_metadata = [IndexRecordMetadata(
-                did=record.did,
-                key=m_key,
-                value=m_value
-            ) for m_key, m_value in metadata.items()]
+            record.index_metadata = [
+                IndexRecordMetadata(did=record.did, key=m_key, value=m_value)
+                for m_key, m_value in metadata.items()
+            ]
             session.merge(base_version)
 
             try:
                 session.add(record)
                 create_urls_metadata(urls_metadata, record, session)
 
-                if self.config.get('ADD_PREFIX_ALIAS'):
+                if self.config.get("ADD_PREFIX_ALIAS"):
                     self.add_prefix_alias(record, session)
                 session.commit()
             except IntegrityError:
-                raise UserError('did "{did}" already exists'.format(did=record.did), 400)
+                raise UserError(
+                    'did "{did}" already exists'.format(did=record.did), 400
+                )
 
             return record.did, record.rev, record.baseid
 
@@ -613,8 +603,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Create a index alias with the alias as {prefix:did}
         """
-        prefix = self.config['DEFAULT_PREFIX']
-        alias = IndexRecordAlias(did=record.did, name=prefix+record.did)
+        prefix = self.config["DEFAULT_PREFIX"]
+        alias = IndexRecordAlias(did=record.did, name=prefix + record.did)
         session.add(alias)
 
     def get_by_alias(self, alias):
@@ -625,12 +615,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record = (
                     session.query(IndexRecord)
-                    .filter(IndexRecord.aliases.any(name=alias)).one()
+                    .filter(IndexRecord.aliases.any(name=alias))
+                    .one()
                 )
             except NoResultFound:
-                raise NoRecordFound('no record found')
+                raise NoRecordFound("no record found")
             except MultipleResultsFound:
-                raise MultipleRecordsFound('multiple records found')
+                raise MultipleRecordsFound("multiple records found")
             return record.to_document_dict()
 
     def get_aliases_for_did(self, did):
@@ -638,10 +629,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Gets the aliases for a did
         """
         with self.session as session:
-            query = (
-                session.query(IndexRecordAlias)
-                .filter(IndexRecordAlias.did == did)
-            )
+            query = session.query(IndexRecordAlias).filter(IndexRecordAlias.did == did)
             return [i.name for i in query]
 
     def get(self, did):
@@ -653,11 +641,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query = session.query(IndexRecord)
             query = query.filter(
                 or_(IndexRecord.did == did, IndexRecord.baseid == did)
-                ).order_by(IndexRecord.created_date.desc())
+            ).order_by(IndexRecord.created_date.desc())
 
             record = query.first()
             if record is None:
-                raise NoRecordFound('no record found')
+                raise NoRecordFound("no record found")
             return record.to_document_dict()
 
     def update(self, did, rev, changing_fields):
@@ -665,7 +653,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Updates an existing record with new values.
         """
 
-        composite_fields = ['urls', 'acl', 'metadata', 'urls_metadata']
+        composite_fields = ["urls", "acl", "metadata", "urls_metadata"]
 
         with self.session as session:
             query = session.query(IndexRecord).filter(IndexRecord.did == did)
@@ -673,56 +661,49 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record = query.one()
             except NoResultFound:
-                raise NoRecordFound('no record found')
+                raise NoRecordFound("no record found")
             except MultipleResultsFound:
-                raise MultipleRecordsFound('multiple records found')
+                raise MultipleRecordsFound("multiple records found")
 
             if rev != record.rev:
-                raise RevisionMismatch('revision mismatch')
+                raise RevisionMismatch("revision mismatch")
 
             # Some operations are dependant on other operations. For example
             # urls has to be updated before urls_metadata because of schema
             # constraints.
-            if 'urls' in changing_fields:
+            if "urls" in changing_fields:
                 for url in record.urls:
                     session.delete(url)
 
                 record.urls = [
                     IndexRecordUrl(did=record.did, url=url)
-                    for url in changing_fields['urls']
+                    for url in changing_fields["urls"]
                 ]
 
-            if 'acl' in changing_fields:
+            if "acl" in changing_fields:
                 for ace in record.acl:
                     session.delete(ace)
 
                 record.acl = [
                     IndexRecordACE(did=record.did, ace=ace)
-                    for ace in changing_fields['acl']
+                    for ace in changing_fields["acl"]
                 ]
 
-            if 'metadata' in changing_fields:
+            if "metadata" in changing_fields:
                 for md_record in record.index_metadata:
                     session.delete(md_record)
 
                 record.index_metadata = [
-                    IndexRecordMetadata(
-                        did=record.did,
-                        key=m_key,
-                        value=m_value
-                    )
-                    for m_key, m_value in changing_fields['metadata'].items()]
+                    IndexRecordMetadata(did=record.did, key=m_key, value=m_value)
+                    for m_key, m_value in changing_fields["metadata"].items()
+                ]
 
-            if 'urls_metadata' in changing_fields:
+            if "urls_metadata" in changing_fields:
                 for url in record.urls:
                     for url_metadata in url.url_metadata:
                         session.delete(url_metadata)
 
-                create_urls_metadata(
-                    changing_fields['urls_metadata'],
-                    record,
-                    session,
-                )
+                create_urls_metadata(changing_fields["urls_metadata"], record, session)
 
             for key, value in changing_fields.items():
                 if key not in composite_fields:
@@ -747,27 +728,29 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record = query.one()
             except NoResultFound:
-                raise NoRecordFound('no record found')
+                raise NoRecordFound("no record found")
             except MultipleResultsFound:
-                raise MultipleRecordsFound('multiple records found')
+                raise MultipleRecordsFound("multiple records found")
 
             if rev != record.rev:
-                raise RevisionMismatch('revision mismatch')
+                raise RevisionMismatch("revision mismatch")
 
             session.delete(record)
 
-    def add_version(self,
-                    current_did,
-                    form,
-                    new_did=None,
-                    size=None,
-                    file_name=None,
-                    metadata=None,
-                    urls_metadata=None,
-                    version=None,
-                    urls=None,
-                    acl=None,
-                    hashes=None):
+    def add_version(
+        self,
+        current_did,
+        form,
+        new_did=None,
+        size=None,
+        file_name=None,
+        metadata=None,
+        urls_metadata=None,
+        version=None,
+        urls=None,
+        acl=None,
+        hashes=None,
+    ):
         """
         Add a record version given did
         """
@@ -787,9 +770,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record = query.one()
             except NoResultFound:
-                raise NoRecordFound('no record found')
+                raise NoRecordFound("no record found")
             except MultipleResultsFound:
-                raise MultipleRecordsFound('multiple records found')
+                raise MultipleRecordsFound("multiple records found")
 
             baseid = record.baseid
             record = IndexRecord()
@@ -803,34 +786,26 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.file_name = file_name
             record.version = version
 
-            record.urls = [IndexRecordUrl(
-                did=record.did,
-                url=url,
-            ) for url in urls]
+            record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
 
-            record.acl = [IndexRecordACE(
-                did=record.did,
-                ace=ace,
-            ) for ace in acl]
+            record.acl = [IndexRecordACE(did=record.did, ace=ace) for ace in acl]
 
-            record.hashes = [IndexRecordHash(
-                did=record.did,
-                hash_type=h,
-                hash_value=v,
-            ) for h, v in hashes.items()]
+            record.hashes = [
+                IndexRecordHash(did=record.did, hash_type=h, hash_value=v)
+                for h, v in hashes.items()
+            ]
 
-            record.index_metadata = [IndexRecordMetadata(
-                did=record.did,
-                key=m_key,
-                value=m_value
-            ) for m_key, m_value in metadata.items()]
+            record.index_metadata = [
+                IndexRecordMetadata(did=record.did, key=m_key, value=m_value)
+                for m_key, m_value in metadata.items()
+            ]
 
             try:
                 session.add(record)
                 create_urls_metadata(urls_metadata, record, session)
                 session.commit()
             except IntegrityError:
-                raise UserError('{did} already exists'.format(did=did), 400)
+                raise UserError("{did} already exists".format(did=did), 400)
 
             return record.did, record.baseid, record.rev
 
@@ -849,11 +824,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except NoResultFound:
                 record = session.query(BaseVersion).filter_by(baseid=did).first()
                 if not record:
-                    raise NoRecordFound('no record found')
+                    raise NoRecordFound("no record found")
                 else:
                     baseid = record.baseid
             except MultipleResultsFound:
-                raise MultipleRecordsFound('multiple records found')
+                raise MultipleRecordsFound("multiple records found")
 
             query = session.query(IndexRecord)
             records = query.filter(IndexRecord.baseid == baseid).all()
@@ -878,16 +853,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except NoResultFound:
                 baseid = did
             except MultipleResultsFound:
-                raise MultipleRecordsFound('multiple records found')
+                raise MultipleRecordsFound("multiple records found")
 
             query = session.query(IndexRecord)
-            query = query.filter(IndexRecord.baseid == baseid) \
-                .order_by(IndexRecord.created_date.desc())
+            query = query.filter(IndexRecord.baseid == baseid).order_by(
+                IndexRecord.created_date.desc()
+            )
             if has_version:
                 query = query.filter(IndexRecord.version.isnot(None))
             record = query.first()
-            if (not record):
-                raise NoRecordFound('no record found')
+            if not record:
+                raise NoRecordFound("no record found")
 
             return record.to_document_dict()
 
@@ -897,7 +873,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             try:
-                query = session.execute('SELECT 1')
+                query = session.execute("SELECT 1")
             except Exception as e:
                 raise UnhealthyCheck()
 
@@ -938,13 +914,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
 
-            return session.execute(select([func.count()]).select_from(IndexRecord)).scalar()
+            return session.execute(
+                select([func.count()]).select_from(IndexRecord)
+            ).scalar()
 
 
 def migrate_1(session, **kwargs):
     session.execute(
-        "ALTER TABLE {} ALTER COLUMN size TYPE bigint;"
-        .format(IndexRecord.__tablename__))
+        "ALTER TABLE {} ALTER COLUMN size TYPE bigint;".format(
+            IndexRecord.__tablename__
+        )
+    )
 
 
 def migrate_2(session, **kwargs):
@@ -956,20 +936,26 @@ def migrate_2(session, **kwargs):
             "ALTER TABLE {} \
                 ADD COLUMN baseid VARCHAR DEFAULT NULL, \
                 ADD COLUMN created_date TIMESTAMP DEFAULT NOW(), \
-                ADD COLUMN updated_date TIMESTAMP DEFAULT NOW()".format(IndexRecord.__tablename__))
+                ADD COLUMN updated_date TIMESTAMP DEFAULT NOW()".format(
+                IndexRecord.__tablename__
+            )
+        )
     except ProgrammingError:
         session.rollback()
     session.commit()
 
     count = session.execute(
-        "SELECT COUNT(*) FROM {};"
-        .format(IndexRecord.__tablename__)).fetchone()[0]
+        "SELECT COUNT(*) FROM {};".format(IndexRecord.__tablename__)
+    ).fetchone()[0]
 
     # create tmp_index_record table for fast retrival
     try:
         session.execute(
             "CREATE TABLE tmp_index_record AS SELECT did, ROW_NUMBER() OVER (ORDER BY did) AS RowNumber \
-            FROM {}".format(IndexRecord.__tablename__))
+            FROM {}".format(
+                IndexRecord.__tablename__
+            )
+        )
     except ProgrammingError:
         session.rollback()
 
@@ -977,39 +963,49 @@ def migrate_2(session, **kwargs):
         baseid = str(uuid.uuid4())
         session.execute(
             "UPDATE index_record SET baseid = '{}'\
-             WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {});".format(baseid, loop + 1))
+             WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {});".format(
+                baseid, loop + 1
+            )
+        )
         session.execute(
-            "INSERT INTO {}(baseid) VALUES('{}');".format(BaseVersion.__tablename__, baseid))
+            "INSERT INTO {}(baseid) VALUES('{}');".format(
+                BaseVersion.__tablename__, baseid
+            )
+        )
 
     session.execute(
         "ALTER TABLE {} \
-         ADD CONSTRAINT baseid_FK FOREIGN KEY (baseid) references base_version(baseid);"
-        .format(IndexRecord.__tablename__))
+         ADD CONSTRAINT baseid_FK FOREIGN KEY (baseid) references base_version(baseid);".format(
+            IndexRecord.__tablename__
+        )
+    )
 
     # drop tmp table
-    session.execute(
-        "DROP TABLE IF EXISTS tmp_index_record;"
-        )
+    session.execute("DROP TABLE IF EXISTS tmp_index_record;")
 
 
 def migrate_3(session, **kwargs):
     session.execute(
-        "ALTER TABLE {} ADD COLUMN file_name VARCHAR;"
-        .format(IndexRecord.__tablename__))
+        "ALTER TABLE {} ADD COLUMN file_name VARCHAR;".format(IndexRecord.__tablename__)
+    )
 
     session.execute(
-        "CREATE INDEX {tb}__file_name_idx ON {tb} ( file_name )"
-        .format(tb=IndexRecord.__tablename__))
+        "CREATE INDEX {tb}__file_name_idx ON {tb} ( file_name )".format(
+            tb=IndexRecord.__tablename__
+        )
+    )
 
 
 def migrate_4(session, **kwargs):
     session.execute(
-        "ALTER TABLE {} ADD COLUMN version VARCHAR;"
-        .format(IndexRecord.__tablename__))
+        "ALTER TABLE {} ADD COLUMN version VARCHAR;".format(IndexRecord.__tablename__)
+    )
 
     session.execute(
-        "CREATE INDEX {tb}__version_idx ON {tb} ( version )"
-        .format(tb=IndexRecord.__tablename__))
+        "CREATE INDEX {tb}__version_idx ON {tb} ( version )".format(
+            tb=IndexRecord.__tablename__
+        )
+    )
 
 
 def migrate_5(session, **kwargs):
@@ -1018,20 +1014,24 @@ def migrate_5(session, **kwargs):
     IndexRecordUrlMetadata tables
     """
     session.execute(
-        "CREATE INDEX {tb}_idx ON {tb} ( did )"
-            .format(tb=IndexRecordUrl.__tablename__))
+        "CREATE INDEX {tb}_idx ON {tb} ( did )".format(tb=IndexRecordUrl.__tablename__)
+    )
 
     session.execute(
-        "CREATE INDEX {tb}_idx ON {tb} ( did )"
-            .format(tb=IndexRecordHash.__tablename__))
+        "CREATE INDEX {tb}_idx ON {tb} ( did )".format(tb=IndexRecordHash.__tablename__)
+    )
 
     session.execute(
-        "CREATE INDEX {tb}_idx ON {tb} ( did )"
-        .format(tb=IndexRecordMetadata.__tablename__))
+        "CREATE INDEX {tb}_idx ON {tb} ( did )".format(
+            tb=IndexRecordMetadata.__tablename__
+        )
+    )
 
     session.execute(
-        "CREATE INDEX {tb}_idx ON {tb} ( did )"
-        .format(tb=IndexRecordUrlMetadata.__tablename__))
+        "CREATE INDEX {tb}_idx ON {tb} ( did )".format(
+            tb=IndexRecordUrlMetadata.__tablename__
+        )
+    )
 
 
 def migrate_6(session, **kwargs):
@@ -1040,15 +1040,12 @@ def migrate_6(session, **kwargs):
 
 def migrate_7(session, **kwargs):
     existing_acls = (
-        session.query(IndexRecordMetadata)
-        .filter_by(key='acls').yield_per(1000)
+        session.query(IndexRecordMetadata).filter_by(key="acls").yield_per(1000)
     )
     for metadata in existing_acls:
-        acl = metadata.value.split(',')
+        acl = metadata.value.split(",")
         for ace in acl:
-            entry = IndexRecordACE(
-                did=metadata.did,
-                ace=ace)
+            entry = IndexRecordACE(did=metadata.did, ace=ace)
             session.add(entry)
             session.delete(metadata)
 
@@ -1058,8 +1055,11 @@ def migrate_8(session, **kwargs):
     create index on IndexRecord.baseid
     """
     session.execute(
-        "CREATE INDEX ix_{tb}_baseid ON {tb} ( baseid )"
-        .format(tb=IndexRecord.__tablename__))
+        "CREATE INDEX ix_{tb}_baseid ON {tb} ( baseid )".format(
+            tb=IndexRecord.__tablename__
+        )
+    )
+
 
 def migrate_9(session, **kwargs):
     """
@@ -1067,17 +1067,29 @@ def migrate_9(session, **kwargs):
     create index on IndexRecord.size
     """
     session.execute(
-        "CREATE INDEX ix_{tb}_size ON {tb} ( size )"
-        .format(tb=IndexRecord.__tablename__))
+        "CREATE INDEX ix_{tb}_size ON {tb} ( size )".format(
+            tb=IndexRecord.__tablename__
+        )
+    )
 
     session.execute(
-        "CREATE INDEX index_record_hash_type_value_idx ON {tb} ( hash_value, hash_type )"
-        .format(tb=IndexRecordHash.__tablename__))
+        "CREATE INDEX index_record_hash_type_value_idx ON {tb} ( hash_value, hash_type )".format(
+            tb=IndexRecordHash.__tablename__
+        )
+    )
 
 
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
 SCHEMA_MIGRATION_FUNCTIONS = [
-    migrate_1, migrate_2, migrate_3, migrate_4, migrate_5,
-    migrate_6, migrate_7, migrate_8, migrate_9]
+    migrate_1,
+    migrate_2,
+    migrate_3,
+    migrate_4,
+    migrate_5,
+    migrate_6,
+    migrate_7,
+    migrate_8,
+    migrate_9,
+]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
