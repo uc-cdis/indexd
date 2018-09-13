@@ -24,6 +24,8 @@ tags:
     externalDocs:
       description: Find out more
       url: 'https://github.com/uc-cdis/indexd'
+  - name: index/urls
+    description: endpoints dedicated targeting urls specific events
   - name: alias
     description: >-
       create an alias for an entity stored in an external system managed by some
@@ -681,6 +683,100 @@ paths:
         '400':
           description: Invalid status value
       security: []
+  '/index/urls/q':
+    get:
+      tags:
+        - index/urls
+      summary: search index records by urls
+      operationId: queryUrls
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: exclude
+          type: string
+          description: search for documents without a single URL that match this pattern
+          required: false
+        - in: query
+          name: include
+          type: string
+          description: search for documents with at least one URL that match this pattern
+          required: false
+        - in: query
+          name: version
+          type: boolean
+          default: false
+          description: if true search for documents with a version set, else search documents without version
+          required: false
+        - in: query
+          name: limit
+          type: integer
+          default: 100
+          description: maximum rows to return
+          required: false
+        - in: query
+          name: offset
+          type: integer
+          default: 0
+          description: pointer position to start search
+          required: false
+      responses:
+        200:
+          description: successful
+          schema:
+            $ref: '#/definitions/URLsOutput'
+        400:
+          description: invalid request parameters
+  '/index/urls/metadata/q':
+    get:
+      tags:
+        - index/urls
+      summary: search index records by urls metadata key and value
+      operationId: queryUrlsMetadata
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: key
+          type: string
+          description: metadata key to search by
+          required: true
+        - in: query
+          name: value
+          type: string
+          description: metadata value for provided key
+          required: true
+        - in: query
+          name: url
+          type: string
+          description: URL patter to filter by
+          required: false
+        - in: query
+          name: version
+          type: boolean
+          default: false
+          description: if true search for documents with a version set, else search documents without version
+          required: false
+        - in: query
+          name: limit
+          type: integer
+          default: 100
+          description: maximum rows to return
+          required: false
+        - in: query
+          name: offset
+          type: integer
+          default: 0
+          description: pointer position to start search
+          required: false
+      responses:
+       200:
+         description: successful
+         schema:
+           $ref: '#/definitions/URLsOutput'
+       400:
+         description: invalid request parameters
+
 securityDefinitions:
   cdis_auth:
     type: oauth2
@@ -1121,6 +1217,19 @@ definitions:
         $ref: '#/definitions/SystemMetadata'
       user_metadata:
         $ref: '#/definitions/UserMetadata'
+  URLsOutput:
+    type: array
+    items:
+      type: object
+      properties:
+        did:
+          type: string
+        urls:
+          type: array
+          items:
+            type: string
+        rev:
+          type: string
   SystemMetadata:
     type: object
     additionalProperties: true

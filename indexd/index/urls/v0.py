@@ -1,5 +1,4 @@
 import json
-import logging
 
 from flask import Blueprint, request, Response
 
@@ -8,10 +7,7 @@ from indexd.index import request_args_to_params
 from indexd.index.drivers.query.urls import AlchemyURLsQueryDriver
 
 
-logger = logging.getLogger("index.urls.blueprint")
 urls = Blueprint("urls", __name__)
-
-urls.driver = None  # type: AlchemyURLsQueryDriver
 
 
 @urls.route("/q", methods=["GET"])
@@ -75,7 +71,6 @@ def query_metadata(key, value, url=None, version=None, fields=None, limit="100",
     if kwargs:
         return Response("Unexpected Parameter(s) {}".format(kwargs), 400)
 
-    logger.debug("unused args: {}".format(kwargs))
     records = urls.driver.query_metadata_by_key(key, value, url=url,
                                                 only_versioned=version and version.lower() in ["true", "t", "yes", "y"],
                                                 offset=int(offset), limit=int(limit))
@@ -106,6 +101,7 @@ def handle_user_error(err):
 @urls.record
 def pre_config(state):
     driver = state.app.config["INDEX"]["driver"]
+    urls.logger = state.app.logger
     urls.driver = AlchemyURLsQueryDriver(driver)
 
 
