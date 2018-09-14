@@ -33,21 +33,21 @@ def query(exclude=None, include=None, version=None, fields=None, limit=100, offs
     # parameter validation
     if kwargs:
         return Response("Unexpected Parameter(s) {}".format(kwargs), 400)
-
-    records = urls.driver.query_urls(exclude=exclude, include=include,
-                                     only_versioned=version and version.lower() in ["true", "t", "yes", "y"],
-                                     offset=int(offset), limit=int(limit))
+    version = version.lower() in ["true", "t", "yes", "y"] if version else None
+    record_list = urls.driver.query_urls(exclude=exclude, include=include,
+                                         only_versioned=version,
+                                         offset=int(offset), limit=int(limit))
 
     fields = fields or "did,urls"
     fields_dict = requested_fields(fields)
 
     results = []
-    for record in records:
+    for record in record_list:
         c_response = {}
         if fields_dict.get("did"):
             c_response["did"] = record[0]
         if fields_dict.get("urls"):
-            c_response["urls"] = record[1]
+            c_response["urls"] = record[1].split(",") if record[1] else []
         results.append(c_response)
 
     response = Response(json.dumps(results, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
@@ -71,14 +71,15 @@ def query_metadata(key, value, url=None, version=None, fields=None, limit="100",
     if kwargs:
         return Response("Unexpected Parameter(s) {}".format(kwargs), 400)
 
-    records = urls.driver.query_metadata_by_key(key, value, url=url,
-                                                only_versioned=version and version.lower() in ["true", "t", "yes", "y"],
-                                                offset=int(offset), limit=int(limit))
+    version = version.lower() in ["true", "t", "yes", "y"] if version else None
+    record_list = urls.driver.query_metadata_by_key(key, value, url=url,
+                                                    only_versioned=version,
+                                                    offset=int(offset), limit=int(limit))
     fields = fields or "did,urls,rev"
     fields_dict = requested_fields(fields)
 
     results = []
-    for record in records:
+    for record in record_list:
         c_response = {}
         if fields_dict.get("did"):
             c_response["did"] = record[0]
