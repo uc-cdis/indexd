@@ -11,6 +11,7 @@ driver_query_map = {
 
 
 class AlchemyURLsQueryDriver(URLsQueryDriver):
+    """SQLAlchemy based impl"""
 
     def __init__(self, alchemy_driver):
         """ Queries index records based on URL
@@ -20,30 +21,23 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         self.driver = alchemy_driver
 
     def query_urls(self, exclude=None, include=None, only_versioned=True, offset=0, limit=1000):
-        """ The exclude and include patterns are used to match per record. That is a record wth 3 urls will
-            be returned/excluded if any one of the URLs match the include/exclude patterns
-        Args:
-            exclude (str): url pattern to exclude
-            include (str): url pattern to include
-            only_versioned (bool): query only versioned records or not
-            offset (int):
-            limit (int):
-        Returns:
-            list: result list
-        """
+
         with self.driver.session as sxn:
             # special database specific functions dependent of the selected dialect
             q_func = driver_query_map.get(sxn.bind.dialect.name)
 
             query = sxn.query(IndexRecordUrl.did, q_func['string_agg'](IndexRecordUrl.url, ",").label("urls"))\
                 .outerjoin(IndexRecord)
-            print(only_versioned)
+
+            # filter by version
             if only_versioned is True:
                 query = query.filter(IndexRecord.version.isnot(None))
             elif only_versioned is False:
                 query = query.filter(~IndexRecord.version.isnot(None))
-            #
+
             query = query.group_by(IndexRecordUrl.did)
+
+            # add url filters
             if include and exclude:
                 query = query.having(and_(~q_func['string_agg'](IndexRecordUrl.url, ",").contains(exclude),
                                      q_func['string_agg'](IndexRecordUrl.url, ",").contains(include)))
@@ -53,7 +47,6 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 query = query.having(~q_func['string_agg'](IndexRecordUrl.url, ",").contains(exclude))
 
             # [('did', 'urls')]
-            print(query)
             record_list = query.order_by(IndexRecordUrl.did.asc()).offset(offset).limit(limit).all()
         return record_list
 
@@ -66,11 +59,14 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 .filter(IndexRecord.did == IndexRecordUrlMetadata.did) \
                 .filter(IndexRecordUrlMetadata.key == key) \
                 .filter(IndexRecordUrlMetadata.value == value)
+
+            # filter by version
             if only_versioned is True:
                 query = query.filter(IndexRecord.version.isnot(None))
             elif only_versioned is False:
                 query = query.filter(~IndexRecord.version.isnot(None))
 
+            # add url filter
             if url:
                 query = query.filter(IndexRecordUrlMetadata.url.like("%{}%".format(url)))
 
