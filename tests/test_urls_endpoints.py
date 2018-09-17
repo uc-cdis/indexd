@@ -24,7 +24,7 @@ def test_data(swg_index_client):
 
     url_x_type = url_x_count
     unversioned_count = random.randint(6, 10)
-    for i in range(unversioned_count):
+    for _ in range(unversioned_count):
         doc = get_doc(has_urls_metadata=True)
         if url_x_type > 0:
             doc["urls"].append(url_x)
@@ -70,10 +70,9 @@ def test_query_urls_metadata(swg_index_client, swg_indexurls_client, test_data):
         swg_indexurls_client (swagger_client.api.indexurls_api.IndexurlsApi): urls api client
         test_data (tuple[int, int, int]:
     """
-    url_x_count, versioned_count, unversioned_count = test_data
+    url_x_count, _, unversioned_count = test_data
     # test get all
     urls_list = swg_indexurls_client.query_urls_metadata(key="state", value="uploaded", url="awesome-x")
-    print(urls_list)
     assert len(urls_list) == 2 * url_x_count
 
     # test list versioned urls
