@@ -385,6 +385,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if negate_params:
                 query = self._negate_filter(session, query, **negate_params)
 
+            # joining url metadata will have duplicate results
+            # url or acl doesn't have duplicate results for current filter
+            # so we don't need to select distinct for these cases
+            if urls_metadata or negate_params:
+                query = query.distinct(IndexRecord.did)
+
             query = query.order_by(IndexRecord.did)
 
             if ids:
