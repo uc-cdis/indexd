@@ -20,7 +20,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd.errors import UserError
@@ -326,6 +326,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             query = session.query(IndexRecord)
+
+            # Enable joinedload on all relationships so that we won't have to
+            # do a bunch of selects when we assemble our response.
+            query = query.options(joinedload(IndexRecord.urls).
+                                  joinedload(IndexRecordUrl.url_metadata))
+            query = query.options(joinedload(IndexRecord.acl))
+            query = query.options(joinedload(IndexRecord.hashes))
+            query = query.options(joinedload(IndexRecord.index_metadata))
+            query = query.options(joinedload(IndexRecord.aliases))
 
             if start is not None:
                 query = query.filter(IndexRecord.did > start)
