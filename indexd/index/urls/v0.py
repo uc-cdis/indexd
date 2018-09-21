@@ -1,6 +1,7 @@
 import json
 
 from flask import Blueprint, request, Response
+from flask.json import jsonify
 
 from indexd.errors import UserError
 from indexd.index import request_args_to_params
@@ -32,10 +33,11 @@ def query(exclude=None, include=None, version=None, fields=None, limit=100, offs
     """
     # parameter validation
     if kwargs:
-        return Response("Unexpected Parameter(s) {}".format(kwargs), 400)
+        return jsonify(dict(error="Unexpected query parameter(s)", params=kwargs.keys())), 400
+
     version = version.lower() in ["true", "t", "yes", "y"] if version else None
     record_list = urls.driver.query_urls(exclude=exclude, include=include,
-                                         only_versioned=version,
+                                         versioned=version,
                                          offset=int(offset), limit=int(limit))
 
     fields = fields or "did,urls"
@@ -50,8 +52,7 @@ def query(exclude=None, include=None, version=None, fields=None, limit=100, offs
             c_response["urls"] = record[1].split(",") if record[1] else []
         results.append(c_response)
 
-    response = Response(json.dumps(results, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
-    return response
+    return Response(json.dumps(results, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
 
 
 @urls.route("/metadata/q")
@@ -69,11 +70,11 @@ def query_metadata(key, value, url=None, version=None, fields=None, limit="100",
     """
 
     if kwargs:
-        return Response("Unexpected Parameter(s) {}".format(kwargs), 400)
+        return jsonify(dict(error="Unexpected query parameter(s)", params=kwargs.keys())), 400
 
     version = version.lower() in ["true", "t", "yes", "y"] if version else None
     record_list = urls.driver.query_metadata_by_key(key, value, url=url,
-                                                    only_versioned=version,
+                                                    versioned=version,
                                                     offset=int(offset), limit=int(limit))
     fields = fields or "did,urls,rev"
     fields_dict = requested_fields(fields)
@@ -89,14 +90,7 @@ def query_metadata(key, value, url=None, version=None, fields=None, limit="100",
             c_response["rev"] = record[2]
         results.append(c_response)
 
-    response = Response(json.dumps(results, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
-    return response
-
-
-@urls.errorhandler(UserError)
-def handle_user_error(err):
-    """Raised while parsing request params"""
-    return Response("path: {} missing required parameter(s) {}".format(request.path, err), 400)
+    return Response(json.dumps(results, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
 
 
 @urls.record

@@ -23,7 +23,7 @@ def app_init(app, settings=None):
     app.register_blueprint(indexd_alias_blueprint)
     app.register_blueprint(indexd_dos_blueprint)
     app.register_blueprint(cross_blueprint)
-    app.register_blueprint(index_urls_blueprint, url_prefix="/index/urls")
+    app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
 
 
 def get_app():

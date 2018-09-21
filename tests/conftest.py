@@ -76,6 +76,6 @@ def swg_dos_client(swg_config):
 
 
 @pytest.fixture
-def swg_indexurls_client(swg_config):
-    api = swagger_client.IndexurlsApi(swagger_client.ApiClient(swg_config))
+def swg_query_client(swg_config):
+    api = swagger_client.QueryApi(swagger_client.ApiClient(swg_config))
     yield api

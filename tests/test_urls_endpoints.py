@@ -34,56 +34,57 @@ def test_data(swg_index_client):
     return url_x_count, versioned_count, unversioned_count
 
 
-def test_query_urls(swg_index_client, swg_indexurls_client, test_data):
+def test_query_urls(swg_index_client, swg_query_client, test_data):
     """
     Args:
         swg_index_client (swagger_client.api.indexurls_api.IndexApi):
-        swg_indexurls_client (swagger_client.api.indexurls_api.IndexurlsApi): urls api client
+        swg_query_client (swagger_client.api.indexurls_api.IndexurlsApi): urls api client
         test_data (tuple[int, int, int]:
     """
     url_x_count, versioned_count, unversioned_count = test_data
     # test get all
-    urls_list = swg_indexurls_client.query_urls()
+    urls_list = swg_query_client.query_urls()
+    print(urls_list)
     assert len(urls_list) == versioned_count + unversioned_count
 
     # test list versioned urls
-    urls_list = swg_indexurls_client.query_urls(version=True)
+    urls_list = swg_query_client.query_urls(version=True)
     assert len(urls_list) == versioned_count
 
     # test list un versioned
-    urls_list = swg_indexurls_client.query_urls(version=False)
+    urls_list = swg_query_client.query_urls(version=False)
     assert len(urls_list) == unversioned_count
 
     # test exclude url
-    urls_list = swg_indexurls_client.query_urls(exclude="awesome-x")
+    urls_list = swg_query_client.query_urls(exclude="awesome-x")
     assert len(urls_list) == versioned_count + unversioned_count - 2 * url_x_count
 
     # test include
-    urls_list = swg_indexurls_client.query_urls(include="awesome-x")
+    urls_list = swg_query_client.query_urls(include="awesome-x")
     assert len(urls_list) == 2 * url_x_count
 
 
-def test_query_urls_metadata(swg_index_client, swg_indexurls_client, test_data):
+def test_query_urls_metadata(swg_index_client, swg_query_client, test_data):
     """
     Args:
         swg_index_client (swagger_client.api.indexurls_api.IndexApi):
-        swg_indexurls_client (swagger_client.api.indexurls_api.IndexurlsApi): urls api client
+        swg_query_client (swagger_client.api.indexurls_api.IndexurlsApi): urls api client
         test_data (tuple[int, int, int]:
     """
     url_x_count, _, unversioned_count = test_data
     # test get all
-    urls_list = swg_indexurls_client.query_urls_metadata(key="state", value="uploaded", url="awesome-x")
+    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploaded", url="awesome-x")
     assert len(urls_list) == 2 * url_x_count
 
     # test list versioned urls
-    urls_list = swg_indexurls_client.query_urls_metadata(key="state", value="uploaded",
-                                                         url="awesome-x", version=True)
+    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploaded",
+                                                     url="awesome-x", version=True)
     assert len(urls_list) == url_x_count
 
     # test list un versioned
-    urls_list = swg_indexurls_client.query_urls_metadata(key="state", value="uploaded", url="endpointurl", version=False)
+    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploaded", url="endpointurl", version=False)
     assert len(urls_list) == unversioned_count
 
     # test unknown state
-    urls_list = swg_indexurls_client.query_urls_metadata(key="state", value="uploadedx", url="awesome-x")
+    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploadedx", url="awesome-x")
     assert len(urls_list) == 0

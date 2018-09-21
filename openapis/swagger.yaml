@@ -24,8 +24,8 @@ tags:
     externalDocs:
       description: Find out more
       url: 'https://github.com/uc-cdis/indexd'
-  - name: index/urls
-    description: endpoints dedicated targeting urls specific events
+  - name: query
+    description: query endpoints
   - name: alias
     description: >-
       create an alias for an entity stored in an external system managed by some
@@ -683,10 +683,10 @@ paths:
         '400':
           description: Invalid status value
       security: []
-  '/index/urls/q':
+  '/_query/urls/q':
     get:
       tags:
-        - index/urls
+        - query
       summary: search index records by urls
       operationId: queryUrls
       produces:
@@ -727,10 +727,10 @@ paths:
             $ref: '#/definitions/URLsOutput'
         400:
           description: invalid request parameters
-  '/index/urls/metadata/q':
+  '/_query/urls/metadata/q':
     get:
       tags:
-        - index/urls
+        - query
       summary: search index records by urls metadata key and value
       operationId: queryUrlsMetadata
       produces:

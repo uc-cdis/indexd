@@ -20,7 +20,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         """
         self.driver = alchemy_driver
 
-    def query_urls(self, exclude=None, include=None, only_versioned=True, offset=0, limit=1000):
+    def query_urls(self, exclude=None, include=None, versioned=True, offset=0, limit=1000):
 
         with self.driver.session as sxn:
             # special database specific functions dependent of the selected dialect
@@ -29,10 +29,10 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             query = sxn.query(IndexRecordUrl.did, q_func['string_agg'](IndexRecordUrl.url, ",").label("urls"))\
                 .outerjoin(IndexRecord)
 
-            # filter by version
-            if only_versioned is True:
+            # add version filter if versioned is not None
+            if versioned is True:  # retrieve only those with a version number
                 query = query.filter(IndexRecord.version.isnot(None))
-            elif only_versioned is False:
+            elif versioned is False: # retrieve only those without a version number
                 query = query.filter(~IndexRecord.version.isnot(None))
 
             query = query.group_by(IndexRecordUrl.did)
@@ -50,20 +50,19 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             record_list = query.order_by(IndexRecordUrl.did.asc()).offset(offset).limit(limit).all()
         return record_list
 
-    def query_metadata_by_key(self, key, value, url=None, only_versioned=True, offset=0, limit=1000):
+    def query_metadata_by_key(self, key, value, url=None, versioned=True, offset=0, limit=1000):
 
         with self.driver.session as sxn:
             query = sxn.query(IndexRecordUrlMetadata.did,
                               IndexRecordUrlMetadata.url,
                               IndexRecord.rev)\
-                .filter(IndexRecord.did == IndexRecordUrlMetadata.did) \
-                .filter(IndexRecordUrlMetadata.key == key) \
-                .filter(IndexRecordUrlMetadata.value == value)
+                .filter(IndexRecord.did == IndexRecordUrlMetadata.did,
+                        IndexRecordUrlMetadata.key == key, IndexRecordUrlMetadata.value == value)
 
             # filter by version
-            if only_versioned is True:
+            if versioned is True:
                 query = query.filter(IndexRecord.version.isnot(None))
-            elif only_versioned is False:
+            elif versioned is False:
                 query = query.filter(~IndexRecord.version.isnot(None))
 
             # add url filter
