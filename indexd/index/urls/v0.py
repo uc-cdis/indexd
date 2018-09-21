@@ -1,9 +1,8 @@
 import json
 
-from flask import Blueprint, request, Response
+from flask import Blueprint, Response
 from flask.json import jsonify
 
-from indexd.errors import UserError
 from indexd.index import request_args_to_params
 from indexd.index.drivers.query.urls import AlchemyURLsQueryDriver
 
