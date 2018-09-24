@@ -20,7 +20,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd.errors import UserError
@@ -327,6 +327,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         with self.session as session:
             query = session.query(IndexRecord)
 
+            # Enable joinedload on all relationships so that we won't have to
+            # do a bunch of selects when we assemble our response.
+            query = query.options(joinedload(IndexRecord.urls).
+                                  joinedload(IndexRecordUrl.url_metadata))
+            query = query.options(joinedload(IndexRecord.acl))
+            query = query.options(joinedload(IndexRecord.hashes))
+            query = query.options(joinedload(IndexRecord.index_metadata))
+            query = query.options(joinedload(IndexRecord.aliases))
+
             if start is not None:
                 query = query.filter(IndexRecord.did > start)
 
@@ -384,6 +393,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             if negate_params:
                 query = self._negate_filter(session, query, **negate_params)
+
+            # joining url metadata will have duplicate results
+            # url or acl doesn't have duplicate results for current filter
+            # so we don't need to select distinct for these cases
+            if urls_metadata or negate_params:
+                query = query.distinct(IndexRecord.did)
 
             query = query.order_by(IndexRecord.did)
 

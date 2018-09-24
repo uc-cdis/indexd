@@ -34,11 +34,21 @@ def test_index_list(swg_index_client):
 
 def test_index_list_with_params(swg_index_client):
     data = get_doc()
+    data['urls'] = ['s3://endpointurl/bucket_2/key_2', 's3://anotherurl/bucket_2/key_2']
+    data['urls_metadata'] = {
+        's3://endpointurl/bucket_2/key_2': {'state': 'error', 'other': 'xxx'},
+        's3://anotherurl/bucket_2/key_2': {'state': 'error', 'other': 'xxx'}
+    }
     r_1 = swg_index_client.add_entry(data)
 
-    data['metadata'] = {'project_id': 'other-project'}
-    r_2 = swg_index_client.add_entry(data)
-
+    data2 = get_doc()
+    data2['metadata'] = {
+        'project_id': 'other-project', 'state': 'abc', 'other': 'xxx'
+    }
+    data2['urls'] = ['s3://endpointurl/bucket/key_2', 's3://anotherurl/bucket/key_2']
+    data2['urls_metadata'] = {
+        's3://endpointurl/bucket/key_2': {'state': 'error', 'other': 'xxx'}}
+    r_2 = swg_index_client.add_entry(data2)
     r = swg_index_client.list_entries(metadata='project_id:bpa-UChicago')
     ids = [record.did for record in r.records]
     assert r_1.did in ids
@@ -60,6 +70,13 @@ def test_index_list_with_params(swg_index_client):
     assert r_1.did in ids
     assert r_2.did in ids
 
+    r = swg_index_client.list_entries(limit=2)
+    assert len(r.records) == 2
+
+    param = {'bucket': {'state': 'error', 'other': 'xxx'}}
+
+    r = swg_index_client.list_entries(limit=2, urls_metadata=json.dumps(param))
+    assert len(r.records) == 2
 
 def test_index_list_with_params_negate(swg_index_client):
     data = get_doc()
