@@ -112,7 +112,7 @@ py.test -v tests/
 
 ## Testing with Docker
 
-Doesn't work with all the DB tests yet, but you can adjust to run specific tests as necessary.
+Doesn't work with all the DB tests yet, but you can adjust to run specific tests as necessary. 
 
 ```
 docker build -t indexd -f TestDockerfile .
