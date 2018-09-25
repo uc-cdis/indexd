@@ -14,7 +14,7 @@ def test_data(swg_index_client):
     url_x = "s3://awesome-x/bucket/key"
 
     versioned_count = system_random.randint(5, 10)
-    for i in range(versioned_count):
+    for _ in range(versioned_count):
         doc = get_doc(has_urls_metadata=True, has_version=True)
         if url_x_type > 0:
             doc["urls"].append(url_x)
