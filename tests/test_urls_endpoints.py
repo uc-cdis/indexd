@@ -48,11 +48,11 @@ def test_query_urls(swg_index_client, swg_query_client, test_data):
     assert len(urls_list) == versioned_count + unversioned_count
 
     # test list versioned urls
-    urls_list = swg_query_client.query_urls(version=True)
+    urls_list = swg_query_client.query_urls(versioned=True)
     assert len(urls_list) == versioned_count
 
     # test list un versioned
-    urls_list = swg_query_client.query_urls(version=False)
+    urls_list = swg_query_client.query_urls(versioned=False)
     assert len(urls_list) == unversioned_count
 
     # test exclude url
@@ -78,11 +78,11 @@ def test_query_urls_metadata(swg_index_client, swg_query_client, test_data):
 
     # test list versioned urls
     urls_list = swg_query_client.query_urls_metadata(key="state", value="uploaded",
-                                                     url="awesome-x", version=True)
+                                                     url="awesome-x", versioned=True)
     assert len(urls_list) == url_x_count
 
     # test list un versioned
-    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploaded", url="endpointurl", version=False)
+    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploaded", url="endpointurl", versioned=False)
     assert len(urls_list) == unversioned_count
 
     # test unknown state

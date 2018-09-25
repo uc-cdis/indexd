@@ -1,5 +1,6 @@
 from sqlalchemy import func, and_
 
+from indexd.errors import UserError
 from indexd.index.drivers.alchemy import IndexRecord, IndexRecordUrl, IndexRecordUrlMetadata
 from indexd.index.drivers.query import URLsQueryDriver
 
@@ -20,7 +21,12 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         """
         self.driver = alchemy_driver
 
-    def query_urls(self, exclude=None, include=None, versioned=True, offset=0, limit=1000):
+    def query_urls(self, exclude=None, include=None, versioned=None, offset=0, limit=1000, **kwargs):
+
+        if kwargs:
+            raise UserError("Unexpected query parameter(s) {}".format(kwargs.keys()))
+
+        versioned = versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
 
         with self.driver.session as session:
             # special database specific functions dependent of the selected dialect
@@ -50,12 +56,17 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             record_list = query.order_by(IndexRecordUrl.did.asc()).offset(offset).limit(limit).all()
         return record_list
 
-    def query_metadata_by_key(self, key, value, url=None, versioned=True, offset=0, limit=1000):
+    def query_metadata_by_key(self, key, value, url=None, versioned=None, offset=0, limit=1000, **kwargs):
 
+        if kwargs:
+            print(kwargs)
+            raise UserError("Unexpected query parameter(s) {}".format(kwargs.keys()))
+
+        versioned = versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         with self.driver.session as session:
             query = session.query(IndexRecordUrlMetadata.did,
-                              IndexRecordUrlMetadata.url,
-                              IndexRecord.rev)\
+                                  IndexRecordUrlMetadata.url,
+                                  IndexRecord.rev)\
                 .filter(IndexRecord.did == IndexRecordUrlMetadata.did,
                         IndexRecordUrlMetadata.key == key, IndexRecordUrlMetadata.value == value)
 

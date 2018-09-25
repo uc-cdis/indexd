@@ -1,9 +1,9 @@
 import json
 
-from flask import Blueprint, Response
+from flask import Blueprint, Response, request
 from flask.json import jsonify
 
-from indexd.urls import request_args_to_params
+from indexd.errors import UserError
 from indexd.index.drivers.query.urls import AlchemyURLsQueryDriver
 
 
@@ -11,10 +11,9 @@ blueprint = Blueprint("urls", __name__)
 
 
 @blueprint.route("/q", methods=["GET"])
-@request_args_to_params
-def query(exclude=None, include=None, version=None, fields=None, limit=100, offset=0, **kwargs):
+def query():
     """ Queries indexes based on URLs
-    Args:
+    Params:
         exclude (str): only include documents (did) with urls that does not match this pattern
         include (str): only include documents (did) with a url matching this pattern
         version (str): return only records with version number
@@ -30,16 +29,10 @@ def query(exclude=None, include=None, version=None, fields=None, limit=100, offs
                 ]
             `
     """
-    # parameter validation
-    if kwargs:
-        return jsonify(dict(error="Unexpected query parameter(s)", params=kwargs.keys())), 400
 
-    version = version.lower() in ["true", "t", "yes", "y"] if version else None
-    record_list = blueprint.driver.query_urls(exclude=exclude, include=include,
-                                              versioned=version,
-                                              offset=int(offset), limit=int(limit))
+    record_list = blueprint.driver.query_urls(**request.args.to_dict())
 
-    fields = fields or "did,urls"
+    fields = request.args.get("fields", "did,urls")
     fields_dict = requested_fields(fields)
 
     results = []
@@ -55,10 +48,9 @@ def query(exclude=None, include=None, version=None, fields=None, limit=100, offs
 
 
 @blueprint.route("/metadata/q")
-@request_args_to_params
-def query_metadata(key, value, url=None, version=None, fields=None, limit="100", offset="0", **kwargs):
+def query_metadata():
     """ Queries indexes by URLs metadata key and value
-    Args:
+    Params:
         key (str): metadata key
         value (str): metadata value for key
         url (str): full url or pattern for limit to
@@ -68,14 +60,8 @@ def query_metadata(key, value, url=None, version=None, fields=None, limit="100",
         offset (str): where to start the next query from
     """
 
-    if kwargs:
-        return jsonify(dict(error="Unexpected query parameter(s)", params=kwargs.keys())), 400
-
-    version = version.lower() in ["true", "t", "yes", "y"] if version else None
-    record_list = blueprint.driver.query_metadata_by_key(key, value, url=url,
-                                                         versioned=version,
-                                                         offset=int(offset), limit=int(limit))
-    fields = fields or "did,urls,rev"
+    record_list = blueprint.driver.query_metadata_by_key(**request.args.to_dict())
+    fields = request.args.get("fields", "did,urls,rev")
     fields_dict = requested_fields(fields)
 
     results = []
@@ -97,6 +83,11 @@ def pre_config(state):
     driver = state.app.config["INDEX"]["driver"]
     blueprint.logger = state.app.logger
     blueprint.driver = AlchemyURLsQueryDriver(driver)
+
+
+@blueprint.errorhandler(UserError)
+def handle_user_error(err):
+    return jsonify(error=str(err)), 400
 
 
 def requested_fields(fields):

@@ -703,7 +703,7 @@ paths:
           description: search for documents with at least one URL that match this pattern
           required: false
         - in: query
-          name: version
+          name: versioned
           type: boolean
           default: false
           description: if true search for documents with a version set, else search documents without version
@@ -752,7 +752,7 @@ paths:
           description: URL patter to filter by
           required: false
         - in: query
-          name: version
+          name: versioned
           type: boolean
           default: false
           description: if true search for documents with a version set, else search documents without version
