@@ -7,13 +7,13 @@ from tests.test_client import get_doc
 
 @pytest.fixture(scope="function")
 def test_data(swg_index_client):
-
-    url_x_count = random.randint(2, 5)
+    system_random = random.SystemRandom()
+    url_x_count = system_random.randint(2, 5)
 
     url_x_type = url_x_count
     url_x = "s3://awesome-x/bucket/key"
 
-    versioned_count = random.randint(5, 10)
+    versioned_count = system_random.randint(5, 10)
     for i in range(versioned_count):
         doc = get_doc(has_urls_metadata=True, has_version=True)
         if url_x_type > 0:
@@ -23,7 +23,7 @@ def test_data(swg_index_client):
         swg_index_client.add_entry(doc)
 
     url_x_type = url_x_count
-    unversioned_count = random.randint(6, 10)
+    unversioned_count = system_random.randint(6, 10)
     for _ in range(unversioned_count):
         doc = get_doc(has_urls_metadata=True)
         if url_x_type > 0:
