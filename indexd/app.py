@@ -5,7 +5,7 @@ from .alias.blueprint import blueprint as indexd_alias_blueprint
 from .dos.blueprint import blueprint as indexd_dos_blueprint
 from .blueprint import blueprint as cross_blueprint
 
-from indexd.index.urls.v0 import urls as index_urls_blueprint
+from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
 import os
 import sys

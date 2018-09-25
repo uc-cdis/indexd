@@ -22,11 +22,11 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
 
     def query_urls(self, exclude=None, include=None, versioned=True, offset=0, limit=1000):
 
-        with self.driver.session as sxn:
+        with self.driver.session as session:
             # special database specific functions dependent of the selected dialect
-            q_func = driver_query_map.get(sxn.bind.dialect.name)
+            q_func = driver_query_map.get(session.bind.dialect.name)
 
-            query = sxn.query(IndexRecordUrl.did, q_func['string_agg'](IndexRecordUrl.url, ",").label("urls"))\
+            query = session.query(IndexRecordUrl.did, q_func['string_agg'](IndexRecordUrl.url, ",").label("urls"))\
                 .outerjoin(IndexRecord)
 
             # add version filter if versioned is not None
@@ -52,8 +52,8 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
 
     def query_metadata_by_key(self, key, value, url=None, versioned=True, offset=0, limit=1000):
 
-        with self.driver.session as sxn:
-            query = sxn.query(IndexRecordUrlMetadata.did,
+        with self.driver.session as session:
+            query = session.query(IndexRecordUrlMetadata.did,
                               IndexRecordUrlMetadata.url,
                               IndexRecord.rev)\
                 .filter(IndexRecord.did == IndexRecordUrlMetadata.did,

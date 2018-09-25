@@ -19,7 +19,7 @@ class URLsQueryDriver(object):
         Returns:
             list: result list
         """
-        raise NotImplementedError("Not Implemented, use a concrete impl")
+        pass
 
     @abstractmethod
     def query_metadata_by_key(self, key, value, url=None, versioned=None, offset=0, limit=1000):
@@ -34,4 +34,4 @@ class URLsQueryDriver(object):
         Returns:
             list: result list
         """
-        raise NotImplementedError("Not Implemented, use a concrete impl")
+        pass

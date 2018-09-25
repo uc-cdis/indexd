@@ -3,14 +3,14 @@ import json
 from flask import Blueprint, Response
 from flask.json import jsonify
 
-from indexd.index import request_args_to_params
+from indexd.urls import request_args_to_params
 from indexd.index.drivers.query.urls import AlchemyURLsQueryDriver
 
 
-urls = Blueprint("urls", __name__)
+blueprint = Blueprint("urls", __name__)
 
 
-@urls.route("/q", methods=["GET"])
+@blueprint.route("/q", methods=["GET"])
 @request_args_to_params
 def query(exclude=None, include=None, version=None, fields=None, limit=100, offset=0, **kwargs):
     """ Queries indexes based on URLs
@@ -35,9 +35,9 @@ def query(exclude=None, include=None, version=None, fields=None, limit=100, offs
         return jsonify(dict(error="Unexpected query parameter(s)", params=kwargs.keys())), 400
 
     version = version.lower() in ["true", "t", "yes", "y"] if version else None
-    record_list = urls.driver.query_urls(exclude=exclude, include=include,
-                                         versioned=version,
-                                         offset=int(offset), limit=int(limit))
+    record_list = blueprint.driver.query_urls(exclude=exclude, include=include,
+                                              versioned=version,
+                                              offset=int(offset), limit=int(limit))
 
     fields = fields or "did,urls"
     fields_dict = requested_fields(fields)
@@ -54,7 +54,7 @@ def query(exclude=None, include=None, version=None, fields=None, limit=100, offs
     return Response(json.dumps(results, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
 
 
-@urls.route("/metadata/q")
+@blueprint.route("/metadata/q")
 @request_args_to_params
 def query_metadata(key, value, url=None, version=None, fields=None, limit="100", offset="0", **kwargs):
     """ Queries indexes by URLs metadata key and value
@@ -72,9 +72,9 @@ def query_metadata(key, value, url=None, version=None, fields=None, limit="100",
         return jsonify(dict(error="Unexpected query parameter(s)", params=kwargs.keys())), 400
 
     version = version.lower() in ["true", "t", "yes", "y"] if version else None
-    record_list = urls.driver.query_metadata_by_key(key, value, url=url,
-                                                    versioned=version,
-                                                    offset=int(offset), limit=int(limit))
+    record_list = blueprint.driver.query_metadata_by_key(key, value, url=url,
+                                                         versioned=version,
+                                                         offset=int(offset), limit=int(limit))
     fields = fields or "did,urls,rev"
     fields_dict = requested_fields(fields)
 
@@ -92,11 +92,11 @@ def query_metadata(key, value, url=None, version=None, fields=None, limit="100",
     return Response(json.dumps(results, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
 
 
-@urls.record
+@blueprint.record
 def pre_config(state):
     driver = state.app.config["INDEX"]["driver"]
-    urls.logger = state.app.logger
-    urls.driver = AlchemyURLsQueryDriver(driver)
+    blueprint.logger = state.app.logger
+    blueprint.driver = AlchemyURLsQueryDriver(driver)
 
 
 def requested_fields(fields):
