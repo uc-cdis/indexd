@@ -4,6 +4,9 @@ from .index.blueprint import blueprint as indexd_index_blueprint
 from .alias.blueprint import blueprint as indexd_alias_blueprint
 from .dos.blueprint import blueprint as indexd_dos_blueprint
 from .blueprint import blueprint as cross_blueprint
+
+from indexd.urls.blueprint import blueprint as index_urls_blueprint
+
 import os
 import sys
 import cdislogging
@@ -20,6 +23,7 @@ def app_init(app, settings=None):
     app.register_blueprint(indexd_alias_blueprint)
     app.register_blueprint(indexd_dos_blueprint)
     app.register_blueprint(cross_blueprint)
+    app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
 
 
 def get_app():
