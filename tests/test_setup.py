@@ -25,6 +25,7 @@ INDEX_TABLES = {
         (6, u'updated_date', u'DATETIME', 0, None, 0),
         (7, u'file_name', u'VARCHAR', 0, None, 0),
         (8, u'version', u'VARCHAR', 0, None, 0),
+        (9, u'uploader', u'VARCHAR', 0, None, 0),
     ],
     'index_record_hash': [
         (0, u'did', u'VARCHAR', 1, None, 1),
