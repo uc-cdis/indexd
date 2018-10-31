@@ -156,6 +156,11 @@ paths:
           description: hash in format hash_type:hash_value
           required: false
           type: string
+        - name: uploader
+          in: query
+          description: uploader id
+          required: false
+          type: string
         - name: ids
           in: query
           description: |

@@ -319,6 +319,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             hashes=None,
             file_name=None,
             version=None,
+            uploader=None,
             metadata=None,
             ids=None,
             urls_metadata=None,
@@ -349,6 +350,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             if version is not None:
                 query = query.filter(IndexRecord.version == version)
+
+            if uploader is not None:
+                query = query.filter(IndexRecord.uploader == uploader)
 
             if urls is not None and urls:
                 query = query.join(IndexRecord.urls)

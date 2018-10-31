@@ -136,6 +136,22 @@ def test_index_list_with_params_negate(swg_index_client):
     ids = {record.did for record in r.records}
     assert ids == {r_3.did, r_4.did, r_5.did}
 
+def test_list_entries_with_uploader(swg_index_client):
+    data = get_doc()
+    data['uploader'] = 'uploader_1'
+    r = swg_index_client.add_entry(data)
+
+    data = get_doc()
+    data['uploader'] = 'uploader_123'
+    r = swg_index_client.add_entry(data)
+
+    data = get_doc()
+    data['uploader'] = 'uploader_123'
+    r = swg_index_client.add_entry(data)
+
+    r = swg_index_client.list_entries(uploader='uploader_123')
+    assert len(r.records) == 2
+
 
 def test_urls_metadata(swg_index_client):
     data = get_doc(has_urls_metadata=True)

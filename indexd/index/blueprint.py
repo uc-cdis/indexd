@@ -75,6 +75,8 @@ def get_index():
 
     if size is not None and size < 0:
         raise UserError('size must be > 0')
+    
+    uploader = flask.request.args.get('uploader')
 
     # TODO: Based on indexclient, url here should be urls instead. Or change urls to url in indexclient.
     urls = flask.request.args.getlist('url')
@@ -120,6 +122,7 @@ def get_index():
         urls=urls,
         acl=acl,
         hashes=hashes,
+        uploader=uploader,
         ids=ids,
         metadata=metadata,
         urls_metadata=urls_metadata,
