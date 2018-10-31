@@ -235,6 +235,7 @@ def post_index_record():
     urls_metadata = flask.request.json.get('urls_metadata')
     version = flask.request.json.get('version')
     baseid = flask.request.json.get('baseid')
+    uploader = flask.request.json.get('uploader', None)
 
     did, rev, baseid = blueprint.index_driver.add(
         form,
@@ -248,6 +249,7 @@ def post_index_record():
         acl=acl,
         hashes=hashes,
         baseid=baseid,
+        uploader=uploader,
     )
 
     ret = {

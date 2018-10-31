@@ -77,6 +77,7 @@ class IndexRecord(Base):
     updated_date = Column(DateTime, default=datetime.datetime.utcnow)
     file_name = Column(String, index=True)
     version = Column(String, index=True)
+    uploader = Column(String, index=True)
 
     urls = relationship(
         'IndexRecordUrl',
@@ -129,6 +130,7 @@ class IndexRecord(Base):
             'size': self.size,
             'file_name': self.file_name,
             'version': self.version,
+            'uploader': self.uploader,
             'urls': urls,
             'urls_metadata': urls_metadata,
             'acl': acl,
@@ -546,12 +548,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             urls=None,
             acl=None,
             hashes=None,
-            baseid=None):
+            baseid=None,
+            uploader=None):
         """
         Creates a new record given size, urls, acl, hashes, metadata,
         urls_metadata file name and version
         if did is provided, update the new record with the did otherwise create it
         """
+
+        import pdb; pdb.set_trace()
 
         if urls is None:
             urls = []
@@ -588,6 +593,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.rev = str(uuid.uuid4())[:8]
 
             record.form, record.size = form, size
+
+            record.uploader = uploader
 
             record.urls = [IndexRecordUrl(
                 did=record.did,
@@ -664,6 +671,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Gets a record given the record id or baseid.
         If the given id is a baseid, it will return the latest version
         """
+        import pdb; pdb.set_trace()
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(
@@ -1088,6 +1096,15 @@ def migrate_9(session, **kwargs):
     session.execute(
         "CREATE INDEX index_record_hash_type_value_idx ON {tb} ( hash_value, hash_type )"
         .format(tb=IndexRecordHash.__tablename__))
+
+def migrate_10(session, **kwargs):
+    session.execute(
+        "ALTER TABLE {} ADD COLUMN uploader VARCHAR;"
+        .format(IndexRecord.__tablename__))
+
+    session.execute(
+        "CREATE INDEX {tb}__uploader_idx ON {tb} ( uploader )"
+        .format(tb=IndexRecord.__tablename__))
 
 
 # ordered schema migration functions that the index should correspond to

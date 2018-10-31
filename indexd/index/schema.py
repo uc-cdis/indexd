@@ -42,6 +42,10 @@ POST_RECORD_SCHEMA = {
       "description": "optional version string of the object",
       "type": "string",
     },
+    "uploader": {
+      "description": "optional uploader of the object",
+      "type": "string",
+    },
     "urls": {
       "type": "array",
       "items": {
