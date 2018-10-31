@@ -387,6 +387,15 @@ def test_index_create_with_version(swg_index_client):
     assert r.version == data['version']
 
 
+def test_index_create_with_uploader(swg_index_client):
+    data = get_doc()
+    data['uploader'] = 'uploader_123'
+
+    r = swg_index_client.add_entry(data)
+    r = swg_index_client.get_entry(r.did)
+    assert r.uploader == data['uploader']
+
+
 def test_index_get_global_endpoint(swg_global_client, swg_index_client):
     data = get_doc()
 

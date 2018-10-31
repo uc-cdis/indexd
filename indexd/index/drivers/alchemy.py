@@ -556,8 +556,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         if did is provided, update the new record with the did otherwise create it
         """
 
-        import pdb; pdb.set_trace()
-
         if urls is None:
             urls = []
         if acl is None:
@@ -671,7 +669,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Gets a record given the record id or baseid.
         If the given id is a baseid, it will return the latest version
         """
-        import pdb; pdb.set_trace()
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(

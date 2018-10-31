@@ -1033,6 +1033,8 @@ definitions:
         type: string
       version:
         type: string
+      uploader:
+        type: string
       urls:
         type: array
         items:
