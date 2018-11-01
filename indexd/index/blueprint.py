@@ -76,6 +76,8 @@ def get_index():
     if size is not None and size < 0:
         raise UserError('size must be > 0')
 
+    uploader = flask.request.args.get('uploader')
+
     # TODO: Based on indexclient, url here should be urls instead. Or change urls to url in indexclient.
     urls = flask.request.args.getlist('url')
 
@@ -120,6 +122,7 @@ def get_index():
         urls=urls,
         acl=acl,
         hashes=hashes,
+        uploader=uploader,
         ids=ids,
         metadata=metadata,
         urls_metadata=urls_metadata,
@@ -235,6 +238,7 @@ def post_index_record():
     urls_metadata = flask.request.json.get('urls_metadata')
     version = flask.request.json.get('version')
     baseid = flask.request.json.get('baseid')
+    uploader = flask.request.json.get('uploader')
 
     did, rev, baseid = blueprint.index_driver.add(
         form,
@@ -248,6 +252,7 @@ def post_index_record():
         acl=acl,
         hashes=hashes,
         baseid=baseid,
+        uploader=uploader,
     )
 
     ret = {
@@ -269,8 +274,8 @@ def put_index_record(record):
         jsonschema.validate(flask.request.json, PUT_RECORD_SCHEMA)
     except jsonschema.ValidationError as err:
         raise UserError(err)
-    rev = flask.request.args.get('rev')
 
+    rev = flask.request.args.get('rev')
     did, baseid, rev = blueprint.index_driver.update(
         record,
         rev,
