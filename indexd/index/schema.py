@@ -150,6 +150,9 @@ PUT_RECORD_SCHEMA = {
         "version": {
             "type": ["string", "null"],
         },
+        "uploader": {
+            "type": ["string", "null"],
+        },
         "metadata": {
             "type": "object",
         },

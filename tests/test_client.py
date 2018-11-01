@@ -151,6 +151,8 @@ def test_list_entries_with_uploader(swg_index_client):
 
     r = swg_index_client.list_entries(uploader='uploader_123')
     assert len(r.records) == 2
+    assert r.records[0].uploader == 'uploader_123'
+    assert r.records[1].uploader == 'uploader_123'
 
 
 def test_urls_metadata(swg_index_client):
@@ -406,7 +408,7 @@ def test_index_create_with_version(swg_index_client):
 def test_index_create_with_uploader(swg_index_client):
     data = get_doc()
     data['uploader'] = 'uploader_123'
-
+    import pdb; pdb.set_trace()
     r = swg_index_client.add_entry(data)
     r = swg_index_client.get_entry(r.did)
     assert r.uploader == data['uploader']
@@ -460,6 +462,29 @@ def test_index_update(swg_index_client):
         }
     r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
+
+
+def test_update_uploader_field(swg_index_client):
+    data = get_doc()
+    data['uploader'] = 'uploader_123'
+    r = swg_index_client.add_entry(data)
+    assert r.did
+    assert r.rev
+
+    r = swg_index_client.get_entry(r.did)
+    assert r.uploader == 'uploader_123'
+
+    updated = {'uploader': 'new_uploader'}
+    swg_index_client.update_entry(r.did, rev=r.rev, body=updated)
+
+    r = swg_index_client.get_entry(r.did)
+    assert r.uploader == 'new_uploader'
+
+    updated = {'uploader': None}
+    swg_index_client.update_entry(r.did, rev=r.rev, body=updated)
+
+    r = swg_index_client.get_entry(r.did)
+    assert r.uploader is None
 
 
 def test_index_delete(swg_index_client):

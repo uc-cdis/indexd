@@ -274,8 +274,8 @@ def put_index_record(record):
         jsonschema.validate(flask.request.json, PUT_RECORD_SCHEMA)
     except jsonschema.ValidationError as err:
         raise UserError(err)
+    
     rev = flask.request.args.get('rev')
-
     did, baseid, rev = blueprint.index_driver.update(
         record,
         rev,
