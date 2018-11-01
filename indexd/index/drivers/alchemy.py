@@ -1112,5 +1112,5 @@ def migrate_10(session, **kwargs):
 # CURRENT_SCHEMA_VERSION - 1 when it's written
 SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_1, migrate_2, migrate_3, migrate_4, migrate_5,
-    migrate_6, migrate_7, migrate_8, migrate_9]
+    migrate_6, migrate_7, migrate_8, migrate_9, migrate_10]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)

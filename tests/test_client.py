@@ -408,7 +408,6 @@ def test_index_create_with_version(swg_index_client):
 def test_index_create_with_uploader(swg_index_client):
     data = get_doc()
     data['uploader'] = 'uploader_123'
-    import pdb; pdb.set_trace()
     r = swg_index_client.add_entry(data)
     r = swg_index_client.get_entry(r.did)
     assert r.uploader == data['uploader']
