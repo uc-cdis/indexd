@@ -155,6 +155,25 @@ def test_list_entries_with_uploader(swg_index_client):
     assert r.records[1].uploader == 'uploader_123'
 
 
+def test_create_blank_record(swg_index_client):
+    doc = {'uploader': 'uploader_123'}
+    r = swg_index_client.create_blank_entry(doc)
+    assert r.did
+    assert r.rev
+
+    r = swg_index_client.list_entries(uploader='uploader_123')
+    assert r.records[0].uploader == 'uploader_123'
+    assert r.records[0].baseid
+    assert r.records[0].did
+    assert not r.records[0].size 
+    assert not r.records[0].acl
+    assert not r.records[0].hashes.crc
+    assert not r.records[0].hashes.md5
+    assert not r.records[0].hashes.sha
+    assert not r.records[0].hashes.sha256
+    assert not r.records[0].hashes.sha512
+
+
 def test_urls_metadata(swg_index_client):
     data = get_doc(has_urls_metadata=True)
     result = swg_index_client.add_entry(data)

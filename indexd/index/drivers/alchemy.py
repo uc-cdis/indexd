@@ -637,7 +637,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Create a new blank record with only
         """
-
         with self.session as session:
             record = IndexRecord()
             base_version = BaseVersion()
@@ -653,7 +652,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.did = new_did
             record.rev = str(uuid.uuid4())[:8]
             record.baseid = baseid
-            #record.uploader = uploader
+            record.uploader = uploader
             
             session.merge(base_version)
             session.add(record)
