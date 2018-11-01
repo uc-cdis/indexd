@@ -633,6 +633,33 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
+    def add_blank_record(self, uploader=uploader, baseid=baseid):
+        """
+        Create a new blank record with only
+        """
+        with self.session as session:
+            record = IndexRecord()
+            base_version = BaseVersion()
+
+            if not baseid:
+                baseid = str(uuid.uuid4())
+            base_version.baseid = baseid
+
+            new_did = str(uuid.uuid4())
+            if self.config.get('PREPEND_PREFIX'):
+                new_did = self.config['DEFAULT_PREFIX'] + new_did
+            
+            record.did = new_did
+            record.rev = str(uuid.uuid4())[:8]
+            record.baseid = baseid
+            record.uploader = uploader
+            
+            session.merge(base_version)
+            session.add(record)
+            session.commit()
+
+            return record.did
+
     def add_prefix_alias(self, record, session):
         """
         Create a index alias with the alias as {prefix:did}

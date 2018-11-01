@@ -263,6 +263,27 @@ def post_index_record():
 
     return flask.jsonify(ret), 200
 
+@blueprint.route('/index/empty/', methods=['POST'])
+@authorize
+def post_index_empty_record():
+    '''
+    Create an empty new record with only uploader field is filled
+    '''
+
+    uploader = flask.request.json.get('uploader')
+    baseid = flask.request.json.get('baseid')
+
+    did = blueprint.index_driver.add_blank_record(
+        uploader=uploader,
+        baseid=baseid
+    )
+    ret = {
+        'did': did,
+        'rev': rev
+    }
+
+    return flask.jsonify(ret), 200
+
 
 @blueprint.route('/index/<path:record>', methods=['PUT'])
 @authorize
