@@ -633,10 +633,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
-    def add_blank_record(self, uploader=uploader, baseid=baseid):
+    def add_blank_record(self, uploader=None, baseid=None):
         """
         Create a new blank record with only
         """
+
         with self.session as session:
             record = IndexRecord()
             base_version = BaseVersion()
@@ -652,13 +653,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.did = new_did
             record.rev = str(uuid.uuid4())[:8]
             record.baseid = baseid
-            record.uploader = uploader
+            #record.uploader = uploader
             
             session.merge(base_version)
             session.add(record)
             session.commit()
 
-            return record.did
+            return record.did, record.rev
 
     def add_prefix_alias(self, record, session):
         """

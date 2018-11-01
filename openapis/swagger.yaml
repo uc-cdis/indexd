@@ -236,6 +236,31 @@ paths:
               hashes:
                 $ref: '#/definitions/HashInfo'
       security: []
+  '/index/blank':
+    post:
+      tags:
+        - index
+      summary: Create a blank record
+      description: ''
+      operationId: createBlankEntry
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Metadata object that needs to be added to the store
+          required: true
+          schema:
+            $ref: '#/definitions/InputBlankInfo'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/OutputInfo'
+        '400':
+          description: Invalid status value
+      security:
+        - basic_auth: []
   '/index/{UUID}':
     get:
       tags:
@@ -903,6 +928,11 @@ definitions:
           type: string
       hashes:
         $ref: '#/definitions/HashInfo'
+  InputBlankInfo:
+    type: object
+    properties:
+      baseid:
+        $ref: "#/definitions/UUID"
   UpdateInputInfo:
     type: object
     properties:

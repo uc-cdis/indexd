@@ -269,7 +269,6 @@ def test_index_get(swg_index_client):
 def test_index_prepend_prefix(swg_index_client):
     data = get_doc()
 
-
     result = swg_index_client.add_entry(data)
     r = swg_index_client.get_entry(result.did)
     assert r.did == result.did
@@ -404,6 +403,20 @@ def test_index_create_with_version(swg_index_client):
     r = swg_index_client.get_entry(r.did)
     assert r.version == data['version']
 
+def test_index_create_blank_record(swg_index_client):
+    doc = {
+        'uploader': 'uploader_123',
+        'baseid': 'baseid_123'
+    }
+
+    r = swg_index_client.create_blank_entry(doc)
+    assert r.did
+    res = swg_index_client.get_entry(r.did)
+    assert res.acl==[]
+    assert res.urls_metadata == {}
+    assert res.size is None
+    assert res.version is None
+    assert res.urls_metadata == {}
 
 def test_index_create_with_uploader(swg_index_client):
     data = get_doc()

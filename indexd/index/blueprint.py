@@ -263,7 +263,7 @@ def post_index_record():
 
     return flask.jsonify(ret), 200
 
-@blueprint.route('/index/empty/', methods=['POST'])
+@blueprint.route('/index/blank/', methods=['POST'])
 @authorize
 def post_index_empty_record():
     '''
@@ -273,7 +273,7 @@ def post_index_empty_record():
     uploader = flask.request.json.get('uploader')
     baseid = flask.request.json.get('baseid')
 
-    did = blueprint.index_driver.add_blank_record(
+    did, rev = blueprint.index_driver.add_blank_record(
         uploader=uploader,
         baseid=baseid
     )
