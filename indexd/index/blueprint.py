@@ -95,7 +95,8 @@ def get_index():
     metadata = {k: v for k, v in map(lambda x: x.split(':', 1), metadata)}
 
     acl = flask.request.args.get('acl')
-    acl = [] if acl == '' else acl.split(',')
+    if acl:
+        acl = [] if acl == '' else acl.split(',')
 
     urls_metadata = flask.request.args.get('urls_metadata')
     if urls_metadata:
