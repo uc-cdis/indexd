@@ -81,8 +81,6 @@ def get_index():
     # TODO: Based on indexclient, url here should be urls instead. Or change urls to url in indexclient.
     urls = flask.request.args.getlist('url')
 
-    acl = flask.request.args.getlist('acl')
-
     file_name = flask.request.args.get('file_name')
 
     version = flask.request.args.get('version')
@@ -95,6 +93,9 @@ def get_index():
 
     metadata = flask.request.args.getlist('metadata')
     metadata = {k: v for k, v in map(lambda x: x.split(':', 1), metadata)}
+
+    acl = flask.request.args.get('acl')
+    acl = [] if acl == '' else acl.split(',')
 
     urls_metadata = flask.request.args.get('urls_metadata')
     if urls_metadata:
@@ -287,13 +288,13 @@ def post_index_empty_record():
 
     return flask.jsonify(ret), 200
 
-# @blueprint.route('/index/blank/<path:record>', methods=['GET'])
+# @blueprint.route('/index/blank/<path:uploader>', methods=['GET'])
 # @authorize
-# def get_index_record_with_empty_acl(record):
+# def get_index_record_with_empty_acl(uploader):
 #     '''
-#     Get an index record with empty acl
+#     Get list of index record with empty acl
 #     '''
-#     pass
+
 
 @blueprint.route('/index/blank/<path:record>', methods=['PUT'])
 @authorize

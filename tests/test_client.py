@@ -203,8 +203,13 @@ def test_get_empty_acl_record(swg_index_client):
     doc = {'uploader': 'uploader_123'}
     r = swg_index_client.create_blank_entry(doc)
 
-    assert r.did
-    assert r.rev
+    doc = {'uploader': 'uploader_123'}
+    r = swg_index_client.create_blank_entry(doc)
+
+    r = swg_index_client.list_entries(acl='')
+    assert len(r.records) == 2
+    assert r.records[0].acl == []
+    assert r.records[1].acl == []
 
 def test_urls_metadata(swg_index_client):
     data = get_doc(has_urls_metadata=True)

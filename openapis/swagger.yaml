@@ -173,6 +173,11 @@ paths:
           description: comma delimited urls
           required: false
           type: string
+        - name: acl
+          in: query
+          description: comma delimited ace
+          required: false
+          type: string
         - name: negate_params
           in: query
           description: |
