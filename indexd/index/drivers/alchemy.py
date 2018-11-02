@@ -354,17 +354,19 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if uploader is not None:
                 query = query.filter(IndexRecord.uploader == uploader)
 
-            if urls is not None and urls:
+            if urls:
                 query = query.join(IndexRecord.urls)
                 for u in urls:
                     query = query.filter(IndexRecordUrl.url == u)
 
-            if acl is not None and acl:
+            if acl:
                 query = query.join(IndexRecord.acl)
                 for u in acl:
                     query = query.filter(IndexRecordACE.ace == u)
+            elif acl == []:
+                query = query.filter(IndexRecord.acl == None)
 
-            if hashes is not None and hashes:
+            if hashes:
                 for h, v in hashes.items():
                     sub = session.query(IndexRecordHash.did)
                     sub = sub.filter(and_(
@@ -373,7 +375,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     ))
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
-            if metadata is not None and metadata:
+            if metadata:
                 for k, v in metadata.items():
                     sub = session.query(IndexRecordMetadata.did)
                     sub = sub.filter(

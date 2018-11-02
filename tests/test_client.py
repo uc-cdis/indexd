@@ -198,15 +198,49 @@ def test_fill_size_n_hash_for_blank_record(swg_index_client):
     assert r.size == 10
     assert r.hashes.md5 == '8b9942cf415384b27cadf1f4d2d981f5'
 
+def test_get_no_empty_acl_record(swg_index_client):
+    doc = {'uploader': 'uploader_123'}
+    r1 = swg_index_client.create_blank_entry(doc)
+    updated = {
+        'size': 10,
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
+    }
+
+    r1 = swg_index_client.update_blank_entry(r1.did, rev=r1.rev, body=updated)
+    r1 = swg_index_client.update_entry(r1.did, rev=r1.rev, body={'acl': ['read']})
+    r1 = swg_index_client.get_entry(r1.did)
+    assert r1.acl == ['read']
+
+    doc = {'uploader': 'uploader_123'}
+    r2 = swg_index_client.create_blank_entry(doc)
+    updated = {
+        'size': 4,
+        'hashes': {'md5': '1b9942cf415384b27cadf1f4d2d981f5'},
+    }
+    r1 = swg_index_client.update_blank_entry(r1.did, rev=r1.rev, body=updated)
+    r = swg_index_client.list_entries(uploader='uploader_123', acl='')
+    assert len(r.records) == 1
+
+
+
 
 def test_get_empty_acl_record(swg_index_client):
-    doc = {'uploader': 'uploader_123'}
-    r = swg_index_client.create_blank_entry(doc)
+    """
+    Test that can get a list of empty acl given uploader
+    """
+    doc = get_doc()
+    r = swg_index_client.add_entry(doc)
 
     doc = {'uploader': 'uploader_123'}
     r = swg_index_client.create_blank_entry(doc)
 
-    r = swg_index_client.list_entries(acl='')
+    doc = {'uploader': 'uploader_123'}
+    r = swg_index_client.create_blank_entry(doc)
+
+    r = swg_index_client.list_entries()
+    assert len(r.records) == 3
+
+    r = swg_index_client.list_entries(uploader='uploader_123', acl='')
     assert len(r.records) == 2
     assert r.records[0].acl == []
     assert r.records[1].acl == []
