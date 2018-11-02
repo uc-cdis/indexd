@@ -633,7 +633,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
-    def add_blank_record(self, uploader=None, baseid=None):
+    def add_blank_record(self, did=None, uploader=None, baseid=None):
         """
         Create a new blank record with only
         """
@@ -645,11 +645,14 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 baseid = str(uuid.uuid4())
             base_version.baseid = baseid
 
-            new_did = str(uuid.uuid4())
-            if self.config.get('PREPEND_PREFIX'):
-                new_did = self.config['DEFAULT_PREFIX'] + new_did
-            
-            record.did = new_did
+            if did:
+                record.did = did
+            else:
+                new_did = str(uuid.uuid4())
+                if self.config.get('PREPEND_PREFIX'):
+                    new_did = self.config['DEFAULT_PREFIX'] + new_did
+                record.did = new_did
+
             record.rev = str(uuid.uuid4())[:8]
             record.baseid = baseid
             record.uploader = uploader
@@ -658,7 +661,42 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             session.add(record)
             session.commit()
 
-            return record.did, record.rev
+            return record.did, record.rev, record.baseid
+    
+    def update_blank_record(self, did, rev, size=None, hashes=None):
+        """
+        Create a new blank record with only
+        """
+        if hashes is None:
+            hashes = {}
+
+        with self.session as session:
+            query = session.query(IndexRecord).filter(IndexRecord.did == did)
+
+            try:
+                record = query.one()
+            except NoResultFound:
+                raise NoRecordFound('no record found')
+            except MultipleResultsFound:
+                raise MultipleRecordsFound('multiple records found')
+
+            if rev != record.rev:
+                raise RevisionMismatch('revision mismatch')
+            
+            record.size = size
+            record.hashes = [IndexRecordHash(
+                did=record.did,
+                hash_type=h,
+                hash_value=v,
+            ) for h, v in hashes.items()]
+
+            record.rev = str(uuid.uuid4())[:8]
+
+            session.add(record)
+            session.commit()
+
+            return record.did, record.rev, record.baseid
+
 
     def add_prefix_alias(self, record, session):
         """

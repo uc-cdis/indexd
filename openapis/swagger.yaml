@@ -261,6 +261,43 @@ paths:
           description: Invalid status value
       security:
         - basic_auth: []
+  '/index/blank/{UUID}':
+    put:
+      tags:
+        - index
+      summary: Update only hashes and size for blank index
+      description: ''
+      operationId: updateBlankEntry
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: UUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+        - name: rev
+          in: query
+          description: data revision - simple consistency mechanism
+          required: true
+          type: string
+        - in: body
+          name: body
+          description: index record that needs to be updated
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateBlankInputInfo'
+      responses:
+        '200':
+          description: success
+          schema:
+            $ref: '#/definitions/OutputRef'
+        '400':
+          description: Invalid input
+      security:
+        - basic_auth: []
   '/index/{UUID}':
     get:
       tags:
@@ -956,6 +993,13 @@ definitions:
         type: array
         items:
           type: string
+  UpdateBlankInputInfo:
+    type: object
+    properties:
+      size:
+        type: integer
+      hashes:
+        $ref: '#/definitions/HashInfo'
   OutputRef:
     type: object
     properties:
