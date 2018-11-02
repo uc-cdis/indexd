@@ -17,7 +17,6 @@ class RevisionMismatch(BaseIndexError):
     '''
     Revision mismatch.
     '''
-
 class UnhealthyCheck(BaseIndexError):
     '''
     Health check failed.

@@ -137,6 +137,9 @@ def test_index_list_with_params_negate(swg_index_client):
     assert ids == {r_3.did, r_4.did, r_5.did}
 
 def test_list_entries_with_uploader(swg_index_client):
+    """
+    Test that return a list of record given uploader
+    """
     data = get_doc()
     data['uploader'] = 'uploader_1'
     r = swg_index_client.add_entry(data)
@@ -154,6 +157,25 @@ def test_list_entries_with_uploader(swg_index_client):
     assert r.records[0].uploader == 'uploader_123'
     assert r.records[1].uploader == 'uploader_123'
 
+def test_list_entries_with_uploader_wrong_uploader(swg_index_client):
+    """
+    Test that returns no record due to wrong uploader id
+    """
+    data = get_doc()
+    data['uploader'] = 'uploader_1'
+    r = swg_index_client.add_entry(data)
+
+    data = get_doc()
+    data['uploader'] = 'uploader_123'
+    r = swg_index_client.add_entry(data)
+
+    data = get_doc()
+    data['uploader'] = 'uploader_123'
+    r = swg_index_client.add_entry(data)
+
+    r = swg_index_client.list_entries(uploader='wrong_uploader')
+    assert len(r.records) == 0
+
 
 def test_create_blank_record(swg_index_client):
     doc = {'uploader': 'uploader_123'}
@@ -168,7 +190,7 @@ def test_create_blank_record(swg_index_client):
     assert r.records[0].uploader == 'uploader_123'
     assert r.records[0].baseid
     assert r.records[0].did
-    assert not r.records[0].size 
+    assert not r.records[0].size
     assert not r.records[0].acl
     
     assert not r.records[0].hashes.crc
@@ -178,6 +200,9 @@ def test_create_blank_record(swg_index_client):
     assert not r.records[0].hashes.sha512
 
 def test_fill_size_n_hash_for_blank_record(swg_index_client):
+    """
+    Test that can fill size and hashes for empty record
+    """
     doc = {'uploader': 'uploader_123'}
 
     r = swg_index_client.create_blank_entry(doc)
@@ -197,32 +222,6 @@ def test_fill_size_n_hash_for_blank_record(swg_index_client):
     r = swg_index_client.get_entry(did)
     assert r.size == 10
     assert r.hashes.md5 == '8b9942cf415384b27cadf1f4d2d981f5'
-
-def test_get_no_empty_acl_record(swg_index_client):
-    doc = {'uploader': 'uploader_123'}
-    r1 = swg_index_client.create_blank_entry(doc)
-    updated = {
-        'size': 10,
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
-    }
-
-    r1 = swg_index_client.update_blank_entry(r1.did, rev=r1.rev, body=updated)
-    r1 = swg_index_client.update_entry(r1.did, rev=r1.rev, body={'acl': ['read']})
-    r1 = swg_index_client.get_entry(r1.did)
-    assert r1.acl == ['read']
-
-    doc = {'uploader': 'uploader_123'}
-    r2 = swg_index_client.create_blank_entry(doc)
-    updated = {
-        'size': 4,
-        'hashes': {'md5': '1b9942cf415384b27cadf1f4d2d981f5'},
-    }
-    r1 = swg_index_client.update_blank_entry(r1.did, rev=r1.rev, body=updated)
-    r = swg_index_client.list_entries(uploader='uploader_123', acl='')
-    assert len(r.records) == 1
-
-
-
 
 def test_get_empty_acl_record(swg_index_client):
     """
@@ -244,6 +243,32 @@ def test_get_empty_acl_record(swg_index_client):
     assert len(r.records) == 2
     assert r.records[0].acl == []
     assert r.records[1].acl == []
+
+def test_get_empty_acl_record_after_fill_size_n_hash(swg_index_client):
+    """
+    Test create blank record -> fill hash and size -> get record with empty acl
+    """
+    doc = {'uploader': 'uploader_123'}
+    r1 = swg_index_client.create_blank_entry(doc)
+    updated = {
+        'size': 10,
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
+    }
+
+    r1 = swg_index_client.update_blank_entry(r1.did, rev=r1.rev, body=updated)
+    r1 = swg_index_client.update_entry(r1.did, rev=r1.rev, body={'acl': ['read']})
+    r1 = swg_index_client.get_entry(r1.did)
+    assert r1.acl == ['read']
+
+    doc = {'uploader': 'uploader_123'}
+    r2 = swg_index_client.create_blank_entry(doc)
+    updated = {
+        'size': 4,
+        'hashes': {'md5': '1b9942cf415384b27cadf1f4d2d981f5'},
+    }
+    swg_index_client.update_blank_entry(r2.did, rev=r2.rev, body=updated)
+    r = swg_index_client.list_entries(uploader='uploader_123', acl='')
+    assert len(r.records) == 1
 
 def test_urls_metadata(swg_index_client):
     data = get_doc(has_urls_metadata=True)

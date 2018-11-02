@@ -658,7 +658,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.rev = str(uuid.uuid4())[:8]
             record.baseid = baseid
             record.uploader = uploader
-            
+
             session.merge(base_version)
             session.add(record)
             session.commit()
