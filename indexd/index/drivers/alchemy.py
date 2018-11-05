@@ -656,12 +656,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
     
-    def update_blank_record(self, did, rev, size, hashes):
+    def update_blank_record(self, did, rev, size, hashes, urls):
         """
         Update a blank record with size and hashes, raise exception
         if the record is non-empty or the revision is not matched
         """
         hashes = hashes or {}
+        urls = urls or []
 
         if not size or not hashes:
             raise UserError("No size or hashes provided")
@@ -688,6 +689,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 hash_type=h,
                 hash_value=v,
             ) for h, v in hashes.items()]
+            record.urls = [IndexRecordUrl(
+                did=record.did,
+                url=url,
+            ) for url in urls]
 
             record.rev = str(uuid.uuid4())[:8]
 

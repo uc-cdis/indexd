@@ -267,9 +267,9 @@ def post_index_record():
 
 @blueprint.route('/index/blank/', methods=['POST'])
 @authorize
-def post_index_empty_record():
+def post_index_blank_record():
     '''
-    Create an empty new record with only uploader field is filled
+    Create a blank new record with only uploader field is filled
     '''
 
     uploader = flask.request.json.get('uploader')
@@ -301,19 +301,21 @@ def post_index_empty_record():
 
 @blueprint.route('/index/blank/<path:record>', methods=['PUT'])
 @authorize
-def put_index_empty_record(record):
+def put_index_blank_record(record):
     '''
-    Update an empty new record with size and hashes
+    Update an blank new record with size, hashes and url
     '''
     rev = flask.request.args.get('rev')
     size = flask.request.json.get('size')
     hashes = flask.request.json.get('hashes')
+    urls = flask.request.json.get('urls')
 
     did, rev, baseid = blueprint.index_driver.update_blank_record(
         did=record,
         rev=rev,
         size=size,
         hashes=hashes,
+        urls=urls,
     )
     ret = {
         'did': did,
