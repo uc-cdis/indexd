@@ -562,17 +562,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         if did is provided, update the new record with the did otherwise create it
         """
 
-        if urls is None:
-            urls = []
-        if acl is None:
-            acl = []
-        if hashes is None:
-            hashes = {}
-        if metadata is None:
-            metadata = {}
+        urls = urls or []
+        acl = acl or []
+        hashes = hashes or {}
+        metadata = metadata or {}
+        urls_metadata = urls_metadata or {}
 
-        if urls_metadata is None:
-            urls_metadata = {}
         with self.session as session:
             record = IndexRecord()
 
@@ -635,7 +630,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
-    def add_blank_record(self, did=None, uploader=None, baseid=None):
+    def add_blank_record(self, uploader):
         """
         Create a new blank record with only
         """
@@ -643,34 +638,33 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record = IndexRecord()
             base_version = BaseVersion()
 
-            if not baseid:
-                baseid = str(uuid.uuid4())
+            did = str(uuid.uuid4())
+            baseid = str(uuid.uuid4())
+            if self.config.get('PREPEND_PREFIX'):
+                did = self.config['DEFAULT_PREFIX'] + did
+            
+            record.did = did
             base_version.baseid = baseid
-
-            if did:
-                record.did = did
-            else:
-                new_did = str(uuid.uuid4())
-                if self.config.get('PREPEND_PREFIX'):
-                    new_did = self.config['DEFAULT_PREFIX'] + new_did
-                record.did = new_did
 
             record.rev = str(uuid.uuid4())[:8]
             record.baseid = baseid
             record.uploader = uploader
 
-            session.merge(base_version)
+            session.add(base_version)
             session.add(record)
             session.commit()
 
             return record.did, record.rev, record.baseid
     
-    def update_blank_record(self, did, rev, size=None, hashes=None):
+    def update_blank_record(self, did, rev, size, hashes):
         """
-        Create a new blank record with only
+        Update a blank record with size and hashes, raise exception
+        if the record is non-empty or the revision is not matched
         """
-        if hashes is None:
-            hashes = {}
+        hashes = hashes or {}
+
+        if not size or not hashes:
+            raise UserError("No size or hashes provided")
 
         with self.session as session:
             query = session.query(IndexRecord).filter(IndexRecord.did == did)
@@ -681,6 +675,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise NoRecordFound('no record found')
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
+            
+            if record.size or record.hashes:
+                raise UserError("update is not supported for non-empty record!")
 
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
@@ -862,16 +859,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Add a record version given did
         """
-        if urls is None:
-            urls = []
-        if acl is None:
-            acl = []
-        if hashes is None:
-            hashes = {}
-        if metadata is None:
-            metadata = {}
-        if urls_metadata is None:
-            urls_metadata = {}
+        urlrs = urls or []
+        acl = acl or []
+        hashes = hashes or {}
+        metadata = metadata or {}
+        urls_metadata = urls_metadata or {}
+
         with self.session as session:
             query = session.query(IndexRecord).filter_by(did=current_did)
 

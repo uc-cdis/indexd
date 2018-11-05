@@ -179,7 +179,6 @@ def test_list_entries_with_uploader_wrong_uploader(swg_index_client):
 
 def test_create_blank_record(swg_index_client):
     doc = {'uploader': 'uploader_123'}
-
     r = swg_index_client.create_blank_entry(doc)
     assert r.did
     assert r.rev

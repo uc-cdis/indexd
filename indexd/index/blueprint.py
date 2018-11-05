@@ -273,14 +273,16 @@ def post_index_empty_record():
     '''
 
     uploader = flask.request.json.get('uploader')
+    if not uploader:
+        raise UserError('no uploader specified')
+
     baseid = flask.request.json.get('baseid')
     did = flask.request.json.get('did')
 
     did, rev, baseid = blueprint.index_driver.add_blank_record(
-        did=did,
-        uploader=uploader,
-        baseid=baseid
+        uploader=uploader
     )
+
     ret = {
         'did': did,
         'rev': rev,
