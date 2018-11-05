@@ -96,7 +96,7 @@ def get_index():
 
     acl = flask.request.args.get('acl')
     if acl is not None:
-        acl = [] if acl == '' else acl.split(',')
+        acl = [] if acl == 'null' else acl.split(',')
 
     urls_metadata = flask.request.args.get('urls_metadata')
     if urls_metadata:

@@ -642,7 +642,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             baseid = str(uuid.uuid4())
             if self.config.get('PREPEND_PREFIX'):
                 did = self.config['DEFAULT_PREFIX'] + did
-            
+
             record.did = did
             base_version.baseid = baseid
 
@@ -655,7 +655,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             session.commit()
 
             return record.did, record.rev, record.baseid
-    
+
     def update_blank_record(self, did, rev, size, hashes, urls):
         """
         Update a blank record with size and hashes, raise exception
@@ -864,7 +864,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Add a record version given did
         """
-        urlrs = urls or []
+        urls = urls or []
         acl = acl or []
         hashes = hashes or {}
         metadata = metadata or {}

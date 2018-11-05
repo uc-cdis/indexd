@@ -142,7 +142,7 @@ def test_list_entries_with_uploader(swg_index_client):
     """
     data = get_doc()
     data['uploader'] = 'uploader_1'
-    r1 = swg_index_client.add_entry(data)
+    swg_index_client.add_entry(data)
 
     data = get_doc()
     data['uploader'] = 'uploader_123'
@@ -192,7 +192,7 @@ def test_create_blank_record(swg_index_client):
     assert r.records[0].did
     assert not r.records[0].size
     assert not r.records[0].acl
-    
+
     assert not r.records[0].hashes.crc
     assert not r.records[0].hashes.md5
     assert not r.records[0].hashes.sha
@@ -239,7 +239,7 @@ def test_get_empty_acl_record(swg_index_client):
     r = swg_index_client.list_entries()
     assert len(r.records) == 3
 
-    r = swg_index_client.list_entries(uploader='uploader_123', acl='')
+    r = swg_index_client.list_entries(uploader='uploader_123', acl='null')
 
     assert len(r.records) == 2
     assert {r2.did, r3.did} == {r.records[0].did, r.records[1].did}
@@ -262,6 +262,7 @@ def test_get_empty_acl_record_after_fill_size_n_hash(swg_index_client):
     r1 = swg_index_client.update_entry(r1.did, rev=r1.rev, body={'acl': ['read']})
     r1 = swg_index_client.get_entry(r1.did)
     assert r1.acl == ['read']
+    assert r1.did == did1
 
     # create the second blank record, only update size hashes and urls
     doc = {'uploader': 'uploader_123'}
@@ -283,19 +284,19 @@ def test_get_empty_acl_record_after_fill_size_n_hash(swg_index_client):
         'urls': ['s3://example/2'],
     }
     swg_index_client.update_blank_entry(r3.did, rev=r3.rev, body=updated)
-    
+
     r = swg_index_client.list_entries(uploader='uploader_123')
     assert len(r.records) == 3
 
     r = swg_index_client.list_entries(uploader='uploader_123', acl='read')
     assert len(r.records) == 1
-    r.records[0].did == r1.did
+    assert r.records[0].did == r1.did
 
 
     r = swg_index_client.list_entries(uploader='uploader_123', acl='write')
     assert len(r.records) == 0
 
-    r = swg_index_client.list_entries(uploader='uploader_123', acl='')
+    r = swg_index_client.list_entries(uploader='uploader_123', acl='null')
     assert len(r.records) == 2
     assert {r.records[0].did, r.records[1].did} == {did2, did3}
 
