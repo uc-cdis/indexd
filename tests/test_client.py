@@ -908,7 +908,7 @@ def test_update_without_changing_fields(swg_index_client):
     # Only `version` changed.
     assert second_doc.version != third_doc.version
 
-def test_bulk_get_documents(swg_index_client):
+def test_bulk_get_documents(swg_index_client, swg_bulk_client):
 
     # just make a bunch of entries in indexd
     dids = [
@@ -917,7 +917,7 @@ def test_bulk_get_documents(swg_index_client):
     ]
 
     # do a bulk query for them all
-    docs = swg_index_client.get_bulk_ids(dids)
+    docs = swg_bulk_client.get_bulk_ids(dids)
 
     # compare that they are the same by did
     for doc in docs:

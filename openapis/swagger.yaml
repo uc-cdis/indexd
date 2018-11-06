@@ -694,8 +694,8 @@ paths:
         - DOS
   '/bulk/documents':
     post:
-      tags:
-        - bulk
+      tags: 
+        - bulk 
       summary: Get a list of documents given a list of dids
       operationId: getBulkIds
       produces:
