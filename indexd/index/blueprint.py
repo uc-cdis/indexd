@@ -265,6 +265,7 @@ def post_index_record():
 
     return flask.jsonify(ret), 200
 
+
 @blueprint.route('/index/blank/', methods=['POST'])
 @authorize
 def post_index_blank_record():
@@ -275,9 +276,6 @@ def post_index_blank_record():
     uploader = flask.request.json.get('uploader')
     if not uploader:
         raise UserError('no uploader specified')
-
-    baseid = flask.request.json.get('baseid')
-    did = flask.request.json.get('did')
 
     did, rev, baseid = blueprint.index_driver.add_blank_record(
         uploader=uploader
@@ -291,19 +289,12 @@ def post_index_blank_record():
 
     return flask.jsonify(ret), 200
 
-# @blueprint.route('/index/blank/<path:uploader>', methods=['GET'])
-# @authorize
-# def get_index_record_with_empty_acl(uploader):
-#     '''
-#     Get list of index record with empty acl
-#     '''
-
 
 @blueprint.route('/index/blank/<path:record>', methods=['PUT'])
 @authorize
 def put_index_blank_record(record):
     '''
-    Update an blank new record with size, hashes and url
+    Update a blank record with size, hashes and url
     '''
     rev = flask.request.args.get('rev')
     size = flask.request.json.get('size')
@@ -324,6 +315,7 @@ def put_index_blank_record(record):
     }
 
     return flask.jsonify(ret), 200
+
 
 @blueprint.route('/index/<path:record>', methods=['PUT'])
 @authorize

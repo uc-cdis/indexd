@@ -676,13 +676,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise NoRecordFound('no record found')
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
-            
+
             if record.size or record.hashes:
-                raise UserError("update is not supported for non-empty record!")
+                raise UserError("update api is not supported for non-empty record!")
 
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
-            
+
             record.size = size
             record.hashes = [IndexRecordHash(
                 did=record.did,
