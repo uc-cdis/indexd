@@ -632,7 +632,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     def add_blank_record(self, uploader):
         """
-        Create a new blank record with only
+        Create a new blank record with only uploader field is filled
         """
         with self.session as session:
             record = IndexRecord()
