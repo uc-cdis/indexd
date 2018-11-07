@@ -261,7 +261,7 @@ paths:
         '200':
           description: successful operation
           schema:
-            $ref: '#/definitions/OutputInfo'
+            $ref: '#/definitions/OutputRef'
         '400':
           description: Invalid status value
       security:
@@ -973,8 +973,8 @@ definitions:
   InputBlankInfo:
     type: object
     properties:
-      baseid:
-        $ref: "#/definitions/UUID"
+      uploader:
+        type: string
   UpdateInputInfo:
     type: object
     properties:
@@ -1005,6 +1005,10 @@ definitions:
         type: integer
       hashes:
         $ref: '#/definitions/HashInfo'
+      urls:
+        type: array
+        items:
+          type: string
   OutputRef:
     type: object
     properties:
