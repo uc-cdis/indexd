@@ -31,7 +31,17 @@ Using AWS SNS or Google PubSub it is possible to have streaming notifications wh
 
 For existing data in buckets, the SNS or PubSub notifications may be simulated such that the indexing functions are started for each object in the bucket. This is useful because only a single code path is necessary for indexing the contents of an object.
 
-3. Using the Indexd REST API for record insertion.
+3. Indexing void object for fully control the bucket structure.
+
+Indexd supports void or blank records that allows users to pre-register data files in indexd before actually registering them. The complete flow contains three main steps: pre-register, hash/size/url populating and data node registration:
+    - Fence requests blank object from indexd. Indexd creates an object with no hash, size, and urls except the `uploader` field.
+    - Indexd listener mornitors bucket update, update to indexd with url, hash, size.
+    - The client application (windmill or gen3-data-client) lists records for data files which the user needs to submit to the graph. The user fills all empty fields and submit the request to indexd to update the `acl`.
+
+See docs on data upload flow for further details:
+https://github.com/uc-cdis/cdis-wiki/tree/master/dev/gen3/data_upload
+
+4. Using the Indexd REST API for record insertion.
 
 In rare cases, it may be necessary to interact directly with the Indexd API in order to create index records. This would be necessary if users are loading data into a data commons in non-standard ways or not utilizing Sheepdog as part of their data commons. 
 

@@ -81,8 +81,6 @@ def get_index():
     # TODO: Based on indexclient, url here should be urls instead. Or change urls to url in indexclient.
     urls = flask.request.args.getlist('url')
 
-    acl = flask.request.args.getlist('acl')
-
     file_name = flask.request.args.get('file_name')
 
     version = flask.request.args.get('version')
@@ -95,6 +93,10 @@ def get_index():
 
     metadata = flask.request.args.getlist('metadata')
     metadata = {k: v for k, v in map(lambda x: x.split(':', 1), metadata)}
+
+    acl = flask.request.args.get('acl')
+    if acl is not None:
+        acl = [] if acl == 'null' else acl.split(',')
 
     urls_metadata = flask.request.args.get('urls_metadata')
     if urls_metadata:
@@ -255,6 +257,57 @@ def post_index_record():
         uploader=uploader,
     )
 
+    ret = {
+        'did': did,
+        'rev': rev,
+        'baseid': baseid,
+    }
+
+    return flask.jsonify(ret), 200
+
+
+@blueprint.route('/index/blank/', methods=['POST'])
+@authorize
+def post_index_blank_record():
+    '''
+    Create a blank new record with only uploader field is filled
+    '''
+
+    uploader = flask.request.get_json().get('uploader')
+    if not uploader:
+        raise UserError('no uploader specified')
+
+    did, rev, baseid = blueprint.index_driver.add_blank_record(
+        uploader=uploader
+    )
+
+    ret = {
+        'did': did,
+        'rev': rev,
+        'baseid': baseid,
+    }
+
+    return flask.jsonify(ret), 201
+
+
+@blueprint.route('/index/blank/<path:record>', methods=['PUT'])
+@authorize
+def put_index_blank_record(record):
+    '''
+    Update a blank record with size, hashes and url
+    '''
+    rev = flask.request.args.get('rev')
+    size = flask.request.get_json().get('size')
+    hashes = flask.request.get_json().get('hashes')
+    urls = flask.request.get_json().get('urls')
+
+    did, rev, baseid = blueprint.index_driver.update_blank_record(
+        did=record,
+        rev=rev,
+        size=size,
+        hashes=hashes,
+        urls=urls,
+    )
     ret = {
         'did': did,
         'rev': rev,
