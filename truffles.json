@@ -567,5 +567,31 @@
             "8b9942cf415384b27cadf1f4d2d682e5",
             "8b9942cf415384b27cadf1f4d2d682e5"
         ]
+    },
+    {
+        "branch": "origin/security/TruffleHogRollout",
+        "commit": "42dc328a702b3165541e072b5394594d06fba6fde9a958ab0cd85693e9f6bafb",
+        "commitHash": "86387ce2c54192debf76694cc9216d8a36ab791f",
+        "diff": "2c09ebc5d26a9e3c77933f9431b1b83f11742bee48dcb89ee1f0a05439c1f62e",
+        "path": "tests/test_client.py",
+        "printDiff": "dfd20e2470cc997025f0bacb1fbcb973c61c1034a7b5eb51f39c3bd49b0e21c8",
+        "reason": "High Entropy",
+        "stringsFound": [
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "fdbbca63fbec1c2b0d4eb2494ce91520ec9f55f5"
+        ]
+    },
+    {
+        "branch": "origin/master",
+        "commit": "42dc328a702b3165541e072b5394594d06fba6fde9a958ab0cd85693e9f6bafb",
+        "commitHash": "86387ce2c54192debf76694cc9216d8a36ab791f",
+        "diff": "47343a844d1f433ca4c578d89d7ee3614a10620139f4a7b92810bcab9ebabd0a",
+        "path": "tests/test_client.py",
+        "printDiff": "3c048a6c4d64e2346792e7da29e7a831f334e2f33d27eec5b65793592489b45b",
+        "reason": "High Entropy",
+        "stringsFound": [
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "fdbbca63fbec1c2b0d4eb2494ce91520ec9f55f5"
+        ]
     }
 ]
