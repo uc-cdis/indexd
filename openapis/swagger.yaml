@@ -235,7 +235,7 @@ paths:
           description: Invalid status value
       security:
         - basic_auth: []
-  '/index/blank/{UUID}':
+  '/index/blank/{GUID}':
     put:
       tags:
         - index
@@ -247,7 +247,7 @@ paths:
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: GUID
           in: path
           description: entry id
           required: true
