@@ -593,5 +593,55 @@
             "8b9942cf415384b27cadf1f4d2d682e5",
             "fdbbca63fbec1c2b0d4eb2494ce91520ec9f55f5"
         ]
+    },
+    {
+        "branch": "origin/security/TruffleHogRollout",
+        "commit": "c4bb1b51778b34b661694d7c9c3d80fef802772f50f51deb0fb060927315b1e2",
+        "commitHash": "37e7ab0a0646accb5e8a344ea1053785cc2a68cf",
+        "diff": "e3fed2b8343057a9601d55fa2f9dbb058c67f3ece0cfb15148d7c64e9e7003f1",
+        "path": "tests/test_client.py",
+        "printDiff": "881056c5a837fecfde63889db9737ecdab1d801d0c8e32eb36d54339eba78fe5",
+        "reason": "High Entropy",
+        "stringsFound": [
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "1b64db0c5ef4fa349b5e37403c745e7ef4caa350",
+            "4ff2d1da9e33bb0c45f7b0e5faa1a5f5",
+            "e6250856090ff808e2c02be13b6b4258",
+            "65de2c01a38d2d88bd182526305",
+            "56ed443b56fd51474cb7c0930d0b62b608",
+            "a3c7d9e27d53269f9a356a2af9bd4c18d5",
+            "368e66dd9f2412b82e325de3c5a4c21b3",
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "8b9942cf415384b27cadf1f4d2d682e5"
+        ]
+    },
+    {
+        "branch": "origin/master",
+        "commit": "c4bb1b51778b34b661694d7c9c3d80fef802772f50f51deb0fb060927315b1e2",
+        "commitHash": "37e7ab0a0646accb5e8a344ea1053785cc2a68cf",
+        "diff": "d22d53f047c79bba13d8878f93edd12298eb57a21b72c67700b77598efc5e059",
+        "path": "tests/test_client.py",
+        "printDiff": "596a1b293df52f32d3b915eb5bf7db5b5266cee883d42511ad66e011b5cd4d00",
+        "reason": "High Entropy",
+        "stringsFound": [
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "1b64db0c5ef4fa349b5e37403c745e7ef4caa350",
+            "4ff2d1da9e33bb0c45f7b0e5faa1a5f5",
+            "e6250856090ff808e2c02be13b6b4258",
+            "65de2c01a38d2d88bd182526305",
+            "56ed443b56fd51474cb7c0930d0b62b608",
+            "a3c7d9e27d53269f9a356a2af9bd4c18d5",
+            "368e66dd9f2412b82e325de3c5a4c21b3",
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "8b9942cf415384b27cadf1f4d2d682e5"
+        ]
     }
 ]
