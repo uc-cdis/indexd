@@ -33,10 +33,10 @@ For existing data in buckets, the SNS or PubSub notifications may be simulated s
 
 3. Indexing void object for fully control the bucket structure.
 
-Indexd supports void or blank records that allows users to pre-register data files in indexd before actually registering them. The complete flow contains three main steps: pre-register, hash/size/url populating and data node registration:\
-    - Fence requests blank object from indexd. Indexd creates an object with no hash, size, and urls except the `uploader` field.\
-    - Indexd listener mornitors bucket update, update to indexd with url, hash, size.\
-    - The client application (windmill or gen3-data-client) lists records for data files which the user needs to submit to the graph. The user fills all empty fields and submit the request to indexd to update the `acl`.
+Indexd supports void or blank records that allows users to pre-register data files in indexd before actually registering them. The complete flow contains three main steps: pre-register, hash/size/url populating and data node registration:
+- Fence requests blank object from indexd. Indexd creates an object with no hash, size, and urls except the `uploader` field.
+- Indexd listener mornitors bucket update, update to indexd with url, hash, size.
+- The client application (windmill or gen3-data-client) lists records for data files which the user needs to submit to the graph. The user fills all empty fields and submit the request to indexd to update the `acl`.
 
 See docs on data upload flow for further details:
 https://github.com/uc-cdis/cdis-wiki/tree/master/dev/gen3/data_upload
