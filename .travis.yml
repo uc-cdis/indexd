@@ -10,6 +10,11 @@ addons:
 
 sudo: false
 
+before_install:
+  - pip install -r https://raw.githubusercontent.com/lookcrabs/TruffleHog_Scripts/master/thog_requirements.txt
+  - wget https://raw.githubusercontent.com/lookcrabs/TruffleHog_Scripts/master/th_wrapper.py
+  - python th_wrapper.py -w truffles.json -c thog_config.json -g file:///${PWD}/ --check
+
 install:
     - "wget https://oss.sonatype.org/content/repositories/releases/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar"
     - "java -jar swagger-codegen-cli-2.3.1.jar generate -i openapis/swagger.yaml -l python -o swagger_client"
