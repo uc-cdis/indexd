@@ -1,0 +1,31 @@
+[
+    {
+        "branch": "origin/master",
+        "commit": "45904413b651800bd4b3a70ed77fcf7f6f6530389e8eab0ed11dba25b233b068",
+        "commitHash": "714ab7b38c13fcd67cc168bbc758a22257065c35",
+        "diff": "570e33e529a86add166c48532dbc9a9440813bd2230488e42f1e2723e7a86a3f",
+        "path": "tests/test_client.py",
+        "printDiff": "49d6e17f889a67f5c387e281a7b1ac3f57b7199f6135eb2058b2604ef61d14c3",
+        "reason": "High Entropy",
+        "stringsFound": [
+            "8b9942cf415384b27cadf1f4d2d981f5",
+            "8b9942cf415384b27cadf1f4d2d981f5",
+            "8b9942cf415384b27cadf1f4d2d981f5",
+            "1b9942cf415384b27cadf1f4d2d981f5",
+            "1b9942cf415384b27cadf1f4d2d981f5"
+        ]
+    },
+    {
+        "branch": "origin/master",
+        "commit": "f78b42232d18a88d2bab584fd1fb187aeeed322d2766deb09ae3c61fa08de6eb",
+        "commitHash": "2b20959132c0625c07029733796ba4197df63755",
+        "diff": "bb1db534e3870622382567ee9aab4a5e787083a681f870e2523b40d2d5de041f",
+        "path": "tests/test_client.py",
+        "printDiff": "7736204bdde091af8c0d39a9715725d4c61fc2c13d9babc38e3cf5819f8171ec",
+        "reason": "High Entropy",
+        "stringsFound": [
+            "8b9942cf415384b27cadf1f4d2d682e5",
+            "8b9942cf415384b27cadf1f4d2d682e5"
+        ]
+    }
+]
