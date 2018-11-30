@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from util import assert_blank
+from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 from swagger_client.rest import ApiException
 
