@@ -902,7 +902,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.acl = [IndexRecordACE(
                 did=record.did,
                 ace=ace,
-            ) for ace in acl]
+            ) for ace in set(acl)]
 
             record.hashes = [IndexRecordHash(
                 did=record.did,
