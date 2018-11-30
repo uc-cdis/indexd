@@ -24,8 +24,8 @@ tags:
     externalDocs:
       description: Find out more
       url: 'https://github.com/uc-cdis/indexd'
-  - name: bulk 
-    description: bulk endpoints 
+  - name: bulk
+    description: bulk endpoints
   - name: query
     description: query endpoints
   - name: alias
@@ -42,12 +42,12 @@ tags:
 schemes:
   - https
 paths:
-  '/{GUID}':  
+  '/{GUID}':
     get:
       tags:
         - global
       summary: Get the metadata associated with the given id, alias, or distributed identifier
-      description: Only the hashes which exist will be included in the response. 
+      description: Only the hashes which exist will be included in the response.
       operationId: getEntry
       produces:
         - application/json
@@ -115,7 +115,7 @@ paths:
       parameters:
         - in: body
           name: body
-          description: Metadata object that needs to be added to the store. Providing at least one hash is necessary and sufficient. 
+          description: Metadata object that needs to be added to the store. Providing at least one hash is necessary and sufficient.
           required: true
           schema:
             $ref: '#/definitions/InputInfo'
@@ -207,8 +207,8 @@ paths:
       responses:
         '200':
           description: successful operation
-          schema: 
-            $ref: '#/definitions/ListRecords' 
+          schema:
+            $ref: '#/definitions/ListRecords'
       security: []
   '/index/blank':
     post:
@@ -299,7 +299,7 @@ paths:
         - index
       summary: >-
         Add new version for the document associated to the provided uuid.
-      description: Since data content is immutable, when you want to change the size or hash, a new index document with new uuid need to be created as its new version. That uuid is returned in the did field of the response. The old index document is not deleted. 
+      description: Since data content is immutable, when you want to change the size or hash, a new index document with new uuid need to be created as its new version. That uuid is returned in the did field of the response. The old index document is not deleted.
       operationId: addNewVersion
       produces:
         - application/json
@@ -694,8 +694,8 @@ paths:
         - DOS
   '/bulk/documents':
     post:
-      tags: 
-        - bulk 
+      tags:
+        - bulk
       summary: Get a list of documents given a list of dids
       operationId: getBulkIds
       produces:
@@ -935,6 +935,10 @@ definitions:
     properties:
       uploader:
         type: string
+        description: user who uploaded this file
+      file_name:
+        type: string
+        description: name of the uploaded file
   UpdateInputInfo:
     type: object
     properties:
@@ -1109,10 +1113,10 @@ definitions:
         type: string
         format: date-time
         description: last updated time
-      created_date: 
-        type: string 
-        format: date-time 
-        description: time created 
+      created_date:
+        type: string
+        format: date-time
+        description: time created
       metadata:
         type: object
         description: user defined optional metadata
@@ -1384,7 +1388,7 @@ definitions:
         description: number of aliases to return
       hashes:
         $ref: '#/definitions/HashInfo'
-  ListRecords:   
+  ListRecords:
     type: object
     properties:
       ids:
@@ -1419,11 +1423,10 @@ definitions:
           type: string
       hashes:
         $ref: '#/definitions/HashInfo'
-      metadata: 
+      metadata:
         type: object
       version:
-        type: string 
+        type: string
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'
-
