@@ -270,15 +270,18 @@ def post_index_record():
 @authorize
 def post_index_blank_record():
     '''
-    Create a blank new record with only uploader field is filled
+    Create a blank new record with only uploader and optionally
+    file_name fields filled
     '''
 
     uploader = flask.request.get_json().get('uploader')
+    file_name = flask.request.get_json().get('file_name')
     if not uploader:
         raise UserError('no uploader specified')
 
     did, rev, baseid = blueprint.index_driver.add_blank_record(
-        uploader=uploader
+        uploader=uploader,
+        file_name=file_name
     )
 
     ret = {

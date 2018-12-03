@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 from swagger_client.rest import ApiException
 
@@ -179,25 +180,43 @@ def test_list_entries_with_uploader_wrong_uploader(swg_index_client):
 
 
 def test_create_blank_record(swg_index_client):
-    doc = {'uploader': 'uploader_123'}
+    """
+    Test that new blank records only contain the uploader
+    and optionally file_name fields: test without file name
+    """
+
+    doc = {
+        'uploader': 'uploader_123'
+    }
     r = swg_index_client.create_blank_entry(doc)
     assert r.did
     assert r.rev
     assert r.baseid
 
     r = swg_index_client.list_entries(uploader='uploader_123')
-
     assert r.records[0].uploader == 'uploader_123'
-    assert r.records[0].baseid
-    assert r.records[0].did
-    assert not r.records[0].size
-    assert not r.records[0].acl
+    assert not r.records[0].file_name
+    assert_blank(r)
 
-    assert not r.records[0].hashes.crc
-    assert not r.records[0].hashes.md5
-    assert not r.records[0].hashes.sha
-    assert not r.records[0].hashes.sha256
-    assert not r.records[0].hashes.sha512
+def test_create_blank_record_with_file_name(swg_index_client):
+    """
+    Test that new blank records only contain the uploader
+    and optionally file_name fields: test with file name
+    """
+
+    doc = {
+        'uploader': 'uploader_321',
+        'file_name': 'myfile.txt'
+    }
+    r = swg_index_client.create_blank_entry(doc)
+    assert r.did
+    assert r.rev
+    assert r.baseid
+
+    r = swg_index_client.list_entries(uploader='uploader_321')
+    assert r.records[0].uploader == 'uploader_321'
+    assert r.records[0].file_name == 'myfile.txt'
+    assert_blank(r)
 
 def test_fill_size_n_hash_for_blank_record(swg_index_client):
     """

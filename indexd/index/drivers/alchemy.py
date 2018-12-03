@@ -630,9 +630,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
-    def add_blank_record(self, uploader):
+    def add_blank_record(self, uploader, file_name=None):
         """
-        Create a new blank record with only uploader field is filled
+        Create a new blank record with only uploader and optionally
+        file_name fields filled
         """
         with self.session as session:
             record = IndexRecord()
@@ -649,6 +650,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.rev = str(uuid.uuid4())[:8]
             record.baseid = baseid
             record.uploader = uploader
+            record.file_name = file_name
 
             session.add(base_version)
             session.add(record)
