@@ -21,5 +21,21 @@ class removes(object):
                     shutil.rmtree(self.path)
                 elif os.path.isfile(self.path):
                     os.remove(self.path)
-        
+
         return wrapper
+
+
+def assert_blank(r):
+    '''
+    Check that the fields that should be empty in a
+    blank record are empty.
+    '''
+    assert r.records[0].baseid
+    assert r.records[0].did
+    assert not r.records[0].size
+    assert not r.records[0].acl
+    assert not r.records[0].hashes.crc
+    assert not r.records[0].hashes.md5
+    assert not r.records[0].hashes.sha
+    assert not r.records[0].hashes.sha256
+    assert not r.records[0].hashes.sha512
