@@ -24,6 +24,8 @@ tags:
     externalDocs:
       description: Find out more
       url: 'https://github.com/uc-cdis/indexd'
+  - name: bulk
+    description: bulk endpoints
   - name: query
     description: query endpoints
   - name: alias
@@ -40,17 +42,17 @@ tags:
 schemes:
   - https
 paths:
-  '/{UUID}':
+  '/{GUID}':
     get:
       tags:
         - global
       summary: Get the metadata associated with the given id, alias, or distributed identifier
-      description: Multiple status values can be provided with comma separated strings
+      description: Only the hashes which exist will be included in the response.
       operationId: getEntry
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: GUID
           in: path
           description: entry id
           required: true
@@ -113,7 +115,7 @@ paths:
       parameters:
         - in: body
           name: body
-          description: Metadata object that needs to be added to the store
+          description: Metadata object that needs to be added to the store. Providing at least one hash is necessary and sufficient.
           required: true
           schema:
             $ref: '#/definitions/InputInfo'
@@ -173,6 +175,11 @@ paths:
           description: comma delimited urls
           required: false
           type: string
+        - name: acl
+          in: query
+          description: comma delimited ace
+          required: false
+          type: string
         - name: negate_params
           in: query
           description: |
@@ -201,52 +208,80 @@ paths:
         '200':
           description: successful operation
           schema:
-            type: object
-            properties:
-              ids:
-                type: array
-                items:
-                  $ref: '#/definitions/DID'
-              records:
-                type: array
-                items:
-                  $ref: "#/definitions/OutputInfo"
-              size:
-                type: integer
-                format: int64
-                description: size in bytes
-              start:
-                type: integer
-                format: int64
-                description: start index for the pagination
-              limit:
-                type: integer
-                format: int64
-                description: number of dids to return
-              file_name:
-                type: string
-              urls:
-                type: array
-                items:
-                  type: string
-              acl:
-                type: array
-                items:
-                  type: string
-              hashes:
-                $ref: '#/definitions/HashInfo'
+            $ref: '#/definitions/ListRecords'
       security: []
-  '/index/{UUID}':
+  '/index/blank':
+    post:
+      tags:
+        - index
+      summary: Create a blank record
+      description: ''
+      operationId: createBlankEntry
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Metadata object that needs to be added to the store
+          required: true
+          schema:
+            $ref: '#/definitions/InputBlankInfo'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/OutputRef'
+        '400':
+          description: Invalid status value
+      security:
+        - basic_auth: []
+  '/index/blank/{GUID}':
+    put:
+      tags:
+        - index
+      summary: Update only hashes and size for blank index
+      description: ''
+      operationId: updateBlankEntry
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+        - name: rev
+          in: query
+          description: data revision - simple consistency mechanism
+          required: true
+          type: string
+        - in: body
+          name: body
+          description: index record that needs to be updated
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateBlankInputInfo'
+      responses:
+        '200':
+          description: success
+          schema:
+            $ref: '#/definitions/OutputRef'
+        '400':
+          description: Invalid input
+      security:
+        - basic_auth: []
+  '/index/{GUID}':
     get:
       tags:
         - index
       summary: Get the metadata associated with the given id
-      description: Multiple status values can be provided with comma separated strings
       operationId: getEntry
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: GUID
           in: path
           description: entry id
           required: true
@@ -264,12 +299,12 @@ paths:
         - index
       summary: >-
         Add new version for the document associated to the provided uuid.
-      description: Since data content is immutable, when you want to change the size or hash, a new index document with new uuid need to be created as its new version. That uuid is returned in the did field of the response
+      description: Since data content is immutable, when you want to change the size or hash, a new index document with new uuid need to be created as its new version. That uuid is returned in the did field of the response. The old index document is not deleted.
       operationId: addNewVersion
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: GUID
           in: path
           description: the uuid associated to the record needed to have new version
           required: true
@@ -289,7 +324,6 @@ paths:
           description: Invalid status value
       security:
         - basic_auth: []
-  '/index/{DID}':
     put:
       tags:
         - index
@@ -301,7 +335,7 @@ paths:
       produces:
         - application/json
       parameters:
-        - name: DID
+        - name: GUID
           in: path
           description: entry id
           required: true
@@ -335,7 +369,7 @@ paths:
       produces:
         - application/json
       parameters:
-        - name: DID
+        - name: GUID
           in: path
           description: entry id
           required: true
@@ -352,19 +386,18 @@ paths:
           description: Record is deleted successfully
       security:
         - basic_auth: []
-  '/index/{UUID}/latest':
+  '/index/{GUID}/latest':
     get:
       tags:
         - index
       summary: >-
         Get the metadata of the latest index record version associated with the
         given id
-      description: Multiple status values can be provided with comma separated strings
       operationId: getLatestVersion
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: GUID
           in: path
           description: entry id
           required: true
@@ -382,17 +415,16 @@ paths:
         '400':
           description: Invalid status value
       security: []
-  '/index/{UUID}/versions':
+  '/index/{GUID}/versions':
     get:
       tags:
         - index
       summary: Get the metadata of index record versions associated with the given id
-      description: Multiple status values can be provided with comma separated strings
       operationId: getAllVersions
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: GUID
           in: path
           description: entry id
           required: true
@@ -401,9 +433,7 @@ paths:
         '200':
           description: successful operation
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/OutputInfo'
+            $ref: '#/definitions/BulkOutputInfo'
         '400':
           description: Invalid status value
       security: []
@@ -550,8 +580,6 @@ paths:
       responses:
         '200':
           description: successful operation
-          schema:
-            $ref: '#/definitions/AliasRef'
         '400':
           description: Invalid input
       security:
@@ -628,7 +656,7 @@ paths:
             $ref: '#/definitions/ListDataObjectsRequest'
       tags:
         - DOS
-  '/ga4gh/dos/v1/dataobjects/{DID}':
+  '/ga4gh/dos/v1/dataobjects/{GUID}':
     get:
       summary: Retrieve a Data Object
       operationId: GetDataObject
@@ -658,7 +686,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorResponse'
       parameters:
-        - name: DID
+        - name: GUID
           in: path
           required: true
           type: string
@@ -667,9 +695,8 @@ paths:
   '/bulk/documents':
     post:
       tags:
-        - index
+        - bulk
       summary: Get a list of documents given a list of dids
-      description: Multiple status values can be provided with comma separated strings
       operationId: getBulkIds
       produces:
         - application/json
@@ -903,13 +930,18 @@ definitions:
           type: string
       hashes:
         $ref: '#/definitions/HashInfo'
+  InputBlankInfo:
+    type: object
+    properties:
+      uploader:
+        type: string
+        description: user who uploaded this file
+      file_name:
+        type: string
+        description: name of the uploaded file
   UpdateInputInfo:
     type: object
     properties:
-      base_id:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
       file_name:
         type: string
       metadata:
@@ -926,6 +958,17 @@ definitions:
         type: array
         items:
           type: string
+  UpdateBlankInputInfo:
+    type: object
+    properties:
+      size:
+        type: integer
+      hashes:
+        $ref: '#/definitions/HashInfo'
+      urls:
+        type: array
+        items:
+          type: string
   OutputRef:
     type: object
     properties:
@@ -938,6 +981,10 @@ definitions:
         pattern: '^[0-9a-f]{8}$'
   AliasInputInfo:
     type: object
+    required:
+      - size
+      - hashes
+      - release
     properties:
       release:
         type: string
@@ -992,7 +1039,7 @@ definitions:
       keeper_authority:
         description: who is keeping this entry up to date?
         type: string
-      host_authority:
+      host_authorities:
         description: who is hosting this entity?
         type: array
         items:
@@ -1001,6 +1048,18 @@ definitions:
         $ref: '#/definitions/HashInfo'
       metadata:
         type: string
+      limit:
+        type: integer
+        format: int64
+        description: number of aliases to return
+      start:
+        type: integer
+        format: int64
+        description: start index for the pagination
+      urls:
+        type: array
+        items:
+          type: string
   DID:
     type: string
     pattern: >-
@@ -1050,10 +1109,14 @@ definitions:
           type: string
       hashes:
         $ref: '#/definitions/HashInfo'
-      updated_date_by:
+      updated_date:
         type: string
         format: date-time
         description: last updated time
+      created_date:
+        type: string
+        format: date-time
+        description: time created
       metadata:
         type: object
         description: user defined optional metadata
@@ -1235,8 +1298,6 @@ definitions:
           type: array
           items:
             type: string
-        rev:
-          type: string
   SystemMetadata:
     type: object
     additionalProperties: true
@@ -1325,10 +1386,47 @@ definitions:
         type: integer
         format: int64
         description: number of aliases to return
+      hashes:
+        $ref: '#/definitions/HashInfo'
+  ListRecords:
+    type: object
+    properties:
       ids:
         type: array
         items:
+          $ref: '#/definitions/DID'
+      records:
+        type: array
+        items:
+          $ref: "#/definitions/OutputInfo"
+      size:
+        type: integer
+        format: int64
+        description: size in bytes
+      start:
+        type: integer
+        format: int64
+        description: start index for the pagination
+      limit:
+        type: integer
+        format: int64
+        description: number of dids to return
+      file_name:
+        type: string
+      urls:
+        type: array
+        items:
           type: string
+      acl:
+        type: array
+        items:
+          type: string
+      hashes:
+        $ref: '#/definitions/HashInfo'
+      metadata:
+        type: object
+      version:
+        type: string
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'
