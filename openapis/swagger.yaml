@@ -623,8 +623,8 @@ paths:
           description: successful operation
           schema:
             $ref: '#/definitions/SystemStatsOutputRef'
-  /ga4gh/dos/v1/dataobjects/list:
-    post:
+  /ga4gh/dos/v1/dataobjects:
+    get:
       summary: List the Data Objects
       operationId: ListDataObjects
       responses:
@@ -649,11 +649,53 @@ paths:
           schema:
             $ref: '#/definitions/ErrorResponse'
       parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/ListDataObjectsRequest'
+        - name: alias
+          in: query
+          type: string
+          required: false
+          description: |-
+            If provided will only return Data Objects with the given alias.
+        - name: url
+          in: query
+          type: string
+          required: false
+          description: |-
+            If provided will return only Data Objects with a that URL matches
+            this string.
+        - name: checksum
+          in: query
+          type: string
+          required: false
+          description: |-
+            The hexlified checksum that one would like to match on.
+        - name: checksum_type
+          in: query
+          type: string
+          required: false
+          description: |-
+            If provided will restrict responses to those that match the provided
+            type.
+            possible values:
+            md5                # most blob stores provide a checksum using this
+            multipart-md5      # multipart uploads provide a specialized tag in S3
+            sha256
+            sha512
+        - name: page_size
+          in: query
+          type: integer
+          format: int32
+          required: false
+          description: |-
+            Specifies the maximum number of results to return in a single page.
+            If unspecified, a system default will be used.
+        - name: page_token
+          in: query
+          type: string
+          required: false
+          description: |-
+            The continuation token, which is used to page through large result sets.
+            To get the next page of results, set this parameter to the value of
+            `next_page_token` from the previous response.
       tags:
         - DOS
   '/ga4gh/dos/v1/dataobjects/{GUID}':
@@ -1143,45 +1185,39 @@ definitions:
         description: the accumulated size of the object files recorded in IndexD
   DataObject:
     type: object
+    required: ['id', 'size', 'created', 'checksums']
     properties:
       id:
         type: string
         description: |-
-          REQUIRED
           An identifier unique to this Data Object.
       name:
         type: string
         description: |-
-          OPTIONAL
           A string that can be optionally used to name a Data Object.
       size:
         type: string
         format: int64
         description: |-
-          REQUIRED
           The computed size in bytes.
       created:
         type: string
         format: date-time
         description: |-
-          REQUIRED
           Timestamp of object creation in RFC3339.
       updated:
         type: string
         format: date-time
         description: |-
-          OPTIONAL
           Timestamp of update in RFC3339, identical to create timestamp in systems
           that do not support updates.
       version:
         type: string
         description: |-
-          OPTIONAL
           A string representing a version.
       mime_type:
         type: string
         description: |-
-          OPTIONAL
           A string providing the mime-type of the Data Object.
           For example, "application/json".
       checksums:
@@ -1189,26 +1225,22 @@ definitions:
         items:
           $ref: '#/definitions/Checksum'
         description: |-
-          REQUIRED
           The checksum of the Data Object. At least one checksum must be provided.
       urls:
         type: array
         items:
           $ref: '#/definitions/URL'
         description: |-
-          OPTIONAL
           The list of URLs that can be used to access the Data Object.
       description:
         type: string
         description: |-
-          OPTIONAL
           A human readable description of the contents of the Data Object.
       aliases:
         type: array
         items:
           type: string
         description: |-
-          OPTIONAL
           A list of strings that can be used to find this Data Object.
           These aliases can be used to represent the Data Object's location in
           a directory (e.g. "bucket/folder/file.name") to make Data Objects
@@ -1219,31 +1251,35 @@ definitions:
       alias:
         type: string
         description: |-
-          OPTIONAL
           If provided will only return Data Objects with the given alias.
       url:
         type: string
         description: |-
-          OPTIONAL
           If provided will return only Data Objects with a that URL matches
           this string.
       checksum:
-        $ref: '#/definitions/ChecksumRequest'
+        type: string
         description: |-
-          OPTIONAL
-          If provided will only return data object messages with the provided
-          checksum. If the checksum type is provided
+          The hexlified checksum that one would like to match on.
+      checksum_type:
+        type: string
+        description: |-
+          If provided will restrict responses to those that match the provided
+          type.
+          possible values:
+          md5                # most blob stores provide a checksum using this
+          multipart-md5      # multipart uploads provide a specialized tag in S3
+          sha256
+          sha512
       page_size:
         type: integer
         format: int32
         description: |-
-          OPTIONAL
           Specifies the maximum number of results to return in a single page.
           If unspecified, a system default will be used.
       page_token:
         type: string
         description: |-
-          OPTIONAL
           The continuation token, which is used to page through large result sets.
           To get the next page of results, set this parameter to the value of
           `next_page_token` from the previous response.
@@ -1269,19 +1305,17 @@ definitions:
       token, that can be used to retrieve more results.
   GetDataObjectResponse:
     type: object
+    required: ['data_object']
     properties:
       data_object:
         $ref: '#/definitions/DataObject'
-        description: |-
-          REQUIRED
-          The Data Object that coincides with a specific GetDataObjectRequest.
   URL:
     type: object
+    required: ['url']
     properties:
       url:
         type: string
         description: |-
-          REQUIRED
           A URL that can be used to access the file.
       system_metadata:
         $ref: '#/definitions/SystemMetadata'
@@ -1313,16 +1347,15 @@ definitions:
             A set of key-value pairs that represent metadata provided by the uploader.
   Checksum:
     type: object
+    required: ['checksum']
     properties:
       checksum:
         type: string
         description: |-
-          REQUIRED
           The hex-string encoded checksum for the Data.
       type:
         type: string
         description: |-
-          OPTIONAL
           The digest method used to create the checksum. If left unspecified md5
           will be assumed.
           possible values:

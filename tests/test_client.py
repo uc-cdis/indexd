@@ -880,11 +880,12 @@ def test_dos_get(swg_index_client, swg_dos_client):
     r2 = swg_dos_client.get_data_object(result.baseid)
     assert r2.data_object.id == result.did
 
+
 def test_dos_list(swg_index_client, swg_dos_client):
     data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
     result = swg_index_client.add_entry(data)
-    r = swg_dos_client.list_data_objects(body={"page_size": 100})
+    r = swg_dos_client.list_data_objects(page_size=100)
     assert len(r.data_objects) == 1
     assert r.data_objects[0].id == result.did
     assert r.data_objects[0].size == "123"
