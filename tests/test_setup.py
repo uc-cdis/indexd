@@ -1,11 +1,5 @@
 import sqlite3
 
-import tests.util as util
-
-from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
-from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
-
-
 OLD_SQLITE = sqlite3.sqlite_version_info < (3, 7, 16)
 
 INDEX_HOST = 'index.sq3'
@@ -64,26 +58,16 @@ ALIAS_TABLES = {
     ],
 }
 
-INDEX_CONFIG = {
-    'driver': SQLAlchemyIndexDriver('sqlite:///index.sq3'),
-}
 
-ALIAS_CONFIG = {
-    'driver': SQLAlchemyAliasDriver('sqlite:///alias.sq3'),
-}
-
-
-@util.removes(INDEX_HOST)
-def test_sqlite3_index_setup_tables():
-    '''
+def test_sqlite3_index_setup_tables(index_driver):
+    """
     Tests that the SQLite3 index database gets set up correctly.
-    '''
-    SQLAlchemyIndexDriver('sqlite:///index.sq3')
+    """
 
     with sqlite3.connect(INDEX_HOST) as conn:
-        c = conn.execute('''
+        c = conn.execute("""
             SELECT name FROM sqlite_master WHERE type = 'table'
-        ''')
+        """)
 
         tables = [i[0] for i in c]
 
@@ -92,23 +76,20 @@ def test_sqlite3_index_setup_tables():
 
         for table, schema in INDEX_TABLES.items():
             # NOTE PRAGMA's don't work with parameters...
-            c = conn.execute('''
+            c = conn.execute("""
                 PRAGMA table_info ('{table}')
-            '''.format(table=table))
+            """.format(table=table))
 
             assert schema == [i for i in c]
 
-@util.removes(ALIAS_HOST)
-def test_sqlite3_alias_setup_tables():
-    '''
+
+def test_sqlite3_alias_setup_tables(alias_driver):
+    """
     Tests that the SQLite3 alias database gets set up correctly.
-    '''
-    SQLAlchemyAliasDriver('sqlite:///alias.sq3')
+    """
 
     with sqlite3.connect(ALIAS_HOST) as conn:
-        c = conn.execute('''
-            SELECT name FROM sqlite_master WHERE type = 'table'
-        ''')
+        c = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
 
         tables = [i[0] for i in c]
 
@@ -117,8 +98,8 @@ def test_sqlite3_alias_setup_tables():
 
         for table, schema in ALIAS_TABLES.items():
             # NOTE PRAGMA's don't work with parameters...
-            c = conn.execute('''
+            c = conn.execute("""
                 PRAGMA table_info ('{table}')
-            '''.format(table=table))
+            """.format(table=table))
 
             assert schema == [i for i in c]

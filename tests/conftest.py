@@ -1,11 +1,16 @@
-from indexd import get_app
 import base64
+import os
+
 import pytest
 # indexd_server and indexd_client is needed as fixtures
-from cdisutilstest.code.conftest import indexd_server, indexd_client # noqa
+from cdisutilstest.code.conftest import indexd_client, indexd_server  # noqa
 from cdisutilstest.code.indexd_fixture import clear_database
-import swagger_client
 
+import swagger_client
+from indexd import get_app
+from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
+from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
+from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
 try:
     reload  # Python 2.7
@@ -80,7 +85,32 @@ def swg_query_client(swg_config):
     api = swagger_client.QueryApi(swagger_client.ApiClient(swg_config))
     yield api
 
-@pytest.fixture 
-def swg_bulk_client(swg_config): 
+
+@pytest.fixture
+def swg_bulk_client(swg_config):
     api = swagger_client.BulkApi(swagger_client.ApiClient(swg_config))
     yield api
+
+
+@pytest.fixture
+def index_driver():
+    filename = 'index.sq3'
+    yield SQLAlchemyIndexDriver('sqlite:///{}'.format(filename))
+    if os.path.exists(filename):
+        os.remove(filename)
+
+
+@pytest.fixture
+def alias_driver():
+    filename = 'alias.sq3'
+    yield SQLAlchemyAliasDriver('sqlite:///{}'.format(filename))
+    if os.path.exists(filename):
+        os.remove(filename)
+
+
+@pytest.fixture
+def auth_driver():
+    filename = 'auth.sq3'
+    yield SQLAlchemyAuthDriver('sqlite:///{}'.format(filename))
+    if os.path.exists(filename):
+        os.remove(filename)

@@ -1,19 +1,22 @@
+import sqlite3
 import uuid
-from tests.test_settings import settings
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-import sqlite3
-import tests.util as util
-from indexd.index.drivers.alchemy import (
-    SQLAlchemyIndexDriver, IndexSchemaVersion, migrate_7)
-
-from indexd.alias.drivers.alchemy import (
-    SQLAlchemyAliasDriver, AliasSchemaVersion)
-
-from indexd.index.drivers.alchemy import migrate_1, migrate_2
-from indexd.index.drivers.alchemy import CURRENT_SCHEMA_VERSION, SCHEMA_MIGRATION_FUNCTIONS
-from tests.alchemy import SQLAlchemyIndexTestDriver
 from sqlalchemy_utils import database_exists, drop_database
+
+from indexd.alias.drivers.alchemy import AliasSchemaVersion
+from indexd.index.drivers.alchemy import (
+    CURRENT_SCHEMA_VERSION,
+    SCHEMA_MIGRATION_FUNCTIONS,
+    IndexSchemaVersion,
+    SQLAlchemyIndexDriver,
+    migrate_1,
+    migrate_2,
+    migrate_7,
+)
+from tests.alchemy import SQLAlchemyIndexTestDriver
+from tests.test_settings import settings
 
 Base = declarative_base()
 
@@ -44,15 +47,15 @@ INDEX_TABLES = {
 
 def update_version_table_for_testing(db, tb_name, val):
     with sqlite3.connect(db) as conn:
-        conn.execute('''\
+        conn.execute("""\
             CREATE TABLE IF NOT EXISTS {} (version INT)\
-            '''.format(tb_name))
-        conn.execute('''
+            """.format(tb_name))
+        conn.execute("""
                 DELETE FROM {}
-            '''.format(tb_name))
-        conn.execute('''
+            """.format(tb_name))
+        conn.execute("""
                 INSERT INTO {} (version) VALUES ({})
-            '''.format(tb_name, val))
+            """.format(tb_name, val))
         conn.commit()
 
 
@@ -74,8 +77,8 @@ def test_migrate_7(swg_index_client, indexd_server):
     assert r.acl == ['a', 'b']
     assert r.metadata == {}
 
-@util.removes('index.sq3')
-def test_migrate_index():
+
+def test_migrate_index(index_driver):
     def test_migrate_index_internal(monkeypatch):
         called = []
 
@@ -85,8 +88,8 @@ def test_migrate_index():
         monkeypatch.setattr(
             'indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION', 2)
         monkeypatch.setattr(
-             'indexd.utils.check_engine_for_migrate',
-             lambda _: True
+            'indexd.utils.check_engine_for_migrate',
+            lambda _: True
         )
 
         monkeypatch.setattr(
@@ -94,10 +97,9 @@ def test_migrate_index():
             [mock_migrate, mock_migrate])
 
         update_version_table_for_testing('index.sq3', 'index_schema_version', 0)
-        driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
 
         assert len(called) == 2
-        with driver.session as s:
+        with index_driver.session as s:
             v = s.query(IndexSchemaVersion).first()
             assert v.version == 2
             s.delete(v)
@@ -105,8 +107,7 @@ def test_migrate_index():
     return test_migrate_index_internal
 
 
-@util.removes('index.sq3')
-def test_migrate_index_only_diff():
+def test_migrate_index_only_diff(index_driver):
     def test_migrate_index_only_diff_internal(monkeypatch):
         called = []
 
@@ -118,8 +119,8 @@ def test_migrate_index_only_diff():
             called_2.append(True)
 
         monkeypatch.setattr(
-             'indexd.utils.check_engine_for_migrate',
-             lambda _: True
+            'indexd.utils.check_engine_for_migrate',
+            lambda _: True
         )
         monkeypatch.setattr(
             'indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION', 1)
@@ -129,7 +130,6 @@ def test_migrate_index_only_diff():
 
         update_version_table_for_testing('index.sq3', 'index_schema_version', 0)
 
-        driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
         assert len(called) == 1
         assert len(called_2) == 0
 
@@ -139,19 +139,17 @@ def test_migrate_index_only_diff():
             'indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION', 2)
 
         update_version_table_for_testing('index.sq3', 'index_schema_version', 1)
-        driver = SQLAlchemyIndexDriver('sqlite:///index.sq3')
         assert len(called) == 0
         assert len(called_2) == 1
 
-        with driver.session as s:
+        with index_driver.session as s:
             v = s.query(IndexSchemaVersion).first()
             assert v.version == 2
 
     return test_migrate_index_only_diff_internal
 
 
-@util.removes('alias.sq3')
-def test_migrate_alias():
+def test_migrate_alias(alias_driver):
     def test_migrate_alias_internal(monkeypatch):
         called = []
 
@@ -165,22 +163,21 @@ def test_migrate_alias():
             [mock_migrate])
 
         monkeypatch.setattr(
-             'indexd.utils.check_engine_for_migrate',
-             lambda _: True
+            'indexd.utils.check_engine_for_migrate',
+            lambda _: True
         )
 
         update_version_table_for_testing('alias.sq3', 'alias_schema_version', 0)
 
-        driver = SQLAlchemyAliasDriver('sqlite:///alias.sq3')
         assert len(called) == 1
-        with driver.session as s:
+        with alias_driver.session as s:
             v = s.query(AliasSchemaVersion).first()
             assert v.version == 1
 
     return test_migrate_alias_internal
 
 
-def test_migrate_index_versioning(monkeypatch):
+def test_migrate_index_versioning(monkeypatch, index_driver):
     engine = create_engine(settings['config']['TEST_DB'])
     if database_exists(engine.url):
         drop_database(engine.url)
@@ -193,8 +190,8 @@ def test_migrate_index_versioning(monkeypatch):
         [migrate_1, migrate_2])
 
     monkeypatch.setattr(
-         'indexd.utils.check_engine_for_migrate',
-         lambda _: True
+        'indexd.utils.check_engine_for_migrate',
+        lambda _: True
     )
 
     conn = driver.engine.connect()
@@ -203,12 +200,14 @@ def test_migrate_index_versioning(monkeypatch):
         rev = str(uuid.uuid4())[:8]
         size = 512
         form = 'object'
-        conn.execute("\
-            INSERT INTO index_record(did, rev, form, size) \
-            VALUES ('{}','{}','{}',{})".format(did, rev, form, size))
+        conn.execute("""
+            INSERT INTO index_record(did, rev, form, size)
+            VALUES ('{}','{}','{}',{})
+        """.format(did, rev, form, size))
     conn.execute("commit")
     conn.close()
 
+    # TODO: unify this in similar databases.
     driver = SQLAlchemyIndexDriver(settings['config']['TEST_DB'])
     with driver.session as s:
         v = s.query(IndexSchemaVersion).first()
@@ -244,4 +243,3 @@ def test_migrate_index_versioning(monkeypatch):
 def test_schema_version():
 
     assert CURRENT_SCHEMA_VERSION == len(SCHEMA_MIGRATION_FUNCTIONS)
-
