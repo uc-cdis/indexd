@@ -18,6 +18,7 @@ from sqlalchemy import (
     or_,
     select,
 )
+from sqlalchemy.dialects.postgres import ARRAY, JSONB
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import joinedload, relationship, sessionmaker
@@ -200,8 +201,9 @@ class IndexRecordMetadata(Base):
     """
 
     __tablename__ = 'index_record_metadata'
-    key = Column(String, primary_key=True)
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    # metadatas = Column(JSONB)
+    key = Column(String, primary_key=True)
     value = Column(String)
     __table_args__ = (
         Index('index_record_metadata_idx', 'did'),
@@ -214,10 +216,15 @@ class IndexRecordUrlMetadata(Base):
     """
 
     __tablename__ = 'index_record_url_metadata'
-    key = Column(String, primary_key=True)
-    url = Column(String, primary_key=True)
     did = Column(String, index=True, primary_key=True)
+    # urls_metadata = Column(JSONB)
+    url = Column(String, primary_key=True)
+    key = Column(String, primary_key=True)
     value = Column(String)
+    # __table_args__ = (
+    # ForeignKeyConstraint(['did'], ['index_record_url.did'),
+    # Index('index_record_url_metadata_idx', 'did'),
+    # )
     __table_args__ = (
         ForeignKeyConstraint(['did', 'url'],
                              ['index_record_url.did', 'index_record_url.url']),
@@ -1080,7 +1087,7 @@ def migrate_2(session, **kwargs):
     # drop tmp table
     session.execute(
         "DROP TABLE IF EXISTS tmp_index_record;"
-        )
+    )
 
 
 def migrate_3(session, **kwargs):
@@ -1175,9 +1182,15 @@ def migrate_10(session, **kwargs):
         .format(tb=IndexRecord.__tablename__))
 
 
+def migrate_11(session, *kwargs):
+    pass
+
+
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
 SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_1, migrate_2, migrate_3, migrate_4, migrate_5,
-    migrate_6, migrate_7, migrate_8, migrate_9, migrate_10]
+    migrate_6, migrate_7, migrate_8, migrate_9, migrate_10,
+    # migrate_11,
+]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)

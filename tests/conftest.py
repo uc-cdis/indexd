@@ -5,12 +5,14 @@ import pytest
 # indexd_server and indexd_client is needed as fixtures
 from cdisutilstest.code.conftest import indexd_client, indexd_server  # noqa
 from cdisutilstest.code.indexd_fixture import clear_database
+from sqlalchemy import MetaData, create_engine
 
 import swagger_client
 from indexd import get_app
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
+from indexd.utils import setup_database, try_drop_test_data
 
 try:
     reload  # Python 2.7
@@ -19,6 +21,29 @@ except NameError:
         from importlib import reload  # Python 3.4+
     except ImportError:
         from imp import reload  # Python 3.0 - 3.3<Paste>
+
+
+@pytest.fixture(scope='session', autouse=True)
+def setup_test_database(request):
+    """Set up the database to be used for the tests.
+
+    autouse: every test runs this fixture, without calling it directly
+    session scope: all tests share the same fixture
+
+    Basically this only runs once at the beginning of the full test run. This
+    sets up the test database and test user to use for the rest of the tests.
+    """
+
+    # try_drop_test_data() is run in this step, when the test suite starts,
+    # so the step below is not entirely necessary. It's just good housekeeping.
+    setup_database()
+
+    def tearDown():
+        # FIXME: This doesn't completely drop the database because pg is holding
+        # onto connections. Try to find the connections and close them properly.
+        try_drop_test_data()
+
+    request.addfinalizer(tearDown)
 
 
 @pytest.fixture
@@ -94,23 +119,55 @@ def swg_bulk_client(swg_config):
 
 @pytest.fixture
 def index_driver():
-    filename = 'index.sq3'
-    yield SQLAlchemyIndexDriver('sqlite:///{}'.format(filename))
-    if os.path.exists(filename):
-        os.remove(filename)
+    drop_tables()
+    conn = SQLAlchemyIndexDriver('postgres://test:test@localhost/indexd_test')  # , auto_migrate=False)
+    yield conn
+    # cleanup
+    drop_tables()
 
 
 @pytest.fixture
 def alias_driver():
-    filename = 'alias.sq3'
-    yield SQLAlchemyAliasDriver('sqlite:///{}'.format(filename))
-    if os.path.exists(filename):
-        os.remove(filename)
+    drop_tables()
+    conn = SQLAlchemyAliasDriver('postgres://test:test@localhost/indexd_test')  # , auto_migrate=False)
+    yield conn
+    # cleanup
+    drop_tables()
 
 
 @pytest.fixture
 def auth_driver():
-    filename = 'auth.sq3'
-    yield SQLAlchemyAuthDriver('sqlite:///{}'.format(filename))
-    if os.path.exists(filename):
-        os.remove(filename)
+    drop_tables()
+    conn = SQLAlchemyAuthDriver('postgres://test:test@localhost/indexd_test')
+    yield conn
+    # cleanup
+    drop_tables()
+
+
+def database_engine():
+    return create_engine(
+        'postgres://{user}:{password}@localhost/indexd_test'.format(
+            user='test',
+            password='test',
+        )
+    )
+
+
+@pytest.fixture
+def database_conn():
+    engine = database_engine()
+    conn = engine.connect()
+    yield conn
+    conn.close()
+
+
+def drop_tables():
+    """Drop all the tables in this application's scope.
+
+    This has the same effect as deleting the sqlite file. Your test will have a
+    fresh database for it's run.
+    """
+    engine = database_engine()
+    meta = MetaData(engine)
+    meta.reflect()
+    meta.drop_all()
