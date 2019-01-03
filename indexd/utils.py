@@ -30,6 +30,7 @@ def try_drop_test_data(
         logging.warn("Unable to drop test data: %s", e)
 
     conn.close()
+    engine.dispose()
 
 
 def setup_database(

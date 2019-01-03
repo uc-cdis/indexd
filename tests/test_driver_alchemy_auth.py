@@ -1,5 +1,4 @@
 import hashlib
-import sqlite3
 
 import pytest
 

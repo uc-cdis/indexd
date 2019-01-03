@@ -1,9 +1,9 @@
 import json
 
 import pytest
-
-from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
+from tests.util import assert_blank
+
 from swagger_client.rest import ApiException
 
 
@@ -927,6 +927,7 @@ def test_update_without_changing_fields(swg_index_client):
     third_doc = swg_index_client.get_entry(result.did)
     # Only `version` changed.
     assert second_doc.version != third_doc.version
+
 
 def test_bulk_get_documents(swg_index_client, swg_bulk_client):
 

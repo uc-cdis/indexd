@@ -18,7 +18,7 @@ from sqlalchemy import (
     or_,
     select,
 )
-from sqlalchemy.dialects.postgres import ARRAY, JSONB
+from sqlalchemy.dialects.postgres import JSONB
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import joinedload, relationship, sessionmaker
@@ -202,12 +202,20 @@ class IndexRecordMetadata(Base):
 
     __tablename__ = 'index_record_metadata'
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
-    # metadatas = Column(JSONB)
     key = Column(String, primary_key=True)
     value = Column(String)
     __table_args__ = (
         Index('index_record_metadata_idx', 'did'),
     )
+
+
+# class IndexRecordMetadataJsonb(Base):
+    # """
+    # Metadata attached to index document using jsonb.
+    # """
+    # __tablename__ = 'index_record_metadata_jsonb'
+    # did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    # metadatas = Column(JSONB)
 
 
 class IndexRecordUrlMetadata(Base):
@@ -217,19 +225,28 @@ class IndexRecordUrlMetadata(Base):
 
     __tablename__ = 'index_record_url_metadata'
     did = Column(String, index=True, primary_key=True)
-    # urls_metadata = Column(JSONB)
     url = Column(String, primary_key=True)
     key = Column(String, primary_key=True)
     value = Column(String)
-    # __table_args__ = (
-    # ForeignKeyConstraint(['did'], ['index_record_url.did'),
-    # Index('index_record_url_metadata_idx', 'did'),
-    # )
     __table_args__ = (
         ForeignKeyConstraint(['did', 'url'],
                              ['index_record_url.did', 'index_record_url.url']),
         Index('index_record_url_metadata_idx', 'did'),
     )
+
+
+# class IndexRecordUrlMetadataJsonb(Base):
+    # """
+    # Metadata attached to url in jsonb format
+    # """
+
+    # __tablename__ = 'index_record_url_metadata_jsonb'
+    # did = Column(String, index=True, primary_key=True)
+    # urls_metadata = Column(JSONB)
+    # __table_args__ = (
+        # ForeignKeyConstraint(['did'], ['index_record_url.did']),
+        # Index('index_record_url_metadata_idx', 'did'),
+    # )
 
 
 class IndexRecordHash(Base):
