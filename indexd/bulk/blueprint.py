@@ -2,12 +2,10 @@
 import json
 
 import flask
+from sqlalchemy.orm import joinedload
 
 from indexd.errors import UserError
 from indexd.index.drivers.alchemy import IndexRecord, IndexRecordUrl
-from sqlalchemy.orm import joinedload
-
-
 
 blueprint = flask.Blueprint('bulk', __name__)
 
@@ -26,6 +24,7 @@ def bulk_get_documents():
     if not isinstance(ids, list):
         raise UserError('ids is not a list')
 
+    docs = []
     with blueprint.index_driver.session as session:
         # Comment it out to compare against the eager loading option.
         #query = session.query(IndexRecord)
@@ -41,7 +40,8 @@ def bulk_get_documents():
         query = query.options(joinedload(IndexRecord.aliases))
         query = query.filter(IndexRecord.did.in_(ids))
 
-    docs = [q.to_document_dict() for q in query]
+        docs = [q.to_document_dict() for q in query]
+
     return json.dumps(docs), 200
 
 

@@ -1,10 +1,10 @@
 import json
 
 import pytest
-from indexd.index.blueprint import ACCEPTABLE_HASHES
-from tests.util import assert_blank
 
+from indexd.index.blueprint import ACCEPTABLE_HASHES
 from swagger_client.rest import ApiException
+from tests.util import assert_blank
 
 
 def get_doc(
@@ -930,7 +930,6 @@ def test_update_without_changing_fields(swg_index_client):
 
 
 def test_bulk_get_documents(swg_index_client, swg_bulk_client):
-
     # just make a bunch of entries in indexd
     dids = [
         swg_index_client.add_entry(get_doc(has_baseid=True)).did

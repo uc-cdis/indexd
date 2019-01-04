@@ -1,37 +1,26 @@
 import base64
-import os
 from multiprocessing import Process
 
 import flask
 import pytest
 import requests
-# indexd_server and indexd_client is needed as fixtures
 from indexclient.client import IndexClient
+from sqlalchemy import create_engine
+
+import swagger_client
 from indexd import app_init, get_app
 from indexd.alias.drivers.alchemy import (
     Base as alias_base,
     SQLAlchemyAliasDriver,
 )
 from indexd.auth.drivers.alchemy import Base as auth_base, SQLAlchemyAuthDriver
-# from indexd.default_settings import PG_URL
 from indexd.index.drivers.alchemy import (
     Base as index_base,
     SQLAlchemyIndexDriver,
 )
 from indexd.utils import setup_database, try_drop_test_data
-from sqlalchemy import MetaData, create_engine
-from tests.test_driver_alchemy_auth import PASSWORD, USERNAME
-
-import swagger_client
 
 PG_URL = 'postgres://test:test@localhost/indexd_test'
-try:
-    reload  # Python 2.7
-except NameError:
-    try:
-        from importlib import reload  # Python 3.4+
-    except ImportError:
-        from imp import reload  # Python 3.0 - 3.3<Paste>
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -45,14 +34,10 @@ def setup_test_database(request):
     sets up the test database and test user to use for the rest of the tests.
     """
 
-    # try_drop_test_data() is run in this step, when the test suite starts,
-    # so the step below is not entirely necessary. It's just good housekeeping.
+    # try_drop_test_data() is run before the tests starts and after the tests
+    # complete. This ensures a clean database on start and end of the tests.
     setup_database()
-
-    def tearDown():
-        try_drop_test_data()
-
-    request.addfinalizer(tearDown)
+    request.addfinalizer(try_drop_test_data)
 
 
 @pytest.fixture
@@ -60,7 +45,7 @@ def app(index_driver, alias_driver, auth_driver):
     """
     We have to give all the settings here because when a driver is initiated
     it goes through an entire migration process that creates all the tables.
-    The tables are already created from the fixtures in this module
+    The tables are already created from the fixtures in this module.
     """
     app = flask.Flask('indexd')
     settings = {
@@ -134,8 +119,6 @@ def index_driver():
     yield driver
     drop_tables(driver, index_base)
     driver.dispose()
-    # import pdb; pdb.set_trace()
-    # pass
 
 
 @pytest.fixture
@@ -191,7 +174,7 @@ def drop_tables(driver, base):
             # if isinstance(driver, SQLAlchemyIndexDriver):
                 # import pdb; pdb.set_trace()
             # Check first to see if the table exists.
-            model.__table__.drop()
+            model.__table__.drop(checkfirst=True)
 
 
 @pytest.fixture(scope='session')
@@ -226,10 +209,10 @@ def indexd_client(indexd_server, create_tables):
     Currently the default user is the admin user
     Runs once per test.
     """
-    client = IndexClient(
+    return IndexClient(
         baseurl='http://localhost:8001',
-        auth=('admin', 'admin'))
-    yield client
+        auth=('admin', 'admin'),
+    )
 
 
 def wait_for_indexd_alive(port):
