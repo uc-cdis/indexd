@@ -1,18 +1,24 @@
 import uuid
 
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy_utils import database_exists, drop_database
+
 from indexd.alias.drivers.alchemy import AliasSchemaVersion
 from indexd.index.drivers.alchemy import (
     CURRENT_SCHEMA_VERSION,
     SCHEMA_MIGRATION_FUNCTIONS,
+    IndexRecord,
+    IndexRecordUrl,
+    IndexRecordUrlMetadata,
+    IndexRecordUrlMetadataJsonb,
     IndexSchemaVersion,
     SQLAlchemyIndexDriver,
     migrate_1,
     migrate_2,
     migrate_7,
+    migrate_11,
 )
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy_utils import database_exists, drop_database
 from tests.alchemy import SQLAlchemyIndexTestDriver
 from tests.util import make_sql_statement
 
@@ -58,7 +64,7 @@ def update_version_table_for_testing(conn, table, val):
     conn.commit()
 
 
-def test_migrate_7(swg_index_client, indexd_server, index_driver, create_tables):
+def test_migrate_7(swg_index_client, index_driver, create_tables):
     data = {
         'form': 'object',
         'size': 123,
@@ -75,6 +81,53 @@ def test_migrate_7(swg_index_client, indexd_server, index_driver, create_tables)
     r = swg_index_client.get_entry(r.did)
     assert r.acl == ['a', 'b']
     assert r.metadata == {}
+
+
+def test_migrate_11(database_conn, index_driver, create_tables):
+    """
+    Test that the information in the UrlsMetadata table is moved to the new
+    UrlsMetadataJsonb table.
+    """
+    did = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+    url = 's3://host/bucket/key'
+    key1 = 'type'
+    value1 = 'just ok'
+    key2 = 'not type'
+    value2 = 'not just ok'
+    with index_driver.session as session:
+        session.merge(IndexRecord(did=did))
+        session.merge(IndexRecordUrl(did=did, url=url))
+
+        # First key:value pair
+        session.merge(IndexRecordUrlMetadata(
+            did=did,
+            url=url,
+            key=key1,
+            value=value1,
+        ))
+
+        # Second key:value pair
+        session.merge(IndexRecordUrlMetadata(
+            did=did,
+            url=url,
+            key=key2,
+            value=value2,
+        ))
+        # Each key:value pair is on a separate row at this point.
+        assert session.query(IndexRecordUrlMetadata).count() == 2
+
+        migrate_11(session)
+
+        assert session.query(IndexRecordUrlMetadata).count() == 0
+
+        # There will only be one urls metadata jsonb row at this point.
+        query = session.query(IndexRecordUrlMetadataJsonb)
+        assert query.count() == 1
+
+        row = query.one()
+        assert row.did == did
+        assert row.url == url
+        assert row.urls_metadata == {key1: value1, key2: value2}
 
 
 def test_migrate_index(index_driver, database_conn):
@@ -225,8 +278,8 @@ def test_migrate_index_versioning(monkeypatch, index_driver, database_conn):
         cols = conn.execute("\
             SELECT column_name, data_type \
             FROM information_schema.columns \
-            WHERE table_schema = 'public' AND table_name = '{table}'".
-            format(table=table))
+            WHERE table_schema = 'public' AND table_name = '{table}'"
+                            .format(table=table))
         assert schema == [i for i in cols]
 
     vids = conn.execute("SELECT baseid FROM index_record").fetchall()

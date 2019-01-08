@@ -143,13 +143,11 @@ def create_tables(index_driver, alias_driver, auth_driver):
 
     Also set up the password to be accessed by the client tests.
     """
-    # This is the set of credentials that the swagger client uses.
     auth_driver.add('admin', 'admin')
 
 
 def database_engine():
-    engine = create_engine(PG_URL)
-    return engine
+    return create_engine(PG_URL)
 
 
 @pytest.fixture
@@ -171,9 +169,7 @@ def drop_tables(driver, base):
     with driver.session:
         # Drop tables in reverse order to avoid cascade drop errors.
         for model in base.__subclasses__()[::-1]:
-            # if isinstance(driver, SQLAlchemyIndexDriver):
-                # import pdb; pdb.set_trace()
-            # Check first to see if the table exists.
+            # Check first to see if the table exists before dropping it.
             model.__table__.drop(checkfirst=True)
 
 
@@ -191,7 +187,11 @@ def indexd_server():
     port = 8001
     debug = False
 
-    indexd = Process(target=app.run, args=(hostname, port, debug))
+    indexd = Process(
+        target=app.run,
+        args=(hostname, port),
+        kwargs={'debug': debug},
+    )
     indexd.start()
     wait_for_indexd_alive(port)
 

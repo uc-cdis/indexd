@@ -119,8 +119,7 @@ class IndexRecord(Base):
         hashes = {h.hash_type: h.hash_value for h in self.hashes}
         metadata = {m.key: m.value for m in self.index_metadata}
 
-        urls_metadata = {
-            u.url: {m.key: m.value for m in u.url_metadata} for u in self.urls}
+        urls_metadata = extract_urls_metadata(self.urls)
         created_date = self.created_date.isoformat()
         updated_date = self.updated_date.isoformat()
 
@@ -170,7 +169,7 @@ class IndexRecordUrl(Base):
     url = Column(String, primary_key=True)
 
     url_metadata = relationship(
-        'IndexRecordUrlMetadata',
+        'IndexRecordUrlMetadataJsonb',
         backref='index_record_url',
         cascade='all, delete-orphan',
     )
@@ -235,18 +234,19 @@ class IndexRecordUrlMetadata(Base):
     )
 
 
-# class IndexRecordUrlMetadataJsonb(Base):
-    # """
-    # Metadata attached to url in jsonb format
-    # """
+class IndexRecordUrlMetadataJsonb(Base):
+    """
+    Metadata attached to url in jsonb format
+    """
 
-    # __tablename__ = 'index_record_url_metadata_jsonb'
-    # did = Column(String, index=True, primary_key=True)
-    # urls_metadata = Column(JSONB)
-    # __table_args__ = (
-        # ForeignKeyConstraint(['did'], ['index_record_url.did']),
-        # Index('index_record_url_metadata_idx', 'did'),
-    # )
+    __tablename__ = 'index_record_url_metadata_jsonb'
+    did = Column(String, index=True, primary_key=True)
+    url = Column(String, primary_key=True)
+    urls_metadata = Column(JSONB)
+    __table_args__ = (
+        ForeignKeyConstraint(['did', 'url'],
+                             ['index_record_url.did', 'index_record_url.url']),
+    )
 
 
 class IndexRecordHash(Base):
@@ -254,7 +254,6 @@ class IndexRecordHash(Base):
     Base index record hash representation.
     """
     __tablename__ = 'index_record_hash'
-
     did = Column(String, ForeignKey('index_record.did'), primary_key=True)
     hash_type = Column(String, primary_key=True)
     hash_value = Column(String)
@@ -266,16 +265,20 @@ class IndexRecordHash(Base):
 
 def create_urls_metadata(urls_metadata, record, session):
     """
-    create url metadata record in database
+    Create url metadata record in database.
+
+    Each row is: DID | URL | METADATA
     """
     urls = {u.url for u in record.urls}
     for url, url_metadata in iteritems(urls_metadata):
         if url not in urls:
             raise UserError(
                 'url {} in urls_metadata does not exist'.format(url))
-        for k, v in iteritems(url_metadata):
-            session.add(IndexRecordUrlMetadata(
-                url=url, key=k, value=v, did=record.did))
+        session.add(IndexRecordUrlMetadataJsonb(
+            did=record.did,
+            url=url,
+            urls_metadata=url_metadata,
+        ))
 
 
 class SQLAlchemyIndexDriver(IndexDriverABC):
@@ -414,12 +417,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     IndexRecordUrl.url_metadata)
                 for url_key, url_dict in urls_metadata.items():
                     query = query.filter(
-                        IndexRecordUrlMetadata.url.contains(url_key))
+                        IndexRecordUrlMetadataJsonb.url.contains(url_key))
                     for k, v in url_dict.items():
                         query = query.filter(IndexRecordUrl.url_metadata.any(
                             and_(
-                                IndexRecordUrlMetadata.key == k,
-                                IndexRecordUrlMetadata.value == v
+                                IndexRecordUrlMetadataJsonb.urls_metadata[k].astext == v
                             )
                         ))
 
@@ -507,22 +509,24 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query = query.join(IndexRecord.urls).join(IndexRecordUrl.url_metadata)
             for url_key, url_dict in urls_metadata.items():
                 if not url_dict:
-                    query = query.filter(~IndexRecordUrlMetadata.url.contains(url_key))
+                    query = query.filter(~IndexRecordUrlMetadataJsonb.url.contains(url_key))
                 else:
                     for k, v in url_dict.items():
                         if not v:
-                            query = query.filter(~IndexRecordUrl.url_metadata.any(
-                                and_(IndexRecordUrlMetadata.key == k,
-                                     IndexRecordUrlMetadata.url.contains(url_key)
-                                     ))
+                            query = query.filter(
+                                ~IndexRecordUrl.url_metadata.any(
+                                    and_(
+                                        IndexRecordUrlMetadataJsonb.urls_metadata.has_key(k),
+                                        IndexRecordUrlMetadataJsonb.url.contains(url_key)
+                                    )
                                 )
+                            )
                         else:
-                            sub = session.query(IndexRecordUrlMetadata.did)
+                            sub = session.query(IndexRecordUrlMetadataJsonb.did)
                             sub = sub.filter(
                                 and_(
-                                    IndexRecordUrlMetadata.url.contains(url_key),
-                                    IndexRecordUrlMetadata.key == k,
-                                    IndexRecordUrlMetadata.value == v
+                                    IndexRecordUrlMetadataJsonb.url.contains(url_key),
+                                    IndexRecordUrlMetadataJsonb.urls_metadata[k].astext == v
                                 )
                             )
                             query = query.filter(~IndexRecord.did.in_(sub.subquery()))
@@ -561,10 +565,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query = query.offset(start)
             query = query.limit(limit)
 
+            urls_metadata = extract_urls_metadata(query)
             return [
-                {'url': r.url,
-                 'metadata': {m.key: m.value for m in r.url_metadata}}
-                for r in query
+                {'url': url, 'metadata': metadata}
+                for url, metadata in urls_metadata.items()
             ]
 
     def add(self,
@@ -1056,6 +1060,16 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return session.execute(select([func.count()]).select_from(IndexRecord)).scalar()
 
 
+def extract_urls_metadata(urls_metadata_result):
+    urls_metadata = {}
+    for url in urls_metadata_result:
+        urls_metadata[url.url] = {}
+        if url.url_metadata:
+            urls_metadata[url.url] = dict(url.url_metadata[0].urls_metadata)
+
+    return urls_metadata
+
+
 def migrate_1(session, **kwargs):
     session.execute(
         "ALTER TABLE {} ALTER COLUMN size TYPE bigint;"
@@ -1200,7 +1214,38 @@ def migrate_10(session, **kwargs):
 
 
 def migrate_11(session, *kwargs):
-    pass
+    """
+    Copy all rows from the IndexRecordUrlMetadata table to the new JSONB table.
+    """
+    query = session.query(IndexRecordUrlMetadata)
+    for row in query.yield_per(1000):
+
+        # Check if the did exists from the copy of another row in the original
+        # url_metadata_jsonb table.
+        node = session.query(IndexRecordUrlMetadataJsonb)\
+            .filter(IndexRecordUrlMetadata.did == row.did).first()
+
+        if node:
+            # If it exists then add the extra metadata information to the
+            # existing row.
+            #
+            # It's hard to update jsonb fields in place using sqlalchemy, so we
+            # have to copy the contents out into another variable, update the
+            # dictionary, then load a dictionary literal back into the
+            # database field.
+            urls_metadata = dict(node.urls_metadata)
+            urls_metadata.update({row.key: row.value})
+            node.urls_metadata = urls_metadata
+
+        else:
+            # If it doesn't then create a new one entirely.
+            node = IndexRecordUrlMetadataJsonb(
+                did=row.did,
+                url=row.url,
+                urls_metadata={row.key: row.value},
+            )
+        session.merge(node)
+        session.delete(row)
 
 
 # ordered schema migration functions that the index should correspond to
@@ -1208,6 +1253,6 @@ def migrate_11(session, *kwargs):
 SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_1, migrate_2, migrate_3, migrate_4, migrate_5,
     migrate_6, migrate_7, migrate_8, migrate_9, migrate_10,
-    # migrate_11,
+    migrate_11,
 ]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
