@@ -173,13 +173,6 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
     # Check metadata table to see if the data transferred to the jsonb table.
     rows = database_conn.execute("""
         SELECT *
-        FROM index_record_metadata
-    """)
-    assert rows.rowcount == 0
-
-    # There will only be one metadata jsonb row at this point.
-    rows = database_conn.execute("""
-        SELECT *
         FROM index_record_metadata_jsonb
     """)
     assert rows.rowcount == 1
@@ -192,13 +185,6 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
         }
 
     # Check url_metadata table to see if the data transferred to the jsonb table.
-    rows = database_conn.execute("""
-        SELECT *
-        FROM index_record_url_metadata
-    """)
-    assert rows.rowcount == 0
-
-    # There will only be one urls metadata jsonb row at this point.
     rows = database_conn.execute("""
         SELECT *
         FROM index_record_url_metadata_jsonb

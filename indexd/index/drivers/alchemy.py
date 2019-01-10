@@ -1248,7 +1248,6 @@ def migrate_11(session, **kwargs):
                 urls_metadata={row.key: row.value},
             )
         session.merge(node)
-        session.delete(row)
 
     query = session.query(IndexRecordMetadata)
     for row in query.yield_per(1000):
@@ -1277,7 +1276,6 @@ def migrate_11(session, **kwargs):
                 metadatas={row.key: row.value},
             )
         session.merge(node)
-        session.delete(row)
 
 
 # ordered schema migration functions that the index should correspond to
