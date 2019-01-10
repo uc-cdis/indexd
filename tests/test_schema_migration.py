@@ -16,7 +16,14 @@ from indexd.index.drivers.alchemy import (
     SQLAlchemyIndexDriver,
     migrate_1,
     migrate_2,
+    migrate_3,
+    migrate_4,
+    migrate_5,
+    migrate_6,
     migrate_7,
+    migrate_8,
+    migrate_9,
+    migrate_10,
     migrate_11,
 )
 from tests.alchemy import SQLAlchemyIndexTestDriver
@@ -59,78 +66,155 @@ def update_version_table_for_testing(conn, table, val):
             DELETE FROM {table}
         """.format(table=table))
     conn.execute(make_sql_statement("""
-            INSERT INTO {table} (version) VALUES (?) ({val})
-        """.format(table=table, val=val)))
+            INSERT INTO {table} (version) VALUES (?)
+        """.format(table=table), (val,)))
     conn.commit()
 
 
-def test_migrate_7(swg_index_client, index_driver, create_tables):
-    data = {
-        'form': 'object',
-        'size': 123,
-        'urls': ['s3://endpointurl/bucket/key'],
-        'metadata': {
-            'acls': 'a,b'
-        },
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}
-    }
+def test_migrate_7(index_driver_no_migrate, create_tables_no_migrate, database_conn):
+    baseid = 1
+    did = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+    size = 123
+    url = 's3://endpointurl/bucket/key'
+    ace_key = 'acls'
+    ace_value = 'a,b'
+    hash_type = 'md5'
+    hash_value = '8b9942cf415384b27cadf1f4d2d682e5'
 
-    r = swg_index_client.add_entry(data)
-    with index_driver.session as session:
+    # Setup the data manually because the schemas and drivers aren't preserved
+    # when there is a breaking change.
+    database_conn.execute(make_sql_statement("""
+            INSERT INTO base_version VALUES (?)
+        """, (baseid,)))
+    database_conn.execute(make_sql_statement("""
+            INSERT INTO index_record (did, size, baseid) VALUES (?, ?, ?)
+        """, (did, size, baseid)))
+    database_conn.execute(make_sql_statement("""
+            INSERT INTO index_record_metadata VALUES (?, ?, ?)
+        """, (did, ace_key, ace_value)))
+    database_conn.execute(make_sql_statement("""
+            INSERT INTO index_record_url VALUES (?, ?)
+        """, (did, url)))
+    database_conn.execute(make_sql_statement("""
+            INSERT INTO index_record_hash VALUES (?, ?, ?)
+        """, (did, hash_type, hash_value)))
+
+    with index_driver_no_migrate.session as session:
         migrate_7(session)
-    r = swg_index_client.get_entry(r.did)
-    assert r.acl == ['a', 'b']
-    assert r.metadata == {}
+
+    rows = database_conn.execute("""
+        SELECT ace
+        FROM index_record_ace
+    """)
+
+    acls = ace_value.split(',')
+    for row in rows:
+        assert row['ace'] in acls
+    rows = database_conn.execute("""
+        SELECT *
+        FROM index_record_metadata
+    """)
+
+    assert rows.rowcount == 0
 
 
-def test_migrate_11(database_conn, index_driver, create_tables):
+def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_conn):
     """
     Test that the information in the UrlsMetadata table is moved to the new
     UrlsMetadataJsonb table.
     """
+    baseid = 1
     did = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
     url = 's3://host/bucket/key'
-    key1 = 'type'
-    value1 = 'just ok'
-    key2 = 'not type'
-    value2 = 'not just ok'
-    with index_driver.session as session:
-        session.merge(IndexRecord(did=did))
-        session.merge(IndexRecordUrl(did=did, url=url))
+    url_key1 = 'url type'
+    url_value1 = 'url just ok'
+    url_key2 = 'url not type'
+    url_value2 = 'url not just ok'
+    meta_key1 = 'meta type'
+    meta_value1 = 'meta just ok'
+    meta_key2 = 'meta not type'
+    meta_value2 = 'meta not just ok'
 
-        # First key:value pair
-        session.merge(IndexRecordUrlMetadata(
-            did=did,
-            url=url,
-            key=key1,
-            value=value1,
-        ))
+    # Setup the data manually because the schemas and drivers aren't preserved
+    # when there is a breaking change.
+    database_conn.execute(make_sql_statement("""
+            INSERT INTO base_version VALUES (?)
+        """, (baseid,)))
+    database_conn.execute(make_sql_statement("""
+            INSERT INTO index_record (did, baseid) VALUES (?, ?)
+        """, (did, baseid)))
+    database_conn.execute(make_sql_statement("""
+            INSERT INTO index_record_url VALUES (?, ?)
+        """, (did, url)))
+    database_conn.execute(make_sql_statement("""
+            INSERT INTO index_record_metadata (did, key, value) VALUES
+            (?, ?, ?),
+            (?, ?, ?)
+        """, (did, meta_key1, meta_value1,
+              did, meta_key2, meta_value2)))
+    database_conn.execute(make_sql_statement("""
+            INSERT INTO index_record_url_metadata (did, url, key, value) VALUES
+            (?, ?, ?, ?),
+            (?, ?, ?, ?)
+        """, (did, url, url_key1, url_value1,
+              did, url, url_key2, url_value2)))
 
-        # Second key:value pair
-        session.merge(IndexRecordUrlMetadata(
-            did=did,
-            url=url,
-            key=key2,
-            value=value2,
-        ))
-        # Each key:value pair is on a separate row at this point.
-        assert session.query(IndexRecordUrlMetadata).count() == 2
+    rows = database_conn.execute("""
+        SELECT *
+        FROM index_record_url_metadata
+    """)
 
+    # Each key:value pair is on a separate row at this point.
+    assert rows.rowcount == 2
+
+    with index_driver_no_migrate.session as session:
         migrate_11(session)
 
-        assert session.query(IndexRecordUrlMetadata).count() == 0
+    # Check metadata table to see if the data transferred to the jsonb table.
+    rows = database_conn.execute("""
+        SELECT *
+        FROM index_record_metadata
+    """)
+    assert rows.rowcount == 0
 
-        # There will only be one urls metadata jsonb row at this point.
-        query = session.query(IndexRecordUrlMetadataJsonb)
-        assert query.count() == 1
+    # There will only be one metadata jsonb row at this point.
+    rows = database_conn.execute("""
+        SELECT *
+        FROM index_record_metadata_jsonb
+    """)
+    assert rows.rowcount == 1
 
-        row = query.one()
+    for row in rows:
+        assert row.did == did
+        assert row.metadatas == {
+            meta_key1: meta_value1,
+            meta_key2: meta_value2,
+        }
+
+    # Check url_metadata table to see if the data transferred to the jsonb table.
+    rows = database_conn.execute("""
+        SELECT *
+        FROM index_record_url_metadata
+    """)
+    assert rows.rowcount == 0
+
+    # There will only be one urls metadata jsonb row at this point.
+    rows = database_conn.execute("""
+        SELECT *
+        FROM index_record_url_metadata_jsonb
+    """)
+    assert rows.rowcount == 1
+
+    for row in rows:
         assert row.did == did
         assert row.url == url
-        assert row.urls_metadata == {key1: value1, key2: value2}
+        assert row.urls_metadata == {
+            url_key1: url_value1,
+            url_key2: url_value2,
+        }
 
 
-def test_migrate_index(index_driver, database_conn):
+def test_migrate_index(index_driver_no_migrate, database_conn):
     def test_migrate_index_internal(monkeypatch):
         called = []
 
@@ -151,7 +235,7 @@ def test_migrate_index(index_driver, database_conn):
         update_version_table_for_testing(database_conn, 'index_schema_version', 0)
 
         assert len(called) == 2
-        with index_driver.session as s:
+        with index_driver_no_migrate.session as s:
             v = s.query(IndexSchemaVersion).first()
             assert v.version == 2
             s.delete(v)
@@ -159,7 +243,7 @@ def test_migrate_index(index_driver, database_conn):
     return test_migrate_index_internal
 
 
-def test_migrate_index_only_diff(index_driver, database_conn):
+def test_migrate_index_only_diff(index_driver_no_migrate, database_conn):
     def test_migrate_index_only_diff_internal(monkeypatch):
         called = []
 
@@ -194,14 +278,14 @@ def test_migrate_index_only_diff(index_driver, database_conn):
         assert len(called) == 0
         assert len(called_2) == 1
 
-        with index_driver.session as s:
+        with index_driver_no_migrate.session as s:
             v = s.query(IndexSchemaVersion).first()
             assert v.version == 2
 
     return test_migrate_index_only_diff_internal
 
 
-def test_migrate_alias(alias_driver):
+def test_migrate_alias(alias_driver, database_conn):
     def test_migrate_alias_internal(monkeypatch):
         called = []
 
@@ -229,7 +313,7 @@ def test_migrate_alias(alias_driver):
     return test_migrate_alias_internal
 
 
-def test_migrate_index_versioning(monkeypatch, index_driver, database_conn):
+def test_migrate_index_versioning(monkeypatch, index_driver_no_migrate, database_conn):
     engine = create_engine(TEST_DB)
     if database_exists(engine.url):
         drop_database(engine.url)

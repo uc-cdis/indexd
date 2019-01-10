@@ -84,8 +84,22 @@ def swg_config(indexd_client): # noqa
 
 
 @pytest.fixture
+def swg_config_no_migrate(indexd_client_no_migrate): # noqa
+    config = swagger_client.Configuration()
+    config.host = indexd_client_no_migrate.url
+    config.username = indexd_client_no_migrate.auth[0]
+    config.password = indexd_client_no_migrate.auth[1]
+    return config
+
+
+@pytest.fixture
 def swg_index_client(swg_config):
     return swagger_client.IndexApi(swagger_client.ApiClient(swg_config))
+
+
+@pytest.fixture
+def swg_index_client_no_migrate(swg_config_no_migrate):
+    return swagger_client.IndexApi(swagger_client.ApiClient(swg_config_no_migrate))
 
 
 @pytest.fixture
@@ -94,8 +108,18 @@ def swg_global_client(swg_config):
 
 
 @pytest.fixture
+def swg_global_client_no_migrate(swg_config):
+    return swagger_client.GlobalApi(swagger_client.ApiClient(swg_config_no_migrate))
+
+
+@pytest.fixture
 def swg_alias_client(swg_config):
     return swagger_client.AliasApi(swagger_client.ApiClient(swg_config))
+
+
+@pytest.fixture
+def swg_alias_client_no_migrate(swg_config):
+    return swagger_client.AliasApi(swagger_client.ApiClient(swg_config_no_migrate))
 
 
 @pytest.fixture
@@ -104,13 +128,28 @@ def swg_dos_client(swg_config):
 
 
 @pytest.fixture
+def swg_dos_client_no_migrate(swg_config):
+    return swagger_client.DOSApi(swagger_client.ApiClient(swg_config_no_migrate))
+
+
+@pytest.fixture
 def swg_query_client(swg_config):
     return swagger_client.QueryApi(swagger_client.ApiClient(swg_config))
 
 
 @pytest.fixture
+def swg_query_client_no_migrate(swg_config):
+    return swagger_client.QueryApi(swagger_client.ApiClient(swg_config_no_migrate))
+
+
+@pytest.fixture
 def swg_bulk_client(swg_config):
     return swagger_client.BulkApi(swagger_client.ApiClient(swg_config))
+
+
+@pytest.fixture
+def swg_bulk_client_no_migrate(swg_config):
+    return swagger_client.BulkApi(swagger_client.ApiClient(swg_config_no_migrate))
 
 
 @pytest.fixture
@@ -138,6 +177,30 @@ def auth_driver():
 
 
 @pytest.fixture
+def index_driver_no_migrate():
+    """
+    This fixture is designed for testing migration scripts and can be used for
+    any other situation where a migration is not desired on instantiation.
+    """
+    driver = SQLAlchemyIndexDriver(PG_URL, auto_migrate=False)
+    yield driver
+    drop_tables(driver, index_base)
+    driver.dispose()
+
+
+@pytest.fixture
+def alias_driver_no_migrate():
+    """
+    This fixture is designed for testing migration scripts and can be used for
+    any other situation where a migration is not desired on instantiation.
+    """
+    driver = SQLAlchemyAliasDriver(PG_URL, auto_migrate=False)
+    yield driver
+    drop_tables(driver, alias_base)
+    driver.dispose()
+
+
+@pytest.fixture
 def create_tables(index_driver, alias_driver, auth_driver):
     """Make sure the tables are created but don't operate on them directly.
 
@@ -146,17 +209,29 @@ def create_tables(index_driver, alias_driver, auth_driver):
     auth_driver.add('admin', 'admin')
 
 
-def database_engine():
-    return create_engine(PG_URL)
+@pytest.fixture
+def create_tables_no_migrate(
+        index_driver_no_migrate, alias_driver_no_migrate, auth_driver):
+    """Make sure the tables are created but don't operate on them directly.
+
+    There is no migration required for the SQLAlchemyAuthDriver.
+    Also set up the password to be accessed by the client tests.
+    """
+    auth_driver.add('admin', 'admin')
 
 
 @pytest.fixture
-def database_conn():
-    engine = database_engine()
-    conn = engine.connect()
+def database_engine():
+    engine = create_engine(PG_URL)
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture
+def database_conn(database_engine):
+    conn = database_engine.connect()
     yield conn
     conn.close()
-    engine.dispose()
 
 
 def drop_tables(driver, base):
@@ -204,8 +279,21 @@ def indexd_server():
 def indexd_client(indexd_server, create_tables):
     """
     Returns a IndexClient. This will delete any documents,
-    aliases, or users made by this
-    client after the test has completed.
+    aliases, or users made by this client after the test has completed.
+    Currently the default user is the admin user
+    Runs once per test.
+    """
+    return IndexClient(
+        baseurl='http://localhost:8001',
+        auth=('admin', 'admin'),
+    )
+
+
+@pytest.fixture
+def indexd_client_no_migrate(indexd_server, create_tables_no_migrate):
+    """
+    Returns a IndexClient. This will delete any documents,
+    aliases, or users made by this client after the test has completed.
     Currently the default user is the admin user
     Runs once per test.
     """
