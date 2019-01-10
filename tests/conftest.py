@@ -243,9 +243,11 @@ def drop_tables(driver, base):
 
     with driver.session:
         # Drop tables in reverse order to avoid cascade drop errors.
-        for model in base.__subclasses__()[::-1]:
+        # metadata is a sqlalchemy property.
+        # sorted_tables is a list of tables sorted by their dependencies.
+        for table in reversed(base.metadata.sorted_tables):
             # Check first to see if the table exists before dropping it.
-            model.__table__.drop(checkfirst=True)
+            table.drop(checkfirst=True)
 
 
 @pytest.fixture(scope='session')
