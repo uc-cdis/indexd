@@ -1224,67 +1224,113 @@ def migrate_10(session, **kwargs):
         .format(tb=IndexRecord.__tablename__))
 
 
+def create_jsonb_payload(raw_dict):
+    """Format a jsonb string for use in sql queries.
+
+    Example output:
+        {"a":"b"}
+
+    It is the calling function's responsibility to add single quotes around
+    the jsonb value.
+    """
+    elems = [
+        '"{}": "{}"'.format(key, value)
+        for key, value in raw_dict.items()
+    ]
+    return "{" + ",".join(elems) + "}"
+
+
 def migrate_11(session, **kwargs):
     """
     Copy all rows from the IndexRecordUrlMetadata and IndexRecordMetada tables
     to the new JSONB tables.
     """
-    query = session.query(IndexRecordUrlMetadata)
-    for row in query.yield_per(1000):
+
+    # urls metadata migration to jsonb
+    rows = session.execute("""
+        SELECT did, url, key, value
+        FROM index_record_url_metadata;
+    """)
+
+    for row in rows:
+        # Since did and url are the primary key in this table there cannot
+        # be more than one row of them.
+        node = session.execute("""
+            SELECT did, url, urls_metadata
+            FROM index_record_url_metadata_jsonb
+            WHERE did = '{}' AND url = '{}'
+        """.format(row['did'], row['url'])).first()
 
         # Check if the did exists from the copy of another row in the original
         # url_metadata_jsonb table.
-        node = session.query(IndexRecordUrlMetadataJsonb)\
-            .filter(IndexRecordUrlMetadata.did == row.did).first()
-
         if node:
             # If it exists then add the extra metadata information to the
             # existing row.
-            #
-            # It's hard to update jsonb fields in place using sqlalchemy, so we
-            # have to copy the contents out into another variable, update the
-            # dictionary, then load a dictionary literal back into the
-            # database field.
-            urls_metadata = dict(node.urls_metadata)
+            urls_metadata = dict(node['urls_metadata'])
             urls_metadata.update({row.key: row.value})
-            node.urls_metadata = urls_metadata
+
+            session.execute("""
+                UPDATE index_record_url_metadata_jsonb
+                SET urls_metadata = '{urls_metadata}'
+                WHERE did = '{did}' AND url = '{url}'
+            """.format(
+                urls_metadata=create_jsonb_payload(urls_metadata),
+                did=row['did'],
+                url=row['url'],
+            ))
 
         else:
-            # If it doesn't then create a new one entirely.
-            node = IndexRecordUrlMetadataJsonb(
-                did=row.did,
-                url=row.url,
-                urls_metadata={row.key: row.value},
-            )
-        session.merge(node)
+            # If it doesn't exist then create a new one entirely.
+            session.execute("""
+                INSERT INTO index_record_url_metadata_jsonb(did, url, urls_metadata)
+                VALUES ('{did}', '{url}', '{urls_metadata}' )
+            """.format(
+                did=row['did'],
+                url=row['url'],
+                urls_metadata=create_jsonb_payload({row['key']: row['value']}),
+            ))
 
-    query = session.query(IndexRecordMetadata)
-    for row in query.yield_per(1000):
+    # metadata migration to jsonb
+    rows = session.execute("""
+        SELECT did, key, value
+        FROM index_record_metadata;
+    """)
+
+    for row in rows:
+        # Since did is the primary key in this table there cannot
+        # be more than one row of them.
+        node = session.execute("""
+            SELECT did, metadatas
+            FROM index_record_metadata_jsonb
+            WHERE did = '{did}'
+        """.format(did=row['did'])).first()
 
         # Check if the did exists from the copy of another row in the original
         # metadata_jsonb table.
-        node = session.query(IndexRecordMetadataJsonb)\
-            .filter(IndexRecordMetadata.did == row.did).first()
-
         if node:
             # If it exists then add the extra metadata information to the
             # existing row.
-            #
-            # It's hard to update jsonb fields in place using sqlalchemy, so we
-            # have to copy the contents out into another variable, update the
-            # dictionary, then load a dictionary literal back into the
-            # database field.
-            metadata = dict(node.metadatas)
-            metadata.update({row.key: row.value})
-            node.metadatas = metadata
+            metadatas = dict(node['metadatas'])
+            metadatas.update({row.key: row.value})
+
+            session.execute("""
+                UPDATE index_record_metadata_jsonb
+                SET metadatas = '{metadatas}'
+                WHERE did = '{did}'
+            """.format(
+                metadatas=create_jsonb_payload(metadatas),
+                did=row['did'],
+            ))
 
         else:
-            # If it doesn't then create a new one entirely.
-            node = IndexRecordMetadataJsonb(
-                did=row.did,
-                metadatas={row.key: row.value},
-            )
-        session.merge(node)
+            # If it doesn't exist then create a new one entirely.
+            session.execute("""
+                INSERT INTO index_record_metadata_jsonb(did, metadatas)
+                VALUES ('{did}', '{metadatas}' )
+            """.format(
+                did=row['did'],
+                metadatas=create_jsonb_payload({row['key']: row['value']}),
+            ))
 
 
 # ordered schema migration functions that the index should correspond to
