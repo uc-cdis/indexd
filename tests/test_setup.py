@@ -56,7 +56,7 @@ ALIAS_TABLES = {
 
 def test_postgres_index_setup_tables(index_driver, database_conn):
     """
-    Tests that the SQLite3 index database gets set up correctly.
+    Tests that the postgres index database gets set up correctly.
     """
 
     # postgres
@@ -72,8 +72,6 @@ def test_postgres_index_setup_tables(index_driver, database_conn):
     for table in INDEX_TABLES:
         assert table in tables, '{table} not created'.format(table=table)
 
-    def fixy(stmt):
-        return ' '.join([s.strip() for s in stmt.split('\n')]).strip()
     for table, schema in INDEX_TABLES.items():
         # Index, column name, data type, nullable, default value, primary key
         c = database_conn.execute("""
@@ -96,7 +94,7 @@ def test_postgres_index_setup_tables(index_driver, database_conn):
 
 def test_postgres_alias_setup_tables(alias_driver, database_conn):
     """
-    Tests that the SQLite3 alias database gets set up correctly.
+    Tests that the postgres alias database gets set up correctly.
     """
 
     c = database_conn.execute("""
@@ -112,7 +110,7 @@ def test_postgres_alias_setup_tables(alias_driver, database_conn):
         assert table in tables, '{table} not created'.format(table=table)
 
     for table, schema in ALIAS_TABLES.items():
-        # NOTE PRAGMA's don't work with parameters...
+        # Index, column name, data type, nullable, default value, primary key
         c = database_conn.execute("""
             SELECT col.column_name, col.data_type, col.is_nullable,
                 col.column_default, c.constraint_type

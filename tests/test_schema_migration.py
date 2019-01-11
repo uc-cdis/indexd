@@ -8,22 +8,11 @@ from indexd.alias.drivers.alchemy import AliasSchemaVersion
 from indexd.index.drivers.alchemy import (
     CURRENT_SCHEMA_VERSION,
     SCHEMA_MIGRATION_FUNCTIONS,
-    IndexRecord,
-    IndexRecordUrl,
-    IndexRecordUrlMetadata,
-    IndexRecordUrlMetadataJsonb,
     IndexSchemaVersion,
     SQLAlchemyIndexDriver,
     migrate_1,
     migrate_2,
-    migrate_3,
-    migrate_4,
-    migrate_5,
-    migrate_6,
     migrate_7,
-    migrate_8,
-    migrate_9,
-    migrate_10,
     migrate_11,
 )
 from tests.alchemy import SQLAlchemyIndexTestDriver

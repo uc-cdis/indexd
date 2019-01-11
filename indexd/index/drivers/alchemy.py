@@ -778,7 +778,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query = session.query(IndexRecord)
             query = query.filter(
                 or_(IndexRecord.did == did, IndexRecord.baseid == did)
-                ).order_by(IndexRecord.created_date.desc())
+            ).order_by(IndexRecord.created_date.desc())
 
             record = query.first()
             if record is None:
@@ -790,7 +790,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Updates an existing record with new values.
         """
 
-        composite_fields = ['urls', 'acl', 'metadata', 'urls_metadata']
+        composite_fields = ['urls', 'acl', 'metadata', 'urls_metadata', 'hashes']
 
         with self.session as session:
             query = session.query(IndexRecord).filter(IndexRecord.did == did)
@@ -845,6 +845,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     record,
                     session,
                 )
+            if 'hashes' in changing_fields:
+                for hashes in record.hashes:
+                    session.delete(hashes)
+
+                record.hashes = [IndexRecordHash(
+                    did=record.did,
+                    hash_type=h,
+                    hash_value=v,
+                ) for h, v in changing_fields['hashes'].items()]
 
             for key, value in changing_fields.items():
                 if key not in composite_fields:
@@ -1014,8 +1023,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             try:
-                query = session.execute('SELECT 1')
-            except Exception as e:
+                session.execute('SELECT 1')
+            except Exception:
                 raise UnhealthyCheck()
 
             return True

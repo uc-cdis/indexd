@@ -387,10 +387,6 @@ def test_driver_get_all_version(index_driver, database_conn):
 
     NUMBER_OF_RECORD = 3
 
-    dids = []
-    revs = []
-    created_dates = []
-    updated_dates = []
     given_records = {}
 
     for _ in range(NUMBER_OF_RECORD):
@@ -489,7 +485,7 @@ def test_driver_update_record(index_driver, database_conn):
     """, (baseid,)))
     database_conn.execute(make_sql_statement("""
         INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
-    """, (did, baseid, rev, form, None)))
+    """, (did, baseid, rev, form, 1)))
 
     update_size = 256
     update_urls = ['a', 'b', 'c']
@@ -506,19 +502,21 @@ def test_driver_update_record(index_driver, database_conn):
         'urls': update_urls,
         'file_name': file_name,
         'version': version,
+        'size': update_size,
+        'hashes': update_hashes,
     }
 
     index_driver.update(did, rev, changing_fields)
 
-    new_did, new_rev, new_file_name, new_version = database_conn.execute("""
-        SELECT did, rev, file_name, version FROM index_record
+    new_did, new_rev, new_file_name, new_size, new_version = database_conn.execute("""
+        SELECT did, rev, file_name, size, version FROM index_record
     """).fetchone()
 
     new_urls = sorted(url[0] for url in database_conn.execute("""
         SELECT url FROM index_record_url
     """))
 
-    new_hashes = {h: v for h ,v in database_conn.execute("""
+    new_hashes = {h: v for h, v in database_conn.execute("""
         SELECT hash_type, hash_value FROM index_record_hash
     """)}
 
@@ -526,7 +524,9 @@ def test_driver_update_record(index_driver, database_conn):
     assert rev != new_rev, 'record revision matches prior'
     assert update_urls == new_urls, 'record urls mismatch'
     assert file_name == new_file_name, 'file_name does not match'
+    assert update_size == new_size, 'size does not match'
     assert version == new_version, 'version does not match'
+    assert update_hashes == new_hashes, 'hashes do not match'
 
 
 def test_driver_update_fails_with_no_records(index_driver):
