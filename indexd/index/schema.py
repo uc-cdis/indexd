@@ -147,6 +147,9 @@ PUT_RECORD_SCHEMA = {
         "file_name": {
             "type": ["string", "null"],
         },
+        "size": {
+            "type": "integer",
+        },
         "version": {
             "type": ["string", "null"],
         },
@@ -159,5 +162,66 @@ PUT_RECORD_SCHEMA = {
         "urls_metadata": {
             "type": "object",
         },
+        "hashes": {
+            "type": "object",
+            "properties": {
+              "md5": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "sha1": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "sha512": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{128}$"
+              },
+              "crc": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}$"
+              },
+              "etag": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}(-\d+)?$"
+              }
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "md5"
+                ]
+              },
+              {
+                "required": [
+                  "sha1"
+                ]
+              },
+              {
+                "required": [
+                  "sha256"
+                ]
+              },
+              {
+                "required": [
+                  "sha512"
+                ]
+              },
+              {
+                "required": [
+                  "crc"
+                ]
+              },
+              {
+                "required": [
+                  "etag"
+                ]
+              }
+            ]
+        }
     }
 }
