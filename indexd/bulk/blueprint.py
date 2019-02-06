@@ -23,7 +23,7 @@ def bulk_get_documents():
 
     ids = flask.request.json
     if not ids:
-        raise UserError('No ids provided ' + str(flask.request.json) + "\n" + str(flask.request))
+        raise UserError('No ids provided ' + str(flask.request.json) + "\n" + str(flask.request) + "\n" + str(flask.request.data) + "\n" + str(flask.request.args.get("ids")))
     if not isinstance(ids, list):
         raise UserError('ids is not a list')
 
