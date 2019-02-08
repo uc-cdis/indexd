@@ -1,6 +1,7 @@
 import random
 
 import pytest
+
 from tests.test_client import get_doc
 
 
@@ -14,7 +15,7 @@ def test_data(swg_index_client, create_tables):
 
     versioned_count = system_random.randint(5, 10)
     for _ in range(versioned_count):
-        doc = get_doc(has_urls_metadata=True, has_version=True)
+        doc = get_doc(has_version=True)
         if url_x_type > 0:
             doc["urls"].append(url_x)
             doc["urls_metadata"][url_x] = {"state": "uploaded"}
@@ -24,7 +25,7 @@ def test_data(swg_index_client, create_tables):
     url_x_type = url_x_count
     unversioned_count = system_random.randint(6, 10)
     for _ in range(unversioned_count):
-        doc = get_doc(has_urls_metadata=True)
+        doc = get_doc()
         if url_x_type > 0:
             doc["urls"].append(url_x)
             doc["urls_metadata"][url_x] = {"state": "uploaded"}

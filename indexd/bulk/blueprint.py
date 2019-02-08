@@ -5,7 +5,10 @@ import flask
 from sqlalchemy.orm import joinedload
 
 from indexd.errors import UserError
-from indexd.index.drivers.alchemy import IndexRecord, IndexRecordUrl
+from indexd.index.drivers.alchemy import (
+    IndexRecord,
+    IndexRecordUrlMetadataJsonb,
+)
 
 blueprint = flask.Blueprint('bulk', __name__)
 
@@ -32,8 +35,7 @@ def bulk_get_documents():
 
         # Use eager loading.
         query = session.query(IndexRecord)
-        query = query.options(joinedload(IndexRecord.urls).
-                              joinedload(IndexRecordUrl.url_metadata))
+        query = query.options(joinedload(IndexRecord.urls_metadata))
         query = query.options(joinedload(IndexRecord.acl))
         query = query.options(joinedload(IndexRecord.hashes))
         query = query.options(joinedload(IndexRecord.index_metadata))

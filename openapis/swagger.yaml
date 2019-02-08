@@ -1011,6 +1011,9 @@ definitions:
         type: array
         items:
           type: string
+      urls_metadata:
+        type: object
+        description: url level metadata
   OutputRef:
     type: object
     properties:
@@ -1164,7 +1167,7 @@ definitions:
         description: user defined optional metadata
       urls_metadata:
         type: object
-        description: url level optional metadata
+        description: url level metadata
   SystemVersionOutputRef:
     type: object
     properties:

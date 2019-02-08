@@ -109,8 +109,16 @@ def test_migrate_7(index_driver_no_migrate, create_tables_no_migrate, database_c
 
 def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_conn):
     """
-    Test that the information in the UrlsMetadata table is moved to the new
-    UrlsMetadataJsonb table.
+    Test that the information in the Metadata, and UrlsMetadata table are moved
+    to the new UrlsMetadataJsonb, and MetadataJsonb tables.
+
+    Some key:value pairs got moved out into their own columns. These are
+    attributes that we use frequently enough to warrant their existence as
+    columns.
+
+    urls_metadata[state]     -> UrlsMetadataJsonb.state
+    urls_metadata[type]      -> UrlsMetadataJsonb.type
+    metadata[release_number] -> IndexRecord.release_number (todo)
     """
     baseid = 1
     did = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
@@ -119,6 +127,9 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
     url_value1 = 'url just ok'
     url_key2 = 'url not type'
     url_value2 = 'url not just ok'
+    u_type = 'cleversafe'
+    u_state = 'validated'
+
     meta_key1 = 'meta type'
     meta_value1 = 'meta just ok'
     meta_key2 = 'meta not type'
@@ -144,9 +155,13 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
     database_conn.execute(make_sql_statement("""
             INSERT INTO index_record_url_metadata (did, url, key, value) VALUES
             (?, ?, ?, ?),
+            (?, ?, ?, ?),
+            (?, ?, ?, ?),
             (?, ?, ?, ?)
         """, (did, url, url_key1, url_value1,
-              did, url, url_key2, url_value2)))
+             did, url, url_key2, url_value2,
+             did, url, 'type', u_type,
+             did, url, 'state', u_state)))
 
     rows = database_conn.execute("""
         SELECT *
@@ -154,7 +169,7 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
     """)
 
     # Each key:value pair is on a separate row at this point.
-    assert rows.rowcount == 2
+    assert rows.rowcount == 4
 
     with index_driver_no_migrate.session as session:
         migrate_11(session)
@@ -183,6 +198,8 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
     for row in rows:
         assert row.did == did
         assert row.url == url
+        assert row.state == u_state
+        assert row.type == u_type
         assert row.urls_metadata == {
             url_key1: url_value1,
             url_key2: url_value2,

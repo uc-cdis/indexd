@@ -200,9 +200,10 @@ def test_driver_add_with_urls(index_driver, database_conn):
     Tests creation of a record with urls.
     """
     form = 'object'
-    urls = ['a', 'b', 'c']
+    urls_metadata = {'a': {'type': 'ok'}, 'b': {'type': 'ok'}, 'c': {'type': 'ok'}}
+    # urls = ['a', 'b', 'c']
 
-    index_driver.add(form, urls=urls)
+    index_driver.add(form, urls_metadata=urls_metadata)
 
     count = database_conn.execute("""
         SELECT COUNT(*) FROM index_record
@@ -211,16 +212,16 @@ def test_driver_add_with_urls(index_driver, database_conn):
     assert count == 1, 'driver did not create record'
 
     count = database_conn.execute("""
-        SELECT COUNT(*) FROM index_record_url
+        SELECT COUNT(url) FROM index_record_url_metadata_jsonb
     """).fetchone()[0]
 
     assert count == 3, 'driver did not create url(s)'
 
     new_urls = sorted(url[0] for url in database_conn.execute("""
-        SELECT url FROM index_record_url
+        SELECT url FROM index_record_url_metadata_jsonb
     """))
 
-    assert urls == new_urls, 'record urls mismatch'
+    assert sorted(urls_metadata.keys()) == new_urls, 'record urls mismatch'
 
 
 def test_driver_add_with_filename(index_driver):
@@ -481,14 +482,11 @@ def test_driver_update_record(index_driver, database_conn):
     form = 'object'
 
     database_conn.execute(make_sql_statement("""
-        INSERT INTO base_version (baseid) VALUES (?)
-    """, (baseid,)))
-    database_conn.execute(make_sql_statement("""
         INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
     """, (did, baseid, rev, form, 1)))
 
     update_size = 256
-    update_urls = ['a', 'b', 'c']
+    update_urls_metadata = {'a': {'type': 'ok'}, 'b': {'type': 'ok'}, 'c': {'type': 'ok'}}
     update_hashes = {
         'a': '1',
         'b': '2',
@@ -499,7 +497,7 @@ def test_driver_update_record(index_driver, database_conn):
     version = 'ver_123'
 
     changing_fields = {
-        'urls': update_urls,
+        'urls_metadata': update_urls_metadata,
         'file_name': file_name,
         'version': version,
         'size': update_size,
@@ -513,7 +511,7 @@ def test_driver_update_record(index_driver, database_conn):
     """).fetchone()
 
     new_urls = sorted(url[0] for url in database_conn.execute("""
-        SELECT url FROM index_record_url
+        SELECT url FROM index_record_url_metadata_jsonb
     """))
 
     new_hashes = {h: v for h, v in database_conn.execute("""
@@ -522,7 +520,7 @@ def test_driver_update_record(index_driver, database_conn):
 
     assert did == new_did, 'record id does not match'
     assert rev != new_rev, 'record revision matches prior'
-    assert update_urls == new_urls, 'record urls mismatch'
+    assert sorted(update_urls_metadata.keys()) == new_urls, 'record urls mismatch'
     assert file_name == new_file_name, 'file_name does not match'
     assert update_size == new_size, 'size does not match'
     assert version == new_version, 'version does not match'
