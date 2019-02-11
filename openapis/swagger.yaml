@@ -24,6 +24,10 @@ tags:
     externalDocs:
       description: Find out more
       url: 'https://github.com/uc-cdis/indexd'
+  - name: bulk
+    description: bulk endpoints
+  - name: query
+    description: query endpoints
   - name: alias
     description: >-
       create an alias for an entity stored in an external system managed by some
@@ -38,17 +42,17 @@ tags:
 schemes:
   - https
 paths:
-  '/{UUID}':
+  '/{GUID}':
     get:
       tags:
         - global
       summary: Get the metadata associated with the given id, alias, or distributed identifier
-      description: Multiple status values can be provided with comma separated strings
+      description: Only the hashes which exist will be included in the response.
       operationId: getEntry
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: GUID
           in: path
           description: entry id
           required: true
@@ -111,7 +115,7 @@ paths:
       parameters:
         - in: body
           name: body
-          description: Metadata object that needs to be added to the store
+          description: Metadata object that needs to be added to the store. Providing at least one hash is necessary and sufficient.
           required: true
           schema:
             $ref: '#/definitions/InputInfo'
@@ -154,6 +158,11 @@ paths:
           description: hash in format hash_type:hash_value
           required: false
           type: string
+        - name: uploader
+          in: query
+          description: uploader id
+          required: false
+          type: string
         - name: ids
           in: query
           description: |
@@ -164,6 +173,11 @@ paths:
         - name: urls
           in: query
           description: comma delimited urls
+          required: false
+          type: string
+        - name: acl
+          in: query
+          description: comma delimited ace
           required: false
           type: string
         - name: negate_params
@@ -194,52 +208,80 @@ paths:
         '200':
           description: successful operation
           schema:
-            type: object
-            properties:
-              ids:
-                type: array
-                items:
-                  $ref: '#/definitions/DID'
-              records:
-                type: array
-                items:
-                  $ref: "#/definitions/OutputInfo"
-              size:
-                type: integer
-                format: int64
-                description: size in bytes
-              start:
-                type: integer
-                format: int64
-                description: start index for the pagination
-              limit:
-                type: integer
-                format: int64
-                description: number of dids to return
-              file_name:
-                type: string
-              urls:
-                type: array
-                items:
-                  type: string
-              acl:
-                type: array
-                items:
-                  type: string
-              hashes:
-                $ref: '#/definitions/HashInfo'
+            $ref: '#/definitions/ListRecords'
       security: []
-  '/index/{UUID}':
+  '/index/blank':
+    post:
+      tags:
+        - index
+      summary: Create a blank record
+      description: ''
+      operationId: createBlankEntry
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Metadata object that needs to be added to the store
+          required: true
+          schema:
+            $ref: '#/definitions/InputBlankInfo'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/OutputRef'
+        '400':
+          description: Invalid status value
+      security:
+        - basic_auth: []
+  '/index/blank/{GUID}':
+    put:
+      tags:
+        - index
+      summary: Update only hashes and size for blank index
+      description: ''
+      operationId: updateBlankEntry
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+        - name: rev
+          in: query
+          description: data revision - simple consistency mechanism
+          required: true
+          type: string
+        - in: body
+          name: body
+          description: index record that needs to be updated
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateBlankInputInfo'
+      responses:
+        '200':
+          description: success
+          schema:
+            $ref: '#/definitions/OutputRef'
+        '400':
+          description: Invalid input
+      security:
+        - basic_auth: []
+  '/index/{GUID}':
     get:
       tags:
         - index
       summary: Get the metadata associated with the given id
-      description: Multiple status values can be provided with comma separated strings
       operationId: getEntry
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: GUID
           in: path
           description: entry id
           required: true
@@ -257,12 +299,12 @@ paths:
         - index
       summary: >-
         Add new version for the document associated to the provided uuid.
-      description: Since data content is immutable, when you want to change the size or hash, a new index document with new uuid need to be created as its new version. That uuid is returned in the did field of the response
+      description: Since data content is immutable, when you want to change the size or hash, a new index document with new uuid need to be created as its new version. That uuid is returned in the did field of the response. The old index document is not deleted.
       operationId: addNewVersion
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: GUID
           in: path
           description: the uuid associated to the record needed to have new version
           required: true
@@ -282,7 +324,6 @@ paths:
           description: Invalid status value
       security:
         - basic_auth: []
-  '/index/{DID}':
     put:
       tags:
         - index
@@ -294,7 +335,7 @@ paths:
       produces:
         - application/json
       parameters:
-        - name: DID
+        - name: GUID
           in: path
           description: entry id
           required: true
@@ -328,7 +369,7 @@ paths:
       produces:
         - application/json
       parameters:
-        - name: DID
+        - name: GUID
           in: path
           description: entry id
           required: true
@@ -345,19 +386,18 @@ paths:
           description: Record is deleted successfully
       security:
         - basic_auth: []
-  '/index/{UUID}/latest':
+  '/index/{GUID}/latest':
     get:
       tags:
         - index
       summary: >-
         Get the metadata of the latest index record version associated with the
         given id
-      description: Multiple status values can be provided with comma separated strings
       operationId: getLatestVersion
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: GUID
           in: path
           description: entry id
           required: true
@@ -375,17 +415,16 @@ paths:
         '400':
           description: Invalid status value
       security: []
-  '/index/{UUID}/versions':
+  '/index/{GUID}/versions':
     get:
       tags:
         - index
       summary: Get the metadata of index record versions associated with the given id
-      description: Multiple status values can be provided with comma separated strings
       operationId: getAllVersions
       produces:
         - application/json
       parameters:
-        - name: UUID
+        - name: GUID
           in: path
           description: entry id
           required: true
@@ -394,9 +433,7 @@ paths:
         '200':
           description: successful operation
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/OutputInfo'
+            $ref: '#/definitions/BulkOutputInfo'
         '400':
           description: Invalid status value
       security: []
@@ -543,8 +580,6 @@ paths:
       responses:
         '200':
           description: successful operation
-          schema:
-            $ref: '#/definitions/AliasRef'
         '400':
           description: Invalid input
       security:
@@ -588,8 +623,8 @@ paths:
           description: successful operation
           schema:
             $ref: '#/definitions/SystemStatsOutputRef'
-  /ga4gh/dos/v1/dataobjects/list:
-    post:
+  /ga4gh/dos/v1/dataobjects:
+    get:
       summary: List the Data Objects
       operationId: ListDataObjects
       responses:
@@ -614,14 +649,56 @@ paths:
           schema:
             $ref: '#/definitions/ErrorResponse'
       parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/ListDataObjectsRequest'
+        - name: alias
+          in: query
+          type: string
+          required: false
+          description: |-
+            If provided will only return Data Objects with the given alias.
+        - name: url
+          in: query
+          type: string
+          required: false
+          description: |-
+            If provided will return only Data Objects with a that URL matches
+            this string.
+        - name: checksum
+          in: query
+          type: string
+          required: false
+          description: |-
+            The hexlified checksum that one would like to match on.
+        - name: checksum_type
+          in: query
+          type: string
+          required: false
+          description: |-
+            If provided will restrict responses to those that match the provided
+            type.
+            possible values:
+            md5                # most blob stores provide a checksum using this
+            multipart-md5      # multipart uploads provide a specialized tag in S3
+            sha256
+            sha512
+        - name: page_size
+          in: query
+          type: integer
+          format: int32
+          required: false
+          description: |-
+            Specifies the maximum number of results to return in a single page.
+            If unspecified, a system default will be used.
+        - name: page_token
+          in: query
+          type: string
+          required: false
+          description: |-
+            The continuation token, which is used to page through large result sets.
+            To get the next page of results, set this parameter to the value of
+            `next_page_token` from the previous response.
       tags:
         - DOS
-  '/ga4gh/dos/v1/dataobjects/{DID}':
+  '/ga4gh/dos/v1/dataobjects/{GUID}':
     get:
       summary: Retrieve a Data Object
       operationId: GetDataObject
@@ -651,12 +728,129 @@ paths:
           schema:
             $ref: '#/definitions/ErrorResponse'
       parameters:
-        - name: DID
+        - name: GUID
           in: path
           required: true
           type: string
       tags:
         - DOS
+  '/bulk/documents':
+    post:
+      tags:
+        - bulk
+      summary: Get a list of documents given a list of dids
+      operationId: getBulkIds
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: List of dids to retrieve
+          required: true
+          schema:
+            $ref: '#/definitions/BulkInputInfo'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/BulkOutputInfo'
+        '400':
+          description: Invalid status value
+      security: []
+  '/_query/urls/q':
+    get:
+      tags:
+        - query
+      summary: search index records by urls
+      operationId: queryUrls
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: exclude
+          type: string
+          description: search for documents without a single URL that match this pattern
+          required: false
+        - in: query
+          name: include
+          type: string
+          description: search for documents with at least one URL that match this pattern
+          required: false
+        - in: query
+          name: versioned
+          type: boolean
+          default: false
+          description: if true search for documents with a version set, else search documents without version
+          required: false
+        - in: query
+          name: limit
+          type: integer
+          default: 100
+          description: maximum rows to return
+          required: false
+        - in: query
+          name: offset
+          type: integer
+          default: 0
+          description: pointer position to start search
+          required: false
+      responses:
+        200:
+          description: successful
+          schema:
+            $ref: '#/definitions/URLsOutput'
+        400:
+          description: invalid request parameters
+  '/_query/urls/metadata/q':
+    get:
+      tags:
+        - query
+      summary: search index records by urls metadata key and value
+      operationId: queryUrlsMetadata
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: key
+          type: string
+          description: metadata key to search by
+          required: true
+        - in: query
+          name: value
+          type: string
+          description: metadata value for provided key
+          required: true
+        - in: query
+          name: url
+          type: string
+          description: URL patter to filter by
+          required: false
+        - in: query
+          name: versioned
+          type: boolean
+          default: false
+          description: if true search for documents with a version set, else search documents without version
+          required: false
+        - in: query
+          name: limit
+          type: integer
+          default: 100
+          description: maximum rows to return
+          required: false
+        - in: query
+          name: offset
+          type: integer
+          default: 0
+          description: pointer position to start search
+          required: false
+      responses:
+       200:
+         description: successful
+         schema:
+           $ref: '#/definitions/URLsOutput'
+       400:
+         description: invalid request parameters
+
 securityDefinitions:
   cdis_auth:
     type: oauth2
@@ -728,6 +922,15 @@ definitions:
           type: string
       hashes:
         $ref: '#/definitions/HashInfo'
+  BulkInputInfo:
+    type: object
+    required:
+      - ids
+    properties:
+      ids:
+        type: array
+        items:
+          type: string
   InputInfo:
     type: object
     required:
@@ -769,13 +972,18 @@ definitions:
           type: string
       hashes:
         $ref: '#/definitions/HashInfo'
+  InputBlankInfo:
+    type: object
+    properties:
+      uploader:
+        type: string
+        description: user who uploaded this file
+      file_name:
+        type: string
+        description: name of the uploaded file
   UpdateInputInfo:
     type: object
     properties:
-      base_id:
-        type: string
-        pattern: >-
-          ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
       file_name:
         type: string
       metadata:
@@ -792,6 +1000,17 @@ definitions:
         type: array
         items:
           type: string
+  UpdateBlankInputInfo:
+    type: object
+    properties:
+      size:
+        type: integer
+      hashes:
+        $ref: '#/definitions/HashInfo'
+      urls:
+        type: array
+        items:
+          type: string
   OutputRef:
     type: object
     properties:
@@ -804,6 +1023,10 @@ definitions:
         pattern: '^[0-9a-f]{8}$'
   AliasInputInfo:
     type: object
+    required:
+      - size
+      - hashes
+      - release
     properties:
       release:
         type: string
@@ -858,7 +1081,7 @@ definitions:
       keeper_authority:
         description: who is keeping this entry up to date?
         type: string
-      host_authority:
+      host_authorities:
         description: who is hosting this entity?
         type: array
         items:
@@ -867,6 +1090,18 @@ definitions:
         $ref: '#/definitions/HashInfo'
       metadata:
         type: string
+      limit:
+        type: integer
+        format: int64
+        description: number of aliases to return
+      start:
+        type: integer
+        format: int64
+        description: start index for the pagination
+      urls:
+        type: array
+        items:
+          type: string
   DID:
     type: string
     pattern: >-
@@ -875,6 +1110,10 @@ definitions:
     type: string
     pattern: >-
       ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+  BulkOutputInfo:
+    type: array
+    items:
+      $ref: "#/definitions/OutputInfo"
   OutputInfo:
     type: object
     properties:
@@ -900,6 +1139,8 @@ definitions:
         type: string
       version:
         type: string
+      uploader:
+        type: string
       urls:
         type: array
         items:
@@ -910,10 +1151,14 @@ definitions:
           type: string
       hashes:
         $ref: '#/definitions/HashInfo'
-      updated_date_by:
+      updated_date:
         type: string
         format: date-time
         description: last updated time
+      created_date:
+        type: string
+        format: date-time
+        description: time created
       metadata:
         type: object
         description: user defined optional metadata
@@ -940,45 +1185,39 @@ definitions:
         description: the accumulated size of the object files recorded in IndexD
   DataObject:
     type: object
+    required: ['id', 'size', 'created', 'checksums']
     properties:
       id:
         type: string
         description: |-
-          REQUIRED
           An identifier unique to this Data Object.
       name:
         type: string
         description: |-
-          OPTIONAL
           A string that can be optionally used to name a Data Object.
       size:
         type: string
         format: int64
         description: |-
-          REQUIRED
           The computed size in bytes.
       created:
         type: string
         format: date-time
         description: |-
-          REQUIRED
           Timestamp of object creation in RFC3339.
       updated:
         type: string
         format: date-time
         description: |-
-          OPTIONAL
           Timestamp of update in RFC3339, identical to create timestamp in systems
           that do not support updates.
       version:
         type: string
         description: |-
-          OPTIONAL
           A string representing a version.
       mime_type:
         type: string
         description: |-
-          OPTIONAL
           A string providing the mime-type of the Data Object.
           For example, "application/json".
       checksums:
@@ -986,26 +1225,22 @@ definitions:
         items:
           $ref: '#/definitions/Checksum'
         description: |-
-          REQUIRED
           The checksum of the Data Object. At least one checksum must be provided.
       urls:
         type: array
         items:
           $ref: '#/definitions/URL'
         description: |-
-          OPTIONAL
           The list of URLs that can be used to access the Data Object.
       description:
         type: string
         description: |-
-          OPTIONAL
           A human readable description of the contents of the Data Object.
       aliases:
         type: array
         items:
           type: string
         description: |-
-          OPTIONAL
           A list of strings that can be used to find this Data Object.
           These aliases can be used to represent the Data Object's location in
           a directory (e.g. "bucket/folder/file.name") to make Data Objects
@@ -1016,31 +1251,35 @@ definitions:
       alias:
         type: string
         description: |-
-          OPTIONAL
           If provided will only return Data Objects with the given alias.
       url:
         type: string
         description: |-
-          OPTIONAL
           If provided will return only Data Objects with a that URL matches
           this string.
       checksum:
-        $ref: '#/definitions/ChecksumRequest'
+        type: string
         description: |-
-          OPTIONAL
-          If provided will only return data object messages with the provided
-          checksum. If the checksum type is provided
+          The hexlified checksum that one would like to match on.
+      checksum_type:
+        type: string
+        description: |-
+          If provided will restrict responses to those that match the provided
+          type.
+          possible values:
+          md5                # most blob stores provide a checksum using this
+          multipart-md5      # multipart uploads provide a specialized tag in S3
+          sha256
+          sha512
       page_size:
         type: integer
         format: int32
         description: |-
-          OPTIONAL
           Specifies the maximum number of results to return in a single page.
           If unspecified, a system default will be used.
       page_token:
         type: string
         description: |-
-          OPTIONAL
           The continuation token, which is used to page through large result sets.
           To get the next page of results, set this parameter to the value of
           `next_page_token` from the previous response.
@@ -1066,24 +1305,33 @@ definitions:
       token, that can be used to retrieve more results.
   GetDataObjectResponse:
     type: object
+    required: ['data_object']
     properties:
       data_object:
         $ref: '#/definitions/DataObject'
-        description: |-
-          REQUIRED
-          The Data Object that coincides with a specific GetDataObjectRequest.
   URL:
     type: object
+    required: ['url']
     properties:
       url:
         type: string
         description: |-
-          REQUIRED
           A URL that can be used to access the file.
       system_metadata:
         $ref: '#/definitions/SystemMetadata'
       user_metadata:
         $ref: '#/definitions/UserMetadata'
+  URLsOutput:
+    type: array
+    items:
+      type: object
+      properties:
+        did:
+          type: string
+        urls:
+          type: array
+          items:
+            type: string
   SystemMetadata:
     type: object
     additionalProperties: true
@@ -1099,16 +1347,15 @@ definitions:
             A set of key-value pairs that represent metadata provided by the uploader.
   Checksum:
     type: object
+    required: ['checksum']
     properties:
       checksum:
         type: string
         description: |-
-          REQUIRED
           The hex-string encoded checksum for the Data.
       type:
         type: string
         description: |-
-          OPTIONAL
           The digest method used to create the checksum. If left unspecified md5
           will be assumed.
           possible values:
@@ -1172,10 +1419,47 @@ definitions:
         type: integer
         format: int64
         description: number of aliases to return
+      hashes:
+        $ref: '#/definitions/HashInfo'
+  ListRecords:
+    type: object
+    properties:
       ids:
         type: array
         items:
+          $ref: '#/definitions/DID'
+      records:
+        type: array
+        items:
+          $ref: "#/definitions/OutputInfo"
+      size:
+        type: integer
+        format: int64
+        description: size in bytes
+      start:
+        type: integer
+        format: int64
+        description: start index for the pagination
+      limit:
+        type: integer
+        format: int64
+        description: number of dids to return
+      file_name:
+        type: string
+      urls:
+        type: array
+        items:
           type: string
+      acl:
+        type: array
+        items:
+          type: string
+      hashes:
+        $ref: '#/definitions/HashInfo'
+      metadata:
+        type: object
+      version:
+        type: string
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'

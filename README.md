@@ -1,8 +1,8 @@
 Indexd
 ===
-![version](https://img.shields.io/badge/version-0.0.1-orange.svg?style=flat) [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE) [![Travis](https://travis-ci.org/uc-cdis/indexd.svg?branch=master)](https://travis-ci.org/uc-cdis/indexd)
+![version](https://img.shields.io/github/release/uc-cdis/indexd.svg) [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE) [![Travis](https://travis-ci.org/uc-cdis/indexd.svg?branch=master)](https://travis-ci.org/uc-cdis/indexd)
 
-Indexd is a prototype data indexing and tracking service. It is intended to be
+Indexd is a data indexing and tracking service. It is intended to be
 distributed, hash-based indexing service, designed to be accessed via a
 REST-like API or via a client, such as the
 [reference implementation](https://github.com/uc-cdis/indexclient).
@@ -16,6 +16,34 @@ In order to avoid update conflicts for frequently updated Digital IDs, Indexd us
 Digital IDs are intended to be publicly readable documents, and therefore contain no information other than resource locators. However, in order to prevent unauthorized editing of Digital IDs, each Digital ID keeps an ACL list. This ACL list contains the identities of users that have write permissions for the associated Digital ID. This is analogous to DNS in that anyone has permission to read a DNS record, but only the owner of the hostname is allowed to change the IP to which it points. While not part of the current architecture design, if restricted read access becomes a requirement, additional controls may be added to the Digital ID format.
 
 The second layer of user defined aliases are introduced to add flexibility of supporting human readable identifiers and allow referencing existing identifiers that are created in other systems.
+
+## Use Cases For Indexing Data
+
+Data may be loaded into Indexd through a few different means supporting different use cases.
+
+1. Index creation through Sheepdog.
+
+When data files are submitted to a Gen3 data commons using Sheepdog, the files are automatically indexed into indexd. Sheepdog checks if the file being submitted has a hash & file size that match anything currently in indexd and if so uses the returned document GUID as the object ID reference. If no match is found in Indexd then a new record is created and stored in Indexd.
+
+2. Indexing files on creation in object storage.
+
+Using AWS SNS or Google PubSub it is possible to have streaming notifications when files are created, modified or deleted in the respective cloud object storage services (S3, GCS). It is then possible to use an AWS Lambda or GCP Cloud Function to automatically index the new object into Indexd. This may require using the batch processing services on AWS if the file is large to compute the necessary minimal set of hashes to support indexing. This feature can be set up on a per commons basis for any buckets of interest. The buckets do not have to be owned by the commons, but permissions to read the bucket objects and permissions for SNS or PubSub are necessary.
+
+For existing data in buckets, the SNS or PubSub notifications may be simulated such that the indexing functions are started for each object in the bucket. This is useful because only a single code path is necessary for indexing the contents of an object.
+
+3. Indexing void object for fully control the bucket structure.
+
+Indexd supports void or blank records that allows users to pre-register data files in indexd before actually registering them. The complete flow contains three main steps: pre-register, hash/size/url populating and data node registration:
+- Fence requests blank object from indexd. Indexd creates an object with no hash, size or urls, only the `uploader` and optionally `file_name` fields.
+- Indexd listener mornitors bucket update, update to indexd with url, hash, size.
+- The client application (windmill or gen3-data-client) lists records for data files which the user needs to submit to the graph. The user fills all empty fields and submit the request to indexd to update the `acl`.
+
+See docs on data upload flow for further details:
+https://github.com/uc-cdis/cdis-wiki/tree/master/dev/gen3/data_upload
+
+4. Using the Indexd REST API for record insertion.
+
+In rare cases, it may be necessary to interact directly with the Indexd API in order to create index records. This would be necessary if users are loading data into a data commons in non-standard ways or not utilizing Sheepdog as part of their data commons.
 
 ## Documentation
 

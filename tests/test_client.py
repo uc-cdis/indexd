@@ -1,9 +1,11 @@
 import json
 
 import pytest
+
+from tests.util import assert_blank
+from indexd.index.blueprint import ACCEPTABLE_HASHES
 from swagger_client.rest import ApiException
 
-from indexd.index.blueprint import ACCEPTABLE_HASHES
 
 def get_doc(
         has_metadata=True, has_baseid=False,
@@ -33,11 +35,21 @@ def test_index_list(swg_index_client):
 
 def test_index_list_with_params(swg_index_client):
     data = get_doc()
+    data['urls'] = ['s3://endpointurl/bucket_2/key_2', 's3://anotherurl/bucket_2/key_2']
+    data['urls_metadata'] = {
+        's3://endpointurl/bucket_2/key_2': {'state': 'error', 'other': 'xxx'},
+        's3://anotherurl/bucket_2/key_2': {'state': 'error', 'other': 'xxx'}
+    }
     r_1 = swg_index_client.add_entry(data)
 
-    data['metadata'] = {'project_id': 'other-project'}
-    r_2 = swg_index_client.add_entry(data)
-
+    data2 = get_doc()
+    data2['metadata'] = {
+        'project_id': 'other-project', 'state': 'abc', 'other': 'xxx'
+    }
+    data2['urls'] = ['s3://endpointurl/bucket/key_2', 's3://anotherurl/bucket/key_2']
+    data2['urls_metadata'] = {
+        's3://endpointurl/bucket/key_2': {'state': 'error', 'other': 'xxx'}}
+    r_2 = swg_index_client.add_entry(data2)
     r = swg_index_client.list_entries(metadata='project_id:bpa-UChicago')
     ids = [record.did for record in r.records]
     assert r_1.did in ids
@@ -59,6 +71,13 @@ def test_index_list_with_params(swg_index_client):
     assert r_1.did in ids
     assert r_2.did in ids
 
+    r = swg_index_client.list_entries(limit=2)
+    assert len(r.records) == 2
+
+    param = {'bucket': {'state': 'error', 'other': 'xxx'}}
+
+    r = swg_index_client.list_entries(limit=2, urls_metadata=json.dumps(param))
+    assert len(r.records) == 2
 
 def test_index_list_with_params_negate(swg_index_client):
     data = get_doc()
@@ -118,6 +137,187 @@ def test_index_list_with_params_negate(swg_index_client):
     ids = {record.did for record in r.records}
     assert ids == {r_3.did, r_4.did, r_5.did}
 
+def test_list_entries_with_uploader(swg_index_client):
+    """
+    Test that return a list of record given uploader
+    """
+    data = get_doc()
+    data['uploader'] = 'uploader_1'
+    swg_index_client.add_entry(data)
+
+    data = get_doc()
+    data['uploader'] = 'uploader_123'
+    r2 = swg_index_client.add_entry(data)
+
+    data = get_doc()
+    data['uploader'] = 'uploader_123'
+    r3 = swg_index_client.add_entry(data)
+
+    r = swg_index_client.list_entries(uploader='uploader_123')
+    assert len(r.records) == 2
+    assert {r2.did, r3.did} == {r.records[0].did, r.records[1].did}
+    assert r.records[0].uploader == 'uploader_123'
+    assert r.records[1].uploader == 'uploader_123'
+
+def test_list_entries_with_uploader_wrong_uploader(swg_index_client):
+    """
+    Test that returns no record due to wrong uploader id
+    """
+    data = get_doc()
+    data['uploader'] = 'uploader_1'
+    r = swg_index_client.add_entry(data)
+
+    data = get_doc()
+    data['uploader'] = 'uploader_123'
+    r = swg_index_client.add_entry(data)
+
+    data = get_doc()
+    data['uploader'] = 'uploader_123'
+    r = swg_index_client.add_entry(data)
+
+    r = swg_index_client.list_entries(uploader='wrong_uploader')
+    assert len(r.records) == 0
+
+
+def test_create_blank_record(swg_index_client):
+    """
+    Test that new blank records only contain the uploader
+    and optionally file_name fields: test without file name
+    """
+
+    doc = {
+        'uploader': 'uploader_123'
+    }
+    r = swg_index_client.create_blank_entry(doc)
+    assert r.did
+    assert r.rev
+    assert r.baseid
+
+    r = swg_index_client.list_entries(uploader='uploader_123')
+    assert r.records[0].uploader == 'uploader_123'
+    assert not r.records[0].file_name
+    assert_blank(r)
+
+def test_create_blank_record_with_file_name(swg_index_client):
+    """
+    Test that new blank records only contain the uploader
+    and optionally file_name fields: test with file name
+    """
+
+    doc = {
+        'uploader': 'uploader_321',
+        'file_name': 'myfile.txt'
+    }
+    r = swg_index_client.create_blank_entry(doc)
+    assert r.did
+    assert r.rev
+    assert r.baseid
+
+    r = swg_index_client.list_entries(uploader='uploader_321')
+    assert r.records[0].uploader == 'uploader_321'
+    assert r.records[0].file_name == 'myfile.txt'
+    assert_blank(r)
+
+def test_fill_size_n_hash_for_blank_record(swg_index_client):
+    """
+    Test that can fill size and hashes for empty record
+    """
+    doc = {'uploader': 'uploader_123'}
+
+    r = swg_index_client.create_blank_entry(doc)
+    assert r.did
+    assert r.rev
+
+    did, rev = r.did, r.rev
+    updated = {
+        'size': 10,
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
+    }
+
+    r = swg_index_client.update_blank_entry(did, rev=rev, body=updated)
+    assert r.did == did
+    assert r.rev != rev
+
+    r = swg_index_client.get_entry(did)
+    assert r.size == 10
+    assert r.hashes.md5 == '8b9942cf415384b27cadf1f4d2d981f5'
+
+def test_get_empty_acl_record(swg_index_client):
+    """
+    Test that can get a list of empty acl given uploader
+    """
+    doc = get_doc()
+    r = swg_index_client.add_entry(doc)
+
+    doc = {'uploader': 'uploader_123'}
+    r2 = swg_index_client.create_blank_entry(doc)
+
+    doc = {'uploader': 'uploader_123'}
+    r3 = swg_index_client.create_blank_entry(doc)
+
+    r = swg_index_client.list_entries()
+    assert len(r.records) == 3
+
+    r = swg_index_client.list_entries(uploader='uploader_123', acl='null')
+
+    assert len(r.records) == 2
+    assert {r2.did, r3.did} == {r.records[0].did, r.records[1].did}
+    assert r.records[0].acl == []
+    assert r.records[1].acl == []
+
+def test_get_empty_acl_record_after_fill_size_n_hash(swg_index_client):
+    """
+    Test create blank record -> fill hash and size -> get record with empty or none acl
+    """
+    # create the first blank record, update size, hashes and acl
+    doc = {'uploader': 'uploader_123'}
+    r1 = swg_index_client.create_blank_entry(doc)
+    updated = {
+        'size': 10,
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
+    }
+    did1 = r1.did
+    r1 = swg_index_client.update_blank_entry(r1.did, rev=r1.rev, body=updated)
+    r1 = swg_index_client.update_entry(r1.did, rev=r1.rev, body={'acl': ['read']})
+    r1 = swg_index_client.get_entry(r1.did)
+    assert r1.acl == ['read']
+    assert r1.did == did1
+
+    # create the second blank record, only update size hashes and urls
+    doc = {'uploader': 'uploader_123'}
+    r2 = swg_index_client.create_blank_entry(doc)
+    did2 = r2.did
+    updated = {
+        'size': 4,
+        'hashes': {'md5': '1b9942cf415384b27cadf1f4d2d981f5'},
+        'urls': ['s3://example/1'],
+    }
+
+    # create the second blank record, only update size hashes and urls
+    doc = {'uploader': 'uploader_123'}
+    r3 = swg_index_client.create_blank_entry(doc)
+    did3 = r3.did
+    updated = {
+        'size': 4,
+        'hashes': {'md5': '1b9942cf415384b27cadf1f4d2d981f5'},
+        'urls': ['s3://example/2'],
+    }
+    swg_index_client.update_blank_entry(r3.did, rev=r3.rev, body=updated)
+
+    r = swg_index_client.list_entries(uploader='uploader_123')
+    assert len(r.records) == 3
+
+    r = swg_index_client.list_entries(uploader='uploader_123', acl='read')
+    assert len(r.records) == 1
+    assert r.records[0].did == r1.did
+
+
+    r = swg_index_client.list_entries(uploader='uploader_123', acl='write')
+    assert len(r.records) == 0
+
+    r = swg_index_client.list_entries(uploader='uploader_123', acl='null')
+    assert len(r.records) == 2
+    assert {r.records[0].did, r.records[1].did} == {did2, did3}
 
 def test_urls_metadata(swg_index_client):
     data = get_doc(has_urls_metadata=True)
@@ -232,7 +432,6 @@ def test_index_get(swg_index_client):
 
 def test_index_prepend_prefix(swg_index_client):
     data = get_doc()
-
 
     result = swg_index_client.add_entry(data)
     r = swg_index_client.get_entry(result.did)
@@ -368,6 +567,28 @@ def test_index_create_with_version(swg_index_client):
     r = swg_index_client.get_entry(r.did)
     assert r.version == data['version']
 
+def test_index_create_blank_record(swg_index_client):
+    doc = {
+        'uploader': 'uploader_123',
+        'baseid': 'baseid_123'
+    }
+
+    r = swg_index_client.create_blank_entry(doc)
+    assert r.did
+    res = swg_index_client.get_entry(r.did)
+    assert res.acl==[]
+    assert res.urls_metadata == {}
+    assert res.size is None
+    assert res.version is None
+    assert res.urls_metadata == {}
+
+def test_index_create_with_uploader(swg_index_client):
+    data = get_doc()
+    data['uploader'] = 'uploader_123'
+    r = swg_index_client.add_entry(data)
+    r = swg_index_client.get_entry(r.did)
+    assert r.uploader == data['uploader']
+
 
 def test_index_get_global_endpoint(swg_global_client, swg_index_client):
     data = get_doc()
@@ -417,6 +638,29 @@ def test_index_update(swg_index_client):
         }
     r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
+
+
+def test_update_uploader_field(swg_index_client):
+    data = get_doc()
+    data['uploader'] = 'uploader_123'
+    r = swg_index_client.add_entry(data)
+    assert r.did
+    assert r.rev
+
+    r = swg_index_client.get_entry(r.did)
+    assert r.uploader == 'uploader_123'
+
+    updated = {'uploader': 'new_uploader'}
+    swg_index_client.update_entry(r.did, rev=r.rev, body=updated)
+
+    r = swg_index_client.get_entry(r.did)
+    assert r.uploader == 'new_uploader'
+
+    updated = {'uploader': None}
+    swg_index_client.update_entry(r.did, rev=r.rev, body=updated)
+
+    r = swg_index_client.get_entry(r.did)
+    assert r.uploader is None
 
 
 def test_index_delete(swg_index_client):
@@ -636,11 +880,12 @@ def test_dos_get(swg_index_client, swg_dos_client):
     r2 = swg_dos_client.get_data_object(result.baseid)
     assert r2.data_object.id == result.did
 
+
 def test_dos_list(swg_index_client, swg_dos_client):
     data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
     result = swg_index_client.add_entry(data)
-    r = swg_dos_client.list_data_objects(body={"page_size": 100})
+    r = swg_dos_client.list_data_objects(page_size=100)
     assert len(r.data_objects) == 1
     assert r.data_objects[0].id == result.did
     assert r.data_objects[0].size == "123"
@@ -682,3 +927,18 @@ def test_update_without_changing_fields(swg_index_client):
     third_doc = swg_index_client.get_entry(result.did)
     # Only `version` changed.
     assert second_doc.version != third_doc.version
+
+def test_bulk_get_documents(swg_index_client, swg_bulk_client):
+
+    # just make a bunch of entries in indexd
+    dids = [
+        swg_index_client.add_entry(get_doc(has_baseid=True)).did
+        for _ in range(20)
+    ]
+
+    # do a bulk query for them all
+    docs = swg_bulk_client.get_bulk_ids(dids)
+
+    # compare that they are the same by did
+    for doc in docs:
+        assert doc['did'] in dids

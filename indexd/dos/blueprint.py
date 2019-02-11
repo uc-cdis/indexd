@@ -14,13 +14,13 @@ blueprint.index_driver = None
 blueprint.alias_driver = None
 blueprint.dist = []
 
+
 @blueprint.route('/ga4gh/dos/v1/dataobjects/<path:record>', methods=['GET'])
 def get_dos_record(record):
     '''
     Returns a record from the local ids, alias, or global resolvers.
     Returns DOS Schema
     '''
-
     try:
         ret = blueprint.index_driver.get(record)
         ret['alias'] = blueprint.index_driver.get_aliases_for_did(record)
@@ -38,14 +38,15 @@ def get_dos_record(record):
 
     return flask.jsonify(indexd_to_dos(ret)), 200
 
-@blueprint.route('/ga4gh/dos/v1/dataobjects/list', methods=['POST'])
+
+@blueprint.route('/ga4gh/dos/v1/dataobjects', methods=['GET'])
 def list_dos_records():
     '''
     Returns a record from the local ids, alias, or global resolvers.
     Returns DOS Schema
     '''
-    start = flask.request.json.get('page_token')
-    limit = flask.request.json.get('page_size')
+    start = flask.request.args.get('page_token')
+    limit = flask.request.args.get('page_size')
 
     try:
         limit = 100 if limit is None else int(limit)
@@ -55,13 +56,13 @@ def list_dos_records():
     if limit <= 0 or limit > 1024:
         raise UserError('limit must be between 1 and 1024')
 
-    url = flask.request.json.get('url')
+    url = flask.request.args.get('url')
 
     # Support this in the future when we have
     # more fully featured aliases?
-    #alias = flask.request.json.get('alias')
+    # alias = flask.request.args.get('alias')
 
-    checksum = flask.request.json.get('checksum')
+    checksum = flask.request.args.get('checksum')
     if checksum:
         hashes = {checksum['type']: checksum['checksum']}
     else:
@@ -80,6 +81,7 @@ def list_dos_records():
     ret = {"data_objects": [indexd_to_dos(record)['data_object'] for record in records]}
 
     return flask.jsonify(ret), 200
+
 
 def indexd_to_dos(record):
     data_object = {

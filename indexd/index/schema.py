@@ -42,6 +42,10 @@ POST_RECORD_SCHEMA = {
       "description": "optional version string of the object",
       "type": "string",
     },
+    "uploader": {
+      "description": "optional uploader of the object",
+      "type": "string",
+    },
     "urls": {
       "type": "array",
       "items": {
@@ -123,34 +127,37 @@ POST_RECORD_SCHEMA = {
 }
 
 PUT_RECORD_SCHEMA = {
-  "$schema": "http://json-schema.org/schema#",
-  "type": "object",
-  "additionalProperties": False,
-  "description": "Update an index",
-  "properties": {
-    "urls": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "acl": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "file_name": {
-        "type": "string"
-    },
-    "version": {
-        "type": ["string", "null"]
-    },
-    "metadata": {
-        "type": "object"
-    },
-    "urls_metadata": {
-        "type": "object"
-    },
-  }
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "additionalProperties": False,
+    "description": "Update an index",
+    "properties": {
+        "urls": {
+            "type": "array",
+            "items": {
+                "type": "string",
+            }
+        },
+        "acl": {
+            "type": "array",
+            "items": {
+                "type": "string",
+            },
+        },
+        "file_name": {
+            "type": ["string", "null"],
+        },
+        "version": {
+            "type": ["string", "null"],
+        },
+        "uploader": {
+            "type": ["string", "null"],
+        },
+        "metadata": {
+            "type": "object",
+        },
+        "urls_metadata": {
+            "type": "object",
+        },
+    }
 }

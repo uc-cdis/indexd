@@ -1,25 +1,16 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='indexd',
     version='0.1',
-    packages=[
-        'indexd',
-        'indexd.auth',
-        'indexd.auth.drivers',
-        'indexd.index',
-        'indexd.index.drivers',
-        'indexd.alias',
-        'indexd.alias.drivers',
-        'indexd.dos',
-    ],
+    packages=find_packages(),
     package_data={
         'index': [
             'schemas/*',
         ]
     },
     install_requires=[
-        'flask==0.10.1',
+        'flask==0.12.4',
         'jsonschema==2.5.1',
         'sqlalchemy==1.0.8',
         'sqlalchemy-utils>=0.32.21',
