@@ -77,11 +77,13 @@ class IndexRecord(Base):
     rev = Column(String)
     form = Column(String)
     size = Column(BigInteger, index=True)
+    release_number = Column(String, index=True)
     created_date = Column(DateTime, default=datetime.datetime.utcnow)
     updated_date = Column(DateTime, default=datetime.datetime.utcnow)
     file_name = Column(String, index=True)
     version = Column(String, index=True)
     uploader = Column(String, index=True)
+    index_metadata = Column(JSONB)
 
     urls_metadata = relationship(
         'IndexRecordUrlMetadataJsonb',
@@ -101,12 +103,6 @@ class IndexRecord(Base):
         cascade='all, delete-orphan',
     )
 
-    index_metadata = relationship(
-        'IndexRecordMetadataJsonb',
-        backref='index_record',
-        cascade='all, delete-orphan',
-    )
-
     aliases = relationship(
         'IndexRecordAlias',
         backref='index_record',
@@ -120,10 +116,16 @@ class IndexRecord(Base):
         urls = [u.url for u in self.urls_metadata]
         acl = [u.ace for u in self.acl]
         hashes = {h.hash_type: h.hash_value for h in self.hashes}
+        metadata = self.index_metadata or {}
 
-        metadata = {}
-        if self.index_metadata:
-            metadata = self.index_metadata[0].metadatas
+        # Add this field back to the returned metadata json section but also
+        # return it separately in the main section of the json blob. This
+        # allows current clients to function without change but lets new
+        # clients use the release_number field directly.
+        release_number = self.release_number
+        if release_number:
+            # If it doesn't exist then don't return the key in the json.
+            metadata['release_number'] = release_number
 
         urls_metadata = extract_urls_metadata(self.urls_metadata)
         created_date = self.created_date.isoformat()
@@ -141,6 +143,7 @@ class IndexRecord(Base):
             'urls_metadata': urls_metadata,
             'acl': acl,
             'hashes': hashes,
+            'release_number': release_number,
             'metadata': metadata,
             'form': self.form,
             'created_date': created_date,
@@ -205,18 +208,6 @@ class IndexRecordMetadata(Base):
     value = Column(String)
     __table_args__ = (
         Index('index_record_metadata_idx', 'did'),
-    )
-
-
-class IndexRecordMetadataJsonb(Base):
-    """
-    Metadata attached to index document using jsonb.
-    """
-    __tablename__ = 'index_record_metadata_jsonb'
-    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
-    metadatas = Column(JSONB)
-    __table_args__ = (
-        Index('index_record_metadata_jsonb_idx', 'did'),
     )
 
 
@@ -372,6 +363,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             file_name=None,
             version=None,
             uploader=None,
+            release_number=None,
             metadata=None,
             ids=None,
             urls_metadata=None,
@@ -387,7 +379,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query = query.options(joinedload(IndexRecord.urls_metadata))
             query = query.options(joinedload(IndexRecord.acl))
             query = query.options(joinedload(IndexRecord.hashes))
-            query = query.options(joinedload(IndexRecord.index_metadata))
             query = query.options(joinedload(IndexRecord.aliases))
 
             if start is not None:
@@ -426,13 +417,14 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     ))
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
+            if release_number:
+                query = query.filter(IndexRecord.release_number == release_number)
+
             if metadata:
                 for k, v in metadata.items():
-                    sub = session.query(IndexRecordMetadataJsonb.did)
-                    sub = sub.filter(
-                        IndexRecordMetadataJsonb.metadatas[k].astext == v
+                    query = query.filter(
+                        IndexRecord.index_metadata[k].astext == v
                     )
-                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
             if urls_metadata:
 
@@ -523,15 +515,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         if metadata is not None and metadata:
             for k, v in metadata.items():
                 if not v:
-                    query = query.filter(~(IndexRecord.index_metadata.any(
-                        IndexRecordMetadataJsonb.metadatas.has_key(k)
-                    )))
+                    query = query.filter(not_(
+                        IndexRecord.index_metadata.has_key(k)
+                    ))
                 else:
-                    sub = session.query(IndexRecordMetadataJsonb.did)
-                    sub = sub.filter(
-                        IndexRecordMetadataJsonb.metadatas[k].astext == v
-                    )
-                    query = query.filter(~IndexRecord.did.in_(sub.subquery()))
+                    query = query.filter(not_(
+                        IndexRecord.index_metadata[k].astext == v
+                    ))
 
         if urls_metadata is not None and urls_metadata:
             query = query.join(IndexRecord.urls_metadata)
@@ -636,6 +626,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             did=None,
             size=None,
             file_name=None,
+            release_number=None,
             metadata=None,
             urls_metadata=None,
             version=None,
@@ -691,10 +682,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 hash_value=v,
             ) for h, v in hashes.items()]
 
-            record.index_metadata = [IndexRecordMetadataJsonb(
-                did=record.did,
-                metadatas=metadata,
-            )]
+            record.release_number = release_number
+            record.index_metadata = metadata
 
             record.urls_metadata = create_urls_metadata(
                 record.did,
@@ -865,13 +854,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 ]
 
             if 'metadata' in changing_fields:
-                for md_record in record.index_metadata:
-                    session.delete(md_record)
-
-                record.index_metadata = [IndexRecordMetadataJsonb(
-                    did=record.did,
-                    metadatas=changing_fields['metadata'],
-                )]
+                record.index_metadata = changing_fields['metadata']
 
             if 'urls_metadata' in changing_fields:
                 record.urls_metadata = create_urls_metadata(
@@ -926,6 +909,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     new_did=None,
                     size=None,
                     file_name=None,
+                    release_number=None,
                     metadata=None,
                     urls_metadata=None,
                     version=None,
@@ -979,10 +963,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 hash_value=v,
             ) for h, v in hashes.items()]
 
-            record.index_metadata = [IndexRecordMetadataJsonb(
-                did=record.did,
-                metadatas=metadata,
-            )]
+            record.release_number = release_number
+            record.index_metadata = metadata
 
             record.urls_metadata = create_urls_metadata(record.did, urls_metadata)
             try:
@@ -1262,7 +1244,7 @@ def create_jsonb_payload(raw_dict):
     the jsonb value.
     """
     # This is a list of jsonb key:value pairs that were moved into their own columns.
-    blacklist = ('state', 'type')
+    blacklist = ('state', 'type', 'release_number')
     elems = [
         '"{}": "{}"'.format(key, value)
         for key, value in raw_dict.items()
@@ -1297,7 +1279,6 @@ def migrate_11(session, **kwargs):
         if node:
             # If it exists then add the extra metadata information to the
             # existing row.
-
             if row.key == 'type':
                 session.execute("""
                     UPDATE index_record_url_metadata_jsonb
@@ -1343,37 +1324,36 @@ def migrate_11(session, **kwargs):
     for row in rows:
         # Since did is the primary key in this table there cannot
         # be more than one row of them.
-        node = session.execute("""
-            SELECT did, metadatas
-            FROM index_record_metadata_jsonb
-            WHERE did = '{did}'
-        """.format(did=row['did'])).first()
-
-        # Check if the did exists from the copy of another row in the original
-        # metadata_jsonb table.
-        if node:
-            # If it exists then add the extra metadata information to the
-            # existing row.
-            metadatas = dict(node['metadatas'])
-            metadatas.update({row.key: row.value})
-
+        if row.key == 'release_number':
             session.execute("""
-                UPDATE index_record_metadata_jsonb
-                SET metadatas = '{metadatas}'
+                UPDATE index_record
+                SET release_number = '{release_number}'
                 WHERE did = '{did}'
             """.format(
-                metadatas=create_jsonb_payload(metadatas),
+                release_number=row.value,
                 did=row['did'],
             ))
 
         else:
-            # If it doesn't exist then create a new one entirely.
+            node = session.execute("""
+                SELECT did, index_metadata
+                FROM index_record
+                WHERE did = '{did}'
+            """.format(did=row['did'])).first()
+
+            # The row will exist in the index_record table, so we do not need
+            # to verify that it's there. However postgres 9.4 doesn't allow
+            # upserts for jsonb. This functionality was added in 9.5
+            index_metadata = dict(node['index_metadata'] or '')
+            index_metadata.update({row.key: row.value})
+
             session.execute("""
-                INSERT INTO index_record_metadata_jsonb(did, metadatas)
-                VALUES ('{did}', '{metadatas}' )
+                UPDATE index_record
+                SET index_metadata = '{index_metadata}'
+                WHERE did = '{did}'
             """.format(
+                index_metadata=create_jsonb_payload(index_metadata),
                 did=row['did'],
-                metadatas=create_jsonb_payload({row['key']: row['value']}),
             ))
 
 

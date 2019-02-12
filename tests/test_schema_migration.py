@@ -110,7 +110,7 @@ def test_migrate_7(index_driver_no_migrate, create_tables_no_migrate, database_c
 def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_conn):
     """
     Test that the information in the Metadata, and UrlsMetadata table are moved
-    to the new UrlsMetadataJsonb, and MetadataJsonb tables.
+    to the new UrlsMetadataJsonb table, and the main IndexRecord table.
 
     Some key:value pairs got moved out into their own columns. These are
     attributes that we use frequently enough to warrant their existence as
@@ -118,7 +118,7 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
 
     urls_metadata[state]     -> UrlsMetadataJsonb.state
     urls_metadata[type]      -> UrlsMetadataJsonb.type
-    metadata[release_number] -> IndexRecord.release_number (todo)
+    metadata[release_number] -> IndexRecord.release_number/IndexRecord.index_metadata
     """
     baseid = 1
     did = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
@@ -134,6 +134,7 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
     meta_value1 = 'meta just ok'
     meta_key2 = 'meta not type'
     meta_value2 = 'meta not just ok'
+    release_number = '12.0'
 
     # Setup the data manually because the schemas and drivers aren't preserved
     # when there is a breaking change.
@@ -149,8 +150,10 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
     database_conn.execute(make_sql_statement("""
             INSERT INTO index_record_metadata (did, key, value) VALUES
             (?, ?, ?),
+            (?, ?, ?),
             (?, ?, ?)
         """, (did, meta_key1, meta_value1,
+              did, 'release_number', release_number,
               did, meta_key2, meta_value2)))
     database_conn.execute(make_sql_statement("""
             INSERT INTO index_record_url_metadata (did, url, key, value) VALUES
@@ -159,9 +162,9 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
             (?, ?, ?, ?),
             (?, ?, ?, ?)
         """, (did, url, url_key1, url_value1,
-             did, url, url_key2, url_value2,
-             did, url, 'type', u_type,
-             did, url, 'state', u_state)))
+              did, url, url_key2, url_value2,
+              did, url, 'type', u_type,
+              did, url, 'state', u_state)))
 
     rows = database_conn.execute("""
         SELECT *
@@ -174,16 +177,16 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
     with index_driver_no_migrate.session as session:
         migrate_11(session)
 
-    # Check metadata table to see if the data transferred to the jsonb table.
+    # Check index table to see if the data transferred from the metadata table.
     rows = database_conn.execute("""
-        SELECT *
-        FROM index_record_metadata_jsonb
+        SELECT release_number, index_metadata
+        FROM index_record
     """)
     assert rows.rowcount == 1
 
     for row in rows:
-        assert row.did == did
-        assert row.metadatas == {
+        assert row.release_number == release_number
+        assert row.index_metadata == {
             meta_key1: meta_value1,
             meta_key2: meta_value2,
         }

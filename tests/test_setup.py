@@ -9,11 +9,13 @@ INDEX_TABLES = {
         (u'rev', u'character varying', u'YES', None, None),
         (u'form', u'character varying', u'YES', None, None),
         (u'size', u'bigint',  u'YES', None, None),
+        (u'release_number', u'character varying', u'YES', None, None),
         (u'created_date', u'timestamp without time zone', u'YES', None, None),
         (u'updated_date', u'timestamp without time zone', u'YES', None, None),
         (u'file_name', u'character varying', u'YES', None, None),
         (u'version', u'character varying', u'YES', None, None),
         (u'uploader', u'character varying', u'YES', None, None),
+        (u'index_metadata', u'jsonb', u'YES', None, None),
     ],
     'index_record_hash': [
         (u'did', u'character varying', 'NO', None, u'PRIMARY KEY'),

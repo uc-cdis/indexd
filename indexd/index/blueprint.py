@@ -1,7 +1,6 @@
+import copy
 import json
-import os.path
 import re
-import subprocess
 
 import flask
 import jsonschema
@@ -31,6 +30,23 @@ ACCEPTABLE_HASHES = {
     'crc': re.compile(r'^[0-9a-f]{8}$').match,
     'etag': re.compile(r'^[0-9a-f]{32}(-\d+)?$').match
 }
+
+
+def separate_metadata(metadata):
+    """Separate release_number from the incoming metadata json blob.
+
+    release_number was removed from the metadata key value pair/jsonb
+    object. To preserve backwards compatibility this field is still ingested
+    through the metadata field. We have to manually separate them and
+    later combine them to maintain compatibility with the current indexclient.
+    """
+
+    metadata = copy.deepcopy(metadata)
+    release_number = ''
+    if metadata and 'release_number' in metadata:
+        release_number = metadata.pop('release_number')
+
+    return release_number, metadata
 
 
 def validate_hashes(**hashes):
@@ -92,6 +108,7 @@ def get_index():
 
     metadata = flask.request.args.getlist('metadata')
     metadata = {k: v for k, v in map(lambda x: x.split(':', 1), metadata)}
+    release_number, metadata = separate_metadata(metadata)
 
     acl = flask.request.args.get('acl')
     if acl is not None:
@@ -125,9 +142,10 @@ def get_index():
         hashes=hashes,
         uploader=uploader,
         ids=ids,
+        release_number=release_number,
         metadata=metadata,
         urls_metadata=urls_metadata,
-        negate_params=negate_params
+        negate_params=negate_params,
     )
 
     base = {
@@ -241,6 +259,7 @@ def post_index_record():
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
     metadata = flask.request.json.get('metadata')
+    release_number, metadata = separate_metadata(metadata)
     version = flask.request.json.get('version')
     baseid = flask.request.json.get('baseid')
     uploader = flask.request.json.get('uploader')
@@ -250,6 +269,7 @@ def post_index_record():
         did,
         size=size,
         file_name=file_name,
+        release_number=release_number,
         metadata=metadata,
         urls_metadata=urls_metadata,
         version=version,
@@ -402,6 +422,7 @@ def add_index_record_version(record):
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
     metadata = flask.request.json.get('metadata')
+    release_number, metadata = separate_metadata(metadata)
     version = flask.request.json.get('version')
 
     did, baseid, rev = blueprint.index_driver.add_version(
@@ -412,6 +433,7 @@ def add_index_record_version(record):
         urls=urls_metadata.keys(),
         acl=acl,
         file_name=file_name,
+        release_number=release_number,
         metadata=metadata,
         urls_metadata=urls_metadata,
         version=version,
