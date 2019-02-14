@@ -13,7 +13,7 @@ from indexd.index.drivers.alchemy import (
     migrate_1,
     migrate_2,
     migrate_7,
-    migrate_11,
+    migrate_12,
 )
 from tests.alchemy import SQLAlchemyIndexTestDriver
 from tests.util import make_sql_statement
@@ -107,7 +107,7 @@ def test_migrate_7(index_driver_no_migrate, create_tables_no_migrate, database_c
     assert rows.rowcount == 0
 
 
-def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_conn):
+def test_migrate_12(index_driver_no_migrate, create_tables_no_migrate, database_conn):
     """
     Test that the information in the Metadata, and UrlsMetadata table are moved
     to the new UrlsMetadataJsonb table, and the main IndexRecord table.
@@ -121,7 +121,8 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
     metadata[release_number] -> IndexRecord.release_number/IndexRecord.index_metadata
     """
     baseid = 1
-    did = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+    dida = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+    didb = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
     url = 's3://host/bucket/key'
     url_key1 = 'url type'
     url_value1 = 'url just ok'
@@ -142,29 +143,31 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
             INSERT INTO base_version VALUES (?)
         """, (baseid,)))
     database_conn.execute(make_sql_statement("""
-            INSERT INTO index_record (did, baseid) VALUES (?, ?)
-        """, (did, baseid)))
+            INSERT INTO index_record (did, baseid) VALUES (?, ?), (?, ?)
+        """, (dida, baseid, didb, baseid)))
     database_conn.execute(make_sql_statement("""
             INSERT INTO index_record_url VALUES (?, ?)
-        """, (did, url)))
+        """, (dida, url)))
     database_conn.execute(make_sql_statement("""
             INSERT INTO index_record_metadata (did, key, value) VALUES
             (?, ?, ?),
             (?, ?, ?),
+            (?, ?, ?),
             (?, ?, ?)
-        """, (did, meta_key1, meta_value1,
-              did, 'release_number', release_number,
-              did, meta_key2, meta_value2)))
+        """, (dida, meta_key1, meta_value1,
+              dida, 'release_number', release_number,
+              dida, meta_key2, meta_value2,
+              didb, meta_key1, meta_value1)))
     database_conn.execute(make_sql_statement("""
             INSERT INTO index_record_url_metadata (did, url, key, value) VALUES
             (?, ?, ?, ?),
             (?, ?, ?, ?),
             (?, ?, ?, ?),
             (?, ?, ?, ?)
-        """, (did, url, url_key1, url_value1,
-              did, url, url_key2, url_value2,
-              did, url, 'type', u_type,
-              did, url, 'state', u_state)))
+        """, (dida, url, url_key1, url_value1,
+              dida, url, url_key2, url_value2,
+              dida, url, 'type', u_type,
+              dida, url, 'state', u_state)))
 
     rows = database_conn.execute("""
         SELECT *
@@ -175,13 +178,14 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
     assert rows.rowcount == 4
 
     with index_driver_no_migrate.session as session:
-        migrate_11(session)
+        migrate_12(session)
 
     # Check index table to see if the data transferred from the metadata table.
     rows = database_conn.execute("""
         SELECT release_number, index_metadata
         FROM index_record
-    """)
+        WHERE did = '{did}'
+    """.format(did=dida))
     assert rows.rowcount == 1
 
     for row in rows:
@@ -191,6 +195,21 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
             meta_key2: meta_value2,
         }
 
+    rows = database_conn.execute("""
+        SELECT release_number, index_metadata
+        FROM index_record
+        WHERE did = '{did}'
+    """.format(did=didb))
+    assert rows.rowcount == 1
+
+    for row in rows:
+        assert row.release_number is None
+        assert row.index_metadata == {
+            meta_key1: meta_value1,
+        }
+
+
+
     # Check url_metadata table to see if the data transferred to the jsonb table.
     rows = database_conn.execute("""
         SELECT *
@@ -199,7 +218,7 @@ def test_migrate_11(index_driver_no_migrate, create_tables_no_migrate, database_
     assert rows.rowcount == 1
 
     for row in rows:
-        assert row.did == did
+        assert row.did == dida
         assert row.url == url
         assert row.state == u_state
         assert row.type == u_type

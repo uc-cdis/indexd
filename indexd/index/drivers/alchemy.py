@@ -1254,10 +1254,56 @@ def create_jsonb_payload(raw_dict):
 
 
 def migrate_11(session, **kwargs):
+    session.execute("ALTER TABLE index_record ADD COLUMN release_number VARCHAR;")
+    session.execute("ALTER TABLE index_record ADD COLUMN index_metadata jsonb;")
+
+
+def migrate_12(session, **kwargs):
     """
     Copy all rows from the IndexRecordUrlMetadata and IndexRecordMetada tables
     to the new JSONB tables.
     """
+
+    # metadata migration to jsonb
+    rows = session.execute("""
+        SELECT did, key, value
+        FROM index_record_metadata;
+    """)
+
+    for row in rows:
+        # Since did is the primary key in this table there cannot
+        # be more than one row of them.
+        if row.key == 'release_number':
+            session.execute("""
+                UPDATE index_record
+                SET release_number = '{release_number}'
+                WHERE did = '{did}'
+            """.format(
+                release_number=row.value,
+                did=row['did'],
+            ))
+
+        else:
+            node = session.execute("""
+                SELECT did, index_metadata
+                FROM index_record
+                WHERE did = '{did}'
+            """.format(did=row['did'])).first()
+
+            # The row will exist in the index_record table, so we do not need
+            # to verify that it's there. However postgres 9.4 doesn't allow
+            # upserts for jsonb. This functionality was added in 9.5
+            index_metadata = dict(node['index_metadata'] or '')
+            index_metadata.update({row.key: row.value})
+
+            session.execute("""
+                UPDATE index_record
+                SET index_metadata = '{index_metadata}'
+                WHERE did = '{did}'
+            """.format(
+                index_metadata=create_jsonb_payload(index_metadata),
+                did=row['did'],
+            ))
 
     # urls metadata migration to jsonb
     rows = session.execute("""
@@ -1315,53 +1361,12 @@ def migrate_11(session, **kwargs):
                 urls_metadata=create_jsonb_payload({row['key']: row['value']}),
             ))
 
-    # metadata migration to jsonb
-    rows = session.execute("""
-        SELECT did, key, value
-        FROM index_record_metadata;
-    """)
-
-    for row in rows:
-        # Since did is the primary key in this table there cannot
-        # be more than one row of them.
-        if row.key == 'release_number':
-            session.execute("""
-                UPDATE index_record
-                SET release_number = '{release_number}'
-                WHERE did = '{did}'
-            """.format(
-                release_number=row.value,
-                did=row['did'],
-            ))
-
-        else:
-            node = session.execute("""
-                SELECT did, index_metadata
-                FROM index_record
-                WHERE did = '{did}'
-            """.format(did=row['did'])).first()
-
-            # The row will exist in the index_record table, so we do not need
-            # to verify that it's there. However postgres 9.4 doesn't allow
-            # upserts for jsonb. This functionality was added in 9.5
-            index_metadata = dict(node['index_metadata'] or '')
-            index_metadata.update({row.key: row.value})
-
-            session.execute("""
-                UPDATE index_record
-                SET index_metadata = '{index_metadata}'
-                WHERE did = '{did}'
-            """.format(
-                index_metadata=create_jsonb_payload(index_metadata),
-                did=row['did'],
-            ))
-
 
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
 SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_1, migrate_2, migrate_3, migrate_4, migrate_5,
     migrate_6, migrate_7, migrate_8, migrate_9, migrate_10,
-    migrate_11,
+    migrate_11, migrate_12,
 ]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
