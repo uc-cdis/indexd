@@ -203,7 +203,7 @@ class IndexRecordMetadata(Base):
     """
 
     __tablename__ = 'index_record_metadata'
-    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    did = Column(String, primary_key=True)
     key = Column(String, primary_key=True)
     value = Column(String)
     __table_args__ = (
@@ -1091,9 +1091,9 @@ def extract_urls_metadata(urls_metadata_results):
     urls_metadata = {}
     for url in urls_metadata_results:
         if url.type:
-            url.urls_metadata['type'] = url.type
+            urls_metadata['type'] = url.type
         if url.state:
-            url.urls_metadata['state'] = url.state
+            urls_metadata['state'] = url.state
 
         urls_metadata[url.url] = dict(url.urls_metadata)
 
@@ -1256,6 +1256,7 @@ def create_jsonb_payload(raw_dict):
 def migrate_11(session, **kwargs):
     session.execute("ALTER TABLE index_record ADD COLUMN release_number VARCHAR;")
     session.execute("ALTER TABLE index_record ADD COLUMN index_metadata jsonb;")
+    session.execute("ALTER TABLE index_record DROP CONSTRAINT index_record_baseid_fkey;")
 
 
 def migrate_12(session, **kwargs):
@@ -1265,101 +1266,70 @@ def migrate_12(session, **kwargs):
     """
 
     # metadata migration to jsonb
-    rows = session.execute("""
-        SELECT did, key, value
-        FROM index_record_metadata;
+    session.execute("""
+        UPDATE index_record r
+        SET (index_metadata) = (m.meta)
+        FROM (
+            SELECT did, CAST(json_object_agg(key, value) AS JSONB) AS meta
+            FROM index_record_metadata
+            WHERE key <> 'release_number'
+            GROUP BY did
+        ) AS m
+        WHERE r.did=m.did;
     """)
 
-    for row in rows:
-        # Since did is the primary key in this table there cannot
-        # be more than one row of them.
-        if row.key == 'release_number':
-            session.execute("""
-                UPDATE index_record
-                SET release_number = '{release_number}'
-                WHERE did = '{did}'
-            """.format(
-                release_number=row.value,
-                did=row['did'],
-            ))
+    session.execute("""
+        UPDATE index_record r
+        SET (release_number) = (re.release_number)
+        FROM (
+            SELECT did, value as release_number
+            FROM index_record_metadata
+            WHERE key = 'release_number'
+        ) AS re
+        WHERE r.did=re.did;
 
-        else:
-            node = session.execute("""
-                SELECT did, index_metadata
-                FROM index_record
-                WHERE did = '{did}'
-            """.format(did=row['did'])).first()
-
-            # The row will exist in the index_record table, so we do not need
-            # to verify that it's there. However postgres 9.4 doesn't allow
-            # upserts for jsonb. This functionality was added in 9.5
-            index_metadata = dict(node['index_metadata'] or '')
-            index_metadata.update({row.key: row.value})
-
-            session.execute("""
-                UPDATE index_record
-                SET index_metadata = '{index_metadata}'
-                WHERE did = '{did}'
-            """.format(
-                index_metadata=create_jsonb_payload(index_metadata),
-                did=row['did'],
-            ))
+    """)
 
     # urls metadata migration to jsonb
-    rows = session.execute("""
-        SELECT did, url, key, value
-        FROM index_record_url_metadata;
+    session.execute("""
+        INSERT INTO index_record_url_metadata_jsonb (did, url)
+        SELECT did, url
+        FROM index_record_url;
     """)
 
-    for row in rows:
-        # Since did and url are the primary key in this table there cannot
-        # be more than one row of them.
-        node = session.execute("""
-            SELECT did, url, urls_metadata
-            FROM index_record_url_metadata_jsonb
-            WHERE did = '{}' AND url = '{}'
-        """.format(row['did'], row['url'])).first()
+    session.execute("""
+        UPDATE index_record_url_metadata_jsonb as main
+        SET (urls_metadata) = (um.meta)
+        FROM (
+            SELECT did, url, CAST(json_object_agg(key, value) AS JSONB) AS meta
+            FROM index_record_url_metadata
+            WHERE key NOT IN ('type', 'state')
+            GROUP BY did, url
+        ) AS um
+        WHERE main.did=um.did and main.url=um.url
+    """)
 
-        # Check if the did exists from the copy of another row in the original
-        # url_metadata_jsonb table.
-        if node:
-            # If it exists then add the extra metadata information to the
-            # existing row.
-            if row.key == 'type':
-                session.execute("""
-                    UPDATE index_record_url_metadata_jsonb
-                    SET type = '{type}'
-                    WHERE did = '{did}' AND url = '{url}'
-                """.format(did=row.did, url=row.url, type=row.value))
-            elif row.key == 'state':
-                session.execute("""
-                    UPDATE index_record_url_metadata_jsonb
-                    SET state = '{state}'
-                    WHERE did = '{did}' AND url = '{url}'
-                """.format(did=row.did, url=row.url, state=row.value))
-            else:
-                urls_metadata = dict(node['urls_metadata'])
-                urls_metadata.update({row.key: row.value})
-                session.execute("""
-                    UPDATE index_record_url_metadata_jsonb
-                    SET urls_metadata = '{urls_metadata}'
-                    WHERE did = '{did}' AND url = '{url}'
-                """.format(
-                    urls_metadata=create_jsonb_payload(urls_metadata),
-                    did=row['did'],
-                    url=row['url'],
-                ))
+    session.execute("""
+        UPDATE index_record_url_metadata_jsonb as main
+        SET (type) = (t.type)
+        FROM (
+            SELECT did, url, value AS type
+            FROM index_record_url_metadata
+            WHERE key = 'type'
+        ) AS t
+        WHERE main.did=t.did and main.url=t.url;
+    """)
 
-        else:
-            # If it doesn't exist then create a new one entirely.
-            session.execute("""
-                INSERT INTO index_record_url_metadata_jsonb(did, url, urls_metadata)
-                VALUES ('{did}', '{url}', '{urls_metadata}' )
-            """.format(
-                did=row['did'],
-                url=row['url'],
-                urls_metadata=create_jsonb_payload({row['key']: row['value']}),
-            ))
+    session.execute("""
+        UPDATE index_record_url_metadata_jsonb as main
+        SET (state) = (s.state)
+        FROM (
+            SELECT did, url, value AS state
+            FROM index_record_url_metadata
+            WHERE key = 'state'
+        ) AS s
+        WHERE main.did=s.did and main.url=s.url;
+    """)
 
 
 # ordered schema migration functions that the index should correspond to

@@ -146,8 +146,8 @@ def test_migrate_12(index_driver_no_migrate, create_tables_no_migrate, database_
             INSERT INTO index_record (did, baseid) VALUES (?, ?), (?, ?)
         """, (dida, baseid, didb, baseid)))
     database_conn.execute(make_sql_statement("""
-            INSERT INTO index_record_url VALUES (?, ?)
-        """, (dida, url)))
+            INSERT INTO index_record_url VALUES (?, ?), (?, ?)
+        """, (dida, url, didb, url)))
     database_conn.execute(make_sql_statement("""
             INSERT INTO index_record_metadata (did, key, value) VALUES
             (?, ?, ?),
@@ -163,11 +163,15 @@ def test_migrate_12(index_driver_no_migrate, create_tables_no_migrate, database_
             (?, ?, ?, ?),
             (?, ?, ?, ?),
             (?, ?, ?, ?),
+            (?, ?, ?, ?),
+            (?, ?, ?, ?),
             (?, ?, ?, ?)
         """, (dida, url, url_key1, url_value1,
               dida, url, url_key2, url_value2,
               dida, url, 'type', u_type,
-              dida, url, 'state', u_state)))
+              dida, url, 'state', u_state,
+              didb, url, 'type', u_type,
+              didb, url, 'state', u_state)))
 
     rows = database_conn.execute("""
         SELECT *
@@ -175,7 +179,7 @@ def test_migrate_12(index_driver_no_migrate, create_tables_no_migrate, database_
     """)
 
     # Each key:value pair is on a separate row at this point.
-    assert rows.rowcount == 4
+    assert rows.rowcount == 6
 
     with index_driver_no_migrate.session as session:
         migrate_12(session)
@@ -208,13 +212,12 @@ def test_migrate_12(index_driver_no_migrate, create_tables_no_migrate, database_
             meta_key1: meta_value1,
         }
 
-
-
     # Check url_metadata table to see if the data transferred to the jsonb table.
     rows = database_conn.execute("""
         SELECT *
         FROM index_record_url_metadata_jsonb
-    """)
+        WHERE did='{did}'
+    """.format(did=dida))
     assert rows.rowcount == 1
 
     for row in rows:
@@ -226,6 +229,21 @@ def test_migrate_12(index_driver_no_migrate, create_tables_no_migrate, database_
             url_key1: url_value1,
             url_key2: url_value2,
         }
+
+    rows = database_conn.execute("""
+        SELECT *
+        FROM index_record_url_metadata_jsonb
+        WHERE did='{did}'
+    """.format(did=didb))
+    assert rows.rowcount == 1
+
+    for row in rows:
+        assert row.did == didb
+        assert row.url == url
+        assert row.state == u_state
+        assert row.type == u_type
+        assert row.urls_metadata == None
+
 
 
 def test_migrate_index(index_driver_no_migrate, database_conn):
