@@ -520,6 +520,17 @@ def test_index_create_with_acl(swg_index_client):
     result = swg_index_client.get_entry(r.did)
     assert result.acl == ['a', 'b']
 
+def test_index_create_with_duplicate_acl(swg_index_client):
+    data = {
+        'acl': ['a', 'b', 'a'],
+        'form': 'object',
+        'size': 123,
+        'urls': ['s3://endpointurl/bucket/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+
+    r = swg_index_client.add_entry(data)
+    result = swg_index_client.get_entry(r.did)
+    assert result.acl == ['a', 'b']
 
 def test_index_create_with_invalid_did(swg_index_client):
     data = get_doc()
@@ -639,6 +650,25 @@ def test_index_update(swg_index_client):
     r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
 
+def test_index_update_duplicate_acl(swg_index_client):
+    data = get_doc()
+
+    r = swg_index_client.add_entry(data)
+    assert r.did
+    assert r.rev
+    assert swg_index_client.get_entry(r.did).metadata == data['metadata']
+    dataNew = get_doc()
+    del dataNew['hashes']
+    del dataNew['size']
+    del dataNew['form']
+    dataNew['metadata'] = {'test': 'abcd'}
+    dataNew['version'] = 'ver123'
+    dataNew['acl'] = ['c', 'd', 'c']
+    r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
+    assert r2.rev != r.rev
+    result = swg_index_client.get_entry(r.did)
+    assert result.metadata == dataNew['metadata']
+    assert result.acl == ['c', 'd']
 
 def test_update_uploader_field(swg_index_client):
     data = get_doc()
