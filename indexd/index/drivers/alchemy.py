@@ -1091,9 +1091,9 @@ def extract_urls_metadata(urls_metadata_results):
     urls_metadata = {}
     for url in urls_metadata_results:
         temp_dict = dict(url.urls_metadata or {})
-        if url.type:
+        if url.type is not None:
             temp_dict['type'] = url.type
-        if url.state:
+        if url.state is not None:
             temp_dict['state'] = url.state
 
         urls_metadata[url.url] = temp_dict
