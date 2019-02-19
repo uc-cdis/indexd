@@ -1,7 +1,7 @@
 FROM ubuntu:16.04
 MAINTAINER CDIS <cdissupport@opensciencedatacloud.org>
 
-RUN apt-get update && apt-get install -y sudo python-pip git python-dev libpq-dev apache2 libapache2-mod-wsgi vim libssl-dev libffi-dev \ 
+RUN apt-get update && apt-get install -y sudo python-pip git python-dev libpq-dev apache2 libapache2-mod-wsgi curl vim libssl-dev libffi-dev \ 
  && apt-get clean && apt-get autoremove \
  && rm -rf /var/lib/apt/lists/*
 COPY . /indexd
@@ -15,28 +15,7 @@ RUN mkdir -p /var/www/indexd/ && chmod 777 /var/www/indexd && cp /indexd/wsgi.py
 #
 # Custom apache2 logging - see http://www.loadbalancer.org/blog/apache-and-x-forwarded-for-headers/
 #
-RUN echo '<VirtualHost *:80>\n\
-    WSGIDaemonProcess indexd processes=1 threads=3 python-path=/var/www/indexd/:/usr/bin/python home=/var/www/indexd\n\
-    WSGIScriptAlias / /var/www/indexd/wsgi.py\n\
-    WSGIPassAuthorization On\n\
-    DocumentRoot /var/www/indexd/\n\
-    <Directory "/var/www/indexd/">\n\
-        Header set Access-Control-Allow-Origin "*"\n\
-        WSGIApplicationGroup %{GLOBAL}\n\
-        Options +ExecCGI\n\
-        Order deny,allow\n\
-        Allow from all\n\
-    </Directory>\n\
-    ErrorLog ${APACHE_LOG_DIR}/error.log\n\
-    LogLevel warn\n\
-    LogFormat "%{X-Forwarded-For}i %l %{X-UserId}i %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"" aws\n\
-    SetEnvIf Host ".*" local\n\
-    SetEnvIf X-Forwarded-For "^..*" forwarded\n\
-    SetEnvIf Request_URI "^/_status$" !forwarded !local\n\
-    CustomLog ${APACHE_LOG_DIR}/access.log combined env=local\n\
-    CustomLog ${APACHE_LOG_DIR}/access.log aws env=forwarded\n\
-</VirtualHost>\n'\
->> /etc/apache2/sites-available/apache-indexd.conf
+COPY ./deployment/apache-indexd.conf /etc/apache2/sites-available/apache-indexd.conf
 
 RUN a2ensite apache-indexd
 RUN a2enmod headers
