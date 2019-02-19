@@ -1090,12 +1090,13 @@ def extract_urls_metadata(urls_metadata_results):
     """
     urls_metadata = {}
     for url in urls_metadata_results:
+        temp_dict = dict(url.urls_metadata or {})
         if url.type:
-            urls_metadata['type'] = url.type
+            temp_dict['type'] = url.type
         if url.state:
-            urls_metadata['state'] = url.state
+            temp_dict['state'] = url.state
 
-        urls_metadata[url.url] = dict(url.urls_metadata)
+        urls_metadata[url.url] = temp_dict
 
     return urls_metadata
 
