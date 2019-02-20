@@ -1266,71 +1266,77 @@ def migrate_12(session, **kwargs):
     to the new JSONB tables.
     """
 
-    # metadata migration to jsonb
-    session.execute("""
-        UPDATE index_record r
-        SET (index_metadata) = (m.meta)
-        FROM (
-            SELECT did, CAST(json_object_agg(key, value) AS JSONB) AS meta
-            FROM index_record_metadata
-            WHERE key <> 'release_number'
-            GROUP BY did
-        ) AS m
-        WHERE r.did=m.did;
-    """)
+    # Chunk the migration steps by starting UUID number.
+    chunk_range = [hex(i)[2:].zfill(2) for i in range(256)]
+    for i in range(len(chunk_range) - 1):
+        from_chunk = chunk_range[i]
+        to_chunk = chunk_range[i + 1]
 
-    session.execute("""
-        UPDATE index_record r
-        SET (release_number) = (re.release_number)
-        FROM (
-            SELECT did, value as release_number
-            FROM index_record_metadata
-            WHERE key = 'release_number'
-        ) AS re
-        WHERE r.did=re.did;
+        # metadata migration to jsonb
+        session.execute("""
+            UPDATE index_record r
+            SET (index_metadata) = (m.meta)
+            FROM (
+                SELECT did, CAST(json_object_agg(key, value) AS JSONB) AS meta
+                FROM index_record_metadata
+                WHERE key <> 'release_number' AND did>='{}' AND did<'{}'
+                GROUP BY did
+            ) AS m
+            WHERE r.did=m.did
+        """.format(from_chunk, to_chunk))
 
-    """)
+        session.execute("""
+            UPDATE index_record r
+            SET (release_number) = (re.release_number)
+            FROM (
+                SELECT did, value as release_number
+                FROM index_record_metadata
+                WHERE key = 'release_number' AND did>='{}' AND did<'{}'
+            ) AS re
+            WHERE r.did=re.did
+        """.format(from_chunk, to_chunk))
 
-    # urls metadata migration to jsonb
-    session.execute("""
-        INSERT INTO index_record_url_metadata_jsonb (did, url)
-        SELECT did, url
-        FROM index_record_url;
-    """)
+        # urls metadata migration to jsonb
+        session.execute("""
+            INSERT INTO index_record_url_metadata_jsonb (did, url)
+            SELECT did, url
+            FROM index_record_url
+            WHERE did>='{}' AND did<'{}'
+        """.format(from_chunk, to_chunk))
 
-    session.execute("""
-        UPDATE index_record_url_metadata_jsonb as main
-        SET (urls_metadata) = (um.meta)
-        FROM (
-            SELECT did, url, CAST(json_object_agg(key, value) AS JSONB) AS meta
-            FROM index_record_url_metadata
-            WHERE key NOT IN ('type', 'state')
-            GROUP BY did, url
-        ) AS um
-        WHERE main.did=um.did and main.url=um.url
-    """)
+        session.execute("""
+            UPDATE index_record_url_metadata_jsonb as main
+            SET (urls_metadata) = (um.meta)
+            FROM (
+                SELECT did, url, CAST(json_object_agg(key, value) AS JSONB) AS meta
+                FROM index_record_url_metadata
+                WHERE key NOT IN ('type', 'state') AND did>='{}' AND did<'{}'
+                GROUP BY did, url
+            ) AS um
+            WHERE main.did=um.did and main.url=um.url
+        """.format(from_chunk, to_chunk))
 
-    session.execute("""
-        UPDATE index_record_url_metadata_jsonb as main
-        SET (type) = (t.type)
-        FROM (
-            SELECT did, url, value AS type
-            FROM index_record_url_metadata
-            WHERE key = 'type'
-        ) AS t
-        WHERE main.did=t.did and main.url=t.url;
-    """)
+        session.execute("""
+            UPDATE index_record_url_metadata_jsonb as main
+            SET (type) = (t.type)
+            FROM (
+                SELECT did, url, value AS type
+                FROM index_record_url_metadata
+                WHERE key = 'type' AND did>='{}' AND did<'{}'
+            ) AS t
+            WHERE main.did=t.did and main.url=t.url;
+        """.format(from_chunk, to_chunk))
 
-    session.execute("""
-        UPDATE index_record_url_metadata_jsonb as main
-        SET (state) = (s.state)
-        FROM (
-            SELECT did, url, value AS state
-            FROM index_record_url_metadata
-            WHERE key = 'state'
-        ) AS s
-        WHERE main.did=s.did and main.url=s.url;
-    """)
+        session.execute("""
+            UPDATE index_record_url_metadata_jsonb as main
+            SET (state) = (s.state)
+            FROM (
+                SELECT did, url, value AS state
+                FROM index_record_url_metadata
+                WHERE key = 'state' AND did>='{}' AND did<'{}'
+            ) AS s
+            WHERE main.did=s.did and main.url=s.url;
+        """.format(from_chunk, to_chunk))
 
 
 # ordered schema migration functions that the index should correspond to
