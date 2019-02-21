@@ -809,10 +809,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     for m_key, m_value in changing_fields['metadata'].items()]
 
             if 'hashes' in changing_fields:
-                for hash_key in record.hashes:
-                    session.delete(hash_key)
                 for k, v in iteritems(changing_fields['hashes']):
-                    session.add(IndexRecordHash(hash_type=k, hash_value=v, did=record.did))
+                    session.merge(IndexRecordHash(hash_type=k, hash_value=v, did=record.did))
 
             if 'urls_metadata' in changing_fields:
                 for url in record.urls:
