@@ -11,8 +11,8 @@ addons:
 sudo: false
 
 install:
-    - "wget https://oss.sonatype.org/content/repositories/snapshots/io/swagger/swagger-codegen-cli/3.0.0-SNAPSHOT/swagger-codegen-cli-3.0.0-20180411.134218-60.jar"
-    - "java -jar swagger-codegen-cli-3.0.0-20180411.134218-60.jar generate -i openapis/swagger.yaml -l python -o swagger_client"
+    - "wget https://oss.sonatype.org/content/repositories/snapshots/org/openapitools/openapi-generator-cli/4.0.0-SNAPSHOT/openapi-generator-cli-4.0.0-20190225.145928-329.jar"
+    - "java -jar openapi-generator-cli-4.0.0-20190225.145928-329.jar generate -i openapis/swagger.yaml -l python -o swagger_client"
     - "cd swagger_client; python setup.py install; cd .."
     - "python setup.py install --force"
     - "pip install -r test-requirements.txt"
