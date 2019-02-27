@@ -148,7 +148,9 @@ PUT_RECORD_SCHEMA = {
             "type": ["string", "null"],
         },
         "size": {
-            "type": "integer",
+          "description": "Size of the data being indexed in bytes",
+          "type": "integer",
+          "minimum": 0
         },
         "version": {
             "type": ["string", "null"],
