@@ -809,8 +809,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     for m_key, m_value in changing_fields['metadata'].items()]
 
             if 'hashes' in changing_fields:
-                for hash in record.hashes:
-                    session.delete(hash)
+                for hash_doc in record.hashes:
+                    session.delete(hash_doc)
 
                 record.hashes = [
                     IndexRecordHash(
