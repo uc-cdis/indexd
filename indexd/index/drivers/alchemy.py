@@ -760,7 +760,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Updates an existing record with new values.
         """
 
-        composite_fields = ['urls', 'acl', 'metadata', 'urls_metadata']
+        composite_fields = ['urls', 'acl', 'metadata', 'urls_metadata', 'hashes']
 
         with self.session as session:
             query = session.query(IndexRecord).filter(IndexRecord.did == did)
@@ -807,6 +807,18 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                         value=m_value
                     )
                     for m_key, m_value in changing_fields['metadata'].items()]
+
+            if 'hashes' in changing_fields:
+                for hash_doc in record.hashes:
+                    session.delete(hash_doc)
+
+                record.hashes = [
+                    IndexRecordHash(
+                        did=record.did,
+                        hash_type=hash_type,
+                        hash_value=hash_value
+                    )
+                    for hash_type, hash_value in changing_fields['hashes'].items()]
 
             if 'urls_metadata' in changing_fields:
                 for url in record.urls:
