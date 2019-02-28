@@ -1266,8 +1266,10 @@ def migrate_12(session, **kwargs):
     to the new JSONB tables.
     """
 
-    # Chunk the migration steps by starting UUID number.
-    chunk_range = [hex(i)[2:].zfill(2) for i in range(256)]
+    # Chunk the migration steps by starting did element. Add an extra char at
+    # the end of the final "did" because we are not doing an inclusive or.
+    chunk_range = [hex(i)[2:].zfill(2) for i in range(256)] \
+        + ['ffffffff-ffff-ffff-ffff-ffffffffffff0']
     for i in range(len(chunk_range) - 1):
         from_chunk = chunk_range[i]
         to_chunk = chunk_range[i + 1]
