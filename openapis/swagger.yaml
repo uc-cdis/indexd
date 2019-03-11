@@ -984,8 +984,14 @@ definitions:
   UpdateInputInfo:
     type: object
     properties:
+      hashes:
+        $ref: '#/definitions/HashInfo'
       file_name:
         type: string
+      size:
+        type: integer
+        format: int64
+        description: size in bytes
       metadata:
         type: object
       urls_metadata:

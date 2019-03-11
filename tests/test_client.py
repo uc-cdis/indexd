@@ -623,8 +623,8 @@ def test_index_update(swg_index_client):
     assert r.rev
     assert swg_index_client.get_entry(r.did).metadata == data['metadata']
     dataNew = get_doc()
-    del dataNew['hashes']
-    del dataNew['size']
+    dataNew['hashes']['md5'] = '8b9942cf415384b27cadf1f4d2d682e4'
+    dataNew['size']  = 321
     del dataNew['form']
     dataNew['metadata'] = {'test': 'abcd'}
     dataNew['version'] = 'ver123'
@@ -634,6 +634,8 @@ def test_index_update(swg_index_client):
     result = swg_index_client.get_entry(r.did)
     assert result.metadata == dataNew['metadata']
     assert result.acl == dataNew['acl']
+    assert result.hashes.md5 == dataNew['hashes']['md5']
+    assert result.size == 321
 
     data = get_doc()
     data['did'] = 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d'
