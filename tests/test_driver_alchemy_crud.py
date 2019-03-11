@@ -294,9 +294,6 @@ def test_driver_get_record(index_driver, database_conn):
     updated_date = datetime.now()
 
     database_conn.execute(make_sql_statement("""
-        INSERT INTO base_version (baseid) VALUES (?)
-    """, (baseid,)))
-    database_conn.execute(make_sql_statement("""
         INSERT INTO index_record (did, baseid, rev, form, size, created_date, updated_date)
         VALUES (?,?,?,?,?,?,?)
     """, (did, baseid, rev, form, size, created_date, updated_date)))
@@ -337,9 +334,6 @@ def test_driver_get_latest_version(index_driver, database_conn):
         updated_date = datetime.now()
 
         database_conn.execute(make_sql_statement("""
-            INSERT INTO base_version (baseid) VALUES (?)
-        """, (baseid,)))
-        database_conn.execute(make_sql_statement("""
             INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
         """, (did, baseid, rev, form, size, created_date, updated_date)))
 
@@ -367,9 +361,6 @@ def test_driver_get_latest_version_with_no_record(index_driver, database_conn):
         dt = datetime.now()
 
         database_conn.execute(make_sql_statement("""
-            INSERT INTO base_version (baseid) VALUES (?)
-        """, (baseid,)))
-        database_conn.execute(make_sql_statement("""
             INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
         """, (did, baseid, rev, form, size, dt, dt)))
 
@@ -382,9 +373,6 @@ def test_driver_get_all_version(index_driver, database_conn):
     Tests retrieval of the latest record version
     """
     baseid = str(uuid.uuid4())
-    database_conn.execute(make_sql_statement("""
-        INSERT INTO base_version (baseid) VALUES (?)
-    """, (baseid,)))
 
     NUMBER_OF_RECORD = 3
 
@@ -431,9 +419,6 @@ def test_driver_get_all_version_with_no_record(index_driver, database_conn):
     Tests retrieval of the latest record version
     """
     baseid = str(uuid.uuid4())
-    database_conn.execute(make_sql_statement("""
-        INSERT INTO base_version (baseid) VALUES (?)
-    """, (baseid,)))
 
     for _ in range(3):
 
@@ -461,9 +446,6 @@ def test_driver_get_fails_with_invalid_id(index_driver, database_conn):
     form = 'object'
 
     database_conn.execute(make_sql_statement("""
-        INSERT INTO base_version (baseid) VALUES (?)
-    """, (baseid,)))
-    database_conn.execute(make_sql_statement("""
         INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
     """, (did, baseid, rev, form, None)))
 
@@ -486,7 +468,16 @@ def test_driver_update_record(index_driver, database_conn):
     """, (did, baseid, rev, form, 1)))
 
     update_size = 256
-    update_urls_metadata = {'a': {'type': 'ok'}, 'b': {'type': 'ok'}, 'c': {'type': 'ok'}}
+    update_urls_metadata = {
+        'a': {
+            'type': 'ok',
+            'not type': 'ok',
+        }, 'b': {
+            'state': 'not ok',
+        }, 'c': {
+            'not type': 'not ok',
+        },
+    }
     update_hashes = {
         'a': '1',
         'b': '2',
@@ -510,9 +501,18 @@ def test_driver_update_record(index_driver, database_conn):
         SELECT did, rev, file_name, size, version FROM index_record
     """).fetchone()
 
-    new_urls = sorted(url[0] for url in database_conn.execute("""
-        SELECT url FROM index_record_url_metadata_jsonb
-    """))
+    query = database_conn.execute("""
+        SELECT url, state, type, urls_metadata
+        FROM index_record_url_metadata_jsonb
+    """)
+    new_urls_metadata = {}
+    for row in query:
+        new_urls_metadata[row.url] = row.urls_metadata
+        # Don't add the key if there's no value.
+        if row.type:
+            new_urls_metadata[row.url]['type'] = row.type
+        if row.state:
+            new_urls_metadata[row.url]['state'] = row.state
 
     new_hashes = {h: v for h, v in database_conn.execute("""
         SELECT hash_type, hash_value FROM index_record_hash
@@ -520,7 +520,7 @@ def test_driver_update_record(index_driver, database_conn):
 
     assert did == new_did, 'record id does not match'
     assert rev != new_rev, 'record revision matches prior'
-    assert sorted(update_urls_metadata.keys()) == new_urls, 'record urls mismatch'
+    assert update_urls_metadata == new_urls_metadata, 'record urls_metadata mismatch'
     assert file_name == new_file_name, 'file_name does not match'
     assert update_size == new_size, 'size does not match'
     assert version == new_version, 'version does not match'
@@ -545,9 +545,6 @@ def test_driver_update_fails_with_invalid_id(index_driver, database_conn):
     form = 'object'
 
     database_conn.execute(make_sql_statement("""
-        INSERT INTO base_version (baseid) VALUES (?)
-    """, (baseid,)))
-    database_conn.execute(make_sql_statement("""
         INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
     """, (did, baseid, rev, form, None)))
 
@@ -566,9 +563,6 @@ def test_driver_update_fails_with_invalid_rev(index_driver, database_conn):
     form = 'object'
 
     database_conn.execute(make_sql_statement("""
-        INSERT INTO base_version (baseid) VALUES (?)
-    """, (baseid,)))
-    database_conn.execute(make_sql_statement("""
         INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
     """, (did, baseid, rev, form, None)))
 
@@ -585,9 +579,6 @@ def test_driver_delete_record(index_driver, database_conn):
     rev = str(uuid.uuid4())[:8]
     form = 'object'
 
-    database_conn.execute(make_sql_statement("""
-        INSERT INTO base_version (baseid) VALUES (?)
-    """, (baseid,)))
     database_conn.execute(make_sql_statement("""
         INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
     """, (did, baseid, rev, form, None)))
@@ -620,9 +611,6 @@ def test_driver_delete_fails_with_invalid_id(index_driver, database_conn):
     form = 'object'
 
     database_conn.execute(make_sql_statement("""
-        INSERT INTO base_version (baseid) VALUES (?)
-    """, (baseid,)))
-    database_conn.execute(make_sql_statement("""
         INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
     """, (did, baseid, rev, form, None)))
 
@@ -638,10 +626,6 @@ def test_driver_delete_fails_with_invalid_rev(index_driver, database_conn):
     baseid = str(uuid.uuid4())
     rev = str(uuid.uuid4())[:8]
     form = 'object'
-
-    database_conn.execute(make_sql_statement("""
-        INSERT INTO base_version (baseid) VALUES (?)
-    """, (baseid,)))
 
     database_conn.execute(make_sql_statement("""
         INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)

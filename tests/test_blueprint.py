@@ -4,7 +4,6 @@ from indexd.alias.blueprint import blueprint as indexd_alias_blueprint
 from indexd.bulk.blueprint import blueprint as indexd_bulk_blueprint
 from indexd.index.blueprint import blueprint as indexd_index_blueprint
 
-DIST_CONFIG = []
 
 
 def test_flask_blueprint(index_driver, alias_driver):

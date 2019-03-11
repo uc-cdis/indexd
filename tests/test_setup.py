@@ -88,7 +88,7 @@ def test_postgres_index_setup_tables(index_driver, database_conn):
                 WHERE table_name = '{table}'
                 ) c
             ON col.column_name =  c.column_name
-            WHERE table_name = '{table}';
+            WHERE table_name = '{table}'
         """.format(table=table))
 
         assert schema == [i for i in c]
@@ -125,7 +125,7 @@ def test_postgres_alias_setup_tables(alias_driver, database_conn):
                 WHERE table_name = '{table}'
                 ) c
             ON col.column_name =  c.column_name
-            WHERE table_name = '{table}';
+            WHERE table_name = '{table}'
         """.format(table=table))
 
         assert schema == [i for i in c]

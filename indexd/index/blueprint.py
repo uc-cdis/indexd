@@ -42,7 +42,7 @@ def separate_metadata(metadata):
     """
 
     metadata = copy.deepcopy(metadata)
-    release_number = ''
+    release_number = None
     if metadata and 'release_number' in metadata:
         release_number = metadata.pop('release_number')
 
@@ -58,6 +58,11 @@ def validate_hashes(**hashes):
 
     if not all(ACCEPTABLE_HASHES[h](v) for h, v in hashes.items()):
         raise UserError('invalid hash values specified')
+
+
+def equal_lists(one, two):
+    """Only compare the lists by their contents and not their ordering"""
+    return sorted(one) == sorted(two)
 
 
 @blueprint.route('/index/', methods=['GET'])
@@ -247,8 +252,9 @@ def post_index_record():
 
     urls = flask.request.json['urls']
     urls_metadata = flask.request.json['urls_metadata']
+
     # Should be the same on both ends.
-    if sorted(urls) != sorted(urls_metadata.keys()):
+    if not equal_lists(urls, urls_metadata.keys()):
         raise UserError('urls and urls_metadata mismatch')
 
     did = flask.request.json.get('did')
@@ -331,7 +337,8 @@ def put_index_blank_record(record):
     urls = flask.request.json.get('urls', [])
     urls_metadata = flask.request.json.get('urls_metadata', {})
 
-    if sorted(urls) != sorted(urls_metadata.keys()):
+    # Should be the same on both ends.
+    if not equal_lists(urls, urls_metadata.keys()):
         raise UserError('urls and urls_metadata mismatch')
 
     rev = flask.request.args.get('rev')
@@ -343,7 +350,6 @@ def put_index_blank_record(record):
         rev=rev,
         size=size,
         hashes=hashes,
-        urls=urls_metadata.keys(),
         urls_metadata=urls_metadata,
     )
     ret = {
@@ -412,7 +418,7 @@ def add_index_record_version(record):
     urls_metadata = flask.request.json['urls_metadata']
 
     # Should be the same on both ends.
-    if sorted(urls) != sorted(urls_metadata.keys()):
+    if not equal_lists(urls, urls_metadata.keys()):
         raise UserError('urls and urls_metadata mismatch')
 
     new_did = flask.request.json.get('did')

@@ -1,6 +1,4 @@
 import hashlib
-# import json
-# import uuid
 from contextlib import contextmanager
 
 from sqlalchemy import Column, String
@@ -8,7 +6,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
-# from indexd import auth
 from indexd.auth.driver import AuthDriverABC
 from indexd.auth.errors import AuthError
 

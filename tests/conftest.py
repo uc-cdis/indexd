@@ -4,7 +4,6 @@ from multiprocessing import Process
 import flask
 import pytest
 import requests
-from indexclient.client import IndexClient
 from sqlalchemy import create_engine
 
 import swagger_client
@@ -75,20 +74,20 @@ def user(auth_driver):
 
 
 @pytest.fixture
-def swg_config(indexd_client): # noqa
+def swg_config(indexd_server, create_tables):
     config = swagger_client.Configuration()
-    config.host = indexd_client.url
-    config.username = indexd_client.auth[0]
-    config.password = indexd_client.auth[1]
+    config.host = 'http://localhost:8001'
+    config.username = 'admin'
+    config.password = 'admin'
     return config
 
 
 @pytest.fixture
-def swg_config_no_migrate(indexd_client_no_migrate): # noqa
+def swg_config_no_migrate(indexd_server, create_tables_no_migrate):
     config = swagger_client.Configuration()
-    config.host = indexd_client_no_migrate.url
-    config.username = indexd_client_no_migrate.auth[0]
-    config.password = indexd_client_no_migrate.auth[1]
+    config.host = 'http://localhost:8001'
+    config.username = 'admin'
+    config.password = 'admin'
     return config
 
 
@@ -275,34 +274,6 @@ def indexd_server():
     yield MockServer(port=port)
     indexd.terminate()
     wait_for_indexd_not_alive(port)
-
-
-@pytest.fixture
-def indexd_client(indexd_server, create_tables):
-    """
-    Returns a IndexClient. This will delete any documents,
-    aliases, or users made by this client after the test has completed.
-    Currently the default user is the admin user
-    Runs once per test.
-    """
-    return IndexClient(
-        baseurl='http://localhost:8001',
-        auth=('admin', 'admin'),
-    )
-
-
-@pytest.fixture
-def indexd_client_no_migrate(indexd_server, create_tables_no_migrate):
-    """
-    Returns a IndexClient. This will delete any documents,
-    aliases, or users made by this client after the test has completed.
-    Currently the default user is the admin user
-    Runs once per test.
-    """
-    return IndexClient(
-        baseurl='http://localhost:8001',
-        auth=('admin', 'admin'),
-    )
 
 
 def wait_for_indexd_alive(port):

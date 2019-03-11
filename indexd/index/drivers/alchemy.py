@@ -27,6 +27,7 @@ from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd.errors import UserError
+from indexd.index.blueprint import separate_metadata
 from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import (
     MultipleRecordsFound,
@@ -203,8 +204,8 @@ class IndexRecordMetadata(Base):
     """
 
     __tablename__ = 'index_record_metadata'
-    did = Column(String, primary_key=True)
     key = Column(String, primary_key=True)
+    did = Column(String, primary_key=True)
     value = Column(String)
     __table_args__ = (
         Index('index_record_metadata_idx', 'did'),
@@ -234,7 +235,7 @@ class IndexRecordUrlMetadataJsonb(Base):
     """
 
     __tablename__ = 'index_record_url_metadata_jsonb'
-    did = Column(String, index=True, primary_key=True)
+    did = Column(String, primary_key=True)
     url = Column(String, primary_key=True)
     type = Column(String, index=True)
     state = Column(String, index=True)
@@ -257,22 +258,19 @@ class IndexRecordHash(Base):
 
 
 def separate_urls_metadata(urls_metadata):
-    """Separate type and state from  urls_metadata record.
+    """Separate type and state from urls_metadata record.
 
-    Type and state from removed from the urls_metadata key value pair/jsonb
+    Type and state are removed from the urls_metadata key value pair/jsonb
     object. To keep backwards compatibility these are still ingested
     through the urls_metadata field. We have to manually separate them and
     later combine them to maintain compatibility with the current indexclient.
     """
-    u_type, u_state = None, None
     urls_metadata = copy.deepcopy(urls_metadata)
 
     # If these fields are given, then remove them from the json
     # blob so it doesn't get put in the urls_metadata table.
-    if 'type' in urls_metadata:
-        u_type = urls_metadata.pop('type')
-    if 'state' in urls_metadata:
-        u_state = urls_metadata.pop('state')
+    u_type = urls_metadata.pop('type', None)
+    u_state = urls_metadata.pop('state', None)
 
     return u_type, u_state, urls_metadata
 
@@ -440,10 +438,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                         )
                     if u_type:
                         query = query.filter(
-                            IndexRecordUrlMetadataJsonb.type.contains(u_type))
+                            IndexRecordUrlMetadataJsonb.type == u_type)
                     if u_state:
                         query = query.filter(
-                            IndexRecordUrlMetadataJsonb.state.contains(u_state))
+                            IndexRecordUrlMetadataJsonb.state == u_state)
 
             if negate_params:
                 query = self._negate_filter(session, query, **negate_params)
@@ -726,7 +724,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
-    def update_blank_record(self, did, rev, size, hashes, urls, urls_metadata):
+    def update_blank_record(self, did, rev, size, hashes, urls_metadata):
         """
         Update a blank record with size and hashes, raise exception
         if the record is non-empty or the revision is not matched
@@ -826,7 +824,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Updates an existing record with new values.
         """
 
-        composite_fields = ['urls', 'acl', 'metadata', 'urls_metadata', 'hashes']
+        composite_fields = ['acl', 'metadata', 'urls_metadata', 'hashes']
 
         with self.session as session:
             query = session.query(IndexRecord).filter(IndexRecord.did == did)
@@ -841,9 +839,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
 
-            # Some operations are dependant on other operations. For example
-            # urls has to be updated before urls_metadata because of schema
-            # constraints.
+            # Some operations might become dependant on other operations based
+            # on future schema constraints.
             if 'acl' in changing_fields:
                 for ace in record.acl:
                     session.delete(ace)
@@ -854,7 +851,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 ]
 
             if 'metadata' in changing_fields:
-                record.index_metadata = changing_fields['metadata']
+                release_number, metadata = separate_metadata(changing_fields['metadata'])
+                if release_number:
+                    record.release_number = release_number
+                record.index_metadata = metadata
 
             if 'urls_metadata' in changing_fields:
                 record.urls_metadata = create_urls_metadata(
@@ -1106,7 +1106,7 @@ def extract_urls_metadata(urls_metadata_results):
 # change to a model is made, one or more migration steps might not work.
 # In the future consider using SQL queries to do the migrations.
 def migrate_1(session, **kwargs):
-    session.execute("ALTER TABLE index_record ALTER COLUMN size TYPE bigint;")
+    session.execute("ALTER TABLE index_record ALTER COLUMN size TYPE bigint")
 
 
 def migrate_2(session, **kwargs):
@@ -1123,7 +1123,7 @@ def migrate_2(session, **kwargs):
         session.rollback()
     session.commit()
 
-    count = session.execute("SELECT COUNT(*) FROM index_record;").fetchone()[0]
+    count = session.execute("SELECT COUNT(*) FROM index_record").fetchone()[0]
 
     # create tmp_index_record table for fast retrival
     try:
@@ -1139,29 +1139,29 @@ def migrate_2(session, **kwargs):
         baseid = str(uuid.uuid4())
         session.execute(
             "UPDATE index_record SET baseid = '{}'\
-             WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {});".format(baseid, loop + 1))
+             WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {})".format(baseid, loop + 1))
         session.execute(
-            "INSERT INTO base_version(baseid) VALUES('{}');".format(baseid))
+            "INSERT INTO base_version(baseid) VALUES('{}')".format(baseid))
 
     session.execute(
         "ALTER TABLE index_record \
-         ADD CONSTRAINT baseid_FK FOREIGN KEY (baseid) references base_version(baseid);")
+         ADD CONSTRAINT baseid_FK FOREIGN KEY (baseid) references base_version(baseid)")
 
     # drop tmp table
     session.execute(
-        "DROP TABLE IF EXISTS tmp_index_record;"
+        "DROP TABLE IF EXISTS tmp_index_record"
     )
 
 
 def migrate_3(session, **kwargs):
-    session.execute("ALTER TABLE index_record ADD COLUMN file_name VARCHAR;")
+    session.execute("ALTER TABLE index_record ADD COLUMN file_name VARCHAR")
 
     session.execute(
         "CREATE INDEX index_record__file_name_idx ON index_record ( file_name )")
 
 
 def migrate_4(session, **kwargs):
-    session.execute("ALTER TABLE index_record ADD COLUMN version VARCHAR;")
+    session.execute("ALTER TABLE index_record ADD COLUMN version VARCHAR")
 
     session.execute(
         "CREATE INDEX index_record__version_idx ON index_record ( version )")
@@ -1229,35 +1229,16 @@ def migrate_9(session, **kwargs):
 
 
 def migrate_10(session, **kwargs):
-    session.execute("ALTER TABLE index_record ADD COLUMN uploader VARCHAR;")
+    session.execute("ALTER TABLE index_record ADD COLUMN uploader VARCHAR")
 
     session.execute(
         "CREATE INDEX index_record__uploader_idx ON index_record ( uploader )")
 
 
-def create_jsonb_payload(raw_dict):
-    """Format a jsonb string for use in sql queries.
-
-    Example output:
-        {"a":"b"}
-
-    It is the calling function's responsibility to add single quotes around
-    the jsonb value.
-    """
-    # This is a list of jsonb key:value pairs that were moved into their own columns.
-    blacklist = ('state', 'type', 'release_number')
-    elems = [
-        '"{}": "{}"'.format(key, value)
-        for key, value in raw_dict.items()
-        if key not in blacklist
-    ]
-    return "{" + ",".join(elems) + "}"
-
-
 def migrate_11(session, **kwargs):
-    session.execute("ALTER TABLE index_record ADD COLUMN release_number VARCHAR;")
-    session.execute("ALTER TABLE index_record ADD COLUMN index_metadata jsonb;")
-    session.execute("ALTER TABLE index_record DROP CONSTRAINT index_record_baseid_fkey;")
+    session.execute("ALTER TABLE index_record ADD COLUMN release_number VARCHAR")
+    session.execute("ALTER TABLE index_record ADD COLUMN index_metadata jsonb")
+    session.execute("ALTER TABLE index_record DROP CONSTRAINT index_record_baseid_fkey")
 
 
 def migrate_12(session, **kwargs):
@@ -1326,7 +1307,7 @@ def migrate_12(session, **kwargs):
                 FROM index_record_url_metadata
                 WHERE key = 'type' AND did>='{}' AND did<'{}'
             ) AS t
-            WHERE main.did=t.did and main.url=t.url;
+            WHERE main.did=t.did and main.url=t.url
         """.format(from_chunk, to_chunk))
 
         session.execute("""
@@ -1337,7 +1318,7 @@ def migrate_12(session, **kwargs):
                 FROM index_record_url_metadata
                 WHERE key = 'state' AND did>='{}' AND did<'{}'
             ) AS s
-            WHERE main.did=s.did and main.url=s.url;
+            WHERE main.did=s.did and main.url=s.url
         """.format(from_chunk, to_chunk))
 
 

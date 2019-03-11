@@ -23,9 +23,6 @@ Base = declarative_base()
 TEST_DB = 'postgres://postgres@localhost/test_migration_db'
 
 INDEX_TABLES = {
-    'base_version': [
-        (u'baseid', u'character varying'),
-    ],
     'index_record': [
         (u'did', u'character varying'),
         (u'rev', u'character varying'),
@@ -73,14 +70,11 @@ def test_migrate_7(index_driver_no_migrate, create_tables_no_migrate, database_c
     # Setup the data manually because the schemas and drivers aren't preserved
     # when there is a breaking change.
     database_conn.execute(make_sql_statement("""
-            INSERT INTO base_version VALUES (?)
-        """, (baseid,)))
-    database_conn.execute(make_sql_statement("""
             INSERT INTO index_record (did, size, baseid) VALUES (?, ?, ?)
         """, (did, size, baseid)))
     database_conn.execute(make_sql_statement("""
             INSERT INTO index_record_metadata VALUES (?, ?, ?)
-        """, (did, ace_key, ace_value)))
+        """, (ace_key, did, ace_value)))
     database_conn.execute(make_sql_statement("""
             INSERT INTO index_record_url VALUES (?, ?)
         """, (did, url)))
@@ -139,9 +133,6 @@ def test_migrate_12(index_driver_no_migrate, create_tables_no_migrate, database_
 
     # Setup the data manually because the schemas and drivers aren't preserved
     # when there is a breaking change.
-    database_conn.execute(make_sql_statement("""
-            INSERT INTO base_version VALUES (?)
-        """, (baseid,)))
     database_conn.execute(make_sql_statement("""
             INSERT INTO index_record (did, baseid) VALUES (?, ?), (?, ?)
         """, (dida, baseid, didb, baseid)))
@@ -403,8 +394,8 @@ def test_migrate_index_versioning(monkeypatch, index_driver_no_migrate, database
     for baseid in vids:
         c = conn.execute("\
             SELECT COUNT(*) AS number_rows \
-            FROM base_version \
-            WHERE baseid = '{}';".format(baseid[0])).fetchone()[0]
+            FROM index_record \
+            WHERE baseid = '{}'".format(baseid[0])).fetchone()[0]
         assert c == 1
     conn.close()
 
