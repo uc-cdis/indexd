@@ -11,6 +11,19 @@ from tests.util import make_sql_statement
 #TODO check if pytest has utilities for meta-programming of tests
 
 
+def insert_base_data(database_conn):
+    did = str(uuid.uuid4())
+    baseid = str(uuid.uuid4())
+    rev = str(uuid.uuid4())[:8]
+    form = 'object'
+
+    database_conn.execute(make_sql_statement("""
+        INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
+    """, (did, baseid, rev, form, 1)))
+
+    return did, baseid, rev, form
+
+
 def test_driver_init_does_not_create_records(index_driver, database_conn):
     """
     Tests for creation of records after driver init.
@@ -395,11 +408,10 @@ def test_driver_get_all_version(index_driver, database_conn):
             'updated_date': updated_date,
         }
 
-        database_conn.execute(make_sql_statement(
-            """
-                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date)
-                VALUES (?,?,?,?,?,?,?)""",
-            (did, baseid, rev, form, size, created_date, updated_date)))
+        database_conn.execute(make_sql_statement("""
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date)
+            VALUES (?,?,?,?,?,?,?)
+        """, (did, baseid, rev, form, size, created_date, updated_date)))
 
     records = index_driver.get_all_versions(did)
     assert len(records) == NUMBER_OF_RECORD, 'the number of records does not match'
@@ -440,34 +452,106 @@ def test_driver_get_fails_with_invalid_id(index_driver, database_conn):
     Tests retrieval of a record fails if the record id is not found.
     """
 
-    did = str(uuid.uuid4())
-    baseid = str(uuid.uuid4())
-    rev = str(uuid.uuid4())[:8]
-    form = 'object'
-
-    database_conn.execute(make_sql_statement("""
-        INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
-    """, (did, baseid, rev, form, None)))
-
+    insert_base_data(database_conn)
     with pytest.raises(NoRecordFound):
         index_driver.get('some_record_that_does_not_exist')
 
 
-def test_driver_update_record(index_driver, database_conn):
+def test_driver_update_record_simple_data(index_driver, database_conn):
+    did, baseid, rev, form = insert_base_data(database_conn)
+
+    update_size = 256
+    file_name = 'test'
+    version = 'ver_123'
+    changing_fields = {
+        'file_name': file_name,
+        'version': version,
+        'size': update_size,
+    }
+    index_driver.update(did, rev, changing_fields)
+
+    new_did, new_rev, new_file_name, new_size, new_version = database_conn.execute("""
+        SELECT did, rev, file_name, size, version FROM index_record
+    """).fetchone()
+
+    assert did == new_did, 'record id does not match'
+    assert rev != new_rev, 'record revision matches prior'
+    assert file_name == new_file_name, 'file_name does not match'
+    assert update_size == new_size, 'size does not match'
+    assert version == new_version, 'version does not match'
+
+
+def test_driver_update_record_hashes(index_driver, database_conn):
+    did, _, rev, _ = insert_base_data(database_conn)
+    update_hashes = {
+        'a': '1',
+        'b': '2',
+        'c': '3',
+    }
+    changing_fields = {
+        'hashes': update_hashes,
+    }
+    index_driver.update(did, rev, changing_fields)
+
+    new_hashes = {h: v for h, v in database_conn.execute("""
+        SELECT hash_type, hash_value FROM index_record_hash
+    """)}
+    assert update_hashes == new_hashes, 'hashes do not match'
+
+
+def test_driver_update_record_metadata(index_driver, database_conn):
+    did, _, rev, _ = insert_base_data(database_conn)
+    update_metadata = {
+        'a': 'A',
+        'b': 'B',
+    }
+    changing_fields = {
+        'metadata': update_metadata,
+    }
+    index_driver.update(did, rev, changing_fields)
+
+    new_metadata = database_conn.execute("""
+        SELECT index_metadata FROM index_record
+    """).fetchone()[0]
+    assert update_metadata == new_metadata, 'metadata does not match'
+
+
+def test_driver_update_record_release_number_separate(index_driver, database_conn):
+    did, _, rev, _ = insert_base_data(database_conn)
+    update_release_number = '1.0'
+    changing_fields = {
+        'release_number': update_release_number,
+    }
+    index_driver.update(did, rev, changing_fields)
+
+    new_release_number = database_conn.execute("""
+        SELECT release_number FROM index_record
+    """).fetchone()[0]
+
+    assert update_release_number == new_release_number, 'metadata does not match'
+
+
+def test_driver_update_record_release_number_metadata(index_driver, database_conn):
+    did, _, rev, _ = insert_base_data(database_conn)
+    update_release_number = '1.0'
+    changing_fields = {
+        'metadata': {'release_number': update_release_number},
+    }
+    index_driver.update(did, rev, changing_fields)
+
+    new_release_number = database_conn.execute("""
+        SELECT release_number FROM index_record
+    """).fetchone()[0]
+
+    assert update_release_number == new_release_number, 'metadata does not match'
+
+
+def test_driver_update_record_urls_metadata(index_driver, database_conn):
     """
     Tests updating of a record.
     """
+    did, baseid, rev, form = insert_base_data(database_conn)
 
-    did = str(uuid.uuid4())
-    baseid = str(uuid.uuid4())
-    rev = str(uuid.uuid4())[:8]
-    form = 'object'
-
-    database_conn.execute(make_sql_statement("""
-        INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
-    """, (did, baseid, rev, form, 1)))
-
-    update_size = 256
     update_urls_metadata = {
         'a': {
             'type': 'ok',
@@ -478,28 +562,12 @@ def test_driver_update_record(index_driver, database_conn):
             'not type': 'not ok',
         },
     }
-    update_hashes = {
-        'a': '1',
-        'b': '2',
-        'c': '3',
-    }
-
-    file_name = 'test'
-    version = 'ver_123'
 
     changing_fields = {
         'urls_metadata': update_urls_metadata,
-        'file_name': file_name,
-        'version': version,
-        'size': update_size,
-        'hashes': update_hashes,
     }
 
     index_driver.update(did, rev, changing_fields)
-
-    new_did, new_rev, new_file_name, new_size, new_version = database_conn.execute("""
-        SELECT did, rev, file_name, size, version FROM index_record
-    """).fetchone()
 
     query = database_conn.execute("""
         SELECT url, state, type, urls_metadata
@@ -514,17 +582,7 @@ def test_driver_update_record(index_driver, database_conn):
         if row.state:
             new_urls_metadata[row.url]['state'] = row.state
 
-    new_hashes = {h: v for h, v in database_conn.execute("""
-        SELECT hash_type, hash_value FROM index_record_hash
-    """)}
-
-    assert did == new_did, 'record id does not match'
-    assert rev != new_rev, 'record revision matches prior'
     assert update_urls_metadata == new_urls_metadata, 'record urls_metadata mismatch'
-    assert file_name == new_file_name, 'file_name does not match'
-    assert update_size == new_size, 'size does not match'
-    assert version == new_version, 'version does not match'
-    assert update_hashes == new_hashes, 'hashes do not match'
 
 
 def test_driver_update_fails_with_no_records(index_driver):

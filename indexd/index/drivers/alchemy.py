@@ -825,7 +825,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
 
         composite_fields = ['acl', 'metadata', 'urls_metadata', 'hashes']
-  
+
         with self.session as session:
             query = session.query(IndexRecord).filter(IndexRecord.did == did)
 
@@ -873,15 +873,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     record.did,
                     changing_fields['urls_metadata'],
                 )
-            if 'hashes' in changing_fields:
-                for hashes in record.hashes:
-                    session.delete(hashes)
-
-                record.hashes = [IndexRecordHash(
-                    did=record.did,
-                    hash_type=h,
-                    hash_value=v,
-                ) for h, v in changing_fields['hashes'].items()]
 
             for key, value in changing_fields.items():
                 if key not in composite_fields:
