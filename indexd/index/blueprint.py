@@ -43,9 +43,9 @@ def separate_metadata(metadata):
 
     metadata = copy.deepcopy(metadata)
     release_number = None
-    if metadata and 'release_number' in metadata:
-        release_number = metadata.pop('release_number')
-
+    # Metadata might be None, we have to check before popping.
+    if metadata:
+        release_number = metadata.pop('release_number', None)
     return release_number, metadata
 
 
@@ -60,9 +60,18 @@ def validate_hashes(**hashes):
         raise UserError('invalid hash values specified')
 
 
-def equal_lists(one, two):
-    """Only compare the lists by their contents and not their ordering"""
-    return sorted(one) == sorted(two)
+def get_urls_metadata():
+    """Verify and return urls_metadata from flask request object.
+
+    Validate the urls and urls_metadata object by comparing their contents, but
+    not the order of the contents.
+    """
+    urls = flask.request.json.get('urls', [])
+    urls_metadata = flask.request.json.get('urls_metadata', {})
+    if not sorted(urls) == sorted(urls_metadata.keys()):
+        raise UserError('urls and urls_metadata mismatch')
+
+    return urls_metadata
 
 
 @blueprint.route('/index/', methods=['GET'])
@@ -250,13 +259,7 @@ def post_index_record():
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
-    urls = flask.request.json['urls']
-    urls_metadata = flask.request.json['urls_metadata']
-
-    # Should be the same on both ends.
-    if not equal_lists(urls, urls_metadata.keys()):
-        raise UserError('urls and urls_metadata mismatch')
-
+    urls_metadata = get_urls_metadata()
     did = flask.request.json.get('did')
     form = flask.request.json['form']
     size = flask.request.json['size']
@@ -279,7 +282,7 @@ def post_index_record():
         metadata=metadata,
         urls_metadata=urls_metadata,
         version=version,
-        urls=urls,
+        urls=urls_metadata.keys(),
         acl=acl,
         hashes=hashes,
         baseid=baseid,
@@ -334,13 +337,7 @@ def put_index_blank_record(record):
     This is currently not used by indexclient.
     """
 
-    urls = flask.request.json.get('urls', [])
-    urls_metadata = flask.request.json.get('urls_metadata', {})
-
-    # Should be the same on both ends.
-    if not equal_lists(urls, urls_metadata.keys()):
-        raise UserError('urls and urls_metadata mismatch')
-
+    urls_metadata = get_urls_metadata()
     rev = flask.request.args.get('rev')
     size = flask.request.get_json().get('size')
     hashes = flask.request.get_json().get('hashes')
@@ -414,12 +411,7 @@ def add_index_record_version(record):
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
-    urls = flask.request.json['urls']
-    urls_metadata = flask.request.json['urls_metadata']
-
-    # Should be the same on both ends.
-    if not equal_lists(urls, urls_metadata.keys()):
-        raise UserError('urls and urls_metadata mismatch')
+    urls_metadata = get_urls_metadata()
 
     new_did = flask.request.json.get('did')
     form = flask.request.json['form']
