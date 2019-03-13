@@ -107,7 +107,7 @@ def swg_global_client(swg_config):
 
 
 @pytest.fixture
-def swg_global_client_no_migrate(swg_config):
+def swg_global_client_no_migrate(swg_config_no_migrate):
     return swagger_client.GlobalApi(swagger_client.ApiClient(swg_config_no_migrate))
 
 
@@ -117,7 +117,7 @@ def swg_alias_client(swg_config):
 
 
 @pytest.fixture
-def swg_alias_client_no_migrate(swg_config):
+def swg_alias_client_no_migrate(swg_config_no_migrate):
     return swagger_client.AliasApi(swagger_client.ApiClient(swg_config_no_migrate))
 
 
@@ -127,7 +127,7 @@ def swg_dos_client(swg_config):
 
 
 @pytest.fixture
-def swg_dos_client_no_migrate(swg_config):
+def swg_dos_client_no_migrate(swg_config_no_migrate):
     return swagger_client.DOSApi(swagger_client.ApiClient(swg_config_no_migrate))
 
 
@@ -137,7 +137,7 @@ def swg_query_client(swg_config):
 
 
 @pytest.fixture
-def swg_query_client_no_migrate(swg_config):
+def swg_query_client_no_migrate(swg_config_no_migrate):
     return swagger_client.QueryApi(swagger_client.ApiClient(swg_config_no_migrate))
 
 
@@ -147,7 +147,7 @@ def swg_bulk_client(swg_config):
 
 
 @pytest.fixture
-def swg_bulk_client_no_migrate(swg_config):
+def swg_bulk_client_no_migrate(swg_config_no_migrate):
     return swagger_client.BulkApi(swagger_client.ApiClient(swg_config_no_migrate))
 
 
