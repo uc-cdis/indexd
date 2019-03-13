@@ -1246,7 +1246,7 @@ def migrate_11(session, **kwargs):
 
 def migrate_12(session, **kwargs):
     """
-    Copy all rows from the IndexRecordUrlMetadata and IndexRecordMetada tables
+    Copy all rows from the IndexRecordUrlMetadata and IndexRecordMetadata tables
     to the new JSONB tables.
     """
 

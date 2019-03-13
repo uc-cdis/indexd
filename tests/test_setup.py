@@ -1,8 +1,5 @@
 # column name, data type, nullable, default value, primary key
 INDEX_TABLES = {
-    'base_version': [
-        (u'baseid', u'character varying', u'NO', None, u'PRIMARY KEY'),
-    ],
     'index_record': [
         (u'did', u'character varying', u'NO', None, u'PRIMARY KEY'),
         (u'baseid', u'character varying', u'YES', None, None),
@@ -17,14 +14,21 @@ INDEX_TABLES = {
         (u'uploader', u'character varying', u'YES', None, None),
         (u'index_metadata', u'jsonb', u'YES', None, None),
     ],
+    'index_record_ace': [
+        (u'did', u'character varying', 'NO', None, u'PRIMARY KEY'),
+        (u'ace', u'character varying', 'NO', None, u'PRIMARY KEY'),
+    ],
     'index_record_hash': [
         (u'did', u'character varying', 'NO', None, u'PRIMARY KEY'),
         (u'hash_type', u'character varying', 'NO', None, u'PRIMARY KEY'),
         (u'hash_value', u'character varying', 'YES', None, None),
     ],
-    'index_record_url': [
-        (u'did', u'character varying', 'NO', None, u'PRIMARY KEY'),
-        (u'url', u'character varying', 'NO', None, u'PRIMARY KEY'),
+    'index_record_url_metadata_jsonb': [
+        (u'did', u'character varying', u'NO', None, u'PRIMARY KEY'),
+        (u'url', u'character varying', u'NO', None, u'PRIMARY KEY'),
+        (u'type', u'character varying', u'YES', None, None),
+        (u'state', u'character varying', u'YES', None, None),
+        (u'urls_metadata', u'jsonb', u'YES', None, None),
     ],
     'index_schema_version': [
         (u'version', u'integer', 'NO', None, 'PRIMARY KEY'),

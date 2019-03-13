@@ -532,7 +532,7 @@ def test_driver_update_record_release_number_separate(index_driver, database_con
     count = database_conn.execute("""
         SELECT count(did)
         FROM index_record
-        WHERE index_metadata ->> 'test' = 'value'
+        WHERE index_metadata ? 'release_number'
     """).fetchone()[0]
 
     assert count == 0, 'release number should not be in metadata jsonb'
@@ -554,7 +554,7 @@ def test_driver_update_record_release_number_metadata(index_driver, database_con
     count = database_conn.execute("""
         SELECT count(did)
         FROM index_record
-        WHERE index_metadata ->> 'test' = 'value'
+        WHERE index_metadata ? 'release_number'
     """).fetchone()[0]
 
     assert update_release_number == new_release_number, 'metadata does not match'
