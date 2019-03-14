@@ -1,30 +1,25 @@
 import json
 import uuid
-
-from cdislogging import get_logger
 from contextlib import contextmanager
 
-from sqlalchemy import and_
-from sqlalchemy import String
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import BigInteger
-from sqlalchemy import ForeignKey
-from sqlalchemy import create_engine
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.exc import MultipleResultsFound
+from cdislogging import get_logger
+from sqlalchemy import BigInteger, Column, ForeignKey, Integer, String, and_
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd import alias
 from indexd.alias.driver import AliasDriverABC
-
-from indexd.alias.errors import NoRecordFound
-from indexd.alias.errors import MultipleRecordsFound
-from indexd.alias.errors import RevisionMismatch
-from indexd.utils import migrate_database, init_schema_version, is_empty_database
-
+from indexd.alias.errors import (
+    MultipleRecordsFound,
+    NoRecordFound,
+    RevisionMismatch,
+)
+from indexd.utils import (
+    init_schema_version,
+    is_empty_database,
+    migrate_database,
+)
 
 Base = declarative_base()
 
@@ -292,7 +287,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
 
 def migrate_1(session, **kwargs):
     session.execute(
-        "ALTER TABLE {} ALTER COLUMN size TYPE bigint;"
+        "ALTER TABLE {} ALTER COLUMN size TYPE bigint"
         .format(AliasRecord.__tablename__))
 
 

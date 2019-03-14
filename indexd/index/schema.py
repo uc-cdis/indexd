@@ -6,7 +6,8 @@ POST_RECORD_SCHEMA = {
   "required": [
     "size",
     "hashes",
-    "urls",
+    "urls",             # Backward compatibility with indexclient
+    "urls_metadata",
     "form"
   ],
   "properties": {
