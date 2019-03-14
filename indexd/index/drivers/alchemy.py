@@ -218,9 +218,9 @@ class IndexRecordUrlMetadata(Base):
     """
 
     __tablename__ = 'index_record_url_metadata'
-    did = Column(String, index=True, primary_key=True)
-    url = Column(String, primary_key=True)
     key = Column(String, primary_key=True)
+    url = Column(String, primary_key=True)
+    did = Column(String, index=True, primary_key=True)
     value = Column(String)
     __table_args__ = (
         ForeignKeyConstraint(['did', 'url'],
@@ -1242,6 +1242,8 @@ def migrate_11(session, **kwargs):
     session.execute("ALTER TABLE index_record ADD COLUMN release_number VARCHAR")
     session.execute("ALTER TABLE index_record ADD COLUMN index_metadata jsonb")
     session.execute("ALTER TABLE index_record DROP CONSTRAINT index_record_baseid_fkey")
+    session.execute("ALTER TABLE index_record_metadata DROP CONSTRAINT index_record_metadata_did_fkey")
+    session.execute("ALTER TABLE index_record_url DROP CONSTRAINT index_record_url_did_fkey")
 
 
 def migrate_12(session, **kwargs):
