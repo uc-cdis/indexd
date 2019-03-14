@@ -122,6 +122,7 @@ def init_schema_version(driver, model, version):
         version (int): current version number in database
     """
     with driver.session as s:
+        # import pdb; pdb.set_trace()
         schema_version = s.query(model).first()
         if not schema_version:
             schema_version = model(version=version)
