@@ -121,9 +121,9 @@ def create_tables_no_migrate(
 
 
 @pytest.fixture
-def indexd_client(create_tables):
+def indexd_client(indexd_server, create_tables):
     """Create the tables and add an auth user"""
-    return IndexClient('localhost:8001', auth=('admin', 'admin'))
+    return IndexClient('http://localhost:8001', auth=('admin', 'admin'))
 
 
 @pytest.fixture(scope='session')
