@@ -1,124 +1,135 @@
-import sqlite3
-
-import tests.util as util
-
-from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
-from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
-
-
-OLD_SQLITE = sqlite3.sqlite_version_info < (3, 7, 16)
-
-INDEX_HOST = 'index.sq3'
-ALIAS_HOST = 'alias.sq3'
-
+# column name, data type, nullable, default value, primary key
 INDEX_TABLES = {
-    'base_version': [
-        (0, u'baseid', u'VARCHAR', 1, None, 1),
-    ],
     'index_record': [
-        (0, u'did', u'VARCHAR', 1, None, 1),
-        (1, u'baseid', u'VARCHAR', 0, None, 0),
-        (2, u'rev', u'VARCHAR', 0, None, 0),
-        (3, u'form', u'VARCHAR', 0, None, 0),
-        (4, u'size', u'BIGINT', 0, None, 0),
-        (5, u'created_date', u'DATETIME', 0, None, 0),
-        (6, u'updated_date', u'DATETIME', 0, None, 0),
-        (7, u'file_name', u'VARCHAR', 0, None, 0),
-        (8, u'version', u'VARCHAR', 0, None, 0),
-        (9, u'uploader', u'VARCHAR', 0, None, 0),
+        (u'did', u'character varying', u'NO', None, u'PRIMARY KEY'),
+        (u'baseid', u'character varying', u'YES', None, None),
+        (u'rev', u'character varying', u'YES', None, None),
+        (u'form', u'character varying', u'YES', None, None),
+        (u'size', u'bigint',  u'YES', None, None),
+        (u'release_number', u'character varying', u'YES', None, None),
+        (u'created_date', u'timestamp without time zone', u'YES', None, None),
+        (u'updated_date', u'timestamp without time zone', u'YES', None, None),
+        (u'file_name', u'character varying', u'YES', None, None),
+        (u'version', u'character varying', u'YES', None, None),
+        (u'uploader', u'character varying', u'YES', None, None),
+        (u'index_metadata', u'jsonb', u'YES', None, None),
+    ],
+    'index_record_ace': [
+        (u'did', u'character varying', 'NO', None, u'PRIMARY KEY'),
+        (u'ace', u'character varying', 'NO', None, u'PRIMARY KEY'),
     ],
     'index_record_hash': [
-        (0, u'did', u'VARCHAR', 1, None, 1),
-        (1, u'hash_type', u'VARCHAR', 1, None, 1 if OLD_SQLITE else 2),
-        (2, u'hash_value', u'VARCHAR', 0, None, 0),
+        (u'did', u'character varying', 'NO', None, u'PRIMARY KEY'),
+        (u'hash_type', u'character varying', 'NO', None, u'PRIMARY KEY'),
+        (u'hash_value', u'character varying', 'YES', None, None),
     ],
-    'index_record_url': [
-        (0, u'did', u'VARCHAR', 1, None, 1),
-        (1, u'url', u'VARCHAR', 1, None, 1 if OLD_SQLITE else 2),
+    'index_record_url_metadata_jsonb': [
+        (u'did', u'character varying', u'NO', None, u'PRIMARY KEY'),
+        (u'url', u'character varying', u'NO', None, u'PRIMARY KEY'),
+        (u'type', u'character varying', u'YES', None, None),
+        (u'state', u'character varying', u'YES', None, None),
+        (u'urls_metadata', u'jsonb', u'YES', None, None),
     ],
     'index_schema_version': [
-        (0, u'version', u'INTEGER', 1, None, 1),
+        (u'version', u'integer', 'NO', None, 'PRIMARY KEY'),
     ],
 }
 
+# column name, data type, nullable, default value, primary key
 ALIAS_TABLES = {
     'alias_record': [
-        (0, u'name', u'VARCHAR', 1, None, 1),
-        (1, u'rev', u'VARCHAR', 0, None, 0),
-        (2, u'size', u'BIGINT', 0, None, 0),
-        (3, u'release', u'VARCHAR', 0, None, 0),
-        (4, u'metastring', u'VARCHAR', 0, None, 0),
-        (5, u'keeper_authority', u'VARCHAR', 0, None, 0),
+        (u'name', u'character varying', u'NO', None, u'PRIMARY KEY'),
+        (u'rev', u'character varying', u'YES', None, None),
+        (u'size', u'bigint',  u'YES', None, None),
+        (u'release', u'character varying', u'YES', None, None),
+        (u'metastring', u'character varying', u'YES', None, None),
+        (u'keeper_authority', u'character varying', u'YES', None, None),
     ],
     'alias_record_hash': [
-        (0, u'name', u'VARCHAR', 1, None, 1),
-        (1, u'hash_type', u'VARCHAR', 1, None, 1 if OLD_SQLITE else 2),
-        (2, u'hash_value', u'VARCHAR', 0, None, 0)
+        (u'name', u'character varying', u'NO', None, u'PRIMARY KEY'),
+        (u'hash_type', u'character varying', u'NO', None, u'PRIMARY KEY'),
+        (u'hash_value', u'character varying', u'YES', None, None)
     ],
     'alias_record_host_authority': [
-        (0, u'name', u'VARCHAR', 1, None, 1),
-        (1, u'host', u'VARCHAR', 1, None, 1 if OLD_SQLITE else 2),
+        (u'name', u'character varying', u'NO', None, u'PRIMARY KEY'),
+        (u'host', u'character varying', u'NO', None, u'PRIMARY KEY'),
     ],
     'alias_schema_version': [
-        (0, u'version', u'INTEGER', 1, None, 1),
+        (u'version', u'integer', u'NO', u"nextval('alias_schema_version_version_seq'::regclass)", u'PRIMARY KEY'),
     ],
 }
 
-INDEX_CONFIG = {
-    'driver': SQLAlchemyIndexDriver('sqlite:///index.sq3'),
-}
 
-ALIAS_CONFIG = {
-    'driver': SQLAlchemyAliasDriver('sqlite:///alias.sq3'),
-}
+def test_postgres_index_setup_tables(index_driver, database_conn):
+    """
+    Tests that the postgres index database gets set up correctly.
+    """
+
+    # postgres
+    c = database_conn.execute("""
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema='public'
+        AND table_type='BASE TABLE'
+    """)
+
+    tables = [i[0] for i in c]
+
+    for table in INDEX_TABLES:
+        assert table in tables, '{table} not created'.format(table=table)
+
+    for table, schema in INDEX_TABLES.items():
+        # Index, column name, data type, nullable, default value, primary key
+        c = database_conn.execute("""
+            SELECT col.column_name, col.data_type, col.is_nullable,
+                col.column_default, c.constraint_type
+            FROM information_schema.columns col
+            left JOIN (
+                SELECT column_name, constraint_type
+                FROM information_schema.table_constraints
+                NATURAL JOIN information_schema.constraint_table_usage
+                NATURAL JOIN information_schema.constraint_column_usage
+                WHERE table_name = '{table}'
+                ) c
+            ON col.column_name =  c.column_name
+            WHERE table_name = '{table}'
+        """.format(table=table))
+
+        assert schema == [i for i in c]
 
 
-@util.removes(INDEX_HOST)
-def test_sqlite3_index_setup_tables():
-    '''
-    Tests that the SQLite3 index database gets set up correctly.
-    '''
-    SQLAlchemyIndexDriver('sqlite:///index.sq3')
+def test_postgres_alias_setup_tables(alias_driver, database_conn):
+    """
+    Tests that the postgres alias database gets set up correctly.
+    """
 
-    with sqlite3.connect(INDEX_HOST) as conn:
-        c = conn.execute('''
-            SELECT name FROM sqlite_master WHERE type = 'table'
-        ''')
+    c = database_conn.execute("""
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema='public'
+        AND table_type='BASE TABLE'
+    """)
 
-        tables = [i[0] for i in c]
+    tables = [i[0] for i in c]
 
-        for table in INDEX_TABLES:
-            assert table in tables, '{table} not created'.format(table=table)
+    for table in ALIAS_TABLES:
+        assert table in tables, '{table} not created'.format(table=table)
 
-        for table, schema in INDEX_TABLES.items():
-            # NOTE PRAGMA's don't work with parameters...
-            c = conn.execute('''
-                PRAGMA table_info ('{table}')
-            '''.format(table=table))
+    for table, schema in ALIAS_TABLES.items():
+        # Index, column name, data type, nullable, default value, primary key
+        c = database_conn.execute("""
+            SELECT col.column_name, col.data_type, col.is_nullable,
+                col.column_default, c.constraint_type
+            FROM information_schema.columns col
+            left JOIN (
+                SELECT column_name, constraint_type
+                FROM information_schema.table_constraints
+                NATURAL JOIN information_schema.constraint_table_usage
+                NATURAL JOIN information_schema.constraint_column_usage
+                WHERE table_name = '{table}'
+                ) c
+            ON col.column_name =  c.column_name
+            WHERE table_name = '{table}'
+        """.format(table=table))
 
-            assert schema == [i for i in c]
-
-@util.removes(ALIAS_HOST)
-def test_sqlite3_alias_setup_tables():
-    '''
-    Tests that the SQLite3 alias database gets set up correctly.
-    '''
-    SQLAlchemyAliasDriver('sqlite:///alias.sq3')
-
-    with sqlite3.connect(ALIAS_HOST) as conn:
-        c = conn.execute('''
-            SELECT name FROM sqlite_master WHERE type = 'table'
-        ''')
-
-        tables = [i[0] for i in c]
-
-        for table in ALIAS_TABLES:
-            assert table in tables, '{table} not created'.format(table=table)
-
-        for table, schema in ALIAS_TABLES.items():
-            # NOTE PRAGMA's don't work with parameters...
-            c = conn.execute('''
-                PRAGMA table_info ('{table}')
-            '''.format(table=table))
-
-            assert schema == [i for i in c]
+        assert schema == [i for i in c]

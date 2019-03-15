@@ -2,27 +2,23 @@ import json
 
 import pytest
 
-from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 from swagger_client.rest import ApiException
+from tests.util import assert_blank
 
 
-def get_doc(
-        has_metadata=True, has_baseid=False,
-        has_urls_metadata=False, has_version=False):
+def get_doc(has_metadata=True, has_baseid=False,has_version=False):
     doc = {
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
+        'urls_metadata': {'s3://endpointurl/bucket/key': {'state': 'uploaded'}},
     }
     if has_metadata:
         doc['metadata'] = {'project_id': 'bpa-UChicago'}
     if has_baseid:
         doc['baseid'] = 'e044a62c-fd60-4203-b1e5-a62d1005f027'
-    if has_urls_metadata:
-        doc['urls_metadata'] = {
-            's3://endpointurl/bucket/key': {'state': 'uploaded'}}
     if has_version:
         doc['version'] = '1'
     return doc
@@ -48,7 +44,9 @@ def test_index_list_with_params(swg_index_client):
     }
     data2['urls'] = ['s3://endpointurl/bucket/key_2', 's3://anotherurl/bucket/key_2']
     data2['urls_metadata'] = {
-        's3://endpointurl/bucket/key_2': {'state': 'error', 'other': 'xxx'}}
+        's3://endpointurl/bucket/key_2': {'state': 'error', 'other': 'xxx'},
+        's3://anotherurl/bucket/key_2': {'state': 'error', 'other': 'xxx'},
+    }
     r_2 = swg_index_client.add_entry(data2)
     r = swg_index_client.list_entries(metadata='project_id:bpa-UChicago')
     ids = [record.did for record in r.records]
@@ -79,23 +77,28 @@ def test_index_list_with_params(swg_index_client):
     r = swg_index_client.list_entries(limit=2, urls_metadata=json.dumps(param))
     assert len(r.records) == 2
 
+
 def test_index_list_with_params_negate(swg_index_client):
     data = get_doc()
+    data['urls_metadata']['s3://endpointurl/bucket/key'] = {}
     r_1 = swg_index_client.add_entry(data)
 
     data['metadata'] = {'testkey': 'test', 'project_id': 'negate-project'}
     r_2 = swg_index_client.add_entry(data)
 
-    data['urls'] = ['s3://endpointurl/bucket_2/key_2', 's3://anotherurl/bucket_2/key_2']
-    data['urls_metadata'] = {'s3://endpointurl/bucket_2/key_2': {'state': 'error'}}
+    data['urls_metadata'] = {
+        's3://endpointurl/bucket_2/key_2': {'state': 'error'},
+        's3://endpointurl/bucket_3/key_3': {'state': 'error'},
+    }
+    data['urls'] = sorted(data['urls_metadata'].keys())
     r_3 = swg_index_client.add_entry(data)
 
-    data['urls'] = ['s3://endpointurl/bucket_2/key_2']
     data['urls_metadata'] = {'s3://endpointurl/bucket_2/key_2': {'no_state': 'uploaded'}}
+    data['urls'] = sorted(data['urls_metadata'].keys())
     r_4 = swg_index_client.add_entry(data)
 
-    data['urls'] = ['s3://anotherurl/bucket/key']
     data['urls_metadata'] = {'s3://anotherurl/bucket/key': {'state': 'error'}}
+    data['urls'] = sorted(data['urls_metadata'].keys())
     r_5 = swg_index_client.add_entry(data)
 
     negate_params = {'metadata': {'testkey': ''}}
@@ -129,13 +132,14 @@ def test_index_list_with_params_negate(swg_index_client):
     negate_params = {'urls_metadata': {'s3://endpointurl/': {'state': ''}, 's3://anotherurl/': {}}}
     r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
     ids = {record.did for record in r.records}
-    assert ids == {r_4.did}
+    assert ids == {r_1.did, r_2.did, r_3.did, r_4.did}
 
     # negate url_metadata value
     negate_params = {'urls_metadata': {'s3://endpointurl/': {'state': 'uploaded'}}}
     r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
     ids = {record.did for record in r.records}
-    assert ids == {r_3.did, r_4.did, r_5.did}
+    assert ids == {r_1.did, r_2.did, r_3.did, r_4.did, r_5.did}
+
 
 def test_list_entries_with_uploader(swg_index_client):
     """
@@ -301,6 +305,7 @@ def test_get_empty_acl_record_after_fill_size_n_hash(swg_index_client):
         'size': 4,
         'hashes': {'md5': '1b9942cf415384b27cadf1f4d2d981f5'},
         'urls': ['s3://example/2'],
+        'urls_metadata': {'s3://example/2': {}},
     }
     swg_index_client.update_blank_entry(r3.did, rev=r3.rev, body=updated)
 
@@ -320,7 +325,7 @@ def test_get_empty_acl_record_after_fill_size_n_hash(swg_index_client):
     assert {r.records[0].did, r.records[1].did} == {did2, did3}
 
 def test_urls_metadata(swg_index_client):
-    data = get_doc(has_urls_metadata=True)
+    data = get_doc()
     result = swg_index_client.add_entry(data)
 
     doc = swg_index_client.get_entry(result.did)
@@ -382,7 +387,7 @@ def test_urls_metadata_partial_match(swg_index_client, doc_urls, urls_meta,
                                      params, expected):
     url_doc_mapping = {}
     for url_group in doc_urls:
-        data = get_doc(has_urls_metadata=True)
+        data = get_doc()
         data['urls'] = url_group
         data['urls_metadata'] = {}
         for url in url_group:
@@ -401,7 +406,7 @@ def test_urls_metadata_partial_match(swg_index_client, doc_urls, urls_meta,
 
 
 def test_get_urls(swg_index_client, swg_global_client):
-    data = get_doc(has_urls_metadata=True)
+    data = get_doc()
     result = swg_index_client.add_entry(data)
 
     result = swg_global_client.list_urls(ids=result.did)
@@ -514,7 +519,11 @@ def test_index_create_with_acl(swg_index_client):
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'}}
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d682e5'},
+        'urls_metadata': {
+            's3://endpointurl/bucket/key': {'state': 'uploaded'},
+        },
+    }
 
     r = swg_index_client.add_entry(data)
     result = swg_index_client.get_entry(r.did)
@@ -614,8 +623,8 @@ def test_index_update(swg_index_client):
     assert r.rev
     assert swg_index_client.get_entry(r.did).metadata == data['metadata']
     dataNew = get_doc()
-    del dataNew['hashes']
-    del dataNew['size']
+    dataNew['hashes']['md5'] = '8b9942cf415384b27cadf1f4d2d682e4'
+    dataNew['size']  = 321
     del dataNew['form']
     dataNew['metadata'] = {'test': 'abcd'}
     dataNew['version'] = 'ver123'
@@ -625,6 +634,8 @@ def test_index_update(swg_index_client):
     result = swg_index_client.get_entry(r.did)
     assert result.metadata == dataNew['metadata']
     assert result.acl == dataNew['acl']
+    assert result.hashes.md5 == dataNew['hashes']['md5']
+    assert result.size == 321
 
     data = get_doc()
     data['did'] = 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d'
@@ -695,6 +706,9 @@ def test_create_index_version(swg_index_client):
         'urls': ['s3://endpointurl/bucket2/key'],
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
         'acl': ['a'],
+        'urls_metadata': {
+            's3://endpointurl/bucket2/key': {'state': 'uploaded'},
+        },
     }
 
     r2 = swg_index_client.add_new_version(r.did, body=dataNew)
@@ -822,7 +836,10 @@ def test_good_hashes(client, user, typ, h):
         'urls': ['s3://endpointurl/bucket/key'],
         'file_name': 'abc',
         'version': 'ver_123',
-        'hashes': {typ: h}
+        'hashes': {typ: h},
+        'urls_metadata': {
+            's3://endpointurl/bucket/key': {'state': 'uploaded'},
+        }
     }
 
     resp = client.post('/index/', data=json.dumps(data), headers=user)
@@ -852,7 +869,10 @@ def test_bad_hashes(client, user, typ, h):
         'urls': ['s3://endpointurl/bucket/key'],
         'file_name': 'abc',
         'version': 'ver_123',
-        'hashes': {typ: h}
+        'hashes': {typ: h},
+        'urls_metadata': {
+            's3://endpointurl/bucket/key': {'state': 'uploaded'},
+        }
     }
 
     resp = client.post('/index/', data=json.dumps(data), headers=user)
@@ -866,7 +886,7 @@ def test_bad_hashes(client, user, typ, h):
         assert 'does not match' in json_resp['error']
 
 def test_dos_get(swg_index_client, swg_dos_client):
-    data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
+    data = get_doc(has_metadata=True, has_baseid=True)
 
     result = swg_index_client.add_entry(data)
     r = swg_dos_client.get_data_object(result.did)
@@ -882,7 +902,7 @@ def test_dos_get(swg_index_client, swg_dos_client):
 
 
 def test_dos_list(swg_index_client, swg_dos_client):
-    data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
+    data = get_doc(has_metadata=True, has_baseid=True)
 
     result = swg_index_client.add_entry(data)
     r = swg_dos_client.list_data_objects(page_size=100)
@@ -898,7 +918,7 @@ def test_dos_list(swg_index_client, swg_dos_client):
 
 def test_update_without_changing_fields(swg_index_client):
     # setup test
-    data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
+    data = get_doc(has_metadata=True, has_baseid=True)
 
     result = swg_index_client.add_entry(data)
     first_doc = swg_index_client.get_entry(result.did)
@@ -928,8 +948,8 @@ def test_update_without_changing_fields(swg_index_client):
     # Only `version` changed.
     assert second_doc.version != third_doc.version
 
-def test_bulk_get_documents(swg_index_client, swg_bulk_client):
 
+def test_bulk_get_documents(swg_index_client, swg_bulk_client):
     # just make a bunch of entries in indexd
     dids = [
         swg_index_client.add_entry(get_doc(has_baseid=True)).did
@@ -942,3 +962,77 @@ def test_bulk_get_documents(swg_index_client, swg_bulk_client):
     # compare that they are the same by did
     for doc in docs:
         assert doc['did'] in dids
+
+
+def test_special_case_metadata_get_and_set(swg_index_client):
+    """
+    doc[metadata][release_number] is a special case in indexd. This has been
+    copied to the main section of the indexd blob. The value is kept in the old
+    location for backward compatibility reasons.
+
+    Remove that part of the test if we remove the old location.
+    """
+    # release_number only, no extra metadata
+    blob = get_doc(has_metadata=False)
+    blob['metadata'] = {'release_number': '12.0'}
+    did = swg_index_client.add_entry(blob).did
+
+    doc = swg_index_client.get_entry(did).to_dict()
+    assert 'release_number' in doc
+    assert doc['release_number'] == '12.0'
+    assert 'release_number' in doc['metadata']
+    assert doc['metadata']['release_number'] == '12.0'
+
+    # Extra metadata with release_number
+    blob = get_doc(has_metadata=True)
+    blob['metadata']['release_number'] = '12.0'
+    did = swg_index_client.add_entry(blob).did
+
+    doc = swg_index_client.get_entry(did).to_dict()
+    assert 'release_number' in doc
+    assert doc['release_number'] == '12.0'
+    assert 'release_number' in doc['metadata']
+    assert doc['metadata']['release_number'] == '12.0'
+
+
+def test_special_case_metadata_get_latest(swg_index_client):
+    # release_number only, no extra metadata
+
+    dataNew = {
+        'did': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        'form': 'object',
+        'size': 244,
+        'urls': ['s3://endpointurl/bucket2/key'],
+        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
+        'acl': ['a'],
+        'urls_metadata': {
+            's3://endpointurl/bucket2/key': {'state': 'uploaded'},
+        },
+    }
+
+    blob = get_doc(has_metadata=False)
+    blob['metadata'] = {'release_number': '12.0'}
+    did = swg_index_client.add_entry(blob).did
+    blob['did'] = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+    blob['metadata'] = {'release_number': '13.0'}
+    new_did = swg_index_client.add_new_version(did, body=blob).did
+
+    doc = swg_index_client.get_latest_version(new_did).to_dict()
+    assert 'release_number' in doc
+    assert doc['release_number'] == '13.0'
+    assert 'release_number' in doc['metadata']
+    assert doc['metadata']['release_number'] == '13.0'
+
+    # Extra metadata with release_number
+    blob = get_doc(has_metadata=True)
+    blob['metadata']['release_number'] = '12.0'
+    did = swg_index_client.add_entry(blob).did
+    blob['did'] = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+    blob['metadata']['release_number'] = '13.0'
+    new_did = swg_index_client.add_new_version(did, body=blob).did
+
+    doc = swg_index_client.get_latest_version(new_did).to_dict()
+    assert 'release_number' in doc
+    assert doc['release_number'] == '13.0'
+    assert 'release_number' in doc['metadata']
+    assert doc['metadata']['release_number'] == '13.0'

@@ -6,7 +6,7 @@ from tests.test_client import get_doc
 
 
 @pytest.fixture(scope="function")
-def test_data(swg_index_client):
+def test_data(swg_index_client, create_tables):
     system_random = random.SystemRandom()
     url_x_count = system_random.randint(2, 5)
 
@@ -15,7 +15,7 @@ def test_data(swg_index_client):
 
     versioned_count = system_random.randint(5, 10)
     for _ in range(versioned_count):
-        doc = get_doc(has_urls_metadata=True, has_version=True)
+        doc = get_doc(has_version=True)
         if url_x_type > 0:
             doc["urls"].append(url_x)
             doc["urls_metadata"][url_x] = {"state": "uploaded"}
@@ -25,7 +25,7 @@ def test_data(swg_index_client):
     url_x_type = url_x_count
     unversioned_count = system_random.randint(6, 10)
     for _ in range(unversioned_count):
-        doc = get_doc(has_urls_metadata=True)
+        doc = get_doc()
         if url_x_type > 0:
             doc["urls"].append(url_x)
             doc["urls_metadata"][url_x] = {"state": "uploaded"}
@@ -34,7 +34,7 @@ def test_data(swg_index_client):
     return url_x_count, versioned_count, unversioned_count
 
 
-def test_query_urls(swg_index_client, swg_query_client, test_data):
+def test_query_urls(swg_index_client, swg_query_client, test_data, create_tables):
     """
     Args:
         swg_index_client (swagger_client.api.indexurls_api.IndexApi):

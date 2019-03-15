@@ -984,8 +984,14 @@ definitions:
   UpdateInputInfo:
     type: object
     properties:
+      hashes:
+        $ref: '#/definitions/HashInfo'
       file_name:
         type: string
+      size:
+        type: integer
+        format: int64
+        description: size in bytes
       metadata:
         type: object
       urls_metadata:
@@ -1011,6 +1017,9 @@ definitions:
         type: array
         items:
           type: string
+      urls_metadata:
+        type: object
+        description: url level metadata
   OutputRef:
     type: object
     properties:
@@ -1137,6 +1146,8 @@ definitions:
         description: size in bytes
       file_name:
         type: string
+      release_number:
+        type: string
       version:
         type: string
       uploader:
@@ -1164,7 +1175,7 @@ definitions:
         description: user defined optional metadata
       urls_metadata:
         type: object
-        description: url level optional metadata
+        description: url level metadata
   SystemVersionOutputRef:
     type: object
     properties:
@@ -1456,6 +1467,8 @@ definitions:
           type: string
       hashes:
         $ref: '#/definitions/HashInfo'
+      release_number:
+        type: string
       metadata:
         type: object
       version:

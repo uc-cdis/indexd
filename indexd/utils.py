@@ -1,17 +1,22 @@
 import logging
 import re
 
-def hint_match(record, hints):
-    for hint in hints:
-        if re.match(hint, record):
-           return True
-    return False
-
 from sqlalchemy import create_engine
 from sqlalchemy.engine.reflection import Inspector
 
-def try_drop_test_data(user, database, root_user='postgres', host=''):
 
+def hint_match(record, hints):
+    for hint in hints:
+        if re.match(hint, record):
+            return True
+    return False
+
+
+def try_drop_test_data(
+        database='indexd_test', root_user='postgres', host='localhost'):
+
+    # Using an engine that connects to the `postgres` database allows us to
+    # create a new database.
     engine = create_engine("postgres://{user}@{host}/postgres".format(
         user=root_user, host=host))
 
@@ -21,20 +26,23 @@ def try_drop_test_data(user, database, root_user='postgres', host=''):
     try:
         create_stmt = 'DROP DATABASE "{database}"'.format(database=database)
         conn.execute(create_stmt)
-    except Exception:
-        logging.warn("Unable to drop test data:")
+    except Exception as e:
+        logging.warn("Unable to drop test data: %s", e)
 
     conn.close()
+    engine.dispose()
 
-def setup_database(user, password, database, root_user='postgres',
-                   host='', no_drop=False, no_user=False):
-    """
-    setup the user and database
-    """
+
+def setup_database(
+        user='test', password='test', database='indexd_test',
+        root_user='postgres', host='localhost', no_drop=False, no_user=False):
+    """Setup the user and database"""
 
     if not no_drop:
-        try_drop_test_data(user, database)
+        try_drop_test_data(database)
 
+    # Create an engine connecting to the `postgres` database allows us to
+    # create a new database from there.
     engine = create_engine("postgres://{user}@{host}/postgres".format(
         user=root_user, host=host))
     conn = engine.connect()
@@ -56,8 +64,8 @@ def setup_database(user, password, database, root_user='postgres',
                         ''.format(database=database, password=password)
             conn.execute(perm_stmt)
             conn.execute("commit")
-        except Exception:
-            logging.warn("Unable to add user:")
+        except Exception as e:
+            logging.warn("Unable to add user: %s", e)
     conn.close()
 
 
@@ -88,8 +96,9 @@ def create_tables(host, user, password, database):
         logging.warn('Unable to create table')
     conn.close()
 
+
 def check_engine_for_migrate(engine):
-    '''
+    """
     check if a db engine support database migration
 
     Args:
@@ -97,12 +106,12 @@ def check_engine_for_migrate(engine):
 
     Return:
         bool: whether the engine support migration
-    '''
+    """
     return engine.dialect.supports_alter
 
 
 def init_schema_version(driver, model, version):
-    '''
+    """
     initialize schema table with a initialized singleton of version
 
     Args:
@@ -111,7 +120,7 @@ def init_schema_version(driver, model, version):
 
     Return:
         version (int): current version number in database
-    '''
+    """
     with driver.session as s:
         schema_version = s.query(model).first()
         if not schema_version:
@@ -122,7 +131,7 @@ def init_schema_version(driver, model, version):
 
 
 def migrate_database(driver, migrate_functions, current_schema_version, model):
-    '''
+    """
     migrate current database to match the schema version provided in
     current schema
 
@@ -134,7 +143,7 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
 
     Return:
         None
-    '''
+    """
     db_schema_version = init_schema_version(driver, model, 0)
 
     need_migrate = (current_schema_version - db_schema_version) > 0
@@ -155,19 +164,19 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
 
             f(engine=driver.engine, session=s)
             s.add(schema_version)
+            driver.logger.info('finished migration for version {}'.format(
+                schema_version.version))
+
 
 def is_empty_database(driver):
-    '''
+    """
     check if the database is empty or not
     Args:
         driver (object): an alias or index driver instance
 
     Returns:
         Boolean
-    '''
+    """
     table_list = Inspector.from_engine(driver.engine).get_table_names()
 
     return len(table_list) == 0
-
-
-

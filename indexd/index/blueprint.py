@@ -1,23 +1,21 @@
-import re
+import copy
 import json
+import re
+
 import flask
 import jsonschema
-import os.path
-import subprocess
-from .version_data import VERSION, COMMIT
 
 from indexd.auth import authorize
+from indexd.errors import AuthError, UserError
 
-from indexd.errors import AuthError
-from indexd.errors import UserError
-
-from .schema import PUT_RECORD_SCHEMA
-from .schema import POST_RECORD_SCHEMA
-
-from .errors import NoRecordFound
-from .errors import MultipleRecordsFound
-from .errors import RevisionMismatch
-from .errors import UnhealthyCheck
+from .errors import (
+    MultipleRecordsFound,
+    NoRecordFound,
+    RevisionMismatch,
+    UnhealthyCheck,
+)
+from .schema import POST_RECORD_SCHEMA, PUT_RECORD_SCHEMA
+from .version_data import COMMIT, VERSION
 
 blueprint = flask.Blueprint('index', __name__)
 
@@ -34,6 +32,23 @@ ACCEPTABLE_HASHES = {
 }
 
 
+def separate_metadata(metadata):
+    """Separate release_number from the incoming metadata json blob.
+
+    release_number was removed from the metadata key value pair/jsonb
+    object. To preserve backwards compatibility this field is still ingested
+    through the metadata field. We have to manually separate them and
+    later combine them to maintain compatibility with the current indexclient.
+    """
+
+    metadata = copy.deepcopy(metadata)
+    release_number = None
+    # Metadata might be None, we have to check before popping.
+    if metadata:
+        release_number = metadata.pop('release_number', None)
+    return release_number, metadata
+
+
 def validate_hashes(**hashes):
     '''
     Validate hashes against known and valid hashing algorithms.
@@ -43,6 +58,20 @@ def validate_hashes(**hashes):
 
     if not all(ACCEPTABLE_HASHES[h](v) for h, v in hashes.items()):
         raise UserError('invalid hash values specified')
+
+
+def get_urls_metadata():
+    """Verify and return urls_metadata from flask request object.
+
+    Validate the urls and urls_metadata object by comparing their contents, but
+    not the order of the contents.
+    """
+    urls = flask.request.json.get('urls', [])
+    urls_metadata = flask.request.json.get('urls_metadata', {})
+    if not sorted(urls) == sorted(urls_metadata.keys()):
+        raise UserError('urls and urls_metadata mismatch')
+
+    return urls_metadata
 
 
 @blueprint.route('/index/', methods=['GET'])
@@ -93,6 +122,7 @@ def get_index():
 
     metadata = flask.request.args.getlist('metadata')
     metadata = {k: v for k, v in map(lambda x: x.split(':', 1), metadata)}
+    release_number, metadata = separate_metadata(metadata)
 
     acl = flask.request.args.get('acl')
     if acl is not None:
@@ -126,9 +156,10 @@ def get_index():
         hashes=hashes,
         uploader=uploader,
         ids=ids,
+        release_number=release_number,
         metadata=metadata,
         urls_metadata=urls_metadata,
-        negate_params=negate_params
+        negate_params=negate_params,
     )
 
     base = {
@@ -228,16 +259,16 @@ def post_index_record():
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
+    urls_metadata = get_urls_metadata()
     did = flask.request.json.get('did')
     form = flask.request.json['form']
     size = flask.request.json['size']
-    urls = flask.request.json['urls']
     acl = flask.request.json.get('acl', [])
 
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
     metadata = flask.request.json.get('metadata')
-    urls_metadata = flask.request.json.get('urls_metadata')
+    release_number, metadata = separate_metadata(metadata)
     version = flask.request.json.get('version')
     baseid = flask.request.json.get('baseid')
     uploader = flask.request.json.get('uploader')
@@ -247,10 +278,11 @@ def post_index_record():
         did,
         size=size,
         file_name=file_name,
+        release_number=release_number,
         metadata=metadata,
         urls_metadata=urls_metadata,
         version=version,
-        urls=urls,
+        urls=urls_metadata.keys(),
         acl=acl,
         hashes=hashes,
         baseid=baseid,
@@ -296,20 +328,26 @@ def post_index_blank_record():
 @blueprint.route('/index/blank/<path:record>', methods=['PUT'])
 @authorize
 def put_index_blank_record(record):
-    '''
+    """
     Update a blank record with size, hashes and url
-    '''
+
+    Because this is a blank record, it does not follow the POST_RECORD_SCHEMA
+    used by the jsonschema validator.
+
+    This is currently not used by indexclient.
+    """
+
+    urls_metadata = get_urls_metadata()
     rev = flask.request.args.get('rev')
     size = flask.request.get_json().get('size')
     hashes = flask.request.get_json().get('hashes')
-    urls = flask.request.get_json().get('urls')
 
     did, rev, baseid = blueprint.index_driver.update_blank_record(
         did=record,
         rev=rev,
         size=size,
         hashes=hashes,
-        urls=urls,
+        urls_metadata=urls_metadata,
     )
     ret = {
         'did': did,
@@ -373,15 +411,16 @@ def add_index_record_version(record):
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
+    urls_metadata = get_urls_metadata()
+
     new_did = flask.request.json.get('did')
     form = flask.request.json['form']
     size = flask.request.json['size']
-    urls = flask.request.json['urls']
     acl = flask.request.json.get('acl', [])
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
     metadata = flask.request.json.get('metadata')
-    urls_metadata = flask.request.json.get('urls_metadata')
+    release_number, metadata = separate_metadata(metadata)
     version = flask.request.json.get('version')
 
     did, baseid, rev = blueprint.index_driver.add_version(
@@ -389,9 +428,10 @@ def add_index_record_version(record):
         form,
         new_did=new_did,
         size=size,
-        urls=urls,
+        urls=urls_metadata.keys(),
         acl=acl,
         file_name=file_name,
+        release_number=release_number,
         metadata=metadata,
         urls_metadata=urls_metadata,
         version=version,

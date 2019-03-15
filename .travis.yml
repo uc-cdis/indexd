@@ -3,10 +3,12 @@ language: python
 python:
   - "2.7"
   - "3.4"
+
 addons:
   apt:
     packages:
       - oracle-java8-set-default
+  postgresql: '9.4'
 
 sudo: false
 
