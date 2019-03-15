@@ -923,14 +923,9 @@ definitions:
       hashes:
         $ref: '#/definitions/HashInfo'
   BulkInputInfo:
-    type: object
-    required:
-      - ids
-    properties:
-      ids:
-        type: array
-        items:
-          type: string
+    type: array
+    items:
+      type: string
   InputInfo:
     type: object
     required:
