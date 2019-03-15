@@ -15,16 +15,16 @@ from indexd.index.drivers.alchemy import (
     Base as index_base,
     SQLAlchemyIndexDriver,
 )
-from indexd_exports import (
+from indexd_fixtures import (
     alias_driver,
     alias_driver_no_migrate,
     auth_driver,
-    create_tables,
-    create_tables_no_migrate,
+    create_indexd_tables,
+    create_indexd_tables_no_migrate,
     index_driver,
     index_driver_no_migrate,
     indexd_server,
-    setup_test_database,
+    setup_indexd_test_database,
 )
 
 PG_URL = 'postgres://test:test@localhost/indexd_test'
@@ -65,7 +65,7 @@ def user(auth_driver):
 
 
 @pytest.fixture
-def swg_config(indexd_server, create_tables):
+def swg_config(indexd_server, create_indexd_tables):
     config = swagger_client.Configuration()
     config.host = 'http://localhost:8001'
     config.username = 'admin'
@@ -74,7 +74,7 @@ def swg_config(indexd_server, create_tables):
 
 
 @pytest.fixture
-def swg_config_no_migrate(indexd_server_no_migrate, create_tables_no_migrate):
+def swg_config_no_migrate(indexd_server_no_migrate, create_indexd_tables_no_migrate):
     config = swagger_client.Configuration()
     config.host = 'http://localhost:8001'
     config.username = 'admin'

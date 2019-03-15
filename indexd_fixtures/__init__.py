@@ -20,7 +20,7 @@ PG_URL = 'postgres://test:test@localhost/indexd_test'
 
 
 @pytest.fixture(scope='session', autouse=True)
-def setup_test_database(request):
+def setup_indexd_test_database(request):
     """Set up the database to be used for the tests.
 
     autouse: every test runs this fixture, without calling it directly
@@ -101,7 +101,7 @@ def alias_driver_no_migrate():
 
 
 @pytest.fixture
-def create_tables(index_driver, alias_driver, auth_driver):
+def create_indexd_tables(index_driver, alias_driver, auth_driver):
     """Make sure the tables are created but don't operate on them directly.
 
     Also set up the password to be accessed by the client tests.
@@ -110,7 +110,7 @@ def create_tables(index_driver, alias_driver, auth_driver):
 
 
 @pytest.fixture
-def create_tables_no_migrate(
+def create_indexd_tables_no_migrate(
         index_driver_no_migrate, alias_driver_no_migrate, auth_driver):
     """Make sure the tables are created but don't operate on them directly.
 
@@ -121,7 +121,7 @@ def create_tables_no_migrate(
 
 
 @pytest.fixture
-def indexd_client(indexd_server, create_tables):
+def indexd_client(indexd_server, create_indexd_tables):
     """Create the tables and add an auth user"""
     return IndexClient('http://localhost:8001', auth=('admin', 'admin'))
 

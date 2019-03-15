@@ -57,7 +57,7 @@ def update_version_table_for_testing(conn, table, val):
     conn.commit()
 
 
-def test_migrate_7(index_driver_no_migrate, create_tables_no_migrate, database_conn):
+def test_migrate_7(index_driver_no_migrate, create_indexd_tables_no_migrate, database_conn):
     baseid = 1
     did = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
     size = 123
@@ -101,7 +101,7 @@ def test_migrate_7(index_driver_no_migrate, create_tables_no_migrate, database_c
     assert rows.rowcount == 0
 
 
-def test_migrate_12(index_driver_no_migrate, create_tables_no_migrate, database_conn):
+def test_migrate_12(index_driver_no_migrate, create_indexd_tables_no_migrate, database_conn):
     """
     Test that the information in the Metadata, and UrlsMetadata table are moved
     to the new UrlsMetadataJsonb table, and the main IndexRecord table.
