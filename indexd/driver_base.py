@@ -17,3 +17,6 @@ class SQLAlchemyDriverBase(object):
         if not database_exists(engine.url):
             create_database(engine.url)
         self.engine = engine
+
+    def dispose(self):
+        self.engine.dispose()

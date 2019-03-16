@@ -1,24 +1,27 @@
-from .index.drivers.alchemy import SQLAlchemyIndexDriver
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
+from .index.drivers.alchemy import SQLAlchemyIndexDriver
 
 CONFIG = {}
 
 CONFIG['JSONIFY_PRETTYPRINT_REGULAR'] = False
 AUTO_MIGRATE = True
+PG_URL = 'postgres://test:test@localhost/indexd_test'
 
 CONFIG['INDEX'] = {
-    'driver':  SQLAlchemyIndexDriver(
-        'sqlite:///index.sq3', auto_migrate=AUTO_MIGRATE, echo=True,
+    'driver': SQLAlchemyIndexDriver(
+        PG_URL, auto_migrate=AUTO_MIGRATE, echo=True,
         index_config={
-            'DEFAULT_PREFIX': 'testprefix:', 'ADD_PREFIX_ALIAS': True,
-            'PREPEND_PREFIX': True}
+            'DEFAULT_PREFIX': 'testprefix:',
+            'ADD_PREFIX_ALIAS': True,
+            'PREPEND_PREFIX': True,
+        }
     ),
 }
 
 CONFIG['ALIAS'] = {
     'driver': SQLAlchemyAliasDriver(
-        'sqlite:///alias.sq3', auto_migrate=AUTO_MIGRATE, echo=True),
+        PG_URL, auto_migrate=AUTO_MIGRATE, echo=True),
 }
 
 CONFIG['DIST'] = [
@@ -42,8 +45,6 @@ CONFIG['DIST'] = [
     },
 ]
 
-AUTH = SQLAlchemyAuthDriver('sqlite:///auth.sq3')
+AUTH = SQLAlchemyAuthDriver(PG_URL)
 
 settings = {'config': CONFIG, 'auth': AUTH}
-
-

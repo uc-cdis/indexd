@@ -1,12 +1,11 @@
 import random
 
 import pytest
-
 from tests.test_client import get_doc
 
 
 @pytest.fixture(scope="function")
-def test_data(swg_index_client):
+def test_data(swg_index_client, create_tables):
     system_random = random.SystemRandom()
     url_x_count = system_random.randint(2, 5)
 
@@ -34,7 +33,7 @@ def test_data(swg_index_client):
     return url_x_count, versioned_count, unversioned_count
 
 
-def test_query_urls(swg_index_client, swg_query_client, test_data):
+def test_query_urls(swg_index_client, swg_query_client, test_data, create_tables):
     """
     Args:
         swg_index_client (swagger_client.api.indexurls_api.IndexApi):
