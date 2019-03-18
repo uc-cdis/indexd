@@ -1136,6 +1136,8 @@ definitions:
         type: string
       uploader:
         type: string
+      rbac:
+        type: string
       urls:
         type: array
         items:

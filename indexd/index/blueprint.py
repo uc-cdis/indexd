@@ -241,6 +241,7 @@ def post_index_record():
     version = flask.request.json.get('version')
     baseid = flask.request.json.get('baseid')
     uploader = flask.request.json.get('uploader')
+    rbac = flask.request.json.get('rbac')
 
     did, rev, baseid = blueprint.index_driver.add(
         form,
@@ -255,6 +256,7 @@ def post_index_record():
         hashes=hashes,
         baseid=baseid,
         uploader=uploader,
+        rbac=rbac,
     )
 
     ret = {
