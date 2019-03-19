@@ -1146,8 +1146,6 @@ definitions:
         description: size in bytes
       file_name:
         type: string
-      release_number:
-        type: string
       version:
         type: string
       uploader:
@@ -1467,8 +1465,6 @@ definitions:
           type: string
       hashes:
         $ref: '#/definitions/HashInfo'
-      release_number:
-        type: string
       metadata:
         type: object
       version:
