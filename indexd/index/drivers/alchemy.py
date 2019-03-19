@@ -119,14 +119,11 @@ class IndexRecord(Base):
         hashes = {h.hash_type: h.hash_value for h in self.hashes}
         metadata = self.index_metadata or {}
 
-        # Add this field back to the returned metadata json section but also
-        # return it separately in the main section of the json blob. This
-        # allows current clients to function without change but lets new
-        # clients use the release_number field directly.
-        release_number = self.release_number
-        if release_number:
-            # If it doesn't exist then don't return the key in the json.
-            metadata['release_number'] = release_number
+        # Add this field back to the returned metadata json section. This
+        # allows current clients to function without change.
+        # If it doesn't exist then don't return the key in the json.
+        if self.release_number:
+            metadata['release_number'] = self.release_number
 
         urls_metadata = extract_urls_metadata(self.urls_metadata)
         created_date = self.created_date.isoformat()
@@ -144,7 +141,6 @@ class IndexRecord(Base):
             'urls_metadata': urls_metadata,
             'acl': acl,
             'hashes': hashes,
-            'release_number': release_number,
             'metadata': metadata,
             'form': self.form,
             'created_date': created_date,
@@ -851,10 +847,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 ]
 
             if 'metadata' in changing_fields:
-                release_number, metadata = separate_metadata(changing_fields['metadata'])
-                if release_number:
-                    record.release_number = release_number
-                record.index_metadata = metadata
+                record.release_number = changing_fields['metadata'].pop('release_number', None)
+                record.index_metadata = changing_fields['metadata']
 
             if 'hashes' in changing_fields:
                 for hash_doc in record.hashes:

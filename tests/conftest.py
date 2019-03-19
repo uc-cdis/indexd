@@ -15,7 +15,7 @@ from indexd.index.drivers.alchemy import (
     Base as index_base,
     SQLAlchemyIndexDriver,
 )
-from indexd_fixtures import (
+from indexd_test_utils import (
     alias_driver,
     alias_driver_no_migrate,
     auth_driver,
