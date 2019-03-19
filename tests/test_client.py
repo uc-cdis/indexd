@@ -978,8 +978,6 @@ def test_special_case_metadata_get_and_set(swg_index_client):
     did = swg_index_client.add_entry(blob).did
 
     doc = swg_index_client.get_entry(did).to_dict()
-    assert 'release_number' in doc
-    assert doc['release_number'] == '12.0'
     assert 'release_number' in doc['metadata']
     assert doc['metadata']['release_number'] == '12.0'
 
@@ -989,26 +987,12 @@ def test_special_case_metadata_get_and_set(swg_index_client):
     did = swg_index_client.add_entry(blob).did
 
     doc = swg_index_client.get_entry(did).to_dict()
-    assert 'release_number' in doc
-    assert doc['release_number'] == '12.0'
     assert 'release_number' in doc['metadata']
     assert doc['metadata']['release_number'] == '12.0'
 
 
 def test_special_case_metadata_get_latest(swg_index_client):
     # release_number only, no extra metadata
-
-    dataNew = {
-        'did': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        'form': 'object',
-        'size': 244,
-        'urls': ['s3://endpointurl/bucket2/key'],
-        'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
-        'acl': ['a'],
-        'urls_metadata': {
-            's3://endpointurl/bucket2/key': {'state': 'uploaded'},
-        },
-    }
 
     blob = get_doc(has_metadata=False)
     blob['metadata'] = {'release_number': '12.0'}
@@ -1018,8 +1002,6 @@ def test_special_case_metadata_get_latest(swg_index_client):
     new_did = swg_index_client.add_new_version(did, body=blob).did
 
     doc = swg_index_client.get_latest_version(new_did).to_dict()
-    assert 'release_number' in doc
-    assert doc['release_number'] == '13.0'
     assert 'release_number' in doc['metadata']
     assert doc['metadata']['release_number'] == '13.0'
 
@@ -1032,7 +1014,5 @@ def test_special_case_metadata_get_latest(swg_index_client):
     new_did = swg_index_client.add_new_version(did, body=blob).did
 
     doc = swg_index_client.get_latest_version(new_did).to_dict()
-    assert 'release_number' in doc
-    assert doc['release_number'] == '13.0'
     assert 'release_number' in doc['metadata']
     assert doc['metadata']['release_number'] == '13.0'
