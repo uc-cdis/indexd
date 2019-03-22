@@ -13,6 +13,7 @@ import cdislogging
 
 
 def app_init(app, settings=None):
+    app.url_map.strict_slashes = False
     app.logger.addHandler(cdislogging.get_stream_handler())
     if not settings:
         from .default_settings import settings
