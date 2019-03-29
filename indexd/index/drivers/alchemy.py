@@ -78,6 +78,7 @@ class IndexRecord(Base):
     file_name = Column(String, index=True)
     version = Column(String, index=True)
     uploader = Column(String, index=True)
+    rbac = Column(String)
 
     urls = relationship(
         'IndexRecordUrl',
@@ -139,6 +140,7 @@ class IndexRecord(Base):
             'form': self.form,
             'created_date': created_date,
             "updated_date": updated_date,
+            "rbac": self.rbac,
         }
 
 
@@ -555,7 +557,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             acl=None,
             hashes=None,
             baseid=None,
-            uploader=None):
+            uploader=None,
+            rbac=None):
         """
         Creates a new record given size, urls, acl, hashes, metadata,
         urls_metadata file name and version
@@ -594,6 +597,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.form, record.size = form, size
 
             record.uploader = uploader
+
+            record.rbac = rbac
 
             record.urls = [IndexRecordUrl(
                 did=record.did,
@@ -1175,9 +1180,16 @@ def migrate_10(session, **kwargs):
         .format(tb=IndexRecord.__tablename__))
 
 
+def migrate_11(session, **kwargs):
+    session.execute(
+        "ALTER TABLE {} ADD COLUMN rbac VARCHAR;"
+        .format(IndexRecord.__tablename__))
+
+
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
 SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_1, migrate_2, migrate_3, migrate_4, migrate_5,
-    migrate_6, migrate_7, migrate_8, migrate_9, migrate_10]
+    migrate_6, migrate_7, migrate_8, migrate_9, migrate_10,
+    migrate_11]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
