@@ -1,3 +1,5 @@
+import os
+
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
 from .index.drivers.alchemy import SQLAlchemyIndexDriver
@@ -6,11 +8,14 @@ CONFIG = {}
 
 CONFIG['JSONIFY_PRETTYPRINT_REGULAR'] = False
 AUTO_MIGRATE = True
+SQLALCHEMY_VERBOSE = (
+    os.getenv('INDEXD_VERBOSE', '').lower() in ['1', 'yes', 'true']
+)
 PG_URL = 'postgres://test:test@localhost/indexd_test'
 
 CONFIG['INDEX'] = {
     'driver': SQLAlchemyIndexDriver(
-        PG_URL, auto_migrate=AUTO_MIGRATE, echo=True,
+        PG_URL, auto_migrate=AUTO_MIGRATE, echo=SQLALCHEMY_VERBOSE,
         index_config={
             'DEFAULT_PREFIX': 'testprefix:',
             'ADD_PREFIX_ALIAS': True,
@@ -21,7 +26,7 @@ CONFIG['INDEX'] = {
 
 CONFIG['ALIAS'] = {
     'driver': SQLAlchemyAliasDriver(
-        PG_URL, auto_migrate=AUTO_MIGRATE, echo=True),
+        PG_URL, auto_migrate=AUTO_MIGRATE, echo=SQLALCHEMY_VERBOSE),
 }
 
 CONFIG['DIST'] = [
