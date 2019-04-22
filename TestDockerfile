@@ -10,8 +10,8 @@ RUN echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main" | te
   && apt-get update && \
   mkdir -p /usr/share/man/man1/ \
   && apt-get install -y software-properties-common && \
-  (echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections) && \
-  apt-get install -y oracle-java8-set-default && \
+  (echo oracle-java9-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections) && \
+  apt-get install -y oracle-java9-set-default && \
   apt-get clean && \
   rm -fr /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
