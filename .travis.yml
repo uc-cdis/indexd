@@ -1,14 +1,17 @@
+dist: xenial
 language: python
 
 python:
   - "2.7"
   - "3.4"
-addons:
-  apt:
-    packages:
-      - oracle-java8-set-default
 
 sudo: false
+
+services:
+    - postgresql
+
+jdk:
+    - oraclejdk8
 
 install:
     - "wget https://oss.sonatype.org/content/repositories/releases/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar"
