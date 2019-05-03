@@ -35,7 +35,7 @@ RUN python setup.py install
 EXPOSE 80
 
 WORKDIR /var/www/indexd
-
+RUN cp /indexd/wsgi.py .
 
 # RUN ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/nginx/error.log
 # CMD  rm -rf /var/run/apache2/apache2.pid && /indexd/dockerrun.bash
