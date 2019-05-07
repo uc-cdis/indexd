@@ -98,6 +98,10 @@ def get_index():
     if acl is not None:
         acl = [] if acl == 'null' else acl.split(',')
 
+    authz = flask.request.args.get('authz')
+    if authz is not None:
+        authz = [] if authz == 'null' else authz.split(',')
+
     urls_metadata = flask.request.args.get('urls_metadata')
     if urls_metadata:
         try:
@@ -123,6 +127,7 @@ def get_index():
         version=version,
         urls=urls,
         acl=acl,
+        authz=authz,
         hashes=hashes,
         uploader=uploader,
         ids=ids,
@@ -141,6 +146,7 @@ def get_index():
         'version': version,
         'urls': urls,
         'acl': acl,
+        'authz': authz,
         'hashes': hashes,
         'metadata': metadata,
     }
@@ -233,6 +239,7 @@ def post_index_record():
     size = flask.request.json['size']
     urls = flask.request.json['urls']
     acl = flask.request.json.get('acl', [])
+    authz = flask.request.json.get('authz', [])
 
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
@@ -241,7 +248,6 @@ def post_index_record():
     version = flask.request.json.get('version')
     baseid = flask.request.json.get('baseid')
     uploader = flask.request.json.get('uploader')
-    rbac = flask.request.json.get('rbac')
 
     did, rev, baseid = blueprint.index_driver.add(
         form,
@@ -253,10 +259,10 @@ def post_index_record():
         version=version,
         urls=urls,
         acl=acl,
+        authz=authz,
         hashes=hashes,
         baseid=baseid,
         uploader=uploader,
-        rbac=rbac,
     )
 
     ret = {
@@ -380,6 +386,7 @@ def add_index_record_version(record):
     size = flask.request.json['size']
     urls = flask.request.json['urls']
     acl = flask.request.json.get('acl', [])
+    authz = flask.request.json.get('authz', [])
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
     metadata = flask.request.json.get('metadata')
@@ -393,6 +400,7 @@ def add_index_record_version(record):
         size=size,
         urls=urls,
         acl=acl,
+        authz=authz,
         file_name=file_name,
         metadata=metadata,
         urls_metadata=urls_metadata,

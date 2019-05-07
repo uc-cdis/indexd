@@ -15,10 +15,10 @@ In order to avoid update conflicts for frequently updated Digital IDs, Indexd us
 
 Digital IDs are intended to be publicly readable documents, and therefore contain no
 information other than resource locators. However, in order to prevent unauthorized
-editing of Digital IDs, each Digital ID keeps a roll-based access control string (RBAC).
-This RBAC string contains the rules of identities of users that have specific
+editing of Digital IDs, each Digital ID keeps a list of authorization rules (authz).
+This authz string contains the rules of identities of users that have specific
 permissions for the associated Digital ID. For backward compatibility, the ACL list that
-was used for access control is still available, it would be used if RBAC is not present.
+was used for access control is still available, it would be used if authz is not present.
 
 The second layer of user defined aliases are introduced to add flexibility of supporting human readable identifiers and allow referencing existing identifiers that are created in other systems.
 
@@ -41,7 +41,7 @@ For existing data in buckets, the SNS or PubSub notifications may be simulated s
 Indexd supports void or blank records that allows users to pre-register data files in indexd before actually registering them. The complete flow contains three main steps: pre-register, hash/size/url populating and data node registration:
 - Fence requests blank object from indexd. Indexd creates an object with no hash, size or urls, only the `uploader` and optionally `file_name` fields.
 - Indexd listener mornitors bucket update, update to indexd with url, hash, size.
-- The client application (windmill or gen3-data-client) lists records for data files which the user needs to submit to the graph. The user fills all empty fields and submit the request to indexd to update the `rbac` or `acl`.
+- The client application (windmill or gen3-data-client) lists records for data files which the user needs to submit to the graph. The user fills all empty fields and submit the request to indexd to update the `authz` or `acl`.
 
 See docs on data upload flow for further details:
 https://github.com/uc-cdis/cdis-wiki/tree/master/dev/gen3/data_upload

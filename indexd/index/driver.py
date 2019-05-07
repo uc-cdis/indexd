@@ -19,6 +19,8 @@ class IndexDriverABC(SQLAlchemyDriverBase):
             start=None,
             size=None,
             urls=None,
+            acl=None,
+            authz=None,
             hashes=None,
             file_name=None,
             version=None,

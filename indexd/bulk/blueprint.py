@@ -36,6 +36,7 @@ def bulk_get_documents():
         query = query.options(joinedload(IndexRecord.urls).
                               joinedload(IndexRecordUrl.url_metadata))
         query = query.options(joinedload(IndexRecord.acl))
+        query = query.options(joinedload(IndexRecord.authz))
         query = query.options(joinedload(IndexRecord.hashes))
         query = query.options(joinedload(IndexRecord.index_metadata))
         query = query.options(joinedload(IndexRecord.aliases))
