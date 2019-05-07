@@ -22,6 +22,5 @@ RUN python setup.py install
 EXPOSE 80
 
 WORKDIR /var/www/indexd
-RUN cp /indexd/wsgi.py .
 
 CMD /dockerrun.sh
