@@ -5,10 +5,10 @@ python:
   - "3.4"
 
 addons:
-  apt:
-    packages:
-      - oracle-java8-set-default
   postgresql: '9.4'
+
+jdk:
+    - oraclejdk8
 
 sudo: false
 

@@ -30,8 +30,8 @@ def bulk_get_documents():
     docs = []
     with blueprint.index_driver.session as session:
         # Comment it out to compare against the eager loading option.
-        #query = session.query(IndexRecord)
-        #query = query.filter(IndexRecord.did.in_(ids)
+        # query = session.query(IndexRecord)
+        # query = query.filter(IndexRecord.did.in_(ids)
 
         # Use eager loading.
         query = session.query(IndexRecord)
@@ -43,6 +43,24 @@ def bulk_get_documents():
 
         docs = [q.to_document_dict() for q in query]
 
+    return json.dumps(docs), 200
+
+
+@blueprint.route('/bulk/documents/latest', methods=['POST'])
+def bulk_get_latest_documents():
+    """
+    From the given list of dids, get the latest version docs
+    """
+
+    ids = flask.request.json
+    if not ids:
+        raise UserError('No ids provided')
+    if not isinstance(ids, list):
+        raise UserError('ids is not a list')
+
+    skip_null = flask.request.args.get('skip_null', "false").lower() in ["true", "t"]
+
+    docs = blueprint.index_driver.bulk_get_latest_versions(ids, skip_null=skip_null)
     return json.dumps(docs), 200
 
 

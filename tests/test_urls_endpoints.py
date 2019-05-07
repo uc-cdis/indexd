@@ -15,7 +15,7 @@ def test_data(swg_index_client, create_indexd_tables):
 
     versioned_count = system_random.randint(5, 10)
     for _ in range(versioned_count):
-        doc = get_doc(has_version=True)
+        doc = get_doc(version="1")
         if url_x_type > 0:
             doc["urls"].append(url_x)
             doc["urls_metadata"][url_x] = {"state": "uploaded"}

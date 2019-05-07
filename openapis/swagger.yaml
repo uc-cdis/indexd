@@ -757,6 +757,34 @@ paths:
         '400':
           description: Invalid status value
       security: []
+  '/bulk/documents/latest':
+    post:
+      tags:
+        - bulk
+      summary: Get the latest version documents of the given list of dids
+      operationId: getBulkLatest
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: List of dids to retrieve
+          required: true
+          schema:
+            $ref: '#/definitions/BulkInputInfo'
+        - name: skip_null
+          in: query
+          description: filter by latest doc that has version value populated
+          required: false
+          type: boolean
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/BulkOutputInfo'
+        '400':
+          description: Invalid status value
+      security: []
   '/_query/urls/q':
     get:
       tags:
