@@ -527,8 +527,13 @@ def test_driver_get_fails_with_invalid_id():
         with pytest.raises(NoRecordFound):
             driver.get('some_record_that_does_not_exist')
 
+
+def test_driver_update_record(skip_authz):
+    _test_driver_update_record()
+
+
 @util.removes('index.sq3')
-def test_driver_update_record():
+def _test_driver_update_record():
     '''
     Tests updating of a record.
     '''
@@ -640,8 +645,13 @@ def test_driver_update_fails_with_invalid_rev():
         with pytest.raises(RevisionMismatch):
             driver.update(did, baseid, 'some_revision')
 
+
+def test_driver_delete_record(skip_authz):
+    _test_driver_delete_record()
+
+
 @util.removes('index.sq3')
-def test_driver_delete_record():
+def _test_driver_delete_record():
     '''
     Tests deletion of a record.
     '''

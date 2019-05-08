@@ -4,6 +4,8 @@ import hashlib
 
 from contextlib import contextmanager
 
+from authutils.token import get_jwt_token
+from rbac.client.arborist.client import ArboristClient
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy.orm import sessionmaker
@@ -33,7 +35,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
     SQLAlchemy implementation of auth driver.
     '''
 
-    def __init__(self, conn, **config):
+    def __init__(self, conn, arborist=None, **config):
         '''
         Initialize the SQLAlchemy database driver.
         '''
@@ -41,6 +43,9 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
         self.Session = sessionmaker(bind=self.engine)
+        if arborist is not None:
+            arborist = ArboristClient(arborist_base_url=arborist)
+        self.arborist = arborist
 
     @property
     @contextmanager
@@ -109,3 +114,11 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         }
 
         return context
+
+    def authz(self, method, resource):
+        if not self.arborist:
+            raise AuthError('username / password mismatch')
+        if not resource:
+            raise AuthError("Permission denied.")
+        if not self.arborist.auth_request(get_jwt_token(), "indexd", method, resource):
+            raise AuthError("Permission denied.")

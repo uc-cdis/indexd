@@ -6,6 +6,7 @@ from cdisutilstest.code.conftest import indexd_server, indexd_client # noqa
 from cdisutilstest.code.indexd_fixture import clear_database
 import swagger_client
 
+from indexd import auth
 
 try:
     reload  # Python 2.7
@@ -84,3 +85,11 @@ def swg_query_client(swg_config):
 def swg_bulk_client(swg_config): 
     api = swagger_client.BulkApi(swagger_client.ApiClient(swg_config))
     yield api
+
+
+@pytest.fixture
+def skip_authz():
+    orig = auth.authorize
+    auth.authorize = lambda *x: x
+    yield
+    auth.authorize = orig

@@ -224,7 +224,6 @@ def get_index_record(record):
 
 
 @blueprint.route('/index/', methods=['POST'])
-@authorize
 def post_index_record():
     '''
     Create a new record.
@@ -234,12 +233,14 @@ def post_index_record():
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
+    authz = flask.request.json.get('authz', [])
+    authorize("write-storage", authz)
+
     did = flask.request.json.get('did')
     form = flask.request.json['form']
     size = flask.request.json['size']
     urls = flask.request.json['urls']
     acl = flask.request.json.get('acl', [])
-    authz = flask.request.json.get('authz', [])
 
     hashes = flask.request.json['hashes']
     file_name = flask.request.json.get('file_name')
@@ -329,7 +330,6 @@ def put_index_blank_record(record):
 
 
 @blueprint.route('/index/<path:record>', methods=['PUT'])
-@authorize
 def put_index_record(record):
     """
     Update an existing record.
@@ -340,6 +340,7 @@ def put_index_record(record):
         raise UserError(err)
 
     rev = flask.request.args.get('rev')
+    # authorize done in update
     did, baseid, rev = blueprint.index_driver.update(
         record,
         rev,
@@ -356,7 +357,6 @@ def put_index_record(record):
 
 
 @blueprint.route('/index/<path:record>', methods=['DELETE'])
-@authorize
 def delete_index_record(record):
     '''
     Delete an existing record.
@@ -365,13 +365,13 @@ def delete_index_record(record):
     if rev is None:
         raise UserError('no revision specified')
 
+    # authorize done in delete
     blueprint.index_driver.delete(record, rev)
 
     return '', 200
 
 
 @blueprint.route('/index/<path:record>', methods=['POST'])
-@authorize
 def add_index_record_version(record):
     '''
     Add a record version
@@ -393,6 +393,7 @@ def add_index_record_version(record):
     urls_metadata = flask.request.json.get('urls_metadata')
     version = flask.request.json.get('version')
 
+    # authorize done in add_version for both the old and new authz
     did, baseid, rev = blueprint.index_driver.add_version(
         record,
         form,
