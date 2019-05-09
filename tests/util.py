@@ -34,6 +34,7 @@ def assert_blank(r):
     assert r.records[0].did
     assert not r.records[0].size
     assert not r.records[0].acl
+    assert not r.records[0].authz
     assert not r.records[0].hashes.crc
     assert not r.records[0].hashes.md5
     assert not r.records[0].hashes.sha

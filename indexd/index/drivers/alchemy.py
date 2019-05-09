@@ -78,7 +78,6 @@ class IndexRecord(Base):
     file_name = Column(String, index=True)
     version = Column(String, index=True)
     uploader = Column(String, index=True)
-    rbac = Column(String)
 
     urls = relationship(
         'IndexRecordUrl',
@@ -88,6 +87,12 @@ class IndexRecord(Base):
 
     acl = relationship(
         'IndexRecordACE',
+        backref='index_record',
+        cascade='all, delete-orphan',
+    )
+
+    authz = relationship(
+        'IndexRecordAuthz',
         backref='index_record',
         cascade='all, delete-orphan',
     )
@@ -116,6 +121,7 @@ class IndexRecord(Base):
         """
         urls = [u.url for u in self.urls]
         acl = [u.ace for u in self.acl]
+        authz = [u.resource for u in self.authz]
         hashes = {h.hash_type: h.hash_value for h in self.hashes}
         metadata = {m.key: m.value for m in self.index_metadata}
 
@@ -135,12 +141,12 @@ class IndexRecord(Base):
             'urls': urls,
             'urls_metadata': urls_metadata,
             'acl': acl,
+            "authz": authz,
             'hashes': hashes,
             'metadata': metadata,
             'form': self.form,
             'created_date': created_date,
             "updated_date": updated_date,
-            "rbac": self.rbac,
         }
 
 
@@ -193,6 +199,21 @@ class IndexRecordACE(Base):
 
     __table_args__ = (
         Index('index_record_ace_idx', 'did'),
+    )
+
+
+class IndexRecordAuthz(Base):
+    """
+    index record access control (authz) entry representation.
+    """
+
+    __tablename__ = 'index_record_authz'
+
+    did = Column(String, ForeignKey('index_record.did'), primary_key=True)
+    resource = Column(String, primary_key=True)
+
+    __table_args__ = (
+        Index('index_record_authz_idx', 'did'),
     )
 
 
@@ -318,6 +339,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             size=None,
             urls=None,
             acl=None,
+            authz=None,
             hashes=None,
             file_name=None,
             version=None,
@@ -337,6 +359,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query = query.options(joinedload(IndexRecord.urls).
                                   joinedload(IndexRecordUrl.url_metadata))
             query = query.options(joinedload(IndexRecord.acl))
+            query = query.options(joinedload(IndexRecord.authz))
             query = query.options(joinedload(IndexRecord.hashes))
             query = query.options(joinedload(IndexRecord.index_metadata))
             query = query.options(joinedload(IndexRecord.aliases))
@@ -367,6 +390,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     query = query.filter(IndexRecordACE.ace == u)
             elif acl == []:
                 query = query.filter(IndexRecord.acl == None)
+
+            if authz:
+                query = query.join(IndexRecord.authz)
+                for u in authz:
+                    query = query.filter(IndexRecordAuthz.resource == u)
+            elif authz == []:
+                query = query.filter(IndexRecord.authz == None)
 
             if hashes:
                 for h, v in hashes.items():
@@ -425,6 +455,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                        query,
                        urls=None,
                        acl=None,
+                       authz=None,
                        file_name=None,
                        version=None,
                        metadata=None,
@@ -443,6 +474,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query: sqlalchemy query
             urls (list): doc.urls don't have any <url> in the urls list
             acl (list): doc.acl don't have any <acl> in the acl list
+            authz (list): doc.authz don't have any <resource> in the authz list
             file_name (str): doc.file_name != <file_name>
             version (str): doc.version != <version>
             metadata (dict): see above for dict
@@ -466,6 +498,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query = query.join(IndexRecord.acl)
             for u in acl:
                 query = query.filter(~IndexRecord.acl.any(IndexRecordACE.ace == u))
+
+        if authz is not None and authz:
+            query = query.join(IndexRecord.authz)
+            for u in authz:
+                query = query.filter(~IndexRecord.authz.any(IndexRecordAuthz.resource == u))
 
         if metadata is not None and metadata:
             for k, v in metadata.items():
@@ -555,18 +592,19 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             version=None,
             urls=None,
             acl=None,
+            authz=None,
             hashes=None,
             baseid=None,
-            uploader=None,
-            rbac=None):
+            uploader=None):
         """
-        Creates a new record given size, urls, acl, hashes, metadata,
+        Creates a new record given size, urls, acl, authz, hashes, metadata,
         urls_metadata file name and version
         if did is provided, update the new record with the did otherwise create it
         """
 
         urls = urls or []
         acl = acl or []
+        authz = authz or []
         hashes = hashes or {}
         metadata = metadata or {}
         urls_metadata = urls_metadata or {}
@@ -598,8 +636,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record.uploader = uploader
 
-            record.rbac = rbac
-
             record.urls = [IndexRecordUrl(
                 did=record.did,
                 url=url,
@@ -609,6 +645,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 did=record.did,
                 ace=ace,
             ) for ace in set(acl)]
+
+            record.authz = [IndexRecordAuthz(
+                did=record.did,
+                resource=resource,
+            ) for resource in set(authz)]
 
             record.hashes = [IndexRecordHash(
                 did=record.did,
@@ -765,7 +806,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Updates an existing record with new values.
         """
 
-        composite_fields = ['urls', 'acl', 'metadata', 'urls_metadata']
+        composite_fields = ['urls', 'acl', "authz", 'metadata', 'urls_metadata']
 
         with self.session as session:
             query = session.query(IndexRecord).filter(IndexRecord.did == did)
@@ -799,6 +840,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 record.acl = [
                     IndexRecordACE(did=record.did, ace=ace)
                     for ace in set(changing_fields['acl'])
+                ]
+
+            if 'authz' in changing_fields:
+                for resource in record.authz:
+                    session.delete(resource)
+
+                record.authz = [
+                    IndexRecordAuthz(did=record.did, resource=resource)
+                    for resource in set(changing_fields['authz'])
                 ]
 
             if 'metadata' in changing_fields:
@@ -867,12 +917,14 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     version=None,
                     urls=None,
                     acl=None,
+                    authz=None,
                     hashes=None):
         """
         Add a record version given did
         """
         urls = urls or []
         acl = acl or []
+        authz = authz or []
         hashes = hashes or {}
         metadata = metadata or {}
         urls_metadata = urls_metadata or {}
@@ -908,6 +960,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 did=record.did,
                 ace=ace,
             ) for ace in set(acl)]
+
+            record.authz = [IndexRecordAuthz(
+                did=record.did,
+                resource=resource,
+            ) for resource in set(authz)]
 
             record.hashes = [IndexRecordHash(
                 did=record.did,
@@ -1186,10 +1243,15 @@ def migrate_11(session, **kwargs):
         .format(IndexRecord.__tablename__))
 
 
+def migrate_12(session, **kwargs):
+    session.execute(
+        "ALTER TABLE {} DROP COLUMN rbac;".format(IndexRecord.__tablename__))
+
+
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
 SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_1, migrate_2, migrate_3, migrate_4, migrate_5,
     migrate_6, migrate_7, migrate_8, migrate_9, migrate_10,
-    migrate_11]
+    migrate_11, migrate_12]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)

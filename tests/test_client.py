@@ -242,9 +242,9 @@ def test_fill_size_n_hash_for_blank_record(swg_index_client):
     assert r.size == 10
     assert r.hashes.md5 == '8b9942cf415384b27cadf1f4d2d981f5'
 
-def test_get_empty_acl_record(swg_index_client):
+def test_get_empty_acl_authz_record(swg_index_client):
     """
-    Test that can get a list of empty acl given uploader
+    Test that can get a list of empty acl/authz given uploader
     """
     doc = get_doc()
     r = swg_index_client.add_entry(doc)
@@ -258,18 +258,22 @@ def test_get_empty_acl_record(swg_index_client):
     r = swg_index_client.list_entries()
     assert len(r.records) == 3
 
-    r = swg_index_client.list_entries(uploader='uploader_123', acl='null')
+    r = swg_index_client.list_entries(uploader='uploader_123', acl='null', authz="null")
 
     assert len(r.records) == 2
     assert {r2.did, r3.did} == {r.records[0].did, r.records[1].did}
     assert r.records[0].acl == []
     assert r.records[1].acl == []
+    assert r.records[0].authz == []
+    assert r.records[1].authz == []
 
-def test_get_empty_acl_record_after_fill_size_n_hash(swg_index_client):
+
+def test_get_empty_acl_authz_record_after_fill_size_n_hash(swg_index_client):
     """
-    Test create blank record -> fill hash and size -> get record with empty or none acl
+    Test create blank record -> fill hash and size -> get record with empty or none
+    acl/authz
     """
-    # create the first blank record, update size, hashes and acl
+    # create the first blank record, update size, hashes and acl/authz
     doc = {'uploader': 'uploader_123'}
     r1 = swg_index_client.create_blank_entry(doc)
     updated = {
@@ -278,9 +282,11 @@ def test_get_empty_acl_record_after_fill_size_n_hash(swg_index_client):
     }
     did1 = r1.did
     r1 = swg_index_client.update_blank_entry(r1.did, rev=r1.rev, body=updated)
-    r1 = swg_index_client.update_entry(r1.did, rev=r1.rev, body={'acl': ['read']})
+    r1 = swg_index_client.update_entry(r1.did, rev=r1.rev, body={
+        'acl': ['read'], "authz": ["read"]})
     r1 = swg_index_client.get_entry(r1.did)
     assert r1.acl == ['read']
+    assert r1.authz == ['read']
     assert r1.did == did1
 
     # create the second blank record, only update size hashes and urls
@@ -418,6 +424,7 @@ def test_index_create(swg_index_client):
     assert result.baseid == data['baseid']
     r = swg_index_client.get_entry(result.did)
     assert r.acl == []
+    assert r.authz == []
 
 
 def test_index_get(swg_index_client):
@@ -508,9 +515,10 @@ def test_index_create_with_valid_did(swg_index_client):
     assert result.did == '3d313755-cbb4-4b08-899d-7bbac1f6e67d'
 
 
-def test_index_create_with_acl(swg_index_client):
+def test_index_create_with_acl_authz(swg_index_client):
     data = {
         'acl': ['a', 'b'],
+        'authz': ['x', 'y'],
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
@@ -519,10 +527,13 @@ def test_index_create_with_acl(swg_index_client):
     r = swg_index_client.add_entry(data)
     result = swg_index_client.get_entry(r.did)
     assert result.acl == ['a', 'b']
+    assert result.authz == ['x', 'y']
 
-def test_index_create_with_duplicate_acl(swg_index_client):
+
+def test_index_create_with_duplicate_acl_authz(swg_index_client):
     data = {
         'acl': ['a', 'b', 'a'],
+        'authz': ['x', 'y', 'x'],
         'form': 'object',
         'size': 123,
         'urls': ['s3://endpointurl/bucket/key'],
@@ -531,6 +542,8 @@ def test_index_create_with_duplicate_acl(swg_index_client):
     r = swg_index_client.add_entry(data)
     result = swg_index_client.get_entry(r.did)
     assert result.acl == ['a', 'b']
+    assert result.authz == ['x', 'y']
+
 
 def test_index_create_with_invalid_did(swg_index_client):
     data = get_doc()
@@ -588,6 +601,7 @@ def test_index_create_blank_record(swg_index_client):
     assert r.did
     res = swg_index_client.get_entry(r.did)
     assert res.acl==[]
+    assert res.authz == []
     assert res.urls_metadata == {}
     assert res.size is None
     assert res.version is None
@@ -631,11 +645,13 @@ def test_index_update(swg_index_client):
     dataNew['metadata'] = {'test': 'abcd'}
     dataNew['version'] = 'ver123'
     dataNew['acl'] = ['a', 'b']
+    dataNew['authz'] = ['x', 'y']
     r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
     result = swg_index_client.get_entry(r.did)
     assert result.metadata == dataNew['metadata']
     assert result.acl == dataNew['acl']
+    assert result.authz == dataNew['authz']
 
     data = get_doc()
     data['did'] = 'cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d'
@@ -650,7 +666,7 @@ def test_index_update(swg_index_client):
     r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
 
-def test_index_update_duplicate_acl(swg_index_client):
+def test_index_update_duplicate_acl_authz(swg_index_client):
     data = get_doc()
 
     r = swg_index_client.add_entry(data)
@@ -664,11 +680,14 @@ def test_index_update_duplicate_acl(swg_index_client):
     dataNew['metadata'] = {'test': 'abcd'}
     dataNew['version'] = 'ver123'
     dataNew['acl'] = ['c', 'd', 'c']
+    dataNew['authz'] = ['x', 'y', 'x']
     r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
     result = swg_index_client.get_entry(r.did)
     assert result.metadata == dataNew['metadata']
     assert result.acl == ['c', 'd']
+    assert result.authz == ['x', 'y']
+
 
 def test_update_uploader_field(swg_index_client):
     data = get_doc()

@@ -180,6 +180,11 @@ paths:
           description: comma delimited ace
           required: false
           type: string
+        - name: authz
+          in: query
+          description: comma delimited resoures
+          required: false
+          type: string
         - name: negate_params
           in: query
           description: |
@@ -920,6 +925,10 @@ definitions:
         type: array
         items:
           type: string
+      authz:
+        type: array
+        items:
+          type: string
       hashes:
         $ref: '#/definitions/HashInfo'
   BulkInputInfo:
@@ -965,6 +974,10 @@ definitions:
         type: array
         items:
           type: string
+      authz:
+        type: array
+        items:
+          type: string
       hashes:
         $ref: '#/definitions/HashInfo'
   InputBlankInfo:
@@ -992,6 +1005,10 @@ definitions:
         items:
           type: string
       acl:
+        type: array
+        items:
+          type: string
+      authz:
         type: array
         items:
           type: string
@@ -1136,13 +1153,15 @@ definitions:
         type: string
       uploader:
         type: string
-      rbac:
-        type: string
       urls:
         type: array
         items:
           type: string
       acl:
+        type: array
+        items:
+          type: string
+      authz:
         type: array
         items:
           type: string
@@ -1448,6 +1467,10 @@ definitions:
         items:
           type: string
       acl:
+        type: array
+        items:
+          type: string
+      authz:
         type: array
         items:
           type: string

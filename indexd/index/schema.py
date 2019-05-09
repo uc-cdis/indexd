@@ -46,10 +46,6 @@ POST_RECORD_SCHEMA = {
       "description": "optional uploader of the object",
       "type": "string",
     },
-    "rbac": {
-      "description": "optional RBAC rules of the object",
-      "type": "string",
-    },
     "urls": {
       "type": "array",
       "items": {
@@ -57,6 +53,13 @@ POST_RECORD_SCHEMA = {
       }
     },
     "acl": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "authz": {
+      "description": "optional authorization rules of the object",
       "type": "array",
       "items": {
         "type": "string"
@@ -148,8 +151,11 @@ PUT_RECORD_SCHEMA = {
                 "type": "string",
             },
         },
-        "rbac": {
-          "type": "string",
+        "authz": {
+            "type": "array",
+            "items": {
+                "type": "string",
+            },
         },
         "file_name": {
             "type": ["string", "null"],
