@@ -234,7 +234,7 @@ def post_index_record():
         raise UserError(err)
 
     authz = flask.request.json.get('authz', [])
-    authorize("write-storage", authz)
+    authorize("write_storage", authz)
 
     did = flask.request.json.get('did')
     form = flask.request.json['form']
