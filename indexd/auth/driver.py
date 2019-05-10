@@ -23,6 +23,14 @@ class AuthDriverABC(SQLAlchemyDriverBase):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
+    def authz(self, method, resource):
+        """
+        RBAC Authorization.
+        Raises AuthError if the permission is denied.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def add(self, username, password):
         '''
         Create an user.

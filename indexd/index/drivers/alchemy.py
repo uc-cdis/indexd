@@ -23,6 +23,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
+from indexd import auth
 from indexd.errors import UserError
 from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import (
@@ -821,6 +822,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
 
+            auth.authorize("write_storage", record.authz)
             # Some operations are dependant on other operations. For example
             # urls has to be updated before urls_metadata because of schema
             # constraints.
@@ -904,6 +906,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
 
+            auth.authorize("write_storage", record.authz)
+
             session.delete(record)
 
     def add_version(self,
@@ -938,6 +942,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise NoRecordFound('no record found')
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
+
+            auth.authorize("write_storage", record.authz + authz)
 
             baseid = record.baseid
             record = IndexRecord()
