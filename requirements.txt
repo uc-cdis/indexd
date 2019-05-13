@@ -8,5 +8,5 @@ git+https://github.com/uc-cdis/cdislogging.git@0.0.2#egg=cdislogging
 git+https://github.com/uc-cdis/indexclient.git@1.3.1#egg=indexclient
 git+https://github.com/uc-cdis/doiclient.git@1.0.0#egg=doiclient
 git+https://github.com/uc-cdis/dosclient.git@1.0.0#egg=dosclient
-git+https://github.com/uc-cdis/authutils.git@6fbfa6e99afc0aa5810ecabba30ef9da73202717#egg=authutils
-git+https://github.com/uc-cdis/rbac-client.git@0976a184ac9e70b3d426706ee1685a27fb462802#egg=gen3rbac&subdirectory=python
+authutils==3.1.0
+gen3rbac==0.1.2
