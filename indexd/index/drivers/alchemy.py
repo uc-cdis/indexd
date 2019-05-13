@@ -822,7 +822,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
 
-            auth.authorize("write_storage", [u.resource for u in record.authz])
+            auth.authorize("update", [u.resource for u in record.authz])
             # Some operations are dependant on other operations. For example
             # urls has to be updated before urls_metadata because of schema
             # constraints.
@@ -906,7 +906,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch('revision mismatch')
 
-            auth.authorize("write_storage", [u.resource for u in record.authz])
+            auth.authorize("delete", [u.resource for u in record.authz])
 
             session.delete(record)
 
@@ -943,7 +943,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound('multiple records found')
 
-            auth.authorize("write_storage", [u.resource for u in record.authz] + authz)
+            auth.authorize("update", [u.resource for u in record.authz] + authz)
 
             baseid = record.baseid
             record = IndexRecord()
