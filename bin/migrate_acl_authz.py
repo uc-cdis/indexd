@@ -65,12 +65,14 @@ def main():
                 record.authz = []
                 continue
             try:
-                record.authz = acl_converter.acl_to_authz(record)
+                authz = acl_converter.acl_to_authz(record)
+                if authz:
+                    record.authz = [IndexRecordAuthz(did=record.did, resource=authz)]
+                    logger.info("updated authz for {} to {}".format(record.did, authz))
+                else:
+                    record.authz = []
+                    logger.info("updated authz for {} to empty list".format(record.did))
                 session.add(record)
-                logger.info(
-                    "updated authz for {} to {}"
-                    .format(record.did, record.authz.resource)
-                )
             except EnvironmentError as e:
                 msg = "problem adding authz for record {}: {}".format(record.did, e)
                 logger.error(msg)
@@ -163,7 +165,7 @@ class ACLConverter(object):
                 "couldn't get `authz` for record {} from {}; setting as empty"
                 .format(record.did, record.acl)
             )
-            return []
+            return None
 
         if self.namespace:
             path = self.namespace + path
@@ -201,8 +203,7 @@ class ACLConverter(object):
                 raise EnvironmentError("couldn't reach arborist")
             self.arborist_resources[path] = tag
 
-        tag = self.arborist_resources[path]
-        return [IndexRecordAuthz(did=record.did, resource=tag)]
+        return self.arborist_resources[path]
 
 
 def column_windows(session, column, windowsize):
