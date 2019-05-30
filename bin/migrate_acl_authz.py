@@ -166,7 +166,7 @@ class ACLConverter(object):
             return []
 
         if self.namespace:
-            path = "{}/{}".format(self.namespace, path)
+            path = self.namespace + path
 
         if path not in self.arborist_resources:
             url = "{}/resource/".format(self.arborist_url)
