@@ -22,6 +22,8 @@ persistent whereas the path could change if resources are renamed.
 """
 
 import argparse
+import os
+import re
 import sys
 
 from cdislogging import get_logger
@@ -92,6 +94,7 @@ class ACLConverter(object):
         self.arborist_url = arborist_url.rstrip("/")
         self.programs = set()
         self.projects = dict()
+        self.namespace = os.getenv("AUTH_NAMESPACE", "")
         # map resource paths to tags in arborist so we can save http calls
         self.arborist_resources = dict()
 
@@ -128,6 +131,10 @@ class ACLConverter(object):
         path = None
         for acl_object in record.acl:
             acl_item = acl_object.ace
+            # we'll try to do some sanitizing here since the record ACLs are sometimes
+            # really mis-formatted, like `["u'phs000123'"]`
+            acl_item = acl_item.lstrip("u'")
+            acl_item = re.sub(r"\W+", "", acl_item)
             if acl_item == "*":
                 path = "/open"
             elif not path and self.is_program(acl_item):
@@ -148,9 +155,11 @@ class ACLConverter(object):
             )
             return []
 
+        if self.namespace:
+            path = "{}/{}".format(self.namespace, path)
+
         if path not in self.arborist_resources:
             url = "{}/resource/".format(self.arborist_url)
-            failed = False
             try:
                 resource = {"path": path}
                 response = requests.post(url, timeout=5, json=resource)
@@ -158,19 +167,19 @@ class ACLConverter(object):
                 logger.error(
                     "couldn't hit arborist to look up resource (timed out): {}".format(url)
                 )
-                failed = True
+                raise EnvironmentError("couldn't reach arborist; request timed out")
             tag = None
             try:
                 if response.status_code == 409:
                     # resource is already there, so we'll just take the tag
-                    tag = response.json()["tag"]
+                    tag = response.json()["exists"]["tag"]
                 elif response.status_code != 201:
                     logger.error(
                         "couldn't hit arborist at {} to create resource (got {}): {}".format(
                             url, response.status_code, response.json()
                         )
                     )
-                    failed = True
+                    raise EnvironmentError("got unexpected response from arborist")
                 else:
                     # just created the resource for the first time
                     tag = response.json()["created"]["tag"]
@@ -178,8 +187,7 @@ class ACLConverter(object):
                 raise EnvironmentError(
                     "couldn't understand response from arborist: {}".format(e)
                 )
-
-            if failed or not tag:
+            if not tag:
                 raise EnvironmentError("couldn't reach arborist")
             self.arborist_resources[path] = tag
 
