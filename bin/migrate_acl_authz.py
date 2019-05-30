@@ -28,6 +28,8 @@ import sys
 
 from cdislogging import get_logger
 import requests
+import sqlalchemy
+from sqlalchemy import and_, func
 from sqlalchemy.engine import create_engine
 from sqlalchemy.exc import OperationalError
 
@@ -51,9 +53,10 @@ def main():
     except EnvironmentError:
         logger.error("can't continue without database connection")
         sys.exit(1)
+
     with driver.session as session:
         records = session.query(IndexRecord)
-        for record in records:
+        for record in windowed_query(records, IndexRecord.did, args.chunk_size):
             if not record.acl:
                 logger.info(
                     "record {} has no acl, setting authz to empty"
@@ -85,6 +88,13 @@ def parse_args():
     )
     parser.add_argument(
         "--arborist-url", dest="arborist", help="URL for the arborist service"
+    )
+    parser.add_argument(
+        "--chunk-size", dest="chunk_size", help="number of records to process at once",
+    )
+    parser.add_argument(
+        "--start-did", dest="start_did",
+        help="did to start at (records processed in lexographical order)",
     )
     return parser.parse_args()
 
@@ -193,6 +203,40 @@ class ACLConverter(object):
 
         tag = self.arborist_resources[path]
         return [IndexRecordAuthz(did=record.did, resource=tag)]
+
+
+def column_windows(session, column, windowsize):
+
+    def int_for_range(start_id, end_id):
+        if end_id:
+            return and_(column >= start_id, column < end_id)
+        else:
+            return column >= start_id
+
+    q = (
+        session
+        .query(column, func.row_number().over(order_by=column).label('rownum'))
+        .from_self(column)
+    )
+    if windowsize > 1:
+        q = q.filter(sqlalchemy.text("rownum %% %d=1" % windowsize))
+
+    intervals = [id for id, in q]
+
+    while intervals:
+        start = intervals.pop(0)
+        if intervals:
+            end = intervals[0]
+        else:
+            end = None
+        yield int_for_range(start, end)
+        logger.info("doing a commit now")
+
+
+def windowed_query(q, column, windowsize):
+    for whereclause in column_windows(q.session, column, windowsize):
+        for row in q.filter(whereclause).order_by(column):
+            yield row
 
 
 if __name__ == "__main__":
