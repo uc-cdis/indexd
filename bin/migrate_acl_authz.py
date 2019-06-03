@@ -55,8 +55,8 @@ def main():
         sys.exit(1)
 
     with driver.session as session:
-        records = session.query(IndexRecord)
-        for record in windowed_query(records, IndexRecord.did, args.chunk_size):
+        q = session.query(IndexRecord)
+        for record in windowed_query(session, q, IndexRecord.did, int(args.chunk_size)):
             if not record.acl:
                 logger.info(
                     "record {} has no acl, setting authz to empty"
@@ -92,7 +92,8 @@ def parse_args():
         "--arborist-url", dest="arborist", help="URL for the arborist service"
     )
     parser.add_argument(
-        "--chunk-size", dest="chunk_size", help="number of records to process at once",
+        "--chunk-size", dest="chunk_size", type=int, default=1000,
+        help="number of records to process at once",
     )
     parser.add_argument(
         "--start-did", dest="start_did",
@@ -107,6 +108,10 @@ class ACLConverter(object):
         self.programs = set()
         self.projects = dict()
         self.namespace = os.getenv("AUTH_NAMESPACE", "")
+        if self.namespace:
+            logger.info("using namespace {}".format(self.namespace))
+        else:
+            logger.info("not using any auth namespace")
         # map resource paths to tags in arborist so we can save http calls
         self.arborist_resources = dict()
 
@@ -132,9 +137,14 @@ class ACLConverter(object):
         """)
         for row in result:
             self.projects[row["name"]] = row["program"]
-
         connection.close()
-        return
+
+        logger.info("found programs: {}".format(list(self.programs)))
+        projects_log = [
+            "{} (from program {})".format(project, program)
+            for project, program in self.projects.items()
+        ]
+        logger.info("found projects: [{}]".format(", ".join(projects_log)))
 
     def is_program(self, acl_item):
         return acl_item in self.programs
@@ -144,7 +154,8 @@ class ACLConverter(object):
         for acl_object in record.acl:
             acl_item = acl_object.ace
             # we'll try to do some sanitizing here since the record ACLs are sometimes
-            # really mis-formatted, like `["u'phs000123'"]`
+            # really mis-formatted, like `["u'phs000123'"]`, or have spaces left in
+            acl_item = acl_item.strip(" ")
             acl_item = acl_item.lstrip("u'")
             acl_item = re.sub(r"\W+", "", acl_item)
             if acl_item == "*":
@@ -152,6 +163,8 @@ class ACLConverter(object):
             elif not path and self.is_program(acl_item):
                 path = "/programs/{}".format(acl_item)
             else:
+                if not acl_item:
+                    return None
                 if acl_item not in self.projects:
                     raise EnvironmentError(
                         "program or project {} does not exist".format(acl_item)
@@ -183,6 +196,10 @@ class ACLConverter(object):
                 raise EnvironmentError("couldn't reach arborist; request timed out")
             tag = None
             try:
+                logger.debug(
+                    "got {} from arborist: {}"
+                    .format(response.status_code, response.json())
+                )
                 if response.status_code == 409:
                     # resource is already there, so we'll just take the tag
                     tag = response.json()["exists"]["tag"]
@@ -203,6 +220,7 @@ class ACLConverter(object):
             if not tag:
                 raise EnvironmentError("couldn't reach arborist")
             self.arborist_resources[path] = tag
+            logger.info("using tag {} for path {}".format(tag, path))
 
         return self.arborist_resources[path]
 
@@ -232,13 +250,14 @@ def column_windows(session, column, windowsize):
         else:
             end = None
         yield int_for_range(start, end)
-        logger.info("doing a commit now")
 
 
-def windowed_query(q, column, windowsize):
+def windowed_query(session, q, column, windowsize):
     for whereclause in column_windows(q.session, column, windowsize):
         for row in q.filter(whereclause).order_by(column):
             yield row
+        session.commit()
+        logger.info("committed progress to database")
 
 
 if __name__ == "__main__":
