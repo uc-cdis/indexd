@@ -171,7 +171,8 @@ class ACLConverter(object):
             path = self.namespace + path
 
         if path not in self.arborist_resources:
-            url = "{}/resource/".format(self.arborist_url)
+            # add `?p` to create parent resources as necessary
+            url = "{}/resource/?p".format(self.arborist_url)
             try:
                 resource = {"path": path}
                 response = requests.post(url, timeout=5, json=resource)
