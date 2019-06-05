@@ -56,6 +56,8 @@ def main():
 
     with driver.session as session:
         q = session.query(IndexRecord)
+        if getattr(args, "start_did"):
+            q = q.filter(IndexRecord.did >= args.start_did)
         for record in windowed_query(session, q, IndexRecord.did, int(args.chunk_size)):
             if not record.acl:
                 logger.info(
