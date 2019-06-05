@@ -49,7 +49,7 @@ def main():
         from indexd.default_settings import settings
     driver = settings["config"]["INDEX"]["driver"]
     try:
-        acl_converter = ACLConverter(args.sheepdog, args.arborist)
+        acl_converter = ACLConverter(args.arborist, getattr(args, "sheepdog"))
     except EnvironmentError:
         logger.error("can't continue without database connection")
         sys.exit(1)
@@ -105,65 +105,72 @@ def parse_args():
 
 
 class ACLConverter(object):
-    def __init__(self, sheepdog_db, arborist_url):
+    def __init__(self, arborist_url, sheepdog_db=None):
         self.arborist_url = arborist_url.rstrip("/")
         self.programs = set()
         self.projects = dict()
-        self.namespace = os.getenv("AUTH_NAMESPACE", "")
+        self.namespace = "/" + os.getenv("AUTH_NAMESPACE", "").lstrip("/")
         if self.namespace:
             logger.info("using namespace {}".format(self.namespace))
         else:
             logger.info("not using any auth namespace")
         # map resource paths to tags in arborist so we can save http calls
         self.arborist_resources = dict()
+        self.use_sheepdog_db = bool(sheepdog_db)
 
-        engine = create_engine(sheepdog_db, echo=False)
-        try:
-            connection = engine.connect()
-        except OperationalError:
-            raise EnvironmentError(
-                "couldn't connect to sheepdog db using the provided URI"
-            )
-
-        result = connection.execute("SELECT _props->>'name' as name from node_program;")
-        for row in result:
-            self.programs.add(row["name"])
-
-        result = connection.execute("""
-            SELECT
-                project._props->>'name' AS name,
-                program._props->>'name' AS program
-            FROM node_project AS project
-            JOIN edge_projectmemberofprogram AS edge ON edge.src_id = project.node_id
-            JOIN node_program AS program ON edge.dst_id = program.node_id;
-        """)
-        for row in result:
-            self.projects[row["name"]] = row["program"]
-        connection.close()
-
-        logger.info("found programs: {}".format(list(self.programs)))
-        projects_log = [
-            "{} (from program {})".format(project, program)
-            for project, program in self.projects.items()
-        ]
-        logger.info("found projects: [{}]".format(", ".join(projects_log)))
+        if sheepdog_db:
+            engine = create_engine(sheepdog_db, echo=False)
+            try:
+                connection = engine.connect()
+            except OperationalError:
+                raise EnvironmentError(
+                    "couldn't connect to sheepdog db using the provided URI"
+                )
+            result = connection.execute("SELECT _props->>'name' as name from node_program;")
+            for row in result:
+                self.programs.add(row["name"])
+            result = connection.execute("""
+                SELECT
+                    project._props->>'name' AS name,
+                    program._props->>'name' AS program
+                FROM node_project AS project
+                JOIN edge_projectmemberofprogram AS edge ON edge.src_id = project.node_id
+                JOIN node_program AS program ON edge.dst_id = program.node_id;
+            """)
+            for row in result:
+                self.projects[row["name"]] = row["program"]
+            connection.close()
+            logger.info("found programs: {}".format(list(self.programs)))
+            projects_log = [
+                "{} (from program {})".format(project, program)
+                for project, program in self.projects.items()
+            ]
+            logger.info("found projects: [{}]".format(", ".join(projects_log)))
 
     def is_program(self, acl_item):
         return acl_item in self.programs
 
     def acl_to_authz(self, record):
         path = None
+        programs_found = 0
+        projects_found = 0
         for acl_object in record.acl:
             acl_item = acl_object.ace
             # we'll try to do some sanitizing here since the record ACLs are sometimes
             # really mis-formatted, like `["u'phs000123'"]`, or have spaces left in
             acl_item = acl_item.strip(" ")
             acl_item = acl_item.lstrip("u'")
-            acl_item = re.sub(r"\W+", "", acl_item)
+            if acl_item != "*":
+                acl_item = re.sub(r"\W+", "", acl_item)
             if acl_item == "*":
                 path = "/open"
-            elif not path and self.is_program(acl_item):
+                break
+            elif (
+                not self.use_sheepdog_db
+                or (projects_found == 0 and self.is_program(acl_item))
+            ):
                 path = "/programs/{}".format(acl_item)
+                programs_found += 1
             else:
                 if not acl_item:
                     return None
@@ -174,6 +181,7 @@ class ACLConverter(object):
                 path = "/programs/{}/projects/{}".format(
                     acl_item, self.projects[acl_item]
                 )
+                projects_found += 1
 
         if not path:
             logger.error(
@@ -181,6 +189,11 @@ class ACLConverter(object):
                 .format(record.did, record.acl)
             )
             return None
+
+        if programs_found > 1:
+            logger.error("found multiple projects in ACL for {}".format(record.did))
+        if projects_found > 1:
+            logger.error("found multiple projects in ACL for {}".format(record.did))
 
         if self.namespace:
             path = self.namespace + path
