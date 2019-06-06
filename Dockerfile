@@ -17,7 +17,12 @@ RUN apk update \
 
 COPY . /$appname
 COPY ./deployment/uwsgi/uwsgi.ini /etc/uwsgi/uwsgi.ini
+COPY ./deployment/uwsgi/wsgi.py /$appname/wsgi.py
 WORKDIR /$appname
+
+RUN python -m pip install --upgrade pip \
+    && python -m pip install --upgrade setuptools \
+    && pip install -r requirements.txt --src /usr/local/lib/python3.6/site-packages/
 
 RUN mkdir -p /var/www/$appname \
     && mkdir -p /var/www/.cache/Python-Eggs/ \
