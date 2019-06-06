@@ -162,26 +162,35 @@ class ACLConverter(object):
             acl_item = acl_item.lstrip("u'")
             if acl_item != "*":
                 acl_item = re.sub(r"\W+", "", acl_item)
-            if acl_item == "*":
+
+            # update path based on ACL entry
+            if not acl_item:
+                # ignore empty string
+                continue
+            elif acl_item == "*":
+                # if there's a * it should just be open. return early
                 path = "/open"
                 break
             elif (
                 not self.use_sheepdog_db
                 or (projects_found == 0 and self.is_program(acl_item))
             ):
+                # if we don't have sheepdog we have to assume everything is a "program".
+                # also, we only want to set the path to a program if we haven't found a
+                # path for a project already.
                 path = "/programs/{}".format(acl_item)
                 programs_found += 1
-            else:
-                if not acl_item:
-                    return None
-                if acl_item not in self.projects:
-                    raise EnvironmentError(
-                        "program or project {} does not exist".format(acl_item)
-                    )
+            elif acl_item in self.projects:
+                # always want to update to project if possible
                 path = "/programs/{}/projects/{}".format(
                     acl_item, self.projects[acl_item]
                 )
                 projects_found += 1
+            else:
+                # nothing worked, raise exception
+                raise EnvironmentError(
+                    "program or project {} does not exist".format(acl_item)
+                )
 
         if not path:
             logger.error(
