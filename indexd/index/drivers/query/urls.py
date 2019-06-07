@@ -24,7 +24,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
     def query_urls(self, exclude=None, include=None, versioned=None, offset=0, limit=1000, fields="did,urls", **kwargs):
 
         if kwargs:
-            raise UserError("Unexpected query parameter(s) {}".format(kwargs.keys()))
+            raise UserError("Unexpected query parameter(s) {}".format(list(kwargs.keys())))
 
         versioned = versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
 
@@ -61,7 +61,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                               limit=1000, fields="did,urls,rev", **kwargs):
 
         if kwargs:
-            raise UserError("Unexpected query parameter(s) {}".format(kwargs.keys()))
+            raise UserError("Unexpected query parameter(s) {}".format(list(kwargs.keys())))
 
         versioned = versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         with self.driver.session as session:

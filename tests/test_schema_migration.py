@@ -19,25 +19,25 @@ Base = declarative_base()
 
 INDEX_TABLES = {
     'base_version': [
-        (u'baseid', u'character varying'),
+        ('baseid', 'character varying'),
     ],
     'index_record': [
-        (u'did', u'character varying'),
-        (u'rev', u'character varying'),
-        (u'form', u'character varying'),
-        (u'size', u'bigint'),
-        (u'baseid', u'character varying'),
-        (u'created_date', u'timestamp without time zone'),
-        (u'updated_date', u'timestamp without time zone'),
+        ('did', 'character varying'),
+        ('rev', 'character varying'),
+        ('form', 'character varying'),
+        ('size', 'bigint'),
+        ('baseid', 'character varying'),
+        ('created_date', 'timestamp without time zone'),
+        ('updated_date', 'timestamp without time zone'),
     ],
     'index_record_hash': [
-        (u'did', u'character varying'),
-        (u'hash_type', u'character varying'),
-        (u'hash_value', u'character varying'),
+        ('did', 'character varying'),
+        ('hash_type', 'character varying'),
+        ('hash_value', 'character varying'),
     ],
     'index_record_url': [
-        (u'did', u'character varying'),
-        (u'url', u'character varying'),
+        ('did', 'character varying'),
+        ('url', 'character varying'),
     ],
 }
 
@@ -216,7 +216,7 @@ def test_migrate_index_versioning(monkeypatch):
         s.delete(v)
 
     Base.metadata.reflect(bind=driver.engine)
-    tables = Base.metadata.tables.keys()
+    tables = list(Base.metadata.tables.keys())
 
     for table in INDEX_TABLES:
         assert table in tables, '{table} not created'.format(table=table)

@@ -7,6 +7,7 @@ from cdisutilstest.code.indexd_fixture import clear_database
 import swagger_client
 
 from indexd import auth
+import importlib
 
 try:
     reload  # Python 2.7
@@ -22,7 +23,7 @@ def app():
     # this is to make sure sqlite is initialized
     # for every unittest
     from indexd import default_settings
-    reload(default_settings)
+    importlib.reload(default_settings)
     yield get_app()
     try:
         clear_database()

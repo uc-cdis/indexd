@@ -2,7 +2,7 @@ import abc
 from ..driver_base import SQLAlchemyDriverBase
 
 
-class IndexDriverABC(SQLAlchemyDriverBase):
+class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
     '''
     Index Driver Abstract Base Class
 
@@ -11,7 +11,6 @@ class IndexDriverABC(SQLAlchemyDriverBase):
     def __init__(self, conn, **config):
         super(IndexDriverABC, self).__init__(conn, **config)
 
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def ids(self,

@@ -1,10 +1,8 @@
 from abc import ABCMeta, abstractmethod
 
 
-class URLsQueryDriver(object):
+class URLsQueryDriver(object, metaclass=ABCMeta):
     """Relatively abstract class for URLs querying, useful when support for other drivers is added"""
-
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def query_urls(self, exclude=None, include=None, versioned=None, offset=0, limit=1000, fields="did,urls", **kwargs):

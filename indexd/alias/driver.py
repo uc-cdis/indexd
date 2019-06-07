@@ -2,7 +2,7 @@ import abc
 from ..driver_base import SQLAlchemyDriverBase
 
 
-class AliasDriverABC(SQLAlchemyDriverBase):
+class AliasDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
     '''
     Alias Driver Abstract Base Class
 
@@ -11,7 +11,6 @@ class AliasDriverABC(SQLAlchemyDriverBase):
     def __init__(self, conn, **config):
         super(AliasDriverABC, self).__init__(conn, **config)
 
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def aliases(self, limit=100, start='', size=None, urls=None, hashes=None):
