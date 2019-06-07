@@ -54,6 +54,9 @@ def main():
         logger.error("can't continue without database connection")
         sys.exit(1)
 
+    if hasattr(args, "start_did"):
+        logger.info("starting at did {}".format(args.start_did))
+
     with driver.session as session:
         q = session.query(IndexRecord)
         wq = windowed_query(
