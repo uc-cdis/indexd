@@ -203,12 +203,12 @@ class ACLConverter(object):
         if not path:
             logger.error(
                 "couldn't get `authz` for record {} from {}; setting as empty"
-                .format(record.did, record.acl)
+                .format(record.did, record.acl.ace)
             )
             return None
 
         if programs_found > 1:
-            logger.error("found multiple projects in ACL for {}".format(record.did))
+            logger.error("found multiple programs in ACL for {}".format(record.did))
         if projects_found > 1:
             logger.error("found multiple projects in ACL for {}".format(record.did))
 
