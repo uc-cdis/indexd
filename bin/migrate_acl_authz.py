@@ -56,9 +56,14 @@ def main():
 
     with driver.session as session:
         q = session.query(IndexRecord)
-        if getattr(args, "start_did"):
-            q = q.filter(IndexRecord.did >= args.start_did)
-        for record in windowed_query(session, q, IndexRecord.did, int(args.chunk_size)):
+        wq = windowed_query(
+            session,
+            q,
+            IndexRecord.did,
+            int(args.chunk_size),
+            start=getattr(args, "start_did")
+        )
+        for record in wq:
             if not record.acl:
                 logger.info(
                     "record {} has no acl, setting authz to empty"
@@ -249,7 +254,7 @@ class ACLConverter(object):
         return self.arborist_resources[path]
 
 
-def column_windows(session, column, windowsize):
+def column_windows(session, column, windowsize, start=None):
 
     def int_for_range(start_id, end_id):
         if end_id:
@@ -262,6 +267,8 @@ def column_windows(session, column, windowsize):
         .query(column, func.row_number().over(order_by=column).label('rownum'))
         .from_self(column)
     )
+    if start:
+        q = q.filter(column >= start)
     if windowsize > 1:
         q = q.filter(sqlalchemy.text("rownum %% %d=1" % windowsize))
 
@@ -276,8 +283,8 @@ def column_windows(session, column, windowsize):
         yield int_for_range(start, end)
 
 
-def windowed_query(session, q, column, windowsize):
-    for whereclause in column_windows(q.session, column, windowsize):
+def windowed_query(session, q, column, windowsize, start=None):
+    for whereclause in column_windows(q.session, column, windowsize, start=start):
         for row in q.filter(whereclause).order_by(column):
             yield row
         session.commit()
