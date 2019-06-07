@@ -1,19 +1,23 @@
 import os
 import shutil
 
+
 class removes(object):
-    '''
+    """
     Decorator to remove a path after function call.
-    '''
+    """
+
     def __init__(self, path):
         self.path = path
 
     def __call__(self, f):
-        '''
+        """
         Ensures path is removed after function call.
-        '''
+        """
+
         def wrapper(*args, **kwargs):
-            try: return f(*args, **kwargs)
+            try:
+                return f(*args, **kwargs)
             finally:
                 if not os.path.exists(self.path):
                     pass
@@ -26,10 +30,10 @@ class removes(object):
 
 
 def assert_blank(r):
-    '''
+    """
     Check that the fields that should be empty in a
     blank record are empty.
-    '''
+    """
     assert r.records[0].baseid
     assert r.records[0].did
     assert not r.records[0].size
