@@ -117,8 +117,9 @@ class ACLConverter(object):
         self.arborist_url = arborist_url.rstrip("/")
         self.programs = set()
         self.projects = dict()
-        self.namespace = "/" + os.getenv("AUTH_NAMESPACE", "").lstrip("/")
-        if self.namespace:
+        self.namespace = ""
+        if os.getenv("AUTH_NAMESPACE"):
+            self.namespace = "/" + os.getenv("AUTH_NAMESPACE").lstrip("/")
             logger.info("using namespace {}".format(self.namespace))
         else:
             logger.info("not using any auth namespace")
@@ -202,8 +203,8 @@ class ACLConverter(object):
 
         if not path:
             logger.error(
-                "couldn't get `authz` for record {} from {}; setting as empty"
-                .format(record.did, record.acl.ace)
+                "couldn't get `authz` for record {}; setting as empty"
+                .format(record.did)
             )
             return None
 
@@ -273,7 +274,7 @@ def column_windows(session, column, windowsize, start=None):
     if start:
         q = q.filter(column >= start)
     if windowsize > 1:
-        q = q.filter(sqlalchemy.text("rownum %% %d=1" % windowsize))
+        q = q.filter(sqlalchemy.text("rownum % {}=1".format(windowsize)))
 
     intervals = [id for id, in q]
 
