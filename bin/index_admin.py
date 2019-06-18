@@ -20,14 +20,14 @@ def main(path, action=None, username=None, password=None):
             driver.add(username, password)
             logger.info("User {} created".format(username))
         except Exception as e:
-            logger.error(e.message)
+            logger.error(e)
 
     elif action == "delete":
         try:
             driver.delete(username)
             logger.info("User {} deleted".format(username))
         except Exception as e:
-            logger.error(e.message)
+            logger.error(e)
 
     elif action == "migrate_database":
         try:
@@ -35,7 +35,7 @@ def main(path, action=None, username=None, password=None):
             alias_driver.migrate_alias_database()
             index_driver.migrate_index_database()
         except Exception as e:
-            logger.error(e.message)
+            logger.error(e)
 
 
 if __name__ == "__main__":
