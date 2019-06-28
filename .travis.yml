@@ -23,15 +23,5 @@ install:
     - "cd swagger_client; python setup.py install; cd .."
     - "python setup.py install --force"
     - "pip install -r test-requirements.txt"
-    - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install -e git+https://git@github.com/uc-cdis/wool.git#egg=wool; fi
-
-after_script:
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 && $PR_NUMBER != false ]]; then wool; fi
 
 script: "py.test -vv tests"
-
-env:
-  matrix:
-  - REPOSITORY="uc-cdis/indexd" PR_NUMBER="$TRAVIS_PULL_REQUEST"
-  global:
-    secure: Wb/E2/yp/9lqNyTtuOOY+wXePWMDSOxys9Ayf+SQF25EaTRv55UUda6Rvpf/ol3PJHW7J5wuif/3a02SypHyMzQRC4KVk9kEOnnbEVTZZlNpG6DvVXvScWO9wCJp7cyI+RLlGWPOItC+txVLbn+YMLDhddnj0c7LDvoHDGSvj89nmBz0TOKP7QPwlYOtltpRXB4bNRWPBO/hJzQwyGW1gTUoKm8ZZvoszkAp6oEfD39scirFDvUQjgX0ZpBfvnM+7j3F/CiXJtXMRTEYm0P+GLrQpFMmqPcFAMbtKIOyEq+JebRq0L0nZvFdmQYKY+xGULBBUK5KyINUUFuUxAeZO2+NHMCOLulYgv5KfdUVM/DrLFozfRVPsUXJCbhFa5YDKlLwiTENpnhYOyNRtMS6Li8Mn1LGFKiDTbnECFhkLn9HC8CTIKXZWP4HvRZ6MsD2XLA3TDC4e2E9QQLF6gv9AIZVO1UP2kCaQXgbfy/p/ZIK4s/A+UbGeEDy0JLgOFH6B1ByAkbECPmmyzGxR2qG7xHHojQolL3DspWeAfq55dQ9d3e+W84PVPZjixpcHFEnYVFMIFfSU67slqBnGQ5mYeUGcXj688hNCqdI/E8BViH/xwqmJwgBl9fdlSUiDDnnC+6I+0dIn7vLkvV3CJK862SKHu1zyjXFT8deX4EvLAA=
