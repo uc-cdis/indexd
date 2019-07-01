@@ -192,7 +192,7 @@ class ACLConverter(object):
             elif acl_item in self.projects:
                 # always want to update to project if possible
                 path = "/programs/{}/projects/{}".format(
-                    acl_item, self.projects[acl_item]
+                    self.projects[acl_item], acl_item
                 )
                 projects_found += 1
             else:
