@@ -3,7 +3,6 @@ import uuid
 from contextlib import contextmanager
 
 from cdislogging import get_logger
-from future.utils import iteritems
 from sqlalchemy import (
     BigInteger,
     Column,
@@ -250,10 +249,10 @@ def create_urls_metadata(urls_metadata, record, session):
     create url metadata record in database
     """
     urls = {u.url for u in record.urls}
-    for url, url_metadata in iteritems(urls_metadata):
+    for url, url_metadata in urls_metadata.items():
         if url not in urls:
             raise UserError("url {} in urls_metadata does not exist".format(url))
-        for k, v in iteritems(url_metadata):
+        for k, v in url_metadata.items():
             session.add(IndexRecordUrlMetadata(url=url, key=k, value=v, did=record.did))
 
 
@@ -1026,8 +1025,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             try:
-                query = session.execute("SELECT 1")
-            except Exception as e:
+                query = session.execute("SELECT 1")  # pylint: disable=unused-variable
+            except Exception:
                 raise UnhealthyCheck()
 
             return True

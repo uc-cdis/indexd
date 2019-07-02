@@ -10,11 +10,6 @@ import swagger_client
 from indexd import auth
 import importlib
 
-try:
-    from importlib import reload  # Python 3.4+
-except ImportError:
-    from imp import reload  # Python 3.0 - 3.3<Paste>
-
 
 @pytest.fixture
 def app():

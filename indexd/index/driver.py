@@ -24,8 +24,11 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         hashes=None,
         file_name=None,
         version=None,
+        uploader=None,
         metadata=None,
         ids=None,
+        urls_metadata=None,
+        negate_params=None,
     ):
         """
         Returns a list of records stored by the backend.
@@ -45,12 +48,16 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         form,
         did=None,
         size=None,
-        urls=None,
-        hashes=None,
         file_name=None,
         metadata=None,
         urls_metadata=None,
         version=None,
+        urls=None,
+        acl=None,
+        authz=None,
+        hashes=None,
+        baseid=None,
+        uploader=None,
     ):
         """
         Creates record for given data.
@@ -81,15 +88,18 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def add_version(
         self,
-        did,
+        current_did,
         form,
+        new_did=None,
         size=None,
         file_name=None,
         metadata=None,
-        urls=None,
         urls_metadata=None,
-        hashes=None,
         version=None,
+        urls=None,
+        acl=None,
+        authz=None,
+        hashes=None,
     ):
         """
         Add a record version given did

@@ -171,15 +171,18 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         name,
         rev=None,
         size=None,
-        hashes={},
+        hashes=None,
         release=None,
         metastring=None,
-        host_authorities=[],
+        host_authorities=None,
         keeper_authority=None,
     ):
         """
         Updates or inserts a new record.
         """
+
+        hashes = hashes or {}
+        host_authorities = host_authorities or []
 
         with self.session as session:
             query = session.query(AliasRecord)

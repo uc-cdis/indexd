@@ -64,7 +64,7 @@ def test_driver_init_does_not_create_record_hashes():
     """
     with sqlite3.connect("index.sq3") as conn:
 
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")  # pylint: disable=unused-variable
 
         count = conn.execute(
             """
@@ -644,9 +644,9 @@ def _test_driver_update_record():
 
         conn.commit()
 
-        update_size = 256
+        # update_size = 256
         update_urls = ["a", "b", "c"]
-        update_hashes = {"a": "1", "b": "2", "c": "3"}
+        # update_hashes = {"a": "1", "b": "2", "c": "3"}
 
         file_name = "test"
         version = "ver_123"
@@ -674,14 +674,14 @@ def _test_driver_update_record():
             )
         )
 
-        new_hashes = {
-            h: v
-            for h, v in conn.execute(
-                """
-            SELECT hash_type, hash_value FROM index_record_hash
-        """
-            )
-        }
+        # new_hashes = {
+        #     h: v
+        #     for h, v in conn.execute(
+        #         """
+        #     SELECT hash_type, hash_value FROM index_record_hash
+        # """
+        #     )
+        # }
 
         assert did == new_did, "record id does not match"
         assert rev != new_rev, "record revision matches prior"

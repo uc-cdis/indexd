@@ -25,12 +25,11 @@ class AliasDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         name,
         rev=None,
         size=None,
-        hashes={},
+        hashes=None,
         release=None,
-        metadata=None,
-        host_authorities=[],
+        metastring=None,
+        host_authorities=None,
         keeper_authority=None,
-        **kwargs
     ):
         """
         Update or insert alias record.
