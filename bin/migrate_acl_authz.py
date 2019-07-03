@@ -119,7 +119,7 @@ class ACLConverter(object):
         self.projects = dict()
         self.namespace = ""
         if os.getenv("AUTH_NAMESPACE"):
-            self.namespace = "/" + os.getenv("AUTH_NAMESPACE").lstrip("/")
+            self.namespace = "/" + os.getenv("AUTH_NAMESPACE").strip("/")
             logger.info("using namespace {}".format(self.namespace))
         else:
             logger.info("not using any auth namespace")
