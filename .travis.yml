@@ -20,7 +20,7 @@ install:
     - "python setup.py install --force"
     - "pip install -r test-requirements.txt"
 
-script: "py.test -vv tests"
+script: "py.test -vv --cov=indexd --cov-report xml tests"
 
 after_script:
   - COVERALLS_REPO_TOKEN=$COVERALLS_TOKEN coveralls
