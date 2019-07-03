@@ -1,6 +1,6 @@
 Indexd
 ===
-![version](https://img.shields.io/github/release/uc-cdis/indexd.svg) [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE) [![Travis](https://travis-ci.org/uc-cdis/indexd.svg?branch=master)](https://travis-ci.org/uc-cdis/indexd)
+![version](https://img.shields.io/github/release/uc-cdis/indexd.svg) [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE) [![Travis](https://travis-ci.org/uc-cdis/indexd.svg?branch=master)](https://travis-ci.org/uc-cdis/indexd) [![Coverage Status](https://coveralls.io/repos/github/uc-cdis/indexd/badge.svg?branch=chore/coveralls)](https://coveralls.io/github/uc-cdis/indexd?branch=chore/coveralls)
 
 Indexd is a data indexing and tracking service. It is intended to be
 distributed, hash-based indexing service, designed to be accessed via a

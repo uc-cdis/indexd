@@ -1,4 +1,5 @@
 -r requirements.txt
+coveralls
 mock
 pytest==3.0.6
 pytest-flask==0.8.1
