@@ -1,6 +1,8 @@
 -r requirements.txt
+coveralls
 mock
 pytest==3.0.6
+pytest-cov==2.5.1
 pytest-flask==0.8.1
 PyYAML==5.1
 swagger_spec_validator
