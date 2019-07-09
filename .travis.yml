@@ -24,4 +24,11 @@ install:
     - "python setup.py install --force"
     - "pip install -r test-requirements.txt"
 
-script: "py.test -vv tests"
+script: "py.test -vv --cov=indexd --cov-report xml tests"
+
+after_script:
+  - COVERALLS_REPO_TOKEN=$COVERALLS_TOKEN coveralls
+
+env:
+  global:
+    secure: h7ZQM1IMz67u8V+g/EqOXGH7SngyTZkaTRHDnnxlwql5vJ+gF8dlPgAzSN9xBn9SpSS0o5jqcZZ+6tN7FZEnPlZjCU15hN0G450r75zsKMFpWKl/8Xz3SwBJHx529ZOe9R9nrwOVmnedHxqbiQqgCxWwTDWsvmce6dF3GwigOfKNuW2UD2wdRX3quaMDAILZ0WyO6vGx6SVnr2sdhN4sJqCugXxjN72o/JLHnRBg5Cx2U4BdPguqaaEV6KjloxgTTtZEp0IZkrnv0WrxCgNuDoPYkfPEAD2hzrAgUkj0c+6WQg/aOV/k0MAKNLX4et+3haRAFeDlzAJBGPgUJN3zvPXGkPixTBiD5zDyplzjvF24qCSmXeH5SMKu//6lGeOuNgqJria3VD8xt+lAdGg4Fgzp+zDLQ17CSmJx5KRyQroZsp/YqD0ezT0mQZMRLuTNuw+UWQquk1ufotOD4o5KGssvcu03XD7SVc5CnsWrmlkN8MH5g19ddwNOSKKYu7Ran4//XOWOfSfzLCgYPgQbYebZXdpbxNNWK57V9sPHKRzrQCo26HNXWgWebbzYI1z5aoq6bY5dB7Un1YFUxQlBdNzZnx/soErPL+omH8nw9Usfv20uhB4lQo1plkoctpqLITuVDe8ZtSbUEZB7cZGcrfb/c5E9TLC9EqZu/e60qN8=
