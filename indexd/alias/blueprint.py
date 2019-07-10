@@ -64,7 +64,7 @@ def get_alias():
     start = flask.request.args.get("start")
 
     hashes = flask.request.args.getlist("hash")
-    hashes = {h: v for h, v in [x.split(":", 1) for x in hashes]}
+    hashes = {h: v for h, v in (x.split(":", 1) for x in hashes)}
 
     # TODO FIXME this needs reworking
     validate_hashes(**hashes)

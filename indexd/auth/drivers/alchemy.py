@@ -42,7 +42,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         """
         Initialize the SQLAlchemy database driver.
         """
-        super(SQLAlchemyAuthDriver, self).__init__(conn, **config)
+        super().__init__(conn, **config)
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
         self.Session = sessionmaker(bind=self.engine)

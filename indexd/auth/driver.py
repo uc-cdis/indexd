@@ -10,7 +10,7 @@ class AuthDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
     """
 
     def __init__(self, conn, **config):
-        super(AuthDriverABC, self).__init__(conn, **config)
+        super().__init__(conn, **config)
 
     @abc.abstractmethod
     def auth(self, username, password):

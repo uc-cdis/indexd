@@ -10,7 +10,7 @@ class AliasDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
     """
 
     def __init__(self, conn, **config):
-        super(AliasDriverABC, self).__init__(conn, **config)
+        super().__init__(conn, **config)
 
     @abc.abstractmethod
     def aliases(self, limit=100, start="", size=None, urls=None, hashes=None):

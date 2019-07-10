@@ -85,13 +85,13 @@ def get_index():
     version = flask.request.args.get("version")
 
     hashes = flask.request.args.getlist("hash")
-    hashes = {h: v for h, v in [x.split(":", 1) for x in hashes]}
+    hashes = {h: v for h, v in (x.split(":", 1) for x in hashes)}
 
     validate_hashes(**hashes)
     hashes = hashes if hashes else None
 
     metadata = flask.request.args.getlist("metadata")
-    metadata = {k: v for k, v in [x.split(":", 1) for x in metadata]}
+    metadata = {k: v for k, v in (x.split(":", 1) for x in metadata)}
 
     acl = flask.request.args.get("acl")
     if acl is not None:
@@ -160,7 +160,7 @@ def get_urls():
     """
     ids = flask.request.args.getlist("ids")
     hashes = flask.request.args.getlist("hash")
-    hashes = {h: v for h, v in [x.split(":", 1) for x in hashes]}
+    hashes = {h: v for h, v in (x.split(":", 1) for x in hashes)}
     size = flask.request.args.get("size")
     if size:
         try:

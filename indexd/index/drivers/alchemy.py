@@ -267,7 +267,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Initialize the SQLAlchemy database driver.
         """
-        super(SQLAlchemyIndexDriver, self).__init__(conn, **config)
+        super().__init__(conn, **config)
         self.logger = logger or get_logger("SQLAlchemyIndexDriver")
         self.config = index_config or {}
 

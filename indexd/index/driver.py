@@ -10,7 +10,7 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
     """
 
     def __init__(self, conn, **config):
-        super(IndexDriverABC, self).__init__(conn, **config)
+        super().__init__(conn, **config)
 
     @abc.abstractmethod
     def ids(
