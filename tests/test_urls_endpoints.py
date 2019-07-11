@@ -73,18 +73,25 @@ def test_query_urls_metadata(swg_index_client, swg_query_client, test_data):
     """
     url_x_count, _, unversioned_count = test_data
     # test get all
-    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploaded", url="awesome-x")
+    urls_list = swg_query_client.query_urls_metadata(
+        key="state", value="uploaded", url="awesome-x"
+    )
     assert len(urls_list) == 2 * url_x_count
 
     # test list versioned urls
-    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploaded",
-                                                     url="awesome-x", versioned=True)
+    urls_list = swg_query_client.query_urls_metadata(
+        key="state", value="uploaded", url="awesome-x", versioned=True
+    )
     assert len(urls_list) == url_x_count
 
     # test list un versioned
-    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploaded", url="endpointurl", versioned=False)
+    urls_list = swg_query_client.query_urls_metadata(
+        key="state", value="uploaded", url="endpointurl", versioned=False
+    )
     assert len(urls_list) == unversioned_count
 
     # test unknown state
-    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploadedx", url="awesome-x")
+    urls_list = swg_query_client.query_urls_metadata(
+        key="state", value="uploadedx", url="awesome-x"
+    )
     assert len(urls_list) == 0

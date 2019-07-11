@@ -6,5 +6,4 @@ pytest-cov==2.5.1
 pytest-flask==0.8.1
 PyYAML==5.1
 swagger_spec_validator
--e git+https://github.com/uc-cdis/cdisutils-test.git@0.2.2#egg=cdisutilstest
--e git+https://github.com/uc-cdis/indexclient.git@1.4.0#egg=indexclient
+-e git+https://github.com/uc-cdis/cdisutils-test.git@1.0.0#egg=cdisutilstest
