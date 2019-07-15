@@ -1,5 +1,5 @@
 <div>
-<img align="left" src="./docs/indexD.svg" alt="Indexd Logo"/>
+<img align="left" src="./docs/indexD.svg" alt="Indexd Logo" hspace="20"/>
 </div>
 
 # Indexd
@@ -19,6 +19,10 @@ Data inevitably moves and changes, which leads to unreproducible research. It's 
 If you run an analysis over a set of data and later it gets moved, your analysis is no longer repeatable. The same data still exists, it just isn't where you thought.
 
 This presents a huge problem for repeatable research. There needs to be a unique identifier for a given piece of data that can be used in analyses without "hard-coding" the physical location of the data. The problem is that data moves.
+
+<div>
+<img align="right" src="./docs/guid.png" alt="GUID Example" height="250" hspace="10"/>
+</div>
 
 ## The Solution: Indexd's Globally Unique Identifiers (GUIDs)
 
@@ -89,33 +93,44 @@ If Indexd is used with other Gen3 software, specifically the services related to
 
 The additional usage of the Gen3 Auth services will enable data access through signed URLs, with authorization checks based on the `authz` field in Indexd.
 
+### Distributed Resolution: Utilizing Prefixes in GUIDs
+
+Indexd's distributed resolution logic for a given GUID/alias is roughly as follows:
+
+1. Attempt to get local record with given input (as GUID)
+2. Attempt to get local record with given input (as alias)
+3. Attempt distributed resolution using connected services configured in Indexd's `DIST` config
+  * It is possible to resolve to a service that is *not* another Indexd, provided that a sufficient client is written to convert from the existing format to the format Indexd expects
+    * Currently we have a [DOI Client](https://github.com/uc-cdis/doiclient) and [GA4GH's DOS Client](https://github.com/uc-cdis/dosclient)
+  * The distributed resolution can be "smart", in that you can configure `hints` that tell a central resolver Indexd that a given input should be resolved with a specific distributed service
+    * The `hints` are a list of regexes that will attempt to match against given input
+    * For example: `hints: ["10\..*"]` for DOIs since they'll begin with `10.`
+
+An example configuration (see [configuration section](#configuration) for more info) for an external service to resolve to:
+
+```python
+CONFIG["DIST"] = [
+    {"name": "DX DOI", "host": "https://doi.org/", "hints": ["10\..*"], "type": "doi"},
+]
+```
+
+The `type` tells Indexd which client to use for that external service. In this case, `doi` maps to the [DOI Client](https://github.com/uc-cdis/doiclient).
+
+Indexd itself can be configured to append a prefix to the typical UUID in order to aide in the distributed resolution capabilities mentioned above. Specifically, we can add a prefix such as `dg.4GH5/` which may represent one instance of Indexd. For distriubuted resolution purposes, we can then create `hints` that let the central resolver know where to go when it recieves a GUID with a prefix of `dg.4GH5/`.
+
+The prefix that a given Indexd instance uses is specified in the `DEFAULT_PREFIX` configuration in the settings file. In order to ensure that this gets used and aliases get created, specify `PREPEND_PREFIX` to `True` and `ADD_PREFIX_ALIAS` to `True` as well.
+
 ## Use Cases For Indexing Data
 
-Data may be loaded into Indexd through a few different means (each supporting different use cases):
+Data may be loaded into Indexd through a few different means:
 
-### Data already exists in storage location(s) and I want to submit to a Gen3 Data Commons
+### I want to upload data to storage location(s) and index at the same time
 
-#### Indexd Record Creation Through Gen3's Data Submission Service: [Sheepdog](https://github.com/uc-cdis/sheepdog)
+Using the [gen3-client](https://gen3.org/resources/user/gen3-client/) you can upload objects to storage locations and mint GUIDs at the same time.
 
-When data files are submitted to a Gen3 Data Commons using Sheepdog, the files are automatically indexed into Indexd. Submissions to Sheepdog can include `object_id`'s that map to existing Indexd GUIDs. Or, if there are no existing records, Sheepdog can create them on the fly.
+![alt text](./docs/indexd_client_upload.png "gen3-client Data Upload")
 
-To create Indexd records on the fly, Sheepdog will check if the file being submitted has a hash & file size matching anything currently in Indexd and if so uses the returned document GUID as the object ID reference. If no match is found in Indexd then a new record is created and stored in Indexd.
-
-### Data will be dynamically added to storage location(s)
-
-#### Automatically Creating Indexd Records when Objects are Added to Object Storage
-
-Using AWS SNS or Google PubSub it is possible to have streaming notifications when files are created, modified or deleted in the respective cloud object storage services (S3, GCS). It is then possible to use an AWS Lambda or GCP Cloud Function to automatically index the new object into Indexd.
-
-> NOTE: This may require using the batch processing services if the file is large (to compute the necessary minimal set of hashes to support indexing). There are known limitations with AWS Lambda and GCP Cloud Functions related to how long a process can run before AWS/Google cuts it off. Some hash calculations may exceed that time limit.
-
-This feature can be set up on a per Data Commons basis for any buckets of interest. The buckets do not have to be owned by the commons, but permissions to read the bucket objects and permissions for SNS or PubSub are necessary.
-
-For existing data in buckets, the SNS or PubSub notifications may be simulated such that the indexing functions are started for each object in the bucket. This is useful because only a single code path is necessary for indexing the contents of an object.
-
-### Data will be uploaded to storage location(s) after submission to a Gen3 Data Commons
-
-#### Blank Records in Indexd
+#### Blank Record Creation in Indexd
 
 Indexd supports void or blank records that allow users to pre-register data files through Fence before actually registering them. This enables the [Data Upload flow](https://gen3.org/resources/user/submit-data/#2-upload-data-files-to-object-storage) that allows users to use a client to create Indexd records before the physical file exists in storage buckets. The complete flow contains three main steps:
 
@@ -126,8 +141,30 @@ Indexd supports void or blank records that allow users to pre-register data file
 General flow:
 
 - Fence requests blank object from Indexd. Indexd creates an object with no hash, size or URLs, only the `uploader` and optionally `file_name` fields.
-- Indexd listener monitors bucket update, update to Indexd with URL, hash, size.
+- Indexd listener monitors bucket update, updates Indexd with URL, hash, size.
 - The client application (windmill or gen3-data-client) lists records for data files which the user needs to submit to the graph. The user fills all empty fields and submits the request to Indexd to update the `authz` or `acl`.
+
+### I want to associate Indexd data to structured data in a Gen3 Data Commons
+
+> NOTE: This assumes that the data already exists in storage location(s)
+
+#### Indexd Record Creation Through Gen3's Data Submission Service: [Sheepdog](https://github.com/uc-cdis/sheepdog)
+
+When data files are submitted to a Gen3 Data Commons using Sheepdog, the files are automatically indexed into Indexd. Submissions to Sheepdog can include `object_id`'s that map to existing Indexd GUIDs. Or, if there are no existing records, Sheepdog can create them on the fly.
+
+To create Indexd records on the fly, Sheepdog will check if the file being submitted has a hash & file size matching anything currently in Indexd and if so uses the returned document GUID as the object ID reference. If no match is found in Indexd then a new record is created and stored in Indexd.
+
+### I want to index data that is dynamically added to storage location(s)
+
+#### Automatically Creating Indexd Records when Objects are Added to Object Storage
+
+Using AWS SNS or Google PubSub it is possible to have streaming notifications when files are created, modified or deleted in the respective cloud object storage services (S3, GCS). It is then possible to use an AWS Lambda or GCP Cloud Function to automatically index the new object into Indexd.
+
+> NOTE: This may require using the batch processing services if the file is large (to compute the necessary minimal set of hashes to support indexing). There are known limitations with AWS Lambda and GCP Cloud Functions related to how long a process can run before AWS/Google cuts it off. Some hash calculations may exceed that time limit.
+
+This feature can be set up on a per Data Commons basis for any buckets of interest. The buckets do not have to be owned by the commons, but permissions to read the bucket objects and permissions for SNS or PubSub are necessary.
+
+For existing data in buckets, the SNS or PubSub notifications may be simulated such that the indexing functions are started for each object in the bucket. This is useful because only a single code path is necessary for indexing the contents of an object.
 
 ## Indexd REST API for Record Creation
 
@@ -178,6 +215,8 @@ docker run -d -v local_settings.py:/var/www/Indexd/local_settings.py --name=Inde
 There is a `/indexd/default_settings.py` file which houses, you guessed it, default configuration settings. If you want to provide an alternative configuration to override these, you must supply a `local_settings.py` in the same directory as the default settings. It must contain all the same configurations from the `default_settings.py`, though may have different values.
 
 This works because on app startup, Indexd will attempt to include a `local_settings` python module (the attempted import happens in the the `/indexd/app.py` file). If a local settings file is not found, Indexd falls back on the default settings.
+
+There is specific information about some configuration options in the [distributed resolution](#Distributed Resolution: Utilizing Prefixes in GUIDs) section of this document.
 
 ## Testing
 - Follow [installation](#installation)
