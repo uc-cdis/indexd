@@ -26,7 +26,7 @@ This presents a huge problem for repeatable research. There needs to be a unique
 
 ## The Solution: Indexd's Globally Unique Identifiers (GUIDs)
 
-Indexd serves as an abstraction over the physical data locations, providing  a Globally Unique Identifier (GUID) per datum. These identifiers will always be resolvable with Indexd and will always provide the locations of the physical data, even if the data moves.
+Indexd serves as an abstraction over the physical data locations, providing a Globally Unique Identifier (GUID) per datum. These identifiers will always be resolvable with Indexd and will always provide the locations of the physical data, even if the data moves.
 
 GUIDs provide a domain-neutral, persistent way to track data across platforms. Indexd is a proven solution to provide GUIDs for data.
 
@@ -57,7 +57,7 @@ All the information about a specific datum mentioned above (the GUID, URLs, hash
 
 Records are collections of information necessary to as-uniquely-as-possible identify a piece of information. This is done through the use of hashes and metadata. Records are assigned a UUIDv4 at the time of creation and additionally may include a prefix to aide in resolution (these combined become the GUID). This allows records to be uniquely referenced amongst multiple records.
 
-Hashes used by the index are deployment-specific, but are intended to be the results of widely known and commonly available hashing algorithms, such as MD5 or SHA1. This is similar to the way that torrents are tracked and provides a mechanism by which data can be safely retrieved from potentially untrusted sources in a secure manner.
+Hashes used by the index are deployment-specific but are intended to be the results of widely known and commonly available hashing algorithms, such as MD5 or SHA1. This is similar to the way that torrents are tracked and provides a mechanism by which data can be safely retrieved from potentially untrusted sources in a secure manner.
 
 Additional metadata that is stored in index records includes the size of the data as well as the type.
 
@@ -78,7 +78,7 @@ It is still true, however, that **GUIDs should be persistent and the data they p
 
 To handle this versioning in Indexd, the concept of a `baseid` is introduced. The `baseid` is a UUID that all versions of the data (in other words, all GUIDs) point to. The `baseid` logically groups the "same" data.
 
-It is then possible (via the API) to retrieve all versions for a given GUID. In addition, it is possible to ask for the _latest_ version of a GUID. See the [API Documentation](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/uc-cdis/Indexd/master/openapis/swagger.yaml) for more details.
+It is then possible (via the API) to retrieve all versions for a given GUID. In addition, it is possible to ask for the _latest_ version of a GUID. See the [API documentation](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/uc-cdis/Indexd/master/openapis/swagger.yaml) for more details.
 
 But to reiterate, a given GUID will always point to the same data, even if there are later versions. The later versions will have _different_ GUIDs, though be connected through a common `baseid`. The Indexd API makes it possible to programmatically determine if newer versions of a given datum exist.
 
@@ -97,8 +97,8 @@ The additional usage of the Gen3 Auth services will enable data access through s
 
 Indexd's distributed resolution logic for a given GUID/alias is roughly as follows:
 
-1. Attempt to get local record with given input (as GUID)
-2. Attempt to get local record with given input (as alias)
+1. Attempt to get a local record with given input (as GUID)
+2. Attempt to get a local record with given input (as alias)
 3. Attempt distributed resolution using connected services configured in Indexd's `DIST` config
   * It is possible to resolve to a service that is *not* another Indexd, provided that a sufficient client is written to convert from the existing format to the format Indexd expects
     * Currently we have a [DOI Client](https://github.com/uc-cdis/doiclient) and [GA4GH's DOS Client](https://github.com/uc-cdis/dosclient)
@@ -116,7 +116,7 @@ CONFIG["DIST"] = [
 
 The `type` tells Indexd which client to use for that external service. In this case, `doi` maps to the [DOI Client](https://github.com/uc-cdis/doiclient).
 
-Indexd itself can be configured to append a prefix to the typical UUID in order to aide in the distributed resolution capabilities mentioned above. Specifically, we can add a prefix such as `dg.4GH5/` which may represent one instance of Indexd. For distriubuted resolution purposes, we can then create `hints` that let the central resolver know where to go when it recieves a GUID with a prefix of `dg.4GH5/`.
+Indexd itself can be configured to append a prefix to the typical UUID in order to aide in the distributed resolution capabilities mentioned above. Specifically, we can add a prefix such as `dg.4GH5/` which may represent one instance of Indexd. For distributed resolution purposes, we can then create `hints` that let the central resolver know where to go when it receives a GUID with a prefix of `dg.4GH5/`.
 
 The prefix that a given Indexd instance uses is specified in the `DEFAULT_PREFIX` configuration in the settings file. In order to ensure that this gets used and aliases get created, specify `PREPEND_PREFIX` to `True` and `ADD_PREFIX_ALIAS` to `True` as well.
 
@@ -192,7 +192,7 @@ To install the implementation, simply run:
 python setup.py install
 ```
 
-To see how the automated tests (run in Travis CI) install Indexd, checkout the `.travis.yml` file in the root directory of this repository.
+To see how the automated tests (run in Travis CI) install Indexd, check out the `.travis.yml` file in the root directory of this repository.
 
 ## Installation with Docker
 
@@ -214,7 +214,7 @@ docker run -d -v local_settings.py:/var/www/Indexd/local_settings.py --name=Inde
 
 There is a `/indexd/default_settings.py` file which houses, you guessed it, default configuration settings. If you want to provide an alternative configuration to override these, you must supply a `local_settings.py` in the same directory as the default settings. It must contain all the same configurations from the `default_settings.py`, though may have different values.
 
-This works because on app startup, Indexd will attempt to include a `local_settings` python module (the attempted import happens in the the `/indexd/app.py` file). If a local settings file is not found, Indexd falls back on the default settings.
+This works because on app startup, Indexd will attempt to include a `local_settings` python module (the attempted import happens in the `/indexd/app.py` file). If a local settings file is not found, Indexd falls back on the default settings.
 
 There is specific information about some configuration options in the [distributed resolution](#Distributed Resolution: Utilizing Prefixes in GUIDs) section of this document.
 
