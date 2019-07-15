@@ -216,7 +216,7 @@ There is a `/indexd/default_settings.py` file which houses, you guessed it, defa
 
 This works because on app startup, Indexd will attempt to include a `local_settings` python module (the attempted import happens in the `/indexd/app.py` file). If a local settings file is not found, Indexd falls back on the default settings.
 
-There is specific information about some configuration options in the [distributed resolution](#Distributed Resolution: Utilizing Prefixes in GUIDs) section of this document.
+There is specific information about some configuration options in the [distributed resolution](#distributed-resolution-utilizing-prefixes-in-guids) section of this document.
 
 ## Testing
 - Follow [installation](#installation)
