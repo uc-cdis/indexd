@@ -1,6 +1,8 @@
 <div>
-<img style="float: left; padding-right: 20px;" src="./docs/indexD.svg" alt="Indexd Logo"/><h1>Indexd</h1>
+<img align="left" src="./docs/indexD.svg" alt="Indexd Logo"/>
 </div>
+
+# Indexd
 
 ![version](https://img.shields.io/github/release/uc-cdis/indexd.svg) [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE) [![Travis](https://travis-ci.org/uc-cdis/indexd.svg?branch=master)](https://travis-ci.org/uc-cdis/indexd) [![Coverage Status](https://coveralls.io/repos/github/uc-cdis/indexd/badge.svg?branch=master)](https://coveralls.io/github/uc-cdis/indexd?branch=master)
 
