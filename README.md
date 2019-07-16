@@ -6,13 +6,25 @@
 
 ![version](https://img.shields.io/github/release/uc-cdis/indexd.svg) [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE) [![Travis](https://travis-ci.org/uc-cdis/indexd.svg?branch=master)](https://travis-ci.org/uc-cdis/indexd) [![Coverage Status](https://coveralls.io/repos/github/uc-cdis/indexd/badge.svg?branch=master)](https://coveralls.io/github/uc-cdis/indexd?branch=master)
 
-Indexd is a hash-based data indexing and tracking service. It is designed to be accessed via a REST-like API or via a client, such as the [reference client implementation](https://github.com/uc-cdis/indexclient). It supports distributed resolution with a central resolver talking to other Indexd servers.
+Indexd is a hash-based data indexing and tracking service providing 128-bit globally unique identifiers. It is designed to be accessed via a REST-like API or via a client, such as the [reference client implementation](https://github.com/uc-cdis/indexclient). It supports distributed resolution with a central resolver talking to other Indexd servers.
 
 For more about GUIDs and an example of a central resolver, see [dataguids.org](https://dataguids.org).
 
-> Indexd is vital microservice used in the [Gen3 Software Platform](https://gen3.org). Gen3 is an open-source platform for developing Data Commons that accelerate scientific discovery.
+---
+
+<div>
+<img align="left" src="./docs/gen3.png" alt="Gen3 Logo" height="97" hspace="20"/>
+</div>
+
+_Indexd is vital microservice used in the [Gen3 Open Source Software Platform](https://gen3.org). Gen3 is used for developing data commons that colocate compute and storage. Data commons accelerate and democratize the process of scientific discovery, especially over large or complex datasets._
+
+---
 
 ## The Problem That Indexd Solves
+
+<div align="center">
+<img src="./docs/move_problem.png" alt="data moving problem" height="250" hspace="10"/>
+</div>
 
 Data inevitably moves and changes, which leads to unreproducible research. It's not uncommon for physical data to be moved from one storage location for another, for domain names to change, and/or for data to exist in multiple locations.
 
@@ -21,14 +33,16 @@ If you run an analysis over a set of data and later it gets moved, your analysis
 This presents a huge problem for repeatable research. There needs to be a unique identifier for a given piece of data that can be used in analyses without "hard-coding" the physical location of the data. The problem is that data moves.
 
 <div>
-<img align="right" src="./docs/guid.png" alt="GUID Example" height="250" hspace="10"/>
+<img align="right" src="./docs/guid.png" alt="GUID Example" height="250" hspace="20"/>
 </div>
 
 ## The Solution: Indexd's Globally Unique Identifiers (GUIDs)
 
 Indexd serves as an abstraction over the physical data locations, providing a Globally Unique Identifier (GUID) per datum. These identifiers will always be resolvable with Indexd and will always provide the locations of the physical data, even if the data moves.
 
-GUIDs provide a domain-neutral, persistent way to track data across platforms. Indexd is a proven solution to provide GUIDs for data.
+> Data GUIDs were created by the Data Biosphere - a vibrant ecosystem for biomedical research containing community-driven standard-based open-source modular and interoperable components that can be assembled into diverse data environments
+
+GUIDs provide a domain-neutral, persistent and scalable way to track data across platforms. Indexd is a proven solution to provide GUIDs for data.
 
 ---
 
@@ -41,7 +55,13 @@ Indexd is a two-layer system. On the bottom layer, each data object has a GUID a
 
 The second layer is aliases. **Aliases** are user-defined, human-readable identifiers that map to hashes of the bottom layer. This adds the flexibility of supporting human-readable identifiers and allow referencing existing identifiers that are created in other systems.
 
-GUIDs are primarily used to track the current location of data as it is moved or copied from one location to another. GUIDs can be assigned to entities in object storage, as well as XML and JSON documents. The current location(s) of a particular datum is reflected in the URL list contained within Indexd.
+<div align="center">
+<img src="./docs/aliases.png" alt="indexd GUIDs solution" height="400" hspace="10"/>
+</div>
+
+GUIDs are primarily used to track the current location of data as it is moved or copied from one location to another. The GUID itself is at minimum 128-bits, as a [UUID](https://tools.ietf.org/html/rfc4122.html) is used as the base. Additionally, a prefix can be prepended to this UUID, which lengthens the identifier even further (this is used primarily to assist in [distributed resolution](#distributed-resolution-utilizing-prefixes-in-guids)). If you want a shorter identifier, you can use the aliases defined above to create a different, unique mapping to GUIDs.
+
+GUIDs can be assigned to entities in object storage, as well as XML and JSON documents. The current location(s) of a particular datum is reflected in the URL list contained within Indexd.
 
 As the same datum may exist in multiple locations, there may be more than one URL associated with each GUID. The ability to actually access the URL provided by Indexd is done on the client site.
 
@@ -95,6 +115,11 @@ The additional usage of the Gen3 Auth services will enable data access through s
 
 ### Distributed Resolution: Utilizing Prefixes in GUIDs
 
+<div align="center">
+<img src="./docs/resolution.png" alt="Indexd distributed resolution" height="300
+" hspace="10"/>
+</div>
+
 Indexd's distributed resolution logic for a given GUID/alias is roughly as follows:
 
 1. Attempt to get a local record with given input (as GUID)
@@ -102,6 +127,10 @@ Indexd's distributed resolution logic for a given GUID/alias is roughly as follo
 3. Attempt distributed resolution using connected services configured in Indexd's `DIST` config
   * It is possible to resolve to a service that is *not* another Indexd, provided that a sufficient client is written to convert from the existing format to the format Indexd expects
     * Currently we have a [DOI Client](https://github.com/uc-cdis/doiclient) and [GA4GH's DOS Client](https://github.com/uc-cdis/dosclient)
+        * [More info on DOIs](http://www.doi.org/)
+        * [More info DOS](https://github.com/ga4gh/data-repository-service-schemas)
+            * NOTE: Was renamed to DRS
+        * Resolving to servers with other identifiers, like [ARK IDs](http://n2t.net/e/ark_ids.html) could be supported if a client was created (otherwise, you can use the _aliases_ in Indexd to simply map from an existing identifier to a GUID)
   * The distributed resolution can be "smart", in that you can configure `hints` that tell a central resolver Indexd that a given input should be resolved with a specific distributed service
     * The `hints` are a list of regexes that will attempt to match against given input
     * For example: `hints: ["10\..*"]` for DOIs since they'll begin with `10.`
@@ -128,7 +157,10 @@ Data may be loaded into Indexd through a few different means:
 
 Using the [gen3-client](https://gen3.org/resources/user/gen3-client/) you can upload objects to storage locations and mint GUIDs at the same time.
 
-![alt text](./docs/indexd_client_upload.png "gen3-client Data Upload")
+<div align="center">
+<img src="./docs/indexd_client_upload.png" alt="gen3-client Data Upload flow" height="300
+" hspace="10"/>
+</div>
 
 #### Blank Record Creation in Indexd
 
@@ -140,9 +172,9 @@ Indexd supports void or blank records that allow users to pre-register data file
 
 General flow:
 
-- Fence requests blank object from Indexd. Indexd creates an object with no hash, size or URLs, only the `uploader` and optionally `file_name` fields.
-- Indexd listener monitors bucket update, updates Indexd with URL, hash, size.
-- The client application (windmill or gen3-data-client) lists records for data files which the user needs to submit to the graph. The user fills all empty fields and submits the request to Indexd to update the `authz` or `acl`.
+1) Fence requests blank object from Indexd. Indexd creates an object with no hash, size or URLs, only the `uploader` and optionally `file_name` fields.
+2) Indexd listener monitors bucket update, updates Indexd with URL, hash, size.
+3) The client application (windmill or gen3-data-client) lists records for data files which the user needs to submit to the graph. The user fills all empty fields and submits the request to Indexd to update the `authz` or `acl`.
 
 ### I want to associate Indexd data to structured data in a Gen3 Data Commons
 
@@ -170,7 +202,7 @@ For existing data in buckets, the SNS or PubSub notifications may be simulated s
 
 It is also possible to interact directly with the Indexd API in order to create index records. There are two options for authorization for these sorts of updates.
 
-1) Use Basic Auth (username/password) to provide administrative control over indexd
+1) Use Basic Auth (username/password) to provide administrative control over Indexd
 
 You can use the `/bin/indexd_admin.py` to add a new username and password combination to Indexd.
 
@@ -239,3 +271,9 @@ Doesn't work with all the DB tests yet, but you can adjust to run specific tests
 docker build -t Indexd -f TestDockerfile .
 ```
 
+You should be able to use the test dockerfile to run some tests.
+
+<div align="center">
+<img src="./docs/gen3_large.png" alt="Gen3 Logo" height="425
+" hspace="10"/>
+</div>
