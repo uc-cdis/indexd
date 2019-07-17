@@ -16,7 +16,7 @@ For more about GUIDs and an example of a central resolver, see [dataguids.org](h
 <img align="left" src="./docs/gen3.png" alt="Gen3 Logo" height="97" hspace="20"/>
 </div>
 
-_Indexd is vital microservice used in the [Gen3 Open Source Software Platform](https://gen3.org). Gen3 is used for developing data commons that colocate compute and storage. Data commons accelerate and democratize the process of scientific discovery, especially over large or complex datasets._
+_Indexd is a vital microservice used in the [Gen3 Open Source Software Platform](https://gen3.org). Gen3 is used for developing data commons that colocate compute and storage. Data commons accelerate and democratize the process of scientific discovery, especially over large or complex datasets._
 
 ---
 
