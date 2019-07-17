@@ -176,6 +176,8 @@ General flow:
 2) The Indexd listener ([indexs3client](https://github.com/uc-cdis/indexs3client) jobs dispatched by the [ssjdispatcher](https://github.com/uc-cdis/ssjdispatcher)) monitors bucket updates and updates Indexd with the URL, hash and size of the objects.
 3) The client application (windmill or gen3-data-client) lists records for data files which the user needs to submit to the graph. The user fills all empty fields and submits the request to Indexd to update the `authz` or `acl`.
 
+> NOTE: Step 2 above fulfills the use case of dynamically indexding data added to storage buckets [discussed later on](#automatically-creating-indexd-records-when-objects-are-added-to-object-storage).
+
 ### I want to associate Indexd data to structured data in a Gen3 Data Commons
 
 > NOTE: This assumes that the data already exists in storage location(s)
@@ -197,6 +199,8 @@ Using AWS SNS or Google PubSub it is possible to have streaming notifications wh
 This feature can be set up on a per Data Commons basis for any buckets of interest. The buckets do not have to be owned by the commons, but permissions to read the bucket objects and permissions for SNS or PubSub are necessary.
 
 For existing data in buckets, the SNS or PubSub notifications may be simulated such that the indexing functions are started for each object in the bucket. This is useful because only a single code path is necessary for indexing the contents of an object.
+
+We have a solution for AWS discussed in the ["Blank Record Creation in Indexd" Section](#blank-record-creation-in-indexd).
 
 ## Indexd REST API for Record Creation
 
