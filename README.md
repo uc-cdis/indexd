@@ -26,7 +26,7 @@ _Indexd is a vital microservice used in the [Gen3 Open Source Software Platform]
 <img src="./docs/move_problem.png" alt="data moving problem" height="250" hspace="10"/>
 </div>
 
-Data inevitably moves and changes, which leads to unreproducible research. It's not uncommon for physical data to be moved from one storage location for another, for domain names to change, and/or for data to exist in multiple locations.
+Data inevitably moves and changes, which leads to unreproducible research. It's not uncommon for physical data to be moved from one storage location to another, for domain names to change, and/or for data to exist in multiple locations.
 
 If you run an analysis over a set of data and later it gets moved, your analysis is no longer repeatable. The same data still exists, it just isn't where you thought.
 
