@@ -30,7 +30,7 @@ Data inevitably moves and changes, which leads to unreproducible research. It's 
 
 If you run an analysis over a set of data and later it gets moved, your analysis is no longer repeatable. The same data still exists, it just isn't where you thought.
 
-This presents a huge problem for repeatable research. There needs to be a unique identifier for a given piece of data that can be used in analyses without "hard-coding" the physical location of the data. The problem is that data moves.
+This presents a huge problem for repeatable research. There needs to be a unique identifier for a given piece of data that can be used in analyses without "hard-coding" the physical location of the data.
 
 <div>
 <img align="right" src="./docs/guid.png" alt="GUID Example" height="250" hspace="20"/>
