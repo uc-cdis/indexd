@@ -210,7 +210,7 @@ _and/or_
 
 2) Use the Gen3 Auth services ([Fence](https://github.com/uc-cdis/fence) and [Arborist](https://github.com/uc-cdis/arborist)) to control access based on access tokens provided in requests
 
-Similar to other Gen3 services, user's must pass along their Access Token in the form of a JWT in the `Authorization` header of their request to the Indexd API. Indexd will check that the user is authorized for the items in the `authz` field by passing along your token and the action you're trying to do to the [Arborist](https://github.com/uc-cdis/arborist) service.
+Similar to other Gen3 services, users must pass along their Access Token in the form of a JWT in the `Authorization` header of their request to the Indexd API. Indexd will check that the user is authorized for the items in the `authz` field by passing along your token and the action you're trying to do to the [Arborist](https://github.com/uc-cdis/arborist) service.
 
 ---
 
