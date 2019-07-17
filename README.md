@@ -49,7 +49,7 @@ GUIDs provide a domain-neutral, persistent and scalable way to track data across
 ## Technical Details
 
 * [View API Documentation](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/uc-cdis/Indexd/master/openapis/swagger.yaml)
-* [Skip to installation instructions](#nstallation)
+* [Skip to installation instructions](#installation)
 
 Indexd is a two-layer system. On the bottom layer, each data object has a GUID and hashes that map to known physical locations of the data.
 
