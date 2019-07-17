@@ -172,7 +172,7 @@ Indexd supports void or blank records that allow users to pre-register data file
 
 General flow:
 
-1) Fence requests blank object from Indexd. Indexd creates an object with no hash, size or URLs, only the `uploader` and optionally `file_name` fields.
+1) Fence requests a blank object from Indexd. Indexd creates an object with no hash, size or URLs, only the `uploader` and optionally `file_name` fields.
 2) Indexd listener monitors bucket update, updates Indexd with URL, hash, size.
 3) The client application (windmill or gen3-data-client) lists records for data files which the user needs to submit to the graph. The user fills all empty fields and submits the request to Indexd to update the `authz` or `acl`.
 
