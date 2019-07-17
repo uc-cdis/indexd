@@ -46,7 +46,7 @@ GUIDs provide a domain-neutral, persistent and scalable way to track data across
 
 ---
 
-## Indexd Technical Details
+## Technical Details
 
 * [View API Documentation](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/uc-cdis/Indexd/master/openapis/swagger.yaml)
 * [Skip to installation instructions](#nstallation)
