@@ -40,7 +40,7 @@ This presents a huge problem for repeatable research. There needs to be a unique
 
 Indexd serves as an abstraction over the physical data locations, providing a Globally Unique Identifier (GUID) per datum. These identifiers will always be resolvable with Indexd and will always provide the locations of the physical data, even if the data moves.
 
-> Data GUIDs were created by the Data Biosphere - a vibrant ecosystem for biomedical research containing community-driven standard-based open-source modular and interoperable components that can be assembled into diverse data environments
+> Data GUIDs were created by the Data Biosphere - a vibrant ecosystem for biomedical research containing community-driven standard-based open-source modular and interoperable components that can be assembled into diverse data environments.
 
 GUIDs provide a domain-neutral, persistent and scalable way to track data across platforms. Indexd is a proven solution to provide GUIDs for data.
 
