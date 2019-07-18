@@ -42,18 +42,21 @@ Indexd serves as an abstraction over the physical data locations, providing a Gl
 
 > Data GUIDs were created by the Data Biosphere - a vibrant ecosystem for biomedical research containing community-driven standard-based open-source modular and interoperable components that can be assembled into diverse data environments.
 
-GUIDs provide a domain-neutral, persistent and scalable way to track data across platforms. Indexd is a proven solution to provide GUIDs for data.
+GUIDs provide a domain-neutral, persistent and scalable way to track data across platforms. Indexd is a proven solutiokn to provide GUIDs for data.
 
 ---
 
 ## Indexd Technical Details
 
+**Quick Links:**
+
 * [View API Documentation](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/uc-cdis/Indexd/master/openapis/swagger.yaml)
-* [Skip to installation instructions](#nstallation)
+* [Installation Instructions](#installation)
+* [Use Cases for Indexing Data](#use-cases-for-indexing-data)
 
 Indexd is a two-layer system. On the bottom layer, each data object has a GUID and hashes that map to known physical locations of the data.
 
-The second layer is aliases. **Aliases** are user-defined, human-readable identifiers that map to hashes of the bottom layer. This adds the flexibility of supporting human-readable identifiers and allow referencing existing identifiers that are created in other systems.
+The second layer is aliases. **Aliases** are user-defined, human-readable identifiers that map to GUIDs. This adds the flexibility of supporting human-readable identifiers and allow referencing existing identifiers that are created in other systems.
 
 <div align="center">
 <img src="./docs/aliases.png" alt="indexd GUIDs solution" height="400" hspace="10"/>
@@ -71,8 +74,6 @@ The client has to be able to interpret the protocol encoded in the URL. This is 
 
 All the information about a specific datum mentioned above (the GUID, URLs, hashes, file size, access control, etc.) are bundled together and referred to internally as an **Indexd record**.
 
-> NOTE: The property of an Indexd record representing the GUID is `did` (or digital identifier)
-
 ### Indexd Records
 
 Records are collections of information necessary to as-uniquely-as-possible identify a piece of information. This is done through the use of hashes and metadata. Records are assigned a UUIDv4 at the time of creation and additionally may include a prefix to aide in resolution (these combined become the GUID). This allows records to be uniquely referenced amongst multiple records.
@@ -80,6 +81,47 @@ Records are collections of information necessary to as-uniquely-as-possible iden
 Hashes used by the index are deployment-specific but are intended to be the results of widely known and commonly available hashing algorithms, such as MD5 or SHA1. This is similar to the way that torrents are tracked and provides a mechanism by which data can be safely retrieved from potentially untrusted sources in a secure manner.
 
 Additional metadata that is stored in index records includes the size of the data as well as the type.
+
+**Example record with relevant fields:**
+
+```javascript
+{
+    did: "dg.4242/000003f6-a029-421a-bc84-a9777b7c34a5",
+    urls: [
+        "gs://some-google-storage-bucket/some-file.txt",
+        "s3://some-s3-bucket/some-file.txt"
+    ],
+    hashes: {
+        md5: "f7b38502322197f60a5af8e530fa376e"
+    },
+    size: 42,
+    acl: [
+        "example",
+        "test"
+    ],
+    authz: [
+        "M7cIajvg"
+    ],
+    rev: "2013243e",
+    baseid: "84c0843e-c685-4dg8-953a-8b8f354fc198",
+    file_name: null,
+    uploader: null,
+}
+```
+
+* `did`: The GUID, AKA Digital Identifier (did)
+* `urls`: storage locations for the actual data
+* `hashes`: a dictionary of hash algorithms to hashes
+* `size`: file size in bytes
+* `acl`: access control list with strings identifying required authorizations
+* `authz`: preferred over `acl`, anything here will have priority
+  * a list of strings representing resources (or resource tags) in Gen3's Authorization Service, [Arborist](https://github.com/uc-cdis/arborist) that user must have access to in order to access the data
+* `rev`: the current revision (for avoiding conflicts)
+  * See [next section](#avoiding-conflicts-on-updates) for more details
+* `baseid`: the base identifier linking logically similar GUIDs
+  * See [Data Version Control](#data-version-control) for more details
+* `file_name`: an optional name for the file that will be searchable through Indexd's API
+* `uploader`: who uploaded the file (when using the flow described later on about [blank records](#blank-record-creation-in-indexd))
 
 ### Avoiding Conflicts on Updates
 
@@ -98,7 +140,7 @@ It is still true, however, that **GUIDs should be persistent and the data they p
 
 To handle this versioning in Indexd, the concept of a `baseid` is introduced. The `baseid` is a UUID that all versions of the data (in other words, all GUIDs) point to. The `baseid` logically groups the "same" data.
 
-It is then possible (via the API) to retrieve all versions for a given GUID. In addition, it is possible to ask for the _latest_ version of a GUID. See the [API documentation](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/uc-cdis/Indexd/master/openapis/swagger.yaml) for more details.
+It is then possible (via the API) to retrieve all versions for a given GUID. In addition, it is possible to ask for the _latest_ version of a GUID. See the [API documentation](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/uc-cdis/Indexd/master/openapis/swagger.yaml#/index/getLatestVersion) for more details.
 
 But to reiterate, a given GUID will always point to the same data, even if there are later versions. The later versions will have _different_ GUIDs, though be connected through a common `baseid`. The Indexd API makes it possible to programmatically determine if newer versions of a given datum exist.
 
