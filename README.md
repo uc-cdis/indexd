@@ -46,7 +46,7 @@ GUIDs provide a domain-neutral, persistent and scalable way to track data across
 
 ---
 
-## Indexd Technical Details
+## Technical Details
 
 **Quick Links:**
 
@@ -142,7 +142,7 @@ To handle this versioning in Indexd, the concept of a `baseid` is introduced. Th
 
 It is then possible (via the API) to retrieve all versions for a given GUID. In addition, it is possible to ask for the _latest_ version of a GUID. See the [API documentation](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/uc-cdis/Indexd/master/openapis/swagger.yaml#/index/getLatestVersion) for more details.
 
-But to reiterate, a given GUID will always point to the same data, even if there are later versions. The later versions will have _different_ GUIDs, though be connected through a common `baseid`. The Indexd API makes it possible to programmatically determine if newer versions of a given datum exist.
+To reiterate, a given GUID will always point to the same data, even if there are later versions. The later versions will have _different_ GUIDs, though they will be connected through a common `baseid`. The Indexd API makes it possible to programmatically determine if newer versions of a given datum exist.
 
 ### Access Control
 
