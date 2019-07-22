@@ -42,7 +42,7 @@ Indexd serves as an abstraction over the physical data locations, providing a Gl
 
 > Data GUIDs were created by the Data Biosphere - a vibrant ecosystem for biomedical research containing community-driven standard-based open-source modular and interoperable components that can be assembled into diverse data environments.
 
-GUIDs provide a domain-neutral, persistent and scalable way to track data across platforms. Indexd is a proven solutiokn to provide GUIDs for data.
+GUIDs provide a domain-neutral, persistent and scalable way to track data across platforms. Indexd is a proven solution to provide GUIDs for data.
 
 ---
 
