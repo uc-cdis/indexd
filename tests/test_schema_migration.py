@@ -68,7 +68,7 @@ def update_version_table_for_testing(db, tb_name, val):
         conn.commit()
 
 
-def test_migrate_7(swg_index_client, indexd_server):
+def test_migrate_7(client, user):
     data = {
         "form": "object",
         "size": 123,
@@ -77,12 +77,14 @@ def test_migrate_7(swg_index_client, indexd_server):
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
     }
 
-    r = swg_index_client.add_entry(data)
+    res = client.post("/index/", json=data, headers=user)
+    rec = res.json
     with settings["config"]["INDEX"]["driver"].session as session:
         migrate_7(session)
-    r = swg_index_client.get_entry(r.did)
-    assert r.acl == ["a", "b"]
-    assert r.metadata == {}
+    res = client.get(rec["did"])
+    rec = res.json
+    assert rec["acl"] == ["a", "b"]
+    assert rec["metadata"] == {}
 
 
 @util.removes("index.sq3")

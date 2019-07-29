@@ -1,12 +1,12 @@
 import random
-
 import pytest
-
 from tests.test_client import get_doc
+
+#
 
 
 @pytest.fixture(scope="function")
-def test_data(swg_index_client):
+def test_data(client, user):
     system_random = random.SystemRandom()
     url_x_count = system_random.randint(2, 5)
 
@@ -20,7 +20,11 @@ def test_data(swg_index_client):
             doc["urls"].append(url_x)
             doc["urls_metadata"][url_x] = {"state": "uploaded"}
             url_x_type -= 1
-        swg_index_client.add_entry(doc)
+        print(doc)
+        res = client.post("/index/", json=doc, headers=user)
+        assert res.status_code == 200
+    rec = client.get("/index/", json=doc, headers=user)
+    assert rec.status_code == 200
 
     url_x_type = url_x_count
     unversioned_count = system_random.randint(6, 10)
@@ -30,68 +34,84 @@ def test_data(swg_index_client):
             doc["urls"].append(url_x)
             doc["urls_metadata"][url_x] = {"state": "uploaded"}
             url_x_type -= 1
-        swg_index_client.add_entry(doc)
+        print(doc)
+        res = client.post("/index/", json=doc, headers=user)
+        assert res.status_code == 200
+    rec = client.get("/index/", json=doc, headers=user)
+    assert rec.status_code == 200
     return url_x_count, versioned_count, unversioned_count
 
 
-def test_query_urls(swg_index_client, swg_query_client, test_data):
+def test_query_urls(client, test_data):
     """
     Args:
-        swg_index_client (swagger_client.api.indexurls_api.IndexApi):
-        swg_query_client (swagger_client.api.indexurls_api.IndexurlsApi): urls api client
+        client (test fixture)
         test_data (tuple[int, int, int]:
     """
     url_x_count, versioned_count, unversioned_count = test_data
+    # driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    # query_base = AlchemyURLsQueryDriver(driver)
+
     # test get all
-    urls_list = swg_query_client.query_urls()
-    print(urls_list)
+    res = client.get("/_query/urls/q")
+    assert res.status_code == 200
+    # print(urls_list)
+    urls_list = res.json
     assert len(urls_list) == versioned_count + unversioned_count
 
     # test list versioned urls
-    urls_list = swg_query_client.query_urls(versioned=True)
+    res = client.get("/_query/urls/q?versioned=true")
+    assert res.status_code == 200
+    urls_list = res.json
     assert len(urls_list) == versioned_count
 
     # test list un versioned
-    urls_list = swg_query_client.query_urls(versioned=False)
+    res = client.get("/_query/urls/q?versioned=false")
+    urls_list = res.json
+    print(urls_list)
     assert len(urls_list) == unversioned_count
 
     # test exclude url
-    urls_list = swg_query_client.query_urls(exclude="awesome-x")
+    res = client.get("/_query/urls/q?exclude=awesome-x")
+    urls_list = res.json
+    print(urls_list)
     assert len(urls_list) == versioned_count + unversioned_count - 2 * url_x_count
 
     # test include
-    urls_list = swg_query_client.query_urls(include="awesome-x")
+    res = client.get("/_query/urls/q?include=awesome-x")
+    urls_list = res.json
+    print(urls_list)
     assert len(urls_list) == 2 * url_x_count
 
 
-def test_query_urls_metadata(swg_index_client, swg_query_client, test_data):
+def test_query_urls_metadata(client, test_data):
     """
     Args:
-        swg_index_client (swagger_client.api.indexurls_api.IndexApi):
-        swg_query_client (swagger_client.api.indexurls_api.IndexurlsApi): urls api client
+        client (test fixture)
         test_data (tuple[int, int, int]:
     """
-    url_x_count, _, unversioned_count = test_data
+    url_x_count, versioned_count, unversioned_count = test_data
+
     # test get all
-    urls_list = swg_query_client.query_urls_metadata(
-        key="state", value="uploaded", url="awesome-x"
-    )
+    res = client.get("_query/urls/metadata/q?key=state&value=uploaded&url=awesome-x")
+    urls_list = res.json
     assert len(urls_list) == 2 * url_x_count
 
     # test list versioned urls
-    urls_list = swg_query_client.query_urls_metadata(
-        key="state", value="uploaded", url="awesome-x", versioned=True
+    res = client.get(
+        "_query/urls/metadata/q?key=state&value=uploaded&url=awesome-x&versioned=True"
     )
+    urls_list = res.json
     assert len(urls_list) == url_x_count
 
     # test list un versioned
-    urls_list = swg_query_client.query_urls_metadata(
-        key="state", value="uploaded", url="endpointurl", versioned=False
+    res = client.get(
+        "_query/urls/metadata/q?key=state&value=uploaded&url=endpointurl&versioned=False"
     )
+    urls_list = res.json
     assert len(urls_list) == unversioned_count
 
     # test unknown state
-    urls_list = swg_query_client.query_urls_metadata(
-        key="state", value="uploadedx", url="awesome-x"
-    )
+    res = client.get("_query/urls/metadata/q?key=state&value=uploadedx&url=awesome-x")
+    urls_list = res.json
     assert len(urls_list) == 0
