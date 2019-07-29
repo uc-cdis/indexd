@@ -31,7 +31,11 @@ def query():
     """
 
     record_list = blueprint.driver.query_urls(**request.args.to_dict())
-    return Response(json.dumps(record_list, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
+    return Response(
+        json.dumps(record_list, indent=2, separators=(", ", ": ")),
+        200,
+        mimetype="application/json",
+    )
 
 
 @blueprint.route("/metadata/q")
@@ -56,7 +60,11 @@ def query_metadata():
     """
 
     record_list = blueprint.driver.query_metadata_by_key(**request.args.to_dict())
-    return Response(json.dumps(record_list, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
+    return Response(
+        json.dumps(record_list, indent=2, separators=(", ", ": ")),
+        200,
+        mimetype="application/json",
+    )
 
 
 @blueprint.record
