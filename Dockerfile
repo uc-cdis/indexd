@@ -34,6 +34,7 @@ RUN mkdir -p /var/www/indexd/ \
 COPY wsgi.py /var/www/indexd/ 
 COPY bin/indexd /var/www/indexd/ 
 COPY --from=build /usr/local/lib/python2.7/dist-packages /usr/local/lib/python2.7/dist-packages
+COPY . /indexd
 
 WORKDIR /var/www/indexd
 
