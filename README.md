@@ -64,12 +64,12 @@ The second layer is aliases. **Aliases** are user-defined, human-readable identi
 
 GUIDs are primarily used to track the current location of data as it is moved or copied from one location to another. The GUID itself is at minimum 128-bits, as a [UUID](https://tools.ietf.org/html/rfc4122.html) is used as the base. Additionally, a prefix can be prepended to this UUID, which lengthens the identifier even further (this is used primarily to assist in [distributed resolution](#distributed-resolution-utilizing-prefixes-in-guids)). If you want a shorter identifier, you can use the aliases defined above to create a different, unique mapping to GUIDs.
 
-Data GUIDs are structured as follows:
+Data GUIDs with a prefix are structured as follows:
 
-`dg.[prefix]/[128 UUID]`
+`dg.[resourceId]/[128-bit UUID]`
 
-* All data guids begin with the prefix: dg
-* The second component in a data GUID is a prefix which is a unique string that
+* All data GUIDs with optional prefixes begin with the characters: `dg`
+* The second component in a data GUID is a unique string that
 identifies a resource that can resolve the data GUID. Prefixes are assigned by
 the [Open Commons Consortium](http://occ-data.org/). There is no charge for being
 assigned a data GUID prefix, but the organization that is assigned the prefix must
