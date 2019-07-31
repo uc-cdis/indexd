@@ -23,9 +23,7 @@ def test_driver_init_does_not_create_records():
     Tests for creation of records after driver init.
     Tests driver init does not have unexpected side-effects.
     """
-    driver = SQLAlchemyAuthDriver(
-        "sqlite:///auth.sq3"
-    )  # pylint: disable=unused-variable
+    driver = SQLAlchemyAuthDriver("sqlite:///auth.sq3")  # pylint: disable=unused-variable
 
     with sqlite3.connect("auth.sq3") as conn:
 

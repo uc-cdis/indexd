@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 
 
@@ -75,13 +76,13 @@ def test_index_list_with_params(client, user):
     assert rec_1["did"] in ids
     assert rec_2["did"] in ids
 
-    data_by_ids = client.get("/index/?ids=".format(",".join(ids)))
+    data_by_ids = client.get("/index/?ids={}".format(rec_1["did"]))
     assert data_by_ids.status_code == 200
     data_list_all = data_by_ids.json
 
     ids = [record["did"] for record in data_list_all["records"]]
     assert rec_1["did"] in ids
-    assert rec_2["did"] in ids
+    assert not rec_2["did"] in ids
 
     data_with_limit = client.get("/index/?limit=1")
     assert data_with_limit.status_code == 200
@@ -93,9 +94,9 @@ def test_index_list_with_params(client, user):
     data_by_url_md = client.get("/index/?urls_metadata=" + json.dumps(param))
     assert data_by_url_md.status_code == 200
     data_list = data_by_url_md.json
+    assert len(data_list["records"]) == 1
     assert data_list["records"][0]["did"] == rec_1["did"]
     assert data_list["records"][0]["urls_metadata"] == data1["urls_metadata"]
-    assert len(data_list["records"]) == 1
 
 
 def test_index_list_with_params_negate(client, user):
@@ -277,12 +278,7 @@ def test_create_blank_record(client, user):
     assert not rec["records"][0]["file_name"]
 
     # test that record is blank
-    assert rec["records"][0]["baseid"]
-    assert rec["records"][0]["did"]
-    assert not rec["records"][0]["size"]
-    assert not rec["records"][0]["acl"]
-    assert not rec["records"][0]["authz"]
-    assert not rec["records"][0]["hashes"]
+    assert_blank(rec)
 
 
 def test_create_blank_record_with_file_name(client, user):
@@ -306,12 +302,7 @@ def test_create_blank_record_with_file_name(client, user):
     assert rec["records"][0]["file_name"] == "myfile.txt"
 
     # test that record is blank
-    assert rec["records"][0]["baseid"]
-    assert rec["records"][0]["did"]
-    assert not rec["records"][0]["size"]
-    assert not rec["records"][0]["acl"]
-    assert not rec["records"][0]["authz"]
-    assert not rec["records"][0]["hashes"]
+    assert_blank(rec)
 
 
 def test_fill_size_n_hash_for_blank_record(client, user):
@@ -819,15 +810,10 @@ def test_create_blank_record_with_baseid(client, user):
     assert res.status_code == 201
     rec = res.json
     assert rec["did"]
-    res = client.get("/index/" + rec["did"])
+    res = client.get("/index/?baseid=baseid_123")
     assert res.status_code == 200
     rec = res.json
-    assert rec["acl"] == []
-    assert rec["authz"] == []
-    assert rec["urls_metadata"] == {}
-    assert rec["size"] is None
-    assert rec["version"] is None
-    assert rec["urls_metadata"] == {}
+    assert_blank(rec)
 
 
 def test_index_create_with_uploader(client, user):

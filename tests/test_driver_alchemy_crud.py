@@ -64,9 +64,7 @@ def test_driver_init_does_not_create_record_hashes():
     """
     with sqlite3.connect("index.sq3") as conn:
 
-        driver = SQLAlchemyIndexDriver(
-            "sqlite:///index.sq3"
-        )  # pylint: disable=unused-variable
+        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")  # pylint: disable=unused-variable
 
         count = conn.execute(
             """
