@@ -68,7 +68,7 @@ def update_version_table_for_testing(db, tb_name, val):
         conn.commit()
 
 
-def test_migrate_7(client, user):
+def test_migrate_acls(client, user):
     data = {
         "form": "object",
         "size": 123,
@@ -79,10 +79,12 @@ def test_migrate_7(client, user):
 
     res = client.post("/index/", json=data, headers=user)
     rec = res.json
+    assert res.status_code == 200
     with settings["config"]["INDEX"]["driver"].session as session:
         migrate_7(session)
     res = client.get(rec["did"])
     rec = res.json
+    assert res.status_code == 200
     assert rec["acl"] == ["a", "b"]
     assert rec["metadata"] == {}
 
