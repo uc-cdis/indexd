@@ -207,7 +207,6 @@ def test_list_entries_with_uploader(client, user):
     data["uploader"] = "uploader_1"
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
 
     data = get_doc()
     data["uploader"] = "uploader_123"
