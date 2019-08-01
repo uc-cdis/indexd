@@ -810,7 +810,7 @@ def test_create_blank_record_with_baseid(client, user):
     assert res.status_code == 201
     rec = res.json
     assert rec["did"]
-    res = client.get("/index/?baseid=baseid_123")
+    res = client.get("/index/?baseid=" + doc["baseid"])
     assert res.status_code == 200
     rec = res.json
     assert_blank(rec)
