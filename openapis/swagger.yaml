@@ -138,9 +138,7 @@ paths:
         - name: urls_metadata
           in: query
           description: |
-            urls_metadata in json string format as {url_key: {key: value}, ...}
-            check doc.url_metadata has key that contains substring url_key
-            and regular filter on key: value
+            urls_metadata in JSON string format "{url_key: {key: value, ...}, ...}". Will get records whose url_metadata have at least one key containing the substring "url_key" AND whose url_metadata have all the "key: value" properties
           required: false
           type: string
         - name: metadata
@@ -188,13 +186,12 @@ paths:
         - name: negate_params
           in: query
           description: |
-            All the negate params go in here as the same format with regular params:
-            pass a Document as a json string with all the negated values.
-            For string (version, file_name), filter with value != <value>
-            For list (urls, acl), filter with doc that don't HAS <value>
-            For dict (metadata, urls_metadata). In each (key,value) pair:
-            - if value is None or empty: then filter with key doesn't exist
-            - if value is provided, then filter with value != <value> OR key doesn't exist
+            The negate params in JSON string format.
+            For string params (version, file_name): filters value != param value
+            For list params (urls, acl): filters records that don't include the param value
+            For dict params (metadata, urls_metadata), for each (key,value) pair:
+            - if param value is None or empty: filters with key doesn't exist
+            - if param value is provided: filters with value != param value OR key doesn't exist
           required: false
           type: string
         - name: start
@@ -282,7 +279,7 @@ paths:
       tags:
         - index
       summary: Get the metadata associated with the given id
-      operationId: getEntry
+      operationId: getIndexEntry
       produces:
         - application/json
       parameters:
@@ -447,7 +444,7 @@ paths:
       tags:
         - alias
       summary: list aliases with pagination
-      operationId: listEntries
+      operationId: listAlistEntries
       consumes:
         - application/json
       produces:
@@ -541,7 +538,7 @@ paths:
         - alias
       summary: Fetch an alias
       description: ''
-      operationId: getEntry
+      operationId: getAliasEntry
       consumes:
         - application/json
       produces:
@@ -565,7 +562,7 @@ paths:
         - alias
       summary: Delete an alias
       description: ''
-      operationId: deleteEntry
+      operationId: deleteAliasEntry
       consumes:
         - application/json
       produces:
