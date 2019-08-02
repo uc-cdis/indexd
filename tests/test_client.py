@@ -1335,7 +1335,9 @@ def test_bulk_get_documents(client, user):
         for _ in range(20)
     ]
     # do a bulk query for them all
-    docs = client.post("/bulk/documents", json=dids, headers=user).json
+    res = client.post("/bulk/documents", json=dids, headers=user)
+    assert res.status_code == 200
+    docs = res.json
 
     # compare that they are the same by did
     for doc in docs:
