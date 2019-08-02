@@ -320,16 +320,11 @@ There is specific information about some configuration options in the [distribut
 
 ## Testing
 - Follow [installation](#installation)
-- Install [swagger-codegen](https://swagger.io/swagger-codegen/)
 - Run:
 ```
 pip install -r test-requirements.txt
-swagger-codegen generate -i openapis/swagger.yaml -l python -o swagger_client
-cd swagger_client; python setup.py develop; cd -
 py.test -v tests/
 ```
-
-> NOTE: If you experience issues, you can check the `.travis.yml` file in this repo to see how swagger codegen (and which version) is being used for automated unit testing in Travis CI.
 
 ## Testing with Docker
 
