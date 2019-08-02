@@ -56,13 +56,25 @@ GUIDs provide a domain-neutral, persistent and scalable way to track data across
 
 Indexd is a two-layer system. On the bottom layer, each data object has a GUID and hashes that map to known physical locations of the data.
 
-The second layer is aliases. **Aliases** are user-defined, human-readable identifiers that map to GUIDs. This adds the flexibility of supporting human-readable identifiers and allow referencing existing identifiers that are created in other systems.
+The second layer is aliases. **Aliases** are user-defined, human-readable identifiers that map to GUIDs. This adds the flexibility of supporting human-readable identifiers and allow referencing existing identifiers (such as DOIs and ARKs) that are created in other systems.
 
 <div align="center">
 <img src="./docs/aliases.png" alt="indexd GUIDs solution" height="400" hspace="10"/>
 </div>
 
 GUIDs are primarily used to track the current location of data as it is moved or copied from one location to another. The GUID itself is at minimum 128-bits, as a [UUID](https://tools.ietf.org/html/rfc4122.html) is used as the base. Additionally, a prefix can be prepended to this UUID, which lengthens the identifier even further (this is used primarily to assist in [distributed resolution](#distributed-resolution-utilizing-prefixes-in-guids)). If you want a shorter identifier, you can use the aliases defined above to create a different, unique mapping to GUIDs.
+
+Data GUIDs with a prefix are structured as follows:
+
+`dg.[resourceId]/[128-bit UUID]`
+
+* All data GUIDs with optional prefixes begin with the characters: `dg`
+* The second component in a data GUID is a unique string that
+identifies a resource that can resolve the data GUID. Prefixes are assigned by
+the [Open Commons Consortium](http://occ-data.org/). There is no charge for being
+assigned a data GUID prefix, but the organization that is assigned the prefix must
+maintain a service that dereferences data GUIDs associated with that prefix.
+* The third component in a data GUID is 128 UUID following IETF RFC 4122
 
 GUIDs can be assigned to entities in object storage, as well as XML and JSON documents. The current location(s) of a particular datum is reflected in the URL list contained within Indexd.
 
@@ -162,6 +174,10 @@ The additional usage of the Gen3 Auth services will enable data access through s
 " hspace="10"/>
 </div>
 
+If you know the URL of a particular Data GUID resolution service (like Indexd), which is associated with a particular prefix, you can directly access that service to get the relevant record.
+
+Otherwise, you can access a centralized resolver like [dataguid.org](dataguid.org), which will resolve you to the data GUID service associated with the GUID's prefix.
+
 Indexd's distributed resolution logic for a given GUID/alias is roughly as follows:
 
 1. Attempt to get a local record with given input (as GUID)
@@ -257,6 +273,12 @@ _and/or_
 2) Use the Gen3 Auth services ([Fence](https://github.com/uc-cdis/fence) and [Arborist](https://github.com/uc-cdis/arborist)) to control access based on access tokens provided in requests
 
 Similar to other Gen3 services, users must pass along their Access Token in the form of a JWT in the `Authorization` header of their request to the Indexd API. Indexd will check that the user is authorized for the items in the `authz` field by passing along your token and the action you're trying to do to the [Arborist](https://github.com/uc-cdis/arborist) service.
+
+## Standards and Governance
+
+CTDS (maintainers of Indexd) are working with the not-for-profit Open Commons Consortium to assign Data GUID Prefixes to organizations that would like to run a Data GUID service.
+
+In addition, one of our goals is to work with GA4GH to ensure Data GUIDs and Indexd comply with the GA4GH standard. We are also working in parallel to establish Data GUIDs as an Open Commons Consortium (OCC) standard.
 
 ---
 
