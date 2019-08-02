@@ -4,7 +4,6 @@ import pytest
 
 from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
-from swagger_client.rest import ApiException
 
 
 def get_doc(
@@ -27,312 +26,469 @@ def get_doc(
     return doc
 
 
-def test_index_list(swg_index_client):
-    r = swg_index_client.list_entries()
-    assert r.records == []
+def test_index_list(client):
+    res = client.get("/index/")
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["records"] == []
 
 
-def test_index_list_with_params(swg_index_client):
-    data = get_doc()
-    data["urls"] = ["s3://endpointurl/bucket_2/key_2", "s3://anotherurl/bucket_2/key_2"]
-    data["urls_metadata"] = {
+def test_index_list_with_params(client, user):
+    data1 = get_doc()
+    data1["urls"] = [
+        "s3://endpointurl/bucket_2/key_2",
+        "s3://anotherurl/bucket_2/key_2",
+    ]
+    data1["urls_metadata"] = {
         "s3://endpointurl/bucket_2/key_2": {"state": "error", "other": "xxx"},
         "s3://anotherurl/bucket_2/key_2": {"state": "error", "other": "xxx"},
     }
-    r_1 = swg_index_client.add_entry(data)
+    res_1 = client.post("/index/", json=data1, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
 
     data2 = get_doc()
     data2["metadata"] = {"project_id": "other-project", "state": "abc", "other": "xxx"}
     data2["urls"] = ["s3://endpointurl/bucket/key_2", "s3://anotherurl/bucket/key_2"]
     data2["urls_metadata"] = {
-        "s3://endpointurl/bucket/key_2": {"state": "error", "other": "xxx"}
+        "s3://endpointurl/bucket/key_2": {"state": "error", "other": "yyy"}
     }
-    r_2 = swg_index_client.add_entry(data2)
-    r = swg_index_client.list_entries(metadata="project_id:bpa-UChicago")
-    ids = [record.did for record in r.records]
-    assert r_1.did in ids
+    res_2 = client.post("/index/", json=data2, headers=user)
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
 
-    r = swg_index_client.list_entries(metadata="project_id:other-project")
-    ids = [record.did for record in r.records]
-    assert r_2.did in ids
+    data1_by_md = client.get("/index/?metadata=project_id:bpa-UChicago")
+    assert data1_by_md.status_code == 200
+    data1_list = data1_by_md.json
+    ids = [record["did"] for record in data1_list["records"]]
+    assert rec_1["did"] in ids
 
-    r = swg_index_client.list_entries(hash="md5:8b9942cf415384b27cadf1f4d2d682e5")
-    ids = [record.did for record in r.records]
-    assert r_1.did in ids
-    assert r_2.did in ids
+    data2_by_md = client.get("/index/?metadata=project_id:other-project")
+    assert data2_by_md.status_code == 200
+    data2_list = data2_by_md.json
+    ids = [record["did"] for record in data2_list["records"]]
+    assert rec_2["did"] in ids
 
-    r = swg_index_client.list_entries(ids=",".join(ids))
+    data_by_hash = client.get("/index/?hash=md5:8b9942cf415384b27cadf1f4d2d682e5")
+    assert data_by_hash.status_code == 200
+    data_list_all = data_by_hash.json
+    ids = [record["did"] for record in data_list_all["records"]]
+    assert rec_1["did"] in ids
+    assert rec_2["did"] in ids
 
-    ids = [record.did for record in r.records]
-    assert r_1.did in ids
-    assert r_2.did in ids
+    data_by_ids = client.get("/index/?ids={}".format(rec_1["did"]))
+    assert data_by_ids.status_code == 200
+    data_list_all = data_by_ids.json
 
-    r = swg_index_client.list_entries(limit=2)
-    assert len(r.records) == 2
+    ids = [record["did"] for record in data_list_all["records"]]
+    assert rec_1["did"] in ids
+    assert not rec_2["did"] in ids
+
+    data_with_limit = client.get("/index/?limit=1")
+    assert data_with_limit.status_code == 200
+    data_list_limit = data_with_limit.json
+    assert len(data_list_limit["records"]) == 1
 
     param = {"bucket": {"state": "error", "other": "xxx"}}
 
-    r = swg_index_client.list_entries(limit=2, urls_metadata=json.dumps(param))
-    assert len(r.records) == 2
+    data_by_url_md = client.get("/index/?urls_metadata=" + json.dumps(param))
+    assert data_by_url_md.status_code == 200
+    data_list = data_by_url_md.json
+    assert len(data_list["records"]) == 1
+    assert data_list["records"][0]["did"] == rec_1["did"]
+    assert data_list["records"][0]["urls_metadata"] == data1["urls_metadata"]
 
 
-def test_index_list_with_params_negate(swg_index_client):
+def test_index_list_with_params_negate(client, user):
     data = get_doc()
-    r_1 = swg_index_client.add_entry(data)
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
 
     data["metadata"] = {"testkey": "test", "project_id": "negate-project"}
-    r_2 = swg_index_client.add_entry(data)
+    res_2 = client.post("/index/", json=data, headers=user)
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
 
     data["urls"] = ["s3://endpointurl/bucket_2/key_2", "s3://anotherurl/bucket_2/key_2"]
     data["urls_metadata"] = {"s3://endpointurl/bucket_2/key_2": {"state": "error"}}
-    r_3 = swg_index_client.add_entry(data)
+    res_3 = client.post("/index/", json=data, headers=user)
+    assert res_3.status_code == 200
+    rec_3 = res_3.json
 
     data["urls"] = ["s3://endpointurl/bucket_2/key_2"]
     data["urls_metadata"] = {
         "s3://endpointurl/bucket_2/key_2": {"no_state": "uploaded"}
     }
-    r_4 = swg_index_client.add_entry(data)
+    res_4 = client.post("/index/", json=data, headers=user)
+    assert res_4.status_code == 200
+    rec_4 = res_4.json
 
     data["urls"] = ["s3://anotherurl/bucket/key"]
     data["urls_metadata"] = {"s3://anotherurl/bucket/key": {"state": "error"}}
-    r_5 = swg_index_client.add_entry(data)
+    res_5 = client.post("/index/", json=data, headers=user)
+    assert res_5.status_code == 200
+    rec_5 = res_5.json
 
     negate_params = {"metadata": {"testkey": ""}}
-    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
-    ids = {record.did for record in r.records}
-    assert {r_1.did} == ids
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    assert data_neg_param.status_code == 200
+    data_list = data_neg_param.json
+    assert len(data_list["records"]) == 1
+    assert data_list["records"][0]["did"] == rec_1["did"]
 
     negate_params = {"metadata": {"project_id": "bpa-UChicago"}}
-    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
-    ids = {record.did for record in r.records}
-    assert {r_2.did, r_3.did, r_4.did, r_5.did} == ids
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    assert data_neg_param.status_code == 200
+    data_list = data_neg_param.json
+    ids = {record["did"] for record in data_list["records"]}
+    assert len(ids) == 4
+    assert rec_1["did"] not in ids
+    assert rec_2["did"] in ids
+    assert rec_3["did"] in ids
+    assert rec_4["did"] in ids
+    assert rec_5["did"] in ids
 
     # negate url
     negate_params = {"urls": ["s3://endpointurl/bucket_2/key_2"]}
-    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
-    ids = {record.did for record in r.records}
-    assert ids == {r_1.did, r_2.did, r_5.did}
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    assert data_neg_param.status_code == 200
+    data_list = data_neg_param.json
+    ids = {record["did"] for record in data_list["records"]}
+    assert len(ids) == 3
+    assert rec_1["did"] in ids
+    assert rec_2["did"] in ids
+    assert rec_3["did"] not in ids
+    assert rec_4["did"] not in ids
+    assert rec_5["did"] in ids
 
     # negate url key
     negate_params = {"urls_metadata": {"s3://endpointurl/": {}}}
-    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
-    ids = {record.did for record in r.records}
-    assert ids == {r_5.did}
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    assert data_neg_param.status_code == 200
+    data_list = data_neg_param.json
+    assert len(data_list["records"]) == 1
+    assert data_list["records"][0]["did"] == rec_5["did"]
 
     negate_params = {"urls_metadata": {"s3://endpointurl/": {}, "s3://anotherurl/": {}}}
-    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
-    ids = {record.did for record in r.records}
-    assert ids == set()
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    assert data_neg_param.status_code == 200
+    data_list = data_neg_param.json
+    assert len(data_list["records"]) == 0
 
     # negate url_metadata key
     negate_params = {
         "urls_metadata": {"s3://endpointurl/": {"state": ""}, "s3://anotherurl/": {}}
     }
-    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
-    ids = {record.did for record in r.records}
-    assert ids == {r_4.did}
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    assert data_neg_param.status_code == 200
+    data_list = data_neg_param.json
+    assert len(data_list["records"]) == 1
+    assert data_list["records"][0]["did"] == rec_4["did"]
 
     # negate url_metadata value
     negate_params = {"urls_metadata": {"s3://endpointurl/": {"state": "uploaded"}}}
-    r = swg_index_client.list_entries(negate_params=json.dumps(negate_params))
-    ids = {record.did for record in r.records}
-    assert ids == {r_3.did, r_4.did, r_5.did}
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    assert data_neg_param.status_code == 200
+    data_list = data_neg_param.json
+    ids = {record["did"] for record in data_list["records"]}
+    assert len(ids) == 3
+    assert rec_1["did"] not in ids
+    assert rec_2["did"] not in ids
+    assert rec_3["did"] in ids
+    assert rec_4["did"] in ids
+    assert rec_5["did"] in ids
 
 
-def test_list_entries_with_uploader(swg_index_client):
+def test_list_entries_with_uploader(client, user):
     """
     Test that return a list of record given uploader
     """
     data = get_doc()
     data["uploader"] = "uploader_1"
-    swg_index_client.add_entry(data)
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
 
     data = get_doc()
     data["uploader"] = "uploader_123"
-    r2 = swg_index_client.add_entry(data)
+    res_2 = client.post("/index/", json=data, headers=user)
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
 
     data = get_doc()
     data["uploader"] = "uploader_123"
-    r3 = swg_index_client.add_entry(data)
+    res_3 = client.post("/index/", json=data, headers=user)
+    assert res_3.status_code == 200
+    rec_3 = res_3.json
 
-    r = swg_index_client.list_entries(uploader="uploader_123")
-    assert len(r.records) == 2
-    assert {r2.did, r3.did} == {r.records[0].did, r.records[1].did}
-    assert r.records[0].uploader == "uploader_123"
-    assert r.records[1].uploader == "uploader_123"
+    data_grab = client.get("/index/?uploader=uploader_123")
+    assert data_grab.status_code == 200
+    data_list = data_grab.json
+    assert len(data_list["records"]) == 2
+    ids = {record["did"] for record in data_list["records"]}
+    assert len(ids) == 2
+    assert rec_2["did"] in ids
+    assert rec_3["did"] in ids
+    assert data_list["records"][0]["uploader"] == "uploader_123"
+    assert data_list["records"][1]["uploader"] == "uploader_123"
 
 
-def test_list_entries_with_uploader_wrong_uploader(swg_index_client):
+def test_list_entries_with_uploader_wrong_uploader(client, user):
     """
     Test that returns no record due to wrong uploader id
     """
     data = get_doc()
     data["uploader"] = "uploader_1"
-    r = swg_index_client.add_entry(data)
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
 
     data = get_doc()
     data["uploader"] = "uploader_123"
-    r = swg_index_client.add_entry(data)
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
 
     data = get_doc()
     data["uploader"] = "uploader_123"
-    r = swg_index_client.add_entry(data)
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
 
-    r = swg_index_client.list_entries(uploader="wrong_uploader")
-    assert len(r.records) == 0
+    data_grab = client.get("/index/?uploader=wrong_uploader")
+    data_list = data_grab.json
+    assert len(data_list["records"]) == 0
 
 
-def test_create_blank_record(swg_index_client):
+def test_create_blank_record(client, user):
     """
     Test that new blank records only contain the uploader
     and optionally file_name fields: test without file name
     """
 
     doc = {"uploader": "uploader_123"}
-    r = swg_index_client.create_blank_entry(doc)
-    assert r.did
-    assert r.rev
-    assert r.baseid
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    assert rec["baseid"]
 
-    r = swg_index_client.list_entries(uploader="uploader_123")
-    assert r.records[0].uploader == "uploader_123"
-    assert not r.records[0].file_name
-    assert_blank(r)
+    res = client.get("/index/?uploader=uploader_123")
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["records"][0]["uploader"] == "uploader_123"
+    assert not rec["records"][0]["file_name"]
+
+    # test that record is blank
+    assert_blank(rec)
 
 
-def test_create_blank_record_with_file_name(swg_index_client):
+def test_create_blank_record_with_file_name(client, user):
     """
     Test that new blank records only contain the uploader
     and optionally file_name fields: test with file name
     """
 
     doc = {"uploader": "uploader_321", "file_name": "myfile.txt"}
-    r = swg_index_client.create_blank_entry(doc)
-    assert r.did
-    assert r.rev
-    assert r.baseid
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    assert rec["baseid"]
 
-    r = swg_index_client.list_entries(uploader="uploader_321")
-    assert r.records[0].uploader == "uploader_321"
-    assert r.records[0].file_name == "myfile.txt"
-    assert_blank(r)
+    res = client.get("/index/?uploader=uploader_321")
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["records"][0]["uploader"] == "uploader_321"
+    assert rec["records"][0]["file_name"] == "myfile.txt"
+
+    # test that record is blank
+    assert_blank(rec)
 
 
-def test_fill_size_n_hash_for_blank_record(swg_index_client):
+def test_fill_size_n_hash_for_blank_record(client, user):
     """
     Test that can fill size and hashes for empty record
     """
     doc = {"uploader": "uploader_123"}
 
-    r = swg_index_client.create_blank_entry(doc)
-    assert r.did
-    assert r.rev
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
 
-    did, rev = r.did, r.rev
+    did, rev = rec["did"], rec["rev"]
     updated = {"size": 10, "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"}}
 
-    r = swg_index_client.update_blank_entry(did, rev=rev, body=updated)
-    assert r.did == did
-    assert r.rev != rev
+    res = client.put(
+        "/index/blank/{}?rev={}".format(did, rev), headers=user, json=updated
+    )
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["did"] == did
+    assert rec["rev"] != rev
 
-    r = swg_index_client.get_entry(did)
-    assert r.size == 10
-    assert r.hashes.md5 == "8b9942cf415384b27cadf1f4d2d981f5"
+    res = client.get("/index/" + did)
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["size"] == 10
+    assert rec["hashes"]["md5"] == "8b9942cf415384b27cadf1f4d2d981f5"
 
 
-def test_get_empty_acl_authz_record(swg_index_client):
+def test_get_empty_acl_authz_record(client, user):
     """
     Test that can get a list of empty acl/authz given uploader
     """
     doc = get_doc()
-    r = swg_index_client.add_entry(doc)
+    client.post("/index/", json=doc, headers=user)
 
     doc = {"uploader": "uploader_123"}
-    r2 = swg_index_client.create_blank_entry(doc)
+    res_2 = client.post("/index/blank/", json=doc, headers=user)
+    assert res_2.status_code == 201
+    rec_2 = res_2.json
 
     doc = {"uploader": "uploader_123"}
-    r3 = swg_index_client.create_blank_entry(doc)
+    res_3 = client.post("/index/blank/", json=doc, headers=user)
+    assert res_3.status_code == 201
+    rec_3 = res_3.json
 
-    r = swg_index_client.list_entries()
-    assert len(r.records) == 3
+    data_grab = client.get("/index/")
+    assert data_grab.status_code == 200
+    data_list = data_grab.json
+    assert len(data_list["records"]) == 3
 
-    r = swg_index_client.list_entries(uploader="uploader_123", acl="null", authz="null")
+    data_by_acl_authz = client.get("/index/?uploader=uploader_123&acl=null&authz=null")
+    assert data_by_acl_authz.status_code == 200
+    data_list = data_by_acl_authz.json
 
-    assert len(r.records) == 2
-    assert {r2.did, r3.did} == {r.records[0].did, r.records[1].did}
-    assert r.records[0].acl == []
-    assert r.records[1].acl == []
-    assert r.records[0].authz == []
-    assert r.records[1].authz == []
+    assert len(data_list["records"]) == 2
+    ids = {record["did"] for record in data_list["records"]}
+    assert len(ids) == 2
+    assert rec_2["did"] in ids
+    assert rec_3["did"] in ids
+    assert data_list["records"][0]["acl"] == []
+    assert data_list["records"][1]["acl"] == []
+    assert data_list["records"][0]["authz"] == []
+    assert data_list["records"][1]["authz"] == []
 
 
-def test_get_empty_acl_authz_record_after_fill_size_n_hash(swg_index_client):
+def test_get_empty_acl_authz_record_after_fill_size_n_hash(client, user):
     """
     Test create blank record -> fill hash and size -> get record with empty or none
     acl/authz
     """
     # create the first blank record, update size, hashes and acl/authz
     doc = {"uploader": "uploader_123"}
-    r1 = swg_index_client.create_blank_entry(doc)
+    res_1 = client.post("/index/blank/", json=doc, headers=user)
+    assert res_1.status_code == 201
+    rec_1 = res_1.json
     updated = {"size": 10, "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"}}
-    did1 = r1.did
-    r1 = swg_index_client.update_blank_entry(r1.did, rev=r1.rev, body=updated)
-    r1 = swg_index_client.update_entry(
-        r1.did, rev=r1.rev, body={"acl": ["read"], "authz": ["read"]}
+    did_1 = rec_1["did"]
+    rev_1 = rec_1["rev"]
+    res_2 = client.put(
+        "/index/blank/{}?rev={}".format(did_1, rev_1), headers=user, json=updated
     )
-    r1 = swg_index_client.get_entry(r1.did)
-    assert r1.acl == ["read"]
-    assert r1.authz == ["read"]
-    assert r1.did == did1
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    rev_2 = rec_2["rev"]
+    body = {"acl": ["read"], "authz": ["read"]}
+    res_1 = client.put("/index/{}?rev={}".format(did_1, rev_2), headers=user, json=body)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    res_1 = client.get("/index/" + rec_1["did"])
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    assert rec_1["acl"] == ["read"]
+    assert rec_1["authz"] == ["read"]
+    assert rec_1["did"] == did_1
 
     # create the second blank record, only update size hashes and urls
     doc = {"uploader": "uploader_123"}
-    r2 = swg_index_client.create_blank_entry(doc)
-    did2 = r2.did
+    res_2 = client.post("/index/blank/", json=doc, headers=user)
+    assert res_2.status_code == 201
+    rec_2 = res_2.json
+    did_2 = rec_2["did"]
     updated = {
         "size": 4,
         "hashes": {"md5": "1b9942cf415384b27cadf1f4d2d981f5"},
         "urls": ["s3://example/1"],
     }
+    res = client.put(
+        "/index/blank/{}?rev={}".format(rec_2["did"], rec_2["rev"]),
+        json=updated,
+        headers=user,
+    )
+    assert res.status_code == 200
 
-    # create the second blank record, only update size hashes and urls
+    # create the third blank record, only update size hashes and urls
     doc = {"uploader": "uploader_123"}
-    r3 = swg_index_client.create_blank_entry(doc)
-    did3 = r3.did
+    res_3 = client.post("/index/blank/", json=doc, headers=user)
+    assert res_3.status_code == 201
+    rec_3 = res_3.json
+    did_3 = rec_3["did"]
     updated = {
         "size": 4,
         "hashes": {"md5": "1b9942cf415384b27cadf1f4d2d981f5"},
         "urls": ["s3://example/2"],
     }
-    swg_index_client.update_blank_entry(r3.did, rev=r3.rev, body=updated)
+    res = client.put(
+        "/index/blank/{}?rev={}".format(rec_3["did"], rec_3["rev"]),
+        json=updated,
+        headers=user,
+    )
+    assert res.status_code == 200
 
-    r = swg_index_client.list_entries(uploader="uploader_123")
-    assert len(r.records) == 3
+    res = client.get("/index/?uploader=uploader_123")
+    assert res.status_code == 200
+    rec = res.json
+    print(rec)
+    assert len(rec["records"]) == 3
 
-    r = swg_index_client.list_entries(uploader="uploader_123", acl="read")
-    assert len(r.records) == 1
-    assert r.records[0].did == r1.did
+    res = client.get("/index/?uploader=uploader_123&acl=read")
+    assert res.status_code == 200
+    rec = res.json
+    assert len(rec["records"]) == 1
+    assert rec["records"][0]["did"] == rec_1["did"]
 
-    r = swg_index_client.list_entries(uploader="uploader_123", acl="write")
-    assert len(r.records) == 0
+    res = client.get("/index/?uploader=uploader_123&acl=write")
+    assert res.status_code == 200
+    rec = res.json
+    assert len(rec["records"]) == 0
 
-    r = swg_index_client.list_entries(uploader="uploader_123", acl="null")
-    assert len(r.records) == 2
-    assert {r.records[0].did, r.records[1].did} == {did2, did3}
+    res = client.get("/index/?uploader=uploader_123&acl=null")
+    assert res.status_code == 200
+    rec = res.json
+    assert len(rec["records"]) == 2
+
+    ids = {record["did"] for record in rec["records"]}
+    assert did_2 in ids
+    assert did_3 in ids
+    assert len(ids) == 2
 
 
-def test_urls_metadata(swg_index_client):
+def test_update_urls_metadata(client, user):
     data = get_doc(has_urls_metadata=True)
-    result = swg_index_client.add_entry(data)
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
 
-    doc = swg_index_client.get_entry(result.did)
-    assert doc.urls_metadata == data["urls_metadata"]
+    res_2 = client.get("/index/" + rec["did"])
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["urls_metadata"] == data["urls_metadata"]
 
     updated = {"urls_metadata": {data["urls"][0]: {"test": "b"}}}
-    swg_index_client.update_entry(doc.did, rev=doc.rev, body=updated)
+    res = client.put(
+        "/index/{}?rev={}".format(rec_2["did"], rec_2["rev"]),
+        json=updated,
+        headers=user,
+    )
+    assert res.status_code == 200
 
-    doc = swg_index_client.get_entry(result.did)
-    assert doc.urls_metadata == updated["urls_metadata"]
+    res_3 = client.get("/index/" + rec["did"])
+    assert res_3.status_code == 200
+    rec_3 = res_3.json
+    assert rec_3["urls_metadata"] == updated["urls_metadata"]
 
 
 @pytest.mark.parametrize(
@@ -381,7 +537,7 @@ def test_urls_metadata(swg_index_client):
     ],
 )
 def test_urls_metadata_partial_match(
-    swg_index_client, doc_urls, urls_meta, params, expected
+    client, doc_urls, urls_meta, params, expected, user
 ):
     url_doc_mapping = {}
     for url_group in doc_urls:
@@ -391,68 +547,96 @@ def test_urls_metadata_partial_match(
         for url in url_group:
             data["urls_metadata"][url] = urls_meta[url]
 
-        record = swg_index_client.add_entry(data)
+        res = client.post("/index/", json=data, headers=user)
+        assert res.status_code == 200
+        rec = res.json
         for url in url_group:
-            url_doc_mapping[url] = record
+            url_doc_mapping[url] = rec
 
-    docs = swg_index_client.list_entries(urls_metadata=json.dumps(params))
+    res = client.get("/index/?urls_metadata=" + json.dumps(params))
+    assert res.status_code == 200
+    rec = res.json
 
-    ids = {r.did for r in docs.records}
-    assert ids == {url_doc_mapping[url].did for url in expected}
+    ids = {r["did"] for r in rec["records"]}
+    assert ids == {url_doc_mapping[url]["did"] for url in expected}
 
 
-def test_get_urls(swg_index_client, swg_global_client):
+def test_get_urls(client, user):
     data = get_doc(has_urls_metadata=True)
-    result = swg_index_client.add_entry(data)
+    response = client.post("/index/", json=data, headers=user)
+    assert response.status_code == 200
+    record = response.json
 
-    result = swg_global_client.list_urls(ids=result.did)
+    response = client.get("/urls/?ids=" + record["did"])
+    assert response.status_code == 200
+    record = response.json
     url = data["urls"][0]
-    assert result.urls[0].url == url
-    assert result.urls[0].metadata == data["urls_metadata"][url]
+    assert record["urls"][0]["url"] == url
+    assert record["urls"][0]["metadata"] == data["urls_metadata"][url]
 
 
-def test_index_create(swg_index_client):
+def test_index_create(client, user):
     data = get_doc(has_baseid=True)
 
-    result = swg_index_client.add_entry(data)
-    assert result.did
-    assert result.baseid == data["baseid"]
-    r = swg_index_client.get_entry(result.did)
-    assert r.acl == []
-    assert r.authz == []
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["did"]
+    assert rec["baseid"] == data["baseid"]
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["acl"] == []
+    assert rec["authz"] == []
 
 
-def test_index_get(swg_index_client):
+def test_index_get(client, user):
     data = get_doc(has_baseid=True)
 
-    result = swg_index_client.add_entry(data)
-    r = swg_index_client.get_entry(result.did)
-    r2 = swg_index_client.get_entry(result.baseid)
-    assert r.did == result.did
-    assert r2.did == result.did
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    res_1 = client.get("/index/" + rec["did"])
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    res_2 = client.get("/index/" + rec["baseid"])
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_1["did"] == rec["did"]
+    assert rec_2["did"] == rec["did"]
 
 
-def test_index_prepend_prefix(swg_index_client):
+def test_index_prepend_prefix(client, user):
     data = get_doc()
 
-    result = swg_index_client.add_entry(data)
-    r = swg_index_client.get_entry(result.did)
-    assert r.did == result.did
-    assert r.did.startswith("testprefix:")
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    res_2 = client.get("/index/" + rec_1["did"])
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+
+    assert rec_1["did"] == rec_2["did"]
+    assert rec_2["did"].startswith("testprefix:")
 
 
-def test_index_get_with_baseid(swg_index_client):
+def test_index_get_with_baseid(client, user):
     data1 = get_doc(has_baseid=True)
-    swg_index_client.add_entry(data1)
+    res = client.post("/index/", json=data1, headers=user)
+    assert res.status_code == 200
 
     data2 = get_doc(has_baseid=True)
-    r2 = swg_index_client.add_entry(data2)
+    res_1 = client.post("/index/", json=data2, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
 
-    r = swg_index_client.get_entry(data1["baseid"])
-    assert r.did == r2.did
+    res_2 = client.get("/index/" + data1["baseid"])
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["did"] == rec_1["did"]
 
 
-def test_delete_and_recreate(swg_index_client):
+def test_delete_and_recreate(client, user):
     """
     Test that you can delete an IndexDocument and be able to
     recreate it with the same fields.
@@ -462,55 +646,70 @@ def test_delete_and_recreate(swg_index_client):
     new_data = get_doc(has_baseid=True)
     new_data["hashes"] = {"md5": "11111111111111111111111111111111"}
 
-    old_result = swg_index_client.add_entry(old_data)
-    assert old_result.did
-    assert old_result.baseid == old_data["baseid"]
+    old_result = client.post("/index/", json=old_data, headers=user)
+    assert old_result.status_code == 200
+    old_record = old_result.json
+    assert old_record["did"]
+    assert old_record["baseid"] == old_data["baseid"]
 
     # create a new doc with the same did
-    new_data["did"] = old_result.did
+    new_data["did"] = old_record["did"]
 
     # delete the old doc
-    swg_index_client.delete_entry(old_result.did, old_result.rev)
-    with pytest.raises(ApiException):
-        # make sure it's deleted
-        swg_index_client.get_entry(old_result.did)
+    res = client.delete(
+        "/index/{}?rev={}".format(old_record["did"], old_record["rev"]),
+        json=old_data,
+        headers=user,
+    )
+    assert res.status_code == 200
+    # make sure it's deleted
+    res = client.get("/index/" + old_record["did"])
+    assert res.status_code == 404
 
     # create new doc with the same baseid and did
-    new_result = swg_index_client.add_entry(new_data)
+    new_result = client.post("/index/", json=new_data, headers=user)
+    assert new_result.status_code == 200
+    new_record = new_result.json
 
-    assert new_result.did
+    assert new_record["did"]
     # verify that they are the same
-    assert new_result.baseid == new_data["baseid"]
-    assert new_result.did == old_result.did
-    assert new_result.baseid == old_result.baseid
+    assert new_record["baseid"] == new_data["baseid"]
+    assert new_record["did"] == old_record["did"]
+    assert new_record["baseid"] == old_record["baseid"]
 
     # verify that new data is in the new node
-    new_doc = swg_index_client.get_entry(new_result.did)
-    assert new_data["baseid"] == new_doc.baseid
-    assert new_data["urls"] == new_doc.urls
-    assert new_data["hashes"]["md5"] == new_doc.hashes.md5
+    new_result = client.get("/index/" + new_record["did"])
+    assert new_result.status_code == 200
+    new_record = new_result.json
+    assert new_data["baseid"] == new_record["baseid"]
+    assert new_data["urls"] == new_record["urls"]
+    assert new_data["hashes"]["md5"] == new_record["hashes"]["md5"]
 
 
-def test_index_create_with_multiple_hashes(swg_index_client):
+def test_index_create_with_multiple_hashes(client, user):
     data = get_doc()
     data["hashes"] = {
         "md5": "8b9942cf415384b27cadf1f4d2d682e5",
         "sha1": "fdbbca63fbec1c2b0d4eb2494ce91520ec9f55f5",
     }
 
-    result = swg_index_client.add_entry(data)
-    assert result.did
+    result = client.post("/index/", json=data, headers=user)
+    assert result.status_code == 200
+    record = result.json
+    assert record["did"]
 
 
-def test_index_create_with_valid_did(swg_index_client):
+def test_index_create_with_valid_did(client, user):
     data = get_doc()
     data["did"] = "3d313755-cbb4-4b08-899d-7bbac1f6e67d"
 
-    result = swg_index_client.add_entry(data)
-    assert result.did == "3d313755-cbb4-4b08-899d-7bbac1f6e67d"
+    result = client.post("/index/", json=data, headers=user)
+    assert result.status_code == 200
+    record = result.json
+    assert record["did"] == "3d313755-cbb4-4b08-899d-7bbac1f6e67d"
 
 
-def test_index_create_with_acl_authz(swg_index_client):
+def test_index_create_with_acl_authz(client, user):
     data = {
         "acl": ["a", "b"],
         "authz": ["x", "y"],
@@ -520,13 +719,17 @@ def test_index_create_with_acl_authz(swg_index_client):
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
     }
 
-    r = swg_index_client.add_entry(data)
-    result = swg_index_client.get_entry(r.did)
-    assert result.acl == ["a", "b"]
-    assert result.authz == ["x", "y"]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    result = client.get("/index/" + rec["did"])
+    assert result.status_code == 200
+    record = result.json
+    assert record["acl"] == ["a", "b"]
+    assert record["authz"] == ["x", "y"]
 
 
-def test_index_create_with_duplicate_acl_authz(swg_index_client):
+def test_index_create_with_duplicate_acl_authz(client, user):
     data = {
         "acl": ["a", "b", "a"],
         "authz": ["x", "y", "x"],
@@ -536,104 +739,126 @@ def test_index_create_with_duplicate_acl_authz(swg_index_client):
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
     }
 
-    r = swg_index_client.add_entry(data)
-    result = swg_index_client.get_entry(r.did)
-    assert result.acl == ["a", "b"]
-    assert result.authz == ["x", "y"]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    result = client.get("/index/" + rec["did"])
+    assert result.status_code == 200
+    record = result.json
+    assert record["acl"] == ["a", "b"]
+    assert record["authz"] == ["x", "y"]
 
 
-def test_index_create_with_invalid_did(swg_index_client):
+def test_index_create_with_invalid_did(client, user):
     data = get_doc()
 
     data["did"] = "3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd"
-
-    with pytest.raises(ApiException) as e:
-        swg_index_client.add_entry(data)
-        assert e.status == 400
+    response = client.post("/index/", json=data, headers=user)
+    assert response.status_code == 400
 
 
-def test_index_create_with_prefix(swg_index_client):
+def test_index_create_with_prefix(client, user):
     data = get_doc()
     data["did"] = "cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d"
 
-    r = swg_index_client.add_entry(data)
-    assert r.did == "cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d"
+    response = client.post("/index/", json=data, headers=user)
+    assert response.status_code == 200
+    record = response.json
+    assert record["did"] == "cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d"
 
 
-def test_index_create_with_duplicate_did(swg_index_client):
+def test_index_create_with_duplicate_did(client, user):
     data = get_doc()
     data["did"] = "3d313755-cbb4-4b08-899d-7bbac1f6e67d"
 
-    swg_index_client.add_entry(data)
+    response = client.post("/index/", json=data, headers=user)
+    assert response.status_code == 200
+    response = client.post("/index/", json=data, headers=user)
+    assert response.status_code == 400
 
-    with pytest.raises(ApiException) as e:
-        swg_index_client.add_entry(data)
-        assert e.status == 400
 
-
-def test_index_create_with_file_name(swg_index_client):
+def test_index_create_with_file_name(client, user):
     data = get_doc()
     data["file_name"] = "abc"
 
-    r = swg_index_client.add_entry(data)
-    r = swg_index_client.get_entry(r.did)
-    assert r.file_name == "abc"
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["file_name"] == "abc"
 
 
-def test_index_create_with_version(swg_index_client):
+def test_index_create_with_version(client, user):
     data = get_doc()
     data["version"] = "ver_123"
 
-    r = swg_index_client.add_entry(data)
-    r = swg_index_client.get_entry(r.did)
-    assert r.version == data["version"]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["version"] == data["version"]
 
 
-def test_index_create_blank_record(swg_index_client):
+def test_create_blank_record_with_baseid(client, user):
     doc = {"uploader": "uploader_123", "baseid": "baseid_123"}
 
-    r = swg_index_client.create_blank_entry(doc)
-    assert r.did
-    res = swg_index_client.get_entry(r.did)
-    assert res.acl == []
-    assert res.authz == []
-    assert res.urls_metadata == {}
-    assert res.size is None
-    assert res.version is None
-    assert res.urls_metadata == {}
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201
+    rec = res.json
+    assert rec["did"]
+    res = client.get("/index/?baseid=" + doc["baseid"])
+    assert res.status_code == 200
+    rec = res.json
+    assert_blank(rec)
 
 
-def test_index_create_with_uploader(swg_index_client):
+def test_index_create_with_uploader(client, user):
     data = get_doc()
     data["uploader"] = "uploader_123"
-    r = swg_index_client.add_entry(data)
-    r = swg_index_client.get_entry(r.did)
-    assert r.uploader == data["uploader"]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["uploader"] == data["uploader"]
 
 
-def test_index_get_global_endpoint(swg_global_client, swg_index_client):
+def test_index_get_global_endpoint(client, user):
     data = get_doc()
 
-    r = swg_index_client.add_entry(data)
-    r = swg_global_client.get_entry(r.did)
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    res = client.get("/" + rec["did"])
+    assert res.status_code == 200
+    rec = res.json
 
-    assert r.metadata == data["metadata"]
-    assert r.form == "object"
-    assert r.size == data["size"]
-    assert r.urls == data["urls"]
-    assert r.hashes.md5 == data["hashes"]["md5"]
+    assert rec["metadata"] == data["metadata"]
+    assert rec["form"] == "object"
+    assert rec["size"] == data["size"]
+    assert rec["urls"] == data["urls"]
+    assert rec["hashes"]["md5"] == data["hashes"]["md5"]
 
-    r2 = swg_global_client.get_entry("testprefix:" + r.did)
-    assert r2.did == r.did
+    res_2 = client.get("/testprefix:" + rec["did"])
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["did"] == rec["did"]
 
 
-def test_index_update(swg_index_client):
+def test_index_update(client, user):
     data = get_doc()
 
-    r = swg_index_client.add_entry(data)
-    assert r.did
-    assert r.rev
-    assert swg_index_client.get_entry(r.did).metadata == data["metadata"]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    assert client.get("/index/" + rec["did"]).json["metadata"] == data["metadata"]
     dataNew = get_doc()
     del dataNew["hashes"]
     del dataNew["size"]
@@ -642,34 +867,48 @@ def test_index_update(swg_index_client):
     dataNew["version"] = "ver123"
     dataNew["acl"] = ["a", "b"]
     dataNew["authz"] = ["x", "y"]
-    r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
-    assert r2.rev != r.rev
-    result = swg_index_client.get_entry(r.did)
-    assert result.metadata == dataNew["metadata"]
-    assert result.acl == dataNew["acl"]
-    assert result.authz == dataNew["authz"]
+    res_2 = client.put(
+        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=dataNew, headers=user
+    )
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["rev"] != rec["rev"]
+    response = client.get("/index/" + rec_2["did"])
+    assert response.status_code == 200
+    record = response.json
+    assert record["metadata"] == dataNew["metadata"]
+    assert record["acl"] == dataNew["acl"]
+    assert record["authz"] == dataNew["authz"]
 
     data = get_doc()
     data["did"] = "cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d"
-    r = swg_index_client.add_entry(data)
-    assert r.did
-    assert r.rev
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
     dataNew = {
         "urls": ["s3://endpointurl/bucket/key"],
         "file_name": "test",
         "version": "ver123",
     }
-    r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
-    assert r2.rev != r.rev
+    res_2 = client.put(
+        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=dataNew, headers=user
+    )
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["rev"] != rec["rev"]
 
 
-def test_index_update_duplicate_acl_authz(swg_index_client):
+def test_index_update_duplicate_acl_authz(client, user):
     data = get_doc()
 
-    r = swg_index_client.add_entry(data)
-    assert r.did
-    assert r.rev
-    assert swg_index_client.get_entry(r.did).metadata == data["metadata"]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    assert client.get("/index/" + rec["did"]).json["metadata"] == data["metadata"]
     dataNew = get_doc()
     del dataNew["hashes"]
     del dataNew["size"]
@@ -678,61 +917,90 @@ def test_index_update_duplicate_acl_authz(swg_index_client):
     dataNew["version"] = "ver123"
     dataNew["acl"] = ["c", "d", "c"]
     dataNew["authz"] = ["x", "y", "x"]
-    r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
-    assert r2.rev != r.rev
-    result = swg_index_client.get_entry(r.did)
-    assert result.metadata == dataNew["metadata"]
-    assert result.acl == ["c", "d"]
-    assert result.authz == ["x", "y"]
+    res_2 = client.put(
+        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=dataNew, headers=user
+    )
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["rev"] != rec["rev"]
+    response = client.get("/index/" + rec["did"])
+    assert response.status_code == 200
+    record = response.json
+    assert record["metadata"] == dataNew["metadata"]
+    assert record["acl"] == ["c", "d"]
+    assert record["authz"] == ["x", "y"]
 
 
-def test_update_uploader_field(swg_index_client):
+def test_update_uploader_field(client, user):
     data = get_doc()
     data["uploader"] = "uploader_123"
-    r = swg_index_client.add_entry(data)
-    assert r.did
-    assert r.rev
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
 
-    r = swg_index_client.get_entry(r.did)
-    assert r.uploader == "uploader_123"
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["uploader"] == "uploader_123"
 
     updated = {"uploader": "new_uploader"}
-    swg_index_client.update_entry(r.did, rev=r.rev, body=updated)
+    res = client.put(
+        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=updated, headers=user
+    )
+    assert res.status_code == 200
 
-    r = swg_index_client.get_entry(r.did)
-    assert r.uploader == "new_uploader"
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["uploader"] == "new_uploader"
 
     updated = {"uploader": None}
-    swg_index_client.update_entry(r.did, rev=r.rev, body=updated)
+    res = client.put(
+        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=updated, headers=user
+    )
+    assert res.status_code == 200
 
-    r = swg_index_client.get_entry(r.did)
-    assert r.uploader is None
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["uploader"] is None
 
 
-def test_index_delete(swg_index_client):
+def test_index_delete(client, user):
     data = get_doc(has_metadata=False, has_baseid=False)
 
-    r = swg_index_client.add_entry(data)
-    assert r.did
-    assert r.rev
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
 
-    r = swg_index_client.get_entry(r.did)
-    assert r.did
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["did"]
 
-    swg_index_client.delete_entry(r.did, rev=r.rev)
+    res = client.delete(
+        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=data, headers=user
+    )
+    assert res.status_code == 200
 
-    with pytest.raises(ApiException) as e:
-        r = swg_index_client.get_entry(r.did)
-        assert e.status == 400
+    # make sure its deleted
+    res = client.get("/index/{}?rev={}".format(rec["did"], rec["rev"]))
+    assert res.status_code == 404
 
 
-def test_create_index_version(swg_index_client):
+def test_create_index_version(client, user):
     data = get_doc(has_metadata=False, has_baseid=False)
 
-    r = swg_index_client.add_entry(data)
-    assert r.did
-    assert r.rev
-    assert r.baseid
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    assert rec["baseid"]
 
     dataNew = {
         "did": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
@@ -743,44 +1011,62 @@ def test_create_index_version(swg_index_client):
         "acl": ["a"],
     }
 
-    r2 = swg_index_client.add_new_version(r.did, body=dataNew)
-    assert r2.baseid == r.baseid
-    assert r2.did == dataNew["did"]
+    res_2 = client.post("/index/" + rec["did"], json=dataNew, headers=user)
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["baseid"] == rec["baseid"]
+    assert rec_2["did"] == dataNew["did"]
 
 
-def test_get_latest_version(swg_index_client):
+def test_get_latest_version(client, user):
     data = get_doc(has_metadata=False, has_baseid=False, has_version=True)
-    r = swg_index_client.add_entry(data)
-    assert r.did
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    assert rec_1["did"]
 
     data = get_doc(has_metadata=False, has_baseid=False, has_version=False)
-    r2 = swg_index_client.add_new_version(r.did, body=data)
-    r3 = swg_index_client.get_latest_version(r.did)
-    assert r3.did == r2.did
+    res_2 = client.post("/index/" + rec_1["did"], json=data, headers=user)
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
 
-    r4 = swg_index_client.get_latest_version(r.baseid)
-    assert r4.did == r2.did
+    res_3 = client.get("/index/{}/latest".format(rec_2["did"]))
+    assert res_3.status_code == 200
+    rec_3 = res_3.json
+    assert rec_3["did"] == rec_2["did"]
 
-    r5 = swg_index_client.get_latest_version(r.baseid, has_version=True)
-    assert r5.did == r.did
+    res_4 = client.get("/index/{}/latest".format(rec_1["baseid"]))
+    assert res_4.status_code == 200
+    rec_4 = res_4.json
+    assert rec_4["did"] == rec_2["did"]
+
+    res_5 = client.get("/index/{}/latest?has_version=True".format(rec_1["baseid"]))
+    assert res_5.status_code == 200
+    rec_5 = res_5.json
+    assert rec_5["did"] == rec_1["did"]
 
 
-def test_get_all_versions(swg_index_client):
+def test_get_all_versions(client, user):
     data = get_doc(has_metadata=False, has_baseid=False)
-    r = swg_index_client.add_entry(data)
-    assert r.did
-    swg_index_client.add_new_version(r.did, body=data)
-    r3 = swg_index_client.get_all_versions(r.did)
-    assert len(r3) == 2
-    r4 = swg_index_client.get_all_versions(r.baseid)
-    assert len(r4) == 2
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    assert rec_1["did"]
+    res = client.post("/index/" + rec_1["did"], json=data, headers=user)
+    assert res.status_code == 200
+    res_2 = client.get("/index/{}/versions".format(rec_1["did"]))
+    rec_2 = res_2.json
+    assert len(rec_2) == 2
+    res_3 = client.get("/index/{}/versions".format(rec_1["baseid"]))
+    rec_3 = res_3.json
+    assert len(rec_3) == 2
 
 
-def test_alias_list(swg_alias_client):
-    assert swg_alias_client.list_entries().aliases == []
+def test_alias_list(client, user):
+    assert client.get("/alias/").json["aliases"] == []
 
 
-def test_alias_create(swg_alias_client):
+def test_alias_create(client, user):
     data = {
         "size": 123,
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
@@ -789,14 +1075,16 @@ def test_alias_create(swg_alias_client):
         "host_authorities": ["PDC"],
     }
     ark = "ark:/31807/TEST-abc"
-    r = swg_alias_client.upsert_entry(ark, body=data)
-    assert r.name == ark
+    res = client.put("/alias/" + ark, json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["name"] == ark
 
-    assert len(swg_alias_client.list_entries().aliases) == 1
-    assert swg_alias_client.get_entry(r.name).name
+    assert len(client.get("/alias/").json["aliases"]) == 1
+    assert client.get("/alias/" + rec["name"]).json["name"]
 
 
-def test_alias_get_global_endpoint(swg_alias_client, swg_global_client):
+def test_alias_get_global_endpoint(client, user):
     data = {
         "size": 123,
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
@@ -806,12 +1094,13 @@ def test_alias_get_global_endpoint(swg_alias_client, swg_global_client):
     }
     ark = "ark:/31807/TEST-abc"
 
-    swg_alias_client.upsert_entry(ark, body=data)
+    res = client.put("/alias/" + ark, json=data, headers=user)
+    assert res.status_code == 200
 
-    assert swg_global_client.get_entry(ark).size == 123
+    assert client.get("/" + ark).json["size"] == 123
 
 
-def test_alias_update(swg_alias_client):
+def test_alias_update(client, user):
     data = {
         "size": 123,
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
@@ -821,8 +1110,10 @@ def test_alias_update(swg_alias_client):
     }
     ark = "ark:/31807/TEST-abc"
 
-    r = swg_alias_client.upsert_entry(ark, body=data)
-    assert r.rev
+    res_1 = client.put("/alias/" + ark, json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    assert rec_1["rev"]
 
     dataNew = {
         "size": 456,
@@ -831,11 +1122,15 @@ def test_alias_update(swg_alias_client):
         "keeper_authority": "CRI",
         "host_authorities": ["PDC"],
     }
-    r2 = swg_alias_client.upsert_entry(ark, rev=r.rev, body=dataNew)
-    assert r2.rev != r.rev
+    res_2 = client.put(
+        "/alias/{}?rev={}".format(ark, rec_1["rev"]), json=dataNew, headers=user
+    )
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["rev"] != rec_1["rev"]
 
 
-def test_alias_delete(swg_alias_client):
+def test_alias_delete(client, user):
     data = {
         "size": 123,
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
@@ -845,12 +1140,17 @@ def test_alias_delete(swg_alias_client):
     }
     ark = "ark:/31807/TEST-abc"
 
-    r = swg_alias_client.upsert_entry(ark, body=data)
-    assert r.rev
+    res_1 = client.put("/alias/" + ark, json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    assert rec_1["rev"]
 
-    swg_alias_client.delete_entry(ark, rev=r.rev)
+    res = client.delete(
+        "/alias/{}?rev={}".format(ark, rec_1["rev"]), json=data, headers=user
+    )
+    assert res.status_code == 200
 
-    assert len(swg_alias_client.list_entries().aliases) == 0
+    assert len(client.get("/alias/").json["aliases"]) == 0
 
 
 @pytest.mark.parametrize(
@@ -928,77 +1228,116 @@ def test_bad_hashes(client, user, typ, h):
         assert "does not match" in json_resp["error"]
 
 
-def test_dos_get(swg_index_client, swg_dos_client):
+def test_dos_get(client, user):
     data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
-    result = swg_index_client.add_entry(data)
-    r = swg_dos_client.get_data_object(result.did)
-    assert r.data_object.id == result.did
-    assert r.data_object.size == "123"
-    assert r.data_object.checksums[0].checksum == "8b9942cf415384b27cadf1f4d2d682e5"
-    assert r.data_object.checksums[0].type == "md5"
-    assert r.data_object.urls[0].url == "s3://endpointurl/bucket/key"
-    assert r.data_object.urls[0].user_metadata["state"] == "uploaded"
-    assert r.data_object.urls[0].system_metadata["project_id"] == "bpa-UChicago"
-    r2 = swg_dos_client.get_data_object(result.baseid)
-    assert r2.data_object.id == result.did
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    res_2 = client.get("/ga4gh/dos/v1/dataobjects/" + rec_1["did"])
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["data_object"]["id"] == rec_1["did"]
+    assert rec_2["data_object"]["size"] == 123
+    assert (
+        rec_2["data_object"]["checksums"][0]["checksum"]
+        == "8b9942cf415384b27cadf1f4d2d682e5"
+    )
+    assert rec_2["data_object"]["checksums"][0]["type"] == "md5"
+    assert rec_2["data_object"]["urls"][0]["url"] == "s3://endpointurl/bucket/key"
+    assert rec_2["data_object"]["urls"][0]["user_metadata"]["state"] == "uploaded"
+    assert (
+        rec_2["data_object"]["urls"][0]["system_metadata"]["project_id"]
+        == "bpa-UChicago"
+    )
+    res_3 = client.get("/ga4gh/dos/v1/dataobjects/" + rec_1["baseid"])
+    assert res_3.status_code == 200
+    rec_3 = res_3.json
+    assert rec_3["data_object"]["id"] == rec_1["did"]
 
 
-def test_dos_list(swg_index_client, swg_dos_client):
+def test_dos_list(client, user):
     data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
-    result = swg_index_client.add_entry(data)
-    r = swg_dos_client.list_data_objects(page_size=100)
-    assert len(r.data_objects) == 1
-    assert r.data_objects[0].id == result.did
-    assert r.data_objects[0].size == "123"
-    assert r.data_objects[0].checksums[0].checksum == "8b9942cf415384b27cadf1f4d2d682e5"
-    assert r.data_objects[0].checksums[0].type == "md5"
-    assert r.data_objects[0].urls[0].url == "s3://endpointurl/bucket/key"
-    assert r.data_objects[0].urls[0].user_metadata["state"] == "uploaded"
-    assert r.data_objects[0].urls[0].system_metadata["project_id"] == "bpa-UChicago"
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+
+    res_2 = client.get("/ga4gh/dos/v1/dataobjects?page_size=100")
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert len(rec_2["data_objects"]) == 1
+    assert rec_2["data_objects"][0]["id"] == rec_1["did"]
+    assert rec_2["data_objects"][0]["size"] == 123
+    assert (
+        rec_2["data_objects"][0]["checksums"][0]["checksum"]
+        == "8b9942cf415384b27cadf1f4d2d682e5"
+    )
+    assert rec_2["data_objects"][0]["checksums"][0]["type"] == "md5"
+    assert rec_2["data_objects"][0]["urls"][0]["url"] == "s3://endpointurl/bucket/key"
+    assert rec_2["data_objects"][0]["urls"][0]["user_metadata"]["state"] == "uploaded"
+    assert (
+        rec_2["data_objects"][0]["urls"][0]["system_metadata"]["project_id"]
+        == "bpa-UChicago"
+    )
 
 
-def test_update_without_changing_fields(swg_index_client):
+def test_update_without_changing_fields(client, user):
     # setup test
     data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
-    result = swg_index_client.add_entry(data)
-    first_doc = swg_index_client.get_entry(result.did)
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    first_doc = client.get("/index/" + rec["did"]).json
 
     # update
     updated = {"version": "at least 2"}
-    swg_index_client.update_entry(first_doc.did, rev=first_doc.rev, body=updated)
+    res = client.put(
+        "/index/{}?rev={}".format(first_doc["did"], first_doc["rev"]),
+        json=updated,
+        headers=user,
+    )
+    assert res.status_code == 200
 
     # Check if update successful.
-    second_doc = swg_index_client.get_entry(first_doc.did)
+    second_doc = client.get("/index/" + first_doc["did"]).json
     # Only `version` changed.
-    assert first_doc.version != second_doc.version
+    assert first_doc["version"] != second_doc["version"]
 
     # The rest is the same.
-    assert first_doc.urls == second_doc.urls
-    assert first_doc.size == second_doc.size
-    assert first_doc.file_name == second_doc.file_name
-    assert first_doc.metadata == second_doc.metadata
+    assert first_doc["urls"] == second_doc["urls"]
+    assert first_doc["size"] == second_doc["size"]
+    assert first_doc["file_name"] == second_doc["file_name"]
+    assert first_doc["metadata"] == second_doc["metadata"]
 
     # Change `version` to null.
     # update
     updated = {"version": None}
-    swg_index_client.update_entry(second_doc.did, rev=second_doc.rev, body=updated)
+    res = client.put(
+        "/index/{}?rev={}".format(second_doc["did"], second_doc["rev"]),
+        json=updated,
+        headers=user,
+    )
+    assert res.status_code == 200
 
     # check if update successful
-    third_doc = swg_index_client.get_entry(result.did)
+    third_doc = client.get("/index/" + rec["did"]).json
     # Only `version` changed.
-    assert second_doc.version != third_doc.version
+    assert second_doc["version"] != third_doc["version"]
 
 
-def test_bulk_get_documents(swg_index_client, swg_bulk_client):
+def test_bulk_get_documents(client, user):
 
     # just make a bunch of entries in indexd
-    dids = [swg_index_client.add_entry(get_doc(has_baseid=True)).did for _ in range(20)]
-
+    dids = [
+        client.post("/index/", json=get_doc(has_baseid=True), headers=user).json["did"]
+        for _ in range(20)
+    ]
     # do a bulk query for them all
-    docs = swg_bulk_client.get_bulk_ids(dids)
+    res = client.post("/bulk/documents", json=dids, headers=user)
+    assert res.status_code == 200
+    docs = res.json
 
     # compare that they are the same by did
     for doc in docs:
