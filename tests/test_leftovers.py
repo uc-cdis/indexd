@@ -187,13 +187,11 @@ def test_negate_filter_file_name(client, user):
     data1["file_name"] = "test_file_name_1"
     res_1 = client.post("/index/", json=data1, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
 
     data2 = get_doc()
     data2["file_name"] = "test_file_name_2"
     res_2 = client.post("/index/", json=data2, headers=user)
     assert res_2.status_code == 200
-    rec_2 = res_2.json
 
     negate_param = {"file_name": "test_file_name_2"}
     res = client.get("/index/?negate_params=" + json.dumps(negate_param))
@@ -210,13 +208,11 @@ def test_negate_filter_acl(client, user):
     data1["acl"] = ["read"]
     res_1 = client.post("/index/", json=data1, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
 
     data2 = get_doc()
     data2["acl"] = ["unread"]
     res_2 = client.post("/index/", json=data2, headers=user)
     assert res_2.status_code == 200
-    rec_2 = res_2.json
 
     negate_param = {"acl": ["unread"]}
     res = client.get("/index/?negate_params=" + json.dumps(negate_param))
@@ -233,13 +229,11 @@ def test_negate_filter_authz(client, user):
     data1["authz"] = ["admin"]
     res_1 = client.post("/index/", json=data1, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
 
     data2 = get_doc()
     data2["authz"] = ["user"]
     res_2 = client.post("/index/", json=data2, headers=user)
     assert res_2.status_code == 200
-    rec_2 = res_2.json
 
     negate_param = {"authz": ["user"]}
     res = client.get("/index/?negate_params=" + json.dumps(negate_param))
