@@ -256,13 +256,11 @@ def test_negate_filter_version(client, user):
     data1["version"] = "10"
     res_1 = client.post("/index/", json=data1, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
 
     data2 = get_doc()
     data2["version"] = "1"
     res_2 = client.post("/index/", json=data2, headers=user)
     assert res_2.status_code == 200
-    rec_2 = res_2.json
 
     negate_param = {"version": "1"}
     res = client.get("/index/?negate_params=" + json.dumps(negate_param))
