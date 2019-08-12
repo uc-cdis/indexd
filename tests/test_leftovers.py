@@ -28,7 +28,6 @@ def test_get_dos_record(client, user):
 
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
 
     # test exception raised at nonexistent
     fake_did = "16e51a9a-af23-45a3-b4b2-94ae2b143feb"
