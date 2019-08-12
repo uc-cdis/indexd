@@ -112,7 +112,7 @@ def test_status_check(client, user):
 def test_version_check(client, user):
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
-    assert res.status_code ==200
+    assert res.status_code == 200
     res = client.get("/_version")
     assert res.status_code == 200
 
@@ -281,14 +281,18 @@ def test_bad_update_blank_record(client, user):
 
     # test that empty update throws 400 error
     data = {"size": "", "hashes": {"": ""}}
-    res = client.put("/index/blank/{}?rev={}".format(rec["did"], rec["rev"]), json=data, headers=user)
+    res = client.put(
+        "/index/blank/{}?rev={}".format(rec["did"], rec["rev"]), json=data, headers=user
+    )
     assert res.status_code == 400
 
     # test that non-existent did throws 400 error
     data = {"size": 123, "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}
     fake_did = "testprefix:455ffb35-1b0e-49bd-a4ab-3afe9f3aece9"
     fake_rev = "8d19b5c10"
-    res = client.put("/index/blank/{}?rev={}".format(fake_did, fake_rev), json=data, headers=user)
+    res = client.put(
+        "/index/blank/{}?rev={}".format(fake_did, fake_rev), json=data, headers=user
+    )
     assert res.status_code == 404
 
 
@@ -297,8 +301,3 @@ def test_authz_response(client, user):
     data = get_doc()
     res = client.post("/index/", json=data)
     assert res.status_code == 403
-
-
-
-
-
