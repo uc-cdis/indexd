@@ -98,6 +98,8 @@ def test_index_list_with_params(client, user):
     assert data_list["records"][0]["did"] == rec_1["did"]
     assert data_list["records"][0]["urls_metadata"] == data1["urls_metadata"]
 
+
+def test_index_list_by_size(client, user):
     # post two records of different size
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
@@ -112,6 +114,8 @@ def test_index_list_with_params(client, user):
     assert len(rec["records"]) == 1
     assert rec["records"][0]["size"] == 100
 
+
+def test_index_list_by_filename(client, user):
     # post three records of different name
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
@@ -129,6 +133,8 @@ def test_index_list_with_params(client, user):
     assert len(rec["records"]) == 1
     assert rec["records"][0]["file_name"] == data["file_name"]
 
+
+def test_index_list_by_authz(client, user):
     # post three records of different authz
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
@@ -146,6 +152,8 @@ def test_index_list_with_params(client, user):
     assert len(rec["records"]) == 1
     assert rec["records"][0]["authz"] == data["authz"]
 
+
+def test_index_list_by_version(client, user):
     # post three records of different version
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
@@ -264,6 +272,8 @@ def test_index_list_with_params_negate(client, user):
     assert rec_4["did"] in ids
     assert rec_5["did"] in ids
 
+
+def test_negate_filter_file_name(client, user):
     # post two records of different file name
     data1 = get_doc()
     data1["file_name"] = "test_file_name_1"
@@ -288,6 +298,8 @@ def test_index_list_with_params_negate(client, user):
     assert len(rec["records"]) == 1
     assert rec["records"][0]["file_name"] == data1["file_name"]
 
+
+def test_negate_filter_acl(client, user):
     # post two records of different acl
     data1 = get_doc()
     data1["acl"] = ["read"]
@@ -311,6 +323,8 @@ def test_index_list_with_params_negate(client, user):
     assert len(rec["records"]) == 1
     assert rec["records"][0]["acl"] == data1["acl"]
 
+
+def test_negate_filter_authz(client, user):
     # post two records of different authz
     data1 = get_doc()
     data1["authz"] = ["admin"]
@@ -323,8 +337,8 @@ def test_index_list_with_params_negate(client, user):
     assert res_2.status_code == 200
 
     data3 = get_doc()
-    res_2 = client.post("/index/", json=data3, headers=user)
-    assert res_2.status_code == 200
+    res_3 = client.post("/index/", json=data3, headers=user)
+    assert res_3.status_code == 200
 
     negate_param = {"authz": data2["authz"]}
     res = client.get("/index/?negate_params=" + json.dumps(negate_param))
@@ -334,6 +348,8 @@ def test_index_list_with_params_negate(client, user):
     assert len(rec["records"]) == 1
     assert rec["records"][0]["authz"] == data1["authz"]
 
+
+def test_negate_filter_version(client, user):
     # post two records of different version
     data1 = get_doc()
     data1["version"] = "3"
@@ -833,7 +849,7 @@ def test_index_get(client, user):
     assert rec_2["did"] == rec["did"]
 
 
-def test_get_record_error(client, user):
+def test_get_id(client, user):
     # test getting an existing ID
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
@@ -1334,6 +1350,23 @@ def test_alias_list(client, user):
     assert client.get("/alias/").json["aliases"] == []
 
 
+def test_get_alias_by_name(client, user):
+    data = {
+        "size": 123,
+        "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "release": "private",
+        "keeper_authority": "CRI",
+        "host_authorities": ["PDC"],
+    }
+    ark = "ark:/31807/TEST-abc"
+    res = client.put("/alias/" + ark, json=data, headers=user)
+    assert res.status_code == 200
+    res = client.get("/alias/" + ark)
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["name"] == ark
+
+
 def test_alias_list_by_hash(client, user):
     data = {
         "size": 123,
@@ -1409,7 +1442,7 @@ def test_alias_list_with_start(client, user):
     rec = res.json
     assert rec["name"] == ark3
 
-    res = client.get("/alias/?start={}&size={}".format(ark1, str(data["size"])))
+    res = client.get("/alias/?start={}&size={}".format(ark1, data["size"]))
     assert res.status_code == 200
     rec = res.json
     assert len(rec["aliases"]) == 2
@@ -1432,7 +1465,7 @@ def test_alias_create(client, user):
     assert rec["name"] == ark
 
     assert len(client.get("/alias/").json["aliases"]) == 1
-    assert client.get("/alias/" + rec["name"]).json["name"]
+    assert client.get("/alias/" + rec["name"]).json["name"] == ark
 
 
 def test_alias_get_global_endpoint(client, user):
