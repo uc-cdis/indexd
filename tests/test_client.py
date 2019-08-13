@@ -574,6 +574,13 @@ def test_get_urls(client, user):
     assert record["urls"][0]["url"] == url
     assert record["urls"][0]["metadata"] == data["urls_metadata"][url]
 
+    response = client.get("/urls/?size={}".format(data["size"]))
+    assert response.status_code == 200
+    record = response.json
+    url = data["urls"][0]
+    assert record["urls"][0]["url"] == url
+    assert record["urls"][0]["metadata"] == data["urls_metadata"][url]
+
 
 def test_index_create(client, user):
     data = get_doc(has_baseid=True)
