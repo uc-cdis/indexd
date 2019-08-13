@@ -1,6 +1,4 @@
-from indexd.blueprint import get_record
 from tests.test_client import get_doc
-import pytest
 import json
 
 
@@ -312,7 +310,7 @@ def test_negate_filter_version(client, user):
     assert res_2.status_code == 200
 
     data3 = get_doc()
-    res_2 = client.post("/index/", json=data2, headers=user)
+    res_2 = client.post("/index/", json=data3, headers=user)
     assert res_2.status_code == 200
 
     negate_param = {"version": data2["version"]}
