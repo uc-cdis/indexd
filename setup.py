@@ -11,7 +11,7 @@ setup(
         "sqlalchemy==1.3.3",
         "sqlalchemy-utils>=0.33.11",
         "psycopg2>=2.7",
-        "cdislogging",
+        "cdislogging>=0.0.2",
         "indexclient",
         "doiclient",
         "dosclient",
