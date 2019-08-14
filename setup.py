@@ -11,10 +11,12 @@ setup(
         "sqlalchemy==1.3.3",
         "sqlalchemy-utils>=0.33.11",
         "psycopg2>=2.7",
-        "cdislogging",
+        "cdislogging>=0.0.2",
         "indexclient",
         "doiclient",
         "dosclient",
+        "authutils",
+        "gen3rbac",
     ],
     dependency_links=[
         "git+https://github.com/uc-cdis/cdislogging.git@0.0.2#egg=cdislogging",
