@@ -1641,11 +1641,6 @@ def test_dos_get(client, user):
 
 
 def test_get_dos_record_error(client, user):
-    data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
-
-    res = client.post("/index/", json=data, headers=user)
-    assert res.status_code == 200
-
     # test exception raised at nonexistent
     fake_did = "testprefix:d96bab16-c4e1-44ac-923a-04328b6fe78f"
     res = client.get("/ga4gh/dos/v1/dataobjects/" + fake_did)
