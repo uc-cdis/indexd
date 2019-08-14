@@ -83,6 +83,13 @@ def test_query_urls(client, test_data):
     print(urls_list)
     assert len(urls_list) == 2 * url_x_count
 
+    # test include and exclude
+    res = client.get("/_query/urls/q?include=endpointurl&exclude=awesome-x")
+    assert res.status_code == 200
+    urls_list = res.json
+    print(urls_list)
+    assert len(urls_list) == versioned_count + unversioned_count - 2 * url_x_count
+
 
 def test_query_urls_metadata(client, test_data):
     """

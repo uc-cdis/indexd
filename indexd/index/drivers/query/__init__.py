@@ -28,7 +28,7 @@ class URLsQueryDriver(object, metaclass=ABCMeta):
         Returns:
             list: result list
         """
-        pass
+        raise NotImplementedError("TODO")
 
     @abstractmethod
     def query_metadata_by_key(
@@ -55,4 +55,4 @@ class URLsQueryDriver(object, metaclass=ABCMeta):
         Returns:
             list: result list
         """
-        pass
+        raise NotImplementedError("TODO")

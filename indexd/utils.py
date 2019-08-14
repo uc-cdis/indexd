@@ -13,7 +13,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine.reflection import Inspector
 
 
-def try_drop_test_data(user, database, root_user="postgres", host=""):
+def try_drop_test_data(
+    user, database, root_user="postgres", host=""
+):  # pragma: no cover
 
     engine = create_engine(
         "postgres://{user}@{host}/postgres".format(user=root_user, host=host)
@@ -39,7 +41,7 @@ def setup_database(
     host="",
     no_drop=False,
     no_user=False,
-):
+):  # pragma: no cover
     """
     setup the user and database
     """
@@ -77,7 +79,7 @@ def setup_database(
     conn.close()
 
 
-def create_tables(host, user, password, database):
+def create_tables(host, user, password, database):  # pragma: no cover
     """
     create tables
     """
