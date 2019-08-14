@@ -1649,7 +1649,7 @@ def test_get_dos_record_error(client, user):
     # test exception raised at nonexistent
     fake_did = "testprefix:d96bab16-c4e1-44ac-923a-04328b6fe78f"
     res = client.get("/ga4gh/dos/v1/dataobjects/" + fake_did)
-    assert res.status_code == 500
+    assert res.status_code == 404
 
 
 def test_dos_list(client, user):

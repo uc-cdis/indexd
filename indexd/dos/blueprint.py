@@ -119,26 +119,22 @@ def indexd_to_dos(record):
 
 @blueprint.errorhandler(UserError)
 def handle_user_error(err):
-    ret = {msg: str(err), status_code: 0}
-    return flask.jsonify(ret), 400
+    return flask.jsonify(error=str(err)), 400
 
 
 @blueprint.errorhandler(AuthError)
 def handle_auth_error(err):
-    ret = {msg: str(err), status_code: 0}
-    return flask.jsonify(ret), 403
+    return flask.jsonify(error=str(err)), 403
 
 
 @blueprint.errorhandler(AliasNoRecordFound)
 def handle_no_alias_record_error(err):
-    ret = {msg: str(err), status_code: 0}
-    return flask.jsonify(ret), 404
+    return flask.jsonify(error=str(err)), 404
 
 
 @blueprint.errorhandler(IndexNoRecordFound)
 def handle_no_index_record_error(err):
-    ret = {msg: str(err), status_code: 0}
-    return flask.jsonify(ret), 404
+    return flask.jsonify(error=str(err)), 404
 
 
 @blueprint.record
