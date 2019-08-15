@@ -63,8 +63,8 @@ def get_index():
     except ValueError as err:
         raise UserError("limit must be an integer")
 
-    if limit <= 0 or limit > 1024:
-        raise UserError("limit must be between 1 and 1024")
+    if limit < 0 or limit > 1024:
+        raise UserError("limit must be between 0 and 1024")
 
     size = flask.request.args.get("size")
     try:
@@ -107,9 +107,6 @@ def get_index():
             urls_metadata = json.loads(urls_metadata)
         except ValueError:
             raise UserError("urls_metadata must be a valid json string")
-
-    if limit < 0 or limit > 1024:
-        raise UserError("limit must be between 0 and 1024")
 
     negate_params = flask.request.args.get("negate_params")
     if negate_params:
