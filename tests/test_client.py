@@ -273,6 +273,26 @@ def test_index_list_with_params_negate(client, user):
     assert rec_5["did"] in ids
 
 
+def test_index_list_limit_error(client, user):
+    data = get_doc()
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+
+    # test 400 when limit > 1024
+    res = client.get("/index/?limit=1025")
+    assert res.status_code == 400
+
+
+def test_index_list_size_error(client, user):
+    data = get_doc()
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+
+    # test 400 when size < 0
+    res = client.get("/index/?size=-1")
+    assert res.status_code == 400
+
+
 def test_negate_filter_file_name(client, user):
     # post two records of different file name
     data1 = get_doc()
