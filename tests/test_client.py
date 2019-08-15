@@ -273,6 +273,28 @@ def test_index_list_with_params_negate(client, user):
     assert rec_5["did"] in ids
 
 
+def test_index_list_invalid_param(client):
+    # test 400 when limit > 1024
+    res = client.get("/index/?limit=1025")
+    assert res.status_code == 400
+
+    # test 400 when limit < 0
+    res = client.get("/index/?limit=-1")
+    assert res.status_code == 400
+
+    # test 400 when limit not int
+    res = client.get("/index/?limit=string")
+    assert res.status_code == 400
+
+    # test 400 when size < 0
+    res = client.get("/index/?size=-1")
+    assert res.status_code == 400
+
+    # test 400 when size not int
+    res = client.get("/index/?size=string")
+    assert res.status_code == 400
+
+
 def test_negate_filter_file_name(client, user):
     # post two records of different file name
     data1 = get_doc()
