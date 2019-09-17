@@ -64,13 +64,12 @@ def main():
             q,
             IndexRecord.did,
             int(args.chunk_size),
-            start=getattr(args, "start_did")
+            start=getattr(args, "start_did"),
         )
         for record in wq:
             if not record.acl:
                 logger.info(
-                    "record {} has no acl, setting authz to empty"
-                    .format(record.did)
+                    "record {} has no acl, setting authz to empty".format(record.did)
                 )
                 record.authz = []
                 continue
@@ -93,7 +92,7 @@ def main():
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--path", default="/var/www/indexd/", help="path to find local_settings.py",
+        "--path", default="/var/www/indexd/", help="path to find local_settings.py"
     )
     parser.add_argument(
         "--sheepdog-db", dest="sheepdog", help="URI for the sheepdog database"
@@ -102,11 +101,15 @@ def parse_args():
         "--arborist-url", dest="arborist", help="URL for the arborist service"
     )
     parser.add_argument(
-        "--chunk-size", dest="chunk_size", type=int, default=1000,
+        "--chunk-size",
+        dest="chunk_size",
+        type=int,
+        default=1000,
         help="number of records to process at once",
     )
     parser.add_argument(
-        "--start-did", dest="start_did",
+        "--start-did",
+        dest="start_did",
         help="did to start at (records processed in lexographical order)",
     )
     return parser.parse_args()
@@ -135,17 +138,21 @@ class ACLConverter(object):
                 raise EnvironmentError(
                     "couldn't connect to sheepdog db using the provided URI"
                 )
-            result = connection.execute("SELECT _props->>'name' as name from node_program;")
+            result = connection.execute(
+                "SELECT _props->>'name' as name from node_program;"
+            )
             for row in result:
                 self.programs.add(row["name"])
-            result = connection.execute("""
+            result = connection.execute(
+                """
                 SELECT
                     project._props->>'name' AS name,
                     program._props->>'name' AS program
                 FROM node_project AS project
                 JOIN edge_projectmemberofprogram AS edge ON edge.src_id = project.node_id
                 JOIN node_program AS program ON edge.dst_id = program.node_id;
-            """)
+            """
+            )
             for row in result:
                 self.projects[row["name"]] = row["program"]
             connection.close()
@@ -180,9 +187,8 @@ class ACLConverter(object):
                 # if there's a * it should just be open. return early
                 path = "/open"
                 break
-            elif (
-                not self.use_sheepdog_db
-                or (projects_found == 0 and self.is_program(acl_item))
+            elif not self.use_sheepdog_db or (
+                projects_found == 0 and self.is_program(acl_item)
             ):
                 # if we don't have sheepdog we have to assume everything is a "program".
                 # also, we only want to set the path to a program if we haven't found a
@@ -203,8 +209,9 @@ class ACLConverter(object):
 
         if not path:
             logger.error(
-                "couldn't get `authz` for record {}; setting as empty"
-                .format(record.did)
+                "couldn't get `authz` for record {}; setting as empty".format(
+                    record.did
+                )
             )
             return None
 
@@ -224,14 +231,17 @@ class ACLConverter(object):
                 response = requests.post(url, timeout=5, json=resource)
             except requests.exceptions.Timeout:
                 logger.error(
-                    "couldn't hit arborist to look up resource (timed out): {}".format(url)
+                    "couldn't hit arborist to look up resource (timed out): {}".format(
+                        url
+                    )
                 )
                 raise EnvironmentError("couldn't reach arborist; request timed out")
             tag = None
             try:
                 logger.debug(
-                    "got {} from arborist: {}"
-                    .format(response.status_code, response.json())
+                    "got {} from arborist: {}".format(
+                        response.status_code, response.json()
+                    )
                 )
                 if response.status_code == 409:
                     # resource is already there, so we'll just take the tag
@@ -259,18 +269,15 @@ class ACLConverter(object):
 
 
 def column_windows(session, column, windowsize, start=None):
-
     def int_for_range(start_id, end_id):
         if end_id:
             return and_(column >= start_id, column < end_id)
         else:
             return column >= start_id
 
-    q = (
-        session
-        .query(column, func.row_number().over(order_by=column).label('rownum'))
-        .from_self(column)
-    )
+    q = session.query(
+        column, func.row_number().over(order_by=column).label("rownum")
+    ).from_self(column)
     if start:
         q = q.filter(column >= start)
     if windowsize > 1:
