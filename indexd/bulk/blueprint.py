@@ -2,7 +2,6 @@
 import json
 
 import flask
-from flask import Response
 
 from indexd.errors import UserError
 from indexd.index.drivers.alchemy import IndexRecord, IndexRecordUrl
@@ -44,7 +43,7 @@ def bulk_get_documents():
         query = query.filter(IndexRecord.did.in_(ids))
 
     docs = [q.to_document_dict() for q in query]
-    return Response(json.dumps(docs), 200, mimetype="application/json")
+    return flask.Response(json.dumps(docs), 200, mimetype="application/json")
 
 
 @blueprint.record

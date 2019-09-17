@@ -77,12 +77,17 @@ def test_migrate_acls(client, user):
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
     }
 
+    # create the record
     res = client.post("/index/", json=data, headers=user)
     rec = res.json
     assert res.status_code == 200
+
+    # migrate
     with settings["config"]["INDEX"]["driver"].session as session:
         migrate_7(session)
-    res = client.get(rec["did"])
+
+    # check that the record has been migrated
+    res = client.get("/" + rec["did"])
     rec = res.json
     assert res.status_code == 200
     assert rec["acl"] == ["a", "b"]
