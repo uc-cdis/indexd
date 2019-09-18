@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     package_data={"index": ["schemas/*"]},
     install_requires=[
-        "flask==1.0.0",
+        "flask==1.1.1",
         "jsonschema==2.5.1",
         "sqlalchemy==1.3.3",
         "sqlalchemy-utils>=0.33.11",
