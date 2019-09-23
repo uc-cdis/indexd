@@ -1,4 +1,4 @@
-FROM quay.io/ncigdc/apache-base:2.4.18-1.0.0 as build
+FROM quay.io/ncigdc/apache-base:1.0.3-py3.5 as build
 
 
 COPY . /indexd
@@ -6,18 +6,18 @@ WORKDIR /indexd
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-    python2.7 \
-    python-dev \
-    python-pip \
-    python-setuptools \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-setuptools \
     libpq-dev \
     libpq5 \
     gcc \
- && pip install wheel \
- && pip install -r build/requirements.txt \
- && python setup.py install 
+ && pip3 install wheel \
+ && pip3 install -r build/requirements.txt \
+ && python3 setup.py install
 
-FROM quay.io/ncigdc/apache-base:2.4.18-1.0.0
+FROM quay.io/ncigdc/apache-base:1.0.3-py3.5
 
 LABEL org.label-schema.name="indexd" \
       org.label-schema.description="indexd container image" \
@@ -33,7 +33,7 @@ RUN mkdir -p /var/www/indexd/ \
 
 COPY wsgi.py /var/www/indexd/ 
 COPY bin/indexd /var/www/indexd/ 
-COPY --from=build /usr/local/lib/python2.7/dist-packages /usr/local/lib/python2.7/dist-packages
+COPY --from=build /usr/local/lib/python3.5/dist-packages /usr/local/lib/python3.5/dist-packages
 COPY . /indexd
 
 WORKDIR /var/www/indexd
