@@ -43,7 +43,7 @@ def bulk_get_documents():
         query = query.filter(IndexRecord.did.in_(ids))
 
     docs = [q.to_document_dict() for q in query]
-    return json.dumps(docs), 200
+    return flask.Response(json.dumps(docs), 200, mimetype="application/json")
 
 
 @blueprint.record
