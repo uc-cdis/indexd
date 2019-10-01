@@ -58,6 +58,10 @@ docs/_build/
 
 #venv
 .venv*/
+venv/
+
+#ide
+.vscode
 
 #.swp
 *.swp

@@ -2,7 +2,8 @@ language: python
 
 python:
   - "2.7"
-  - "3.4"
+  - "3.5"
+  - "3.6"
 
 addons:
   postgresql: '9.4'
@@ -19,7 +20,6 @@ install:
     - "pip install -r requirements.txt"
     - "python setup.py install --force"
     - "pip install -r test-requirements.txt"
-
 
 script: "py.test -vv tests"
 

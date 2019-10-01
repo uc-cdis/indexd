@@ -20,7 +20,7 @@ from sqlalchemy import (
     or_,
     select,
 )
-from sqlalchemy.dialects.postgres import JSONB
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import joinedload, relationship, sessionmaker
