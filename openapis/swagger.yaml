@@ -388,6 +388,151 @@ paths:
           description: Record is deleted successfully
       security:
         - basic_auth: []
+  '/index/{GUID}/aliases':
+    get:
+      tags:
+        - index
+      summary: Get all aliases associated with this GUID
+      operationId: getIndexEntryAliases
+      produces:
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/OutputInfo'
+        '400':
+          description: Invalid status value
+      security: []
+    post:
+      tags:
+        - index
+      summary: Append new aliases to this GUID
+      description: Since data content is immutable, when you want to change the size or hash, a new index document with new uuid need to be created as its new version. That uuid is returned in the did field of the response. The old index document is not deleted.
+      operationId: addNewAliases
+      produces:
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: the uuid associated to the record needed to have new version
+          required: true
+          type: string
+        - in: body
+          name: body
+          description: index record metadata for the new version
+          required: true
+          schema:
+            $ref: '#/definitions/VersionInputInfo'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/OutputRef'
+        '400':
+          description: Invalid status value
+      security:
+        - basic_auth: []
+    put:
+      tags:
+        - index
+      summary: Replace all aliases for this GUID
+      description: ''
+      operationId: updateAliases
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+        - name: rev
+          in: query
+          description: data revision - simple consistency mechanism
+          required: true
+          type: string
+        - in: body
+          name: body
+          description: index record that needs to be updated
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateInputInfo'
+      responses:
+        '200':
+          description: success
+          schema:
+            $ref: '#/definitions/OutputRef'
+        '400':
+          description: Invalid input
+      security:
+        - basic_auth: []
+    delete:
+      tags:
+        - index
+      summary: Delete all aliases for this GUID
+      description: ''
+      operationId: deleteAliases
+      produces:
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+        - name: rev
+          in: query
+          description: data revision - simple consistency mechanism
+          required: true
+          type: string
+      responses:
+        '400':
+          description: Invalid ID supplied
+        '200':
+          description: Record is deleted successfully
+      security:
+        - basic_auth: []      
+  '/index/{GUID}/aliases/{alias}':
+    delete:
+      tags:
+        - index
+      summary: Delete one alias for this GUID
+      description: ''
+      operationId: deleteAlias
+      produces:
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+        - name: alias
+          in: path
+          description: entry id
+          required: true
+          type: string
+        - name: rev
+          in: query
+          description: data revision - simple consistency mechanism
+          required: true
+          type: string
+      responses:
+        '400':
+          description: Invalid ID supplied
+        '200':
+          description: Record is deleted successfully
+      security:
+        - basic_auth: []
   '/index/{GUID}/latest':
     get:
       tags:
