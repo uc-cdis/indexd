@@ -399,51 +399,59 @@ paths:
       parameters:
         - name: GUID
           in: path
-          description: entry id
+          description: The GUID to query.
           required: true
           type: string
       responses:
         '200':
-          description: successful operation
+          description: Successful operation. Returns 0 or more aliases associated with this GUID.
           schema:
-            $ref: '#/definitions/OutputInfo'
-        '400':
-          description: Invalid status value
+            $ref: '#/definitions/AliasInfo'
+        '404':
+          description: GUID not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
       security: []
     post:
       tags:
         - index
       summary: Append new aliases to this GUID
-      description: Since data content is immutable, when you want to change the size or hash, a new index document with new uuid need to be created as its new version. That uuid is returned in the did field of the response. The old index document is not deleted.
+      description: Adds new aliases to the aliases already associated with this GUID. The new aliases must be globally unique.
       operationId: addNewAliases
       produces:
         - application/json
       parameters:
         - name: GUID
           in: path
-          description: the uuid associated to the record needed to have new version
+          description: The GUID to associate the new aliases with. 
           required: true
           type: string
         - in: body
           name: body
-          description: index record metadata for the new version
+          description: The new aliases to associate with this GUID. The new aliases must be globally unique.
           required: true
           schema:
-            $ref: '#/definitions/VersionInputInfo'
+            $ref: '#/definitions/AliasInfo'
       responses:
         '200':
           description: successful operation
           schema:
             $ref: '#/definitions/OutputRef'
         '400':
-          description: Invalid status value
+          description: 'Invalid request: One or more aliases are non-unique: either one or more of the aliases are already associated with this or another GUID or aliases in request body are non-unique.'
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: GUID not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
       security:
         - basic_auth: []
     put:
       tags:
         - index
       summary: Replace all aliases for this GUID
-      description: ''
+      description: Replaces all aliases associated with this GUID with new aliases. The new aliases can be the same as the aliases already associated with this GUID, but must otherwise be globally unique.
       operationId: updateAliases
       consumes:
         - application/json
@@ -452,33 +460,34 @@ paths:
       parameters:
         - name: GUID
           in: path
-          description: entry id
-          required: true
-          type: string
-        - name: rev
-          in: query
-          description: data revision - simple consistency mechanism
+          description: The GUID to associate the new aliases with.
           required: true
           type: string
         - in: body
           name: body
-          description: index record that needs to be updated
+          description: The new aliases to associate with this GUID. The new aliases can be the same as the aliases already associated with this GUID, but must otherwise be globally unique.
           required: true
           schema:
-            $ref: '#/definitions/UpdateInputInfo'
+            $ref: '#/definitions/AliasInfo'
       responses:
         '200':
           description: success
           schema:
-            $ref: '#/definitions/OutputRef'
+            $ref: '#/definitions/AliasInfo'
         '400':
-          description: Invalid input
+          description: 'Invalid request: One or more aliases are non-unique: either one or more of the aliases are already associated with another GUID or aliases in request body are non-unique.'
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: GUID not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
       security:
         - basic_auth: []
     delete:
       tags:
         - index
-      summary: Delete all aliases for this GUID
+      summary: Delete alias(es) for this GUID
       description: ''
       operationId: deleteAliases
       produces:
@@ -486,53 +495,28 @@ paths:
       parameters:
         - name: GUID
           in: path
-          description: entry id
+          description: The GUID to delete these aliases from. 
           required: true
           type: string
-        - name: rev
-          in: query
-          description: data revision - simple consistency mechanism
+        - in: body
+          name: body
+          description: The aliases to delete from this GUID. The aliases must all be associated with this GUID.
           required: true
-          type: string
+          schema:
+            $ref: '#/definitions/AliasInfo'
       responses:
-        '400':
-          description: Invalid ID supplied
         '200':
-          description: Record is deleted successfully
+          description: Alias(es) were deleted successfully.
+        '400':
+          description: 'Invalid request: Non-unique aliases: One or more aliases in the request are non-unique.'
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: 'Not found: GUID not found, or one or more aliases not found associated with this GUID. No aliases were deleted.'
+          schema:
+            $ref: '#/definitions/ErrorResponse'
       security:
         - basic_auth: []      
-  '/index/{GUID}/aliases/{alias}':
-    delete:
-      tags:
-        - index
-      summary: Delete one alias for this GUID
-      description: ''
-      operationId: deleteAlias
-      produces:
-        - application/json
-      parameters:
-        - name: GUID
-          in: path
-          description: entry id
-          required: true
-          type: string
-        - name: alias
-          in: path
-          description: entry id
-          required: true
-          type: string
-        - name: rev
-          in: query
-          description: data revision - simple consistency mechanism
-          required: true
-          type: string
-      responses:
-        '400':
-          description: Invalid ID supplied
-        '200':
-          description: Record is deleted successfully
-      security:
-        - basic_auth: []
   '/index/{GUID}/latest':
     get:
       tags:
@@ -586,6 +570,7 @@ paths:
       security: []
   '/alias/':
     get:
+      deprecated: true
       tags:
         - alias
       summary: list aliases with pagination
@@ -642,6 +627,7 @@ paths:
                 $ref: '#/definitions/HashInfo'
   '/alias/{ALIASSTRING}':
     put:
+      deprecated: true
       tags:
         - alias
       summary: Create or update an alias
@@ -679,6 +665,7 @@ paths:
       security:
         - basic_auth: []
     get:
+      deprecated: true
       tags:
         - alias
       summary: Fetch an alias
@@ -703,6 +690,7 @@ paths:
           description: Invalid input
       security: []
     delete:
+      deprecated: true
       tags:
         - alias
       summary: Delete an alias
@@ -1009,6 +997,17 @@ securityDefinitions:
   basic_auth:
     type: basic
 definitions:
+  AliasInfo:
+      type: object
+      properties:
+        aliases:
+          type: array
+          items: 
+            type: object
+            properties:
+              value:
+                type: string
+                description: The identifier that acts as an alias for this GUID.
   HashInfo:
     type: object
     properties:
