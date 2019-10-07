@@ -438,7 +438,7 @@ paths:
           schema:
             $ref: '#/definitions/OutputRef'
         '400':
-          description: 'Invalid request: One or more aliases are non-unique: either one or more of the aliases are already associated with this or another GUID or aliases in request body are non-unique.'
+          description: 'Invalid request: One or more aliases are non-unique: one or more of the aliases are already associated with this or another GUID.'
           schema:
             $ref: '#/definitions/ErrorResponse'
         '404':
@@ -475,7 +475,7 @@ paths:
           schema:
             $ref: '#/definitions/AliasInfo'
         '400':
-          description: 'Invalid request: One or more aliases are non-unique: either one or more of the aliases are already associated with another GUID or aliases in request body are non-unique.'
+          description: 'Invalid request: One or more aliases are non-unique: one or more of the aliases are already associated with another GUID.'
           schema:
             $ref: '#/definitions/ErrorResponse'
         '404':
@@ -507,10 +507,6 @@ paths:
       responses:
         '200':
           description: Alias(es) were deleted successfully.
-        '400':
-          description: 'Invalid request: Non-unique aliases: One or more aliases in the request are non-unique. No aliases were deleted.'
-          schema:
-            $ref: '#/definitions/ErrorResponse'
         '404':
           description: 'Not found: GUID not found, or one or more aliases not found associated with this GUID. No aliases were deleted.'
           schema:
