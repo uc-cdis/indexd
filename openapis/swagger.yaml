@@ -500,7 +500,7 @@ paths:
           type: string
         - in: body
           name: body
-          description: The aliases to delete from this GUID. The aliases must all be associated with this GUID.
+          description: The aliases to delete from this GUID. The aliases must all be associated with this GUID. 
           required: true
           schema:
             $ref: '#/definitions/AliasInfo'
@@ -508,7 +508,7 @@ paths:
         '200':
           description: Alias(es) were deleted successfully.
         '400':
-          description: 'Invalid request: Non-unique aliases: One or more aliases in the request are non-unique.'
+          description: 'Invalid request: Non-unique aliases: One or more aliases in the request are non-unique. No aliases were deleted.'
           schema:
             $ref: '#/definitions/ErrorResponse'
         '404':
