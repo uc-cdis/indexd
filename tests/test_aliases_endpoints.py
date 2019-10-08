@@ -1,11 +1,49 @@
 import pytest
+import random
+import string
+import json
+from tests.test_client import get_doc
+
+def create_random_alias():
+    length = 30 
+    chars = string.ascii_letters + string.punctuation + string.digits
+    return "".join(random.choice(chars) for _ in range(length)) 
+
+@pytest.fixture(scope="function")
+def guid_aliases(client, user):
+    """
+    Appends between MIN_ALIASES and MAX_ALIASES aliases to a randomly created 
+    record in indexd, and returns the guid of the new record and the values of 
+    the new aliases.
+    """
+    MIN_ALIASES = 1
+    MAX_ALIASES = 20
+    num_aliases = random.randint(MIN_ALIASES, MAX_ALIASES+1)
+
+    # create a new document in indexd db
+    document = get_doc()
+    res = client.post("/index/", json=document, headers=user)
+    assert res.status_code == 200
+    # The GUID is the "did" (Document IDentifier) returned from a successful 
+    # POST request.
+    guid = res.get_json()["did"]
+
+    # append aliases to this record
+    aliases = [create_random_alias() for _ in range(num_aliases)]
+    alias_payload = json.dumps([{"value": alias} for alias in aliases])
+
+    res = client.post("/index/{}/aliases".format(guid), json=alias_payload, headers=user)
+    assert res.status_code == 200
+
+    return guid, aliases
 
 # GET /index/{GUID}/aliases
 # -------------------------
-def test_GET_aliases_invalid_GUID(client):
+def test_GET_aliases_invalid_GUID(client, guid_aliases):
     """
     expect to return 404 for nonexistant GUID
     """
+    print(guid_aliases)
     pass
 
 def test_GET_aliases_valid_GUID(client):
