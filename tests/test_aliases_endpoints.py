@@ -4,23 +4,26 @@ import string
 import json
 from tests.test_client import get_doc
 
+def get_endpoint(guid):
+    return "/index/{}/aliases".format(guid)
+
 def create_random_alias():
-    length = 30 
+    alias_length = 30 
     chars = string.ascii_letters + string.punctuation + string.digits
-    return "".join(random.choice(chars) for _ in range(length)) 
+    return "".join(random.choice(chars) for _ in range(alias_length)) 
+
+def create_random_aliases(num_aliases):
+    return [create_random_alias() for _ in range(num_aliases)]
+
+def to_payload(aliases):
+    return [{"value": alias} for alias in aliases]
+
 
 @pytest.fixture(scope="function")
-def guid_aliases(client, user):
+def guid(client, user):
     """
-    Appends between MIN_ALIASES and MAX_ALIASES aliases to a randomly created 
-    record in indexd, and returns the guid of the new record and the values of 
-    the new aliases.
+    Creates a random record in indexd and returns that record's GUID.
     """
-    MIN_ALIASES = 1
-    MAX_ALIASES = 20
-    num_aliases = random.randint(MIN_ALIASES, MAX_ALIASES+1)
-
-    # create a new document in indexd db
     document = get_doc()
     res = client.post("/index/", json=document, headers=user)
     assert res.status_code == 200
@@ -28,29 +31,45 @@ def guid_aliases(client, user):
     # POST request.
     guid = res.get_json()["did"]
 
-    # append aliases to this record
-    aliases = [create_random_alias() for _ in range(num_aliases)]
-    alias_payload = json.dumps([{"value": alias} for alias in aliases])
+    return guid
 
-    res = client.post("/index/{}/aliases".format(guid), json=alias_payload, headers=user)
+@pytest.fixture(scope="function")
+def aliases(client, user, guid):
+    """
+    Associates between MIN_ALIASES and MAX_ALIASES random aliases with a GUID in indexd.
+    Returns the new aliases.
+    """
+    MIN_ALIASES = 1
+    MAX_ALIASES = 20
+    num_aliases = random.randint(MIN_ALIASES, MAX_ALIASES+1)
+
+    aliases = create_random_aliases(num_aliases)
+    alias_payload = to_payload(aliases)
+
+    url = get_endpoint(guid)
+    res = client.put(url, json=alias_payload, headers=user)
     assert res.status_code == 200
 
-    return guid, aliases
+    return aliases
 
 # GET /index/{GUID}/aliases
 # -------------------------
-def test_GET_aliases_invalid_GUID(client, guid_aliases):
+def test_GET_aliases_invalid_GUID(client, guid, aliases):
     """
     expect to return 404 for nonexistant GUID
     """
-    print(guid_aliases)
-    pass
+    fake_guid = guid + "but_fake"
+    alias_endpoint = get_endpoint(fake_guid)
+    res = client.get(alias_endpoint)
+    assert res.status_code == 404
 
 def test_GET_aliases_valid_GUID(client):
     """
     expect to return all aliases for a valid GUID
     """
-    pass
+    alias_endpoint = get_endpoint(guid)
+    res = client.get(alias_endpoint)
+    assert res.status_code == 200
 
 # POST /index/{GUID}/aliases
 # -------------------------
@@ -95,11 +114,13 @@ def test_POST_aliases_valid_GUID_empty_aliases(client, user):
 
 # PUT /index/{GUID}/aliases
 # -------------------------
-def test_PUT_aliases_valid_GUID_valid_aliases(client, user):
+def test_PUT_aliases_valid_GUID_valid_aliases(client, user, guid, aliases):
     """
     normal operation: expect to replace aliases and return list of new aliases 
     for this GUID
     """
+    alias_endpoint = get_endpoint(guid)
+    res = client.put(alias_endpoint)
     pass
 def test_PUT_aliases_unauthenticated(client, user):
     """
