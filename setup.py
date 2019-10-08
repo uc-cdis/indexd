@@ -8,7 +8,7 @@ setup(
     install_requires=[
         "flask==1.1.1",
         "jsonschema==2.5.1",
-        "sqlalchemy==1.3.3",
+        "sqlalchemy==1.3.9",
         "sqlalchemy-utils>=0.33.11",
         "psycopg2>=2.7",
         "cdislogging>=0.0.2",

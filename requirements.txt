@@ -1,6 +1,6 @@
 flask==1.1.1
 jsonschema==2.5.1
-sqlalchemy==1.3.3
+sqlalchemy==1.3.9
 sqlalchemy-utils>=0.33.11
 psycopg2>=2.7
 git+https://github.com/uc-cdis/cdislogging.git@0.0.2#egg=cdislogging
