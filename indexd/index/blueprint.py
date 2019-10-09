@@ -374,6 +374,21 @@ def add_index_record_version(record):
 
     return flask.jsonify(ret), 200
 
+@blueprint.route("/index/<path:record>/aliases", methods=["GET"])
+def get_aliases(record):
+    raise NoRecordFound()
+
+@blueprint.route("/index/<path:record>/aliases", methods=["POST"])
+def append_aliases(record):
+    raise NoRecordFound()
+
+@blueprint.route("/index/<path:record>/aliases", methods=["PUT"])
+def replace_aliases(record):
+    raise NoRecordFound()
+
+@blueprint.route("/index/<path:record>/aliases", methods=["DELETE"])
+def delete_aliases(record):
+    raise NoRecordFound()
 
 @blueprint.route("/index/<path:record>/versions", methods=["GET"])
 def get_all_index_record_versions(record):
