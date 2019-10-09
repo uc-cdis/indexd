@@ -188,6 +188,9 @@ def test_PUT_aliases_nonunique_aliases(client, user, guid, aliases):
     other_guid = create_random_record(client, user)
     res = client.put(get_endpoint(other_guid), json=to_payload(other_guid_aliases), headers=user)
     assert res.status_code == 200
+    print("=====================")
+    print(other_guid_aliases)
+    print("=====================")
 
     # expect that an attempt to add the original set of random aliases
     # will fail, as some of the aliases are already assigned to a different GUID.
@@ -200,7 +203,6 @@ def test_PUT_aliases_nonunique_aliases(client, user, guid, aliases):
     aliases_in_db = payload_to_list(res.get_json())
     expected_aliases = aliases
     assert set(aliases_in_db) == set(expected_aliases)
-
 
 def test_PUT_aliases_previously_used_valid_alias(client, user, guid, aliases):
     """
@@ -268,7 +270,6 @@ def test_PUT_aliases_duplicate_aliases_in_request(client, user, guid, aliases):
     expected_aliases = new_aliases
     assert set(aliases_in_db) == set(expected_aliases)
 
-
 def test_PUT_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
     """
     expect succeed and remove all aliases if passed an empty list of aliases
@@ -308,8 +309,7 @@ def test_PUT_aliases_alias_has_name_of_endpoint_on_root(client, user, guid, alia
         res = client.put(get_endpoint(guid), json=bad_alias_payload, headers=user)
         assert res.status_code == 400
         
-
-def test_PUT_aliases_valid_GUID_alias_has_name_of_existing_GUID(client, user, guid, aliases):
+def test_PUT_aliases_alias_has_name_of_existing_GUID(client, user, guid, aliases):
     """
     expect 400 if one or more aliases has same name as an existing GUID. This is
     because an alias with the same name as a GUID would cause a search on the

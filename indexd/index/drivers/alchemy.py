@@ -764,7 +764,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Gets the aliases for a did
         """
         with self.session as session:
-            # check if this did / GUID exists
+            # validation: confirm this GUID exists
             index_record = session.query(IndexRecord).filter(IndexRecord.did == did).first()
             if index_record is None:
                 raise NoRecordFound(did)
@@ -777,6 +777,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Replace all aliases for one DID / GUID with new aliases.
         """
         with self.session as session:
+            # validation: confirm this GUID exists
+            index_record = session.query(IndexRecord).filter(IndexRecord.did == did).first()
+            if index_record is None:
+                raise NoRecordFound(did)
+
+            # validation: confirm aliases are unique in db
+            # TODO implement
+
+            # validation: confirm aliases are unique amongst themselves
+            # TODO implement
+
             # delete this GUID's aliases
             session.query(IndexRecordAlias).\
                 filter(IndexRecordAlias.did == did).\
