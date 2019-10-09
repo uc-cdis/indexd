@@ -376,7 +376,11 @@ def add_index_record_version(record):
 
 @blueprint.route("/index/<path:record>/aliases", methods=["GET"])
 def get_aliases(record):
-    raise NoRecordFound()
+    """
+    Get all aliases associated with this DID / GUID
+    """
+    ret = blueprint.index_driver.get_aliases_for_did(record)
+    return flask.jsonify(ret), 200
 
 @blueprint.route("/index/<path:record>/aliases", methods=["POST"])
 def append_aliases(record):
@@ -384,7 +388,12 @@ def append_aliases(record):
 
 @blueprint.route("/index/<path:record>/aliases", methods=["PUT"])
 def replace_aliases(record):
-    raise NoRecordFound()
+    """
+    Replace all aliases associated with this DID / GUID
+    """
+    aliases = flask.request.get_json()
+    ret = blueprint.index_driver.replace_aliases_for_did(aliases, record)
+    return flask.jsonify(ret), 200
 
 @blueprint.route("/index/<path:record>/aliases", methods=["DELETE"])
 def delete_aliases(record):

@@ -765,7 +765,22 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             query = session.query(IndexRecordAlias).filter(IndexRecordAlias.did == did)
-            return [i.name for i in query]
+            return [{"value": i.name} for i in query]
+
+    def replace_aliases_for_did(self, aliases, did):
+        """
+        Replace all aliases for one DID / GUID with new aliases.
+        """
+        with self.session as session:
+            # delete this GUID's aliases
+            session.query(IndexRecordAlias).\
+                filter(IndexRecordAlias.did == did).\
+                delete(synchronize_session='evaluate')
+            # add new aliases
+            index_record_aliases = [IndexRecordAlias(did=did, name=alias["value"]) for alias in aliases]
+            session.add_all(index_record_aliases)
+
+        return self.get_aliases_for_did(did)
 
     def get(self, did):
         """
@@ -791,7 +806,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         composite_fields = ["urls", "acl", "authz", "metadata", "urls_metadata"]
 
         with self.session as session:
-            query = session.query(IndexRecord).filter(IndexRecord.did == did)
+            query = session.query(IndexRecord).filter(IndexRecord.did == did) # FIXME -- add .for_update() to defend against race condition (?)
 
             try:
                 record = query.one()
