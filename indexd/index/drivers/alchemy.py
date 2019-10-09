@@ -764,6 +764,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Gets the aliases for a did
         """
         with self.session as session:
+            # check if this did / GUID exists
+            index_record = session.query(IndexRecord).filter(IndexRecord.did == did).first()
+            if index_record is None:
+                raise NoRecordFound(did)
+
             query = session.query(IndexRecordAlias).filter(IndexRecordAlias.did == did)
             return [{"value": i.name} for i in query]
 

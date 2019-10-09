@@ -379,8 +379,11 @@ def get_aliases(record):
     """
     Get all aliases associated with this DID / GUID
     """
-    ret = blueprint.index_driver.get_aliases_for_did(record)
-    return flask.jsonify(ret), 200
+    try:
+        ret = blueprint.index_driver.get_aliases_for_did(record)
+        return flask.jsonify(ret), 200
+    except NoRecordFound as err:
+        raise err
 
 @blueprint.route("/index/<path:record>/aliases", methods=["POST"])
 def append_aliases(record):
