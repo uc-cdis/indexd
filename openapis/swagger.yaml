@@ -393,7 +393,7 @@ paths:
       tags:
         - index
       summary: Get all aliases associated with this GUID
-      operationId: getIndexEntryAliases
+      operationId: getAliases
       produces:
         - application/json
       parameters:
@@ -487,9 +487,9 @@ paths:
     delete:
       tags:
         - index
-      summary: Delete alias(es) for this GUID
+      summary: Delete all aliases for this GUID
       description: ''
-      operationId: deleteAliases
+      operationId: deleteAllAliases
       produces:
         - application/json
       parameters:
@@ -498,21 +498,45 @@ paths:
           description: The GUID to delete these aliases from. 
           required: true
           type: string
-        - in: body
-          name: body
-          description: The aliases to delete from this GUID. The aliases must all be associated with this GUID. 
-          required: true
-          schema:
-            $ref: '#/definitions/AliasInfo'
       responses:
         '200':
-          description: Alias(es) were deleted successfully.
+          description: Aliases were deleted successfully.
         '404':
-          description: 'Not found: GUID not found, or one or more aliases not found associated with this GUID. No aliases were deleted.'
+          description: 'GUID not found. No aliases were deleted.'
           schema:
             $ref: '#/definitions/ErrorResponse'
       security:
         - basic_auth: []      
+  '/index/{GUID}/aliases/{ALIAS}':
+    delete:
+      tags:
+        - index
+      summary: Delete one alias for this GUID
+      description: ''
+      operationId: deleteOneAlias
+      produces:
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: The GUID to delete this alias from. 
+          required: true
+          type: string
+        - name: ALIAS
+          in: path
+          description: The alias to delete from this GUID. The alias should be URL-encoded.
+          required: true
+          type: string
+      responses:
+        '200':
+          description: Alias was deleted successfully.
+        '404':
+          description: 'GUID not found. No aliases were deleted.'
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      security:
+        - basic_auth: []      
+
   '/index/{GUID}/latest':
     get:
       tags:
