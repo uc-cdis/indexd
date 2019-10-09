@@ -89,6 +89,9 @@ def test_GET_aliases_valid_GUID(client, guid, aliases):
     alias_endpoint = get_endpoint(guid)
     res = client.get(alias_endpoint)
     assert res.status_code == 200
+    aliases_in_db = payload_to_list(res.get_json())
+    expected_aliases = aliases
+    assert set(aliases_in_db) == set(expected_aliases)
 
 # POST /index/{GUID}/aliases
 # -------------------------
