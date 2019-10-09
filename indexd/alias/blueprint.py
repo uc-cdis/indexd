@@ -13,6 +13,18 @@ from .errors import NoRecordFound
 from .errors import MultipleRecordsFound
 from .errors import RevisionMismatch
 
+# NOTE @mpingram.uchicago.edu 2019-10-07: 
+# ----------------------------------------------------------
+# The code in this folder (`indexd/alias/`) corresponds to the deprecated `/alias/`
+# endpoint, which is UNRELATED to GUID aliases (the `/index/{GUID}/aliases` endpoint.) 
+# If you are looking for the code that corresponds to GUID aliases, see
+# `indexd/index/`.
+# 
+# The code in this folder implements a deprecated feature which allows 
+# indexd to store external indices, like a DOI, instead of a GUID/did. 
+# This is different from GUID aliases in that GUID aliases associate a 
+# external index, like a DOI, with a GUID. 
+# ----------------------------------------------------------
 
 blueprint = flask.Blueprint("alias", __name__)
 
