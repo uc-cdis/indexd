@@ -4,6 +4,8 @@ import string
 import json
 from tests.test_client import get_doc
 
+# Test fixtures and helper functions
+# =============================================
 def get_endpoint(guid):
     return "/index/{}/aliases".format(guid)
 
@@ -56,6 +58,7 @@ def aliases(client, user, guid):
     assert res.status_code == 200
 
     return aliases
+# =============================================
 
 # GET /index/{GUID}/aliases
 # -------------------------
@@ -263,37 +266,44 @@ def test_PUT_aliases_valid_GUID_empty_aliases(client, user):
     assert res.get_json() == to_payload(empty_aliases)
 
 # DELETE /index/{GUID}/aliases
-# -------------------------
-def test_DELETE_aliases_valid_GUID_valid_aliases(client, user):
+# ----------------------------
+def test_DELETE_all_aliases_valid_GUID(client, user):
     """
-    normal operation: expect to delete listed aliases if valid GUID and 
-    all aliases associated with this GUID
+    normal operation: expect to delete all aliases if valid GUID 
     """
     pass
-def test_DELETE_aliases_unauthenticated(client, user):
+def test_DELETE_all_aliases_unauthenticated(client, user):
     """
     expect request to fail with 403 if user is unauthenticated
     """
     pass
-def test_DELETE_aliases_invalid_GUID(client, user):
+def test_DELETE_all_aliases_invalid_GUID(client, user):
     """
     expect to return 404 and have no effect for nonexistant GUID
     """
     pass
-def test_DELETE_aliases_GUID_does_not_have_alias(client, user):
+
+# DELETE /index/{GUID}/aliases/{ALIAS}
+# ------------------------------------
+def test_DELETE_one_alias_valid_GUID(client, user):
     """
-    expect to return 404 and have no effect if one or more aliases not associated 
+    normal operation: expect to delete listed alias if valid GUID and 
+    alias associated with this GUID
+    """
+    pass
+def test_DELETE_one_alias_unauthenticated(client, user):
+    """
+    expect request to fail with 403 if user is unauthenticated
+    """
+    pass
+def test_DELETE_one_alias_invalid_GUID(client, user):
+    """
+    expect to return 404 and have no effect for nonexistant GUID
+    """
+    pass
+def test_DELETE_one_alias_GUID_does_not_have_alias(client, user):
+    """
+    expect to return 404 and have no effect if alias not associated 
     with this GUID
-    """
-    pass
-def test_DELETE_aliases_duplicate_aliases_in_request(client, user):
-    """
-    expect to delete listed aliases if valid GUID and all aliases associated with
-    this GUID, but one or more aliases duplicated in request
-    """
-    pass
-def test_DELETE_aliases_valid_GUID_empty_aliases(client, user):
-    """
-    expect to return 200 if passed an empty list of aliases
     """
     pass
