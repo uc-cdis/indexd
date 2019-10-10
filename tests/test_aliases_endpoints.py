@@ -124,7 +124,7 @@ def test_POST_aliases_GUID_already_has_alias(client, user, guid, aliases):
     pass
 def test_POST_aliases_duplicate_aliases_in_request(client, user, guid, aliases):
     """
-    expect to append to aliases if valid GUID and one or more aliases duplicated
+    expect to fail with 400 if valid GUID and one or more aliases duplicated
     in request, but not already associated with another GUID
     """
     pass
@@ -248,8 +248,8 @@ def test_PUT_aliases_GUID_already_has_alias(client, user, guid, aliases):
 
 def test_PUT_aliases_duplicate_aliases_in_request(client, user, guid, aliases):
     """
-    expect to replace aliases if valid GUID and one or more aliases duplicated 
-    in request, but not already associated with another GUID
+    expect to fail with 400 if valid GUID and one or more aliases duplicated 
+    in request
     """
     # generate random aliases
     new_aliases = create_random_aliases(NUM_RANDOM_ALIASES)
@@ -259,16 +259,9 @@ def test_PUT_aliases_duplicate_aliases_in_request(client, user, guid, aliases):
     subset_new_aliases = random.sample(new_aliases, random.randint(1, len(new_aliases)))
     duplicated_new_aliases = new_aliases + subset_new_aliases
 
-    # expect PUT the duplicated aliases to succeed
+    # expect PUT the duplicated aliases to fail
     res = client.put(get_endpoint(guid), json=to_payload(duplicated_new_aliases), headers=user)
-    assert res.status_code == 200
-
-    # expect the API to ignore the duplicated aliases
-    res = client.get(get_endpoint(guid))
-    assert res.status_code == 200
-    aliases_in_db = payload_to_list(res.get_json())
-    expected_aliases = new_aliases
-    assert set(aliases_in_db) == set(expected_aliases)
+    assert res.status_code == 400
 
 def test_PUT_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
     """
