@@ -21,6 +21,7 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
+from sqlalchemy.sql.expression import exists
 
 from indexd import auth
 from indexd.errors import UserError
@@ -764,8 +765,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Gets the aliases for a did
         """
         with self.session as session:
-            # validation: confirm this GUID exists
-            index_record = session.query(IndexRecord).filter(IndexRecord.did == did).first()
+            # validation: confirm index record with this GUID exists
+            index_record = session.query(IndexRecord).\
+                filter(IndexRecord.did == did).\
+                first()
             if index_record is None:
                 raise NoRecordFound(did)
 
@@ -777,13 +780,20 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Replace all aliases for one DID / GUID with new aliases.
         """
         with self.session as session:
-            # validation: confirm this GUID exists
-            index_record = session.query(IndexRecord).filter(IndexRecord.did == did).first()
+            # validation: confirm index record with this GUID exists
+            index_record = session.query(IndexRecord).\
+                filter(IndexRecord.did == did).\
+                first()
             if index_record is None:
                 raise NoRecordFound(did)
 
-            # validation: confirm aliases are unique in db
-            # TODO implement
+            # validation: confirm new aliases are not already associated with a
+            # different record
+            claimed_aliases = session.query(IndexRecordAlias).\
+                filter(IndexRecordAlias.did != did, IndexRecordAlias.name.in_(aliases)).\
+                all()
+            if len(claimed_aliases) > 0:
+                raise UserError("Aliases already claimed: {}".format(claimed_aliases))
 
             # validation: confirm aliases are unique amongst themselves
             # TODO implement
@@ -793,7 +803,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 filter(IndexRecordAlias.did == did).\
                 delete(synchronize_session='evaluate')
             # add new aliases
-            index_record_aliases = [IndexRecordAlias(did=did, name=alias["value"]) for alias in aliases]
+            index_record_aliases = [IndexRecordAlias(did=did, name=alias) for alias in aliases]
             session.add_all(index_record_aliases)
 
         return self.get_aliases_for_did(did)

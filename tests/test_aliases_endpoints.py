@@ -198,7 +198,7 @@ def test_PUT_aliases_nonunique_aliases(client, user, guid, aliases):
     assert res.status_code == 400
 
     # expect aliases that were already associated with GUID to be unchanged.
-    res = client.get(alias_endpoint)
+    res = client.get(get_endpoint(guid))
     assert res.status_code == 200
     aliases_in_db = payload_to_list(res.get_json())
     expected_aliases = aliases

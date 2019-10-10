@@ -394,7 +394,8 @@ def replace_aliases(record):
     """
     Replace all aliases associated with this DID / GUID
     """
-    aliases = flask.request.get_json()
+    aliases_json = flask.request.get_json()
+    aliases = [record["value"] for record in aliases_json]
     ret = blueprint.index_driver.replace_aliases_for_did(aliases, record)
     return flask.jsonify(ret), 200
 
