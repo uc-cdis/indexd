@@ -409,7 +409,7 @@ def replace_aliases(record):
     # of the API, the alias would not be usable using the `/{GUID | ALIAS}` 
     # endpoint to retrieve a record. (For example, if an alias was named "index"
     # and there is an endpoint on the root of the API named `/index`)
-    protected_endpoint_names = get_root_endpoint_names() # FIXME how to get these?
+    protected_endpoint_names = get_root_endpoint_names() 
     aliases_with_name_collision = set(aliases).intersection(protected_endpoint_names)
     if len(aliases_with_name_collision) > 0:
         raise UserError("Alias(es) share names with protected API endpoints: {}".format(aliases_with_name_collision))
