@@ -773,7 +773,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise NoRecordFound(did)
 
             query = session.query(IndexRecordAlias).filter(IndexRecordAlias.did == did)
-            return [{"value": i.name} for i in query]
+            return [i.name for i in query]
 
     def replace_aliases_for_did(self, aliases, did):
         """
@@ -787,6 +787,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if index_record is None:
                 raise NoRecordFound(did)
 
+            # validation: confirm aliases are not duplicated
+            if len(set(aliases)) != len(aliases):
+                raise UserError("Duplicate aliases in request")
+
             # validation: confirm new aliases are not already associated with a
             # different record
             claimed_aliases = session.query(IndexRecordAlias).\
@@ -795,8 +799,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if len(claimed_aliases) > 0:
                 raise UserError("Aliases already claimed: {}".format(claimed_aliases))
 
-            # validation: confirm aliases are unique amongst themselves
-            # TODO implement
+            # validation: confirm aliases do not have name of existing GUID
+            records_with_same_name_as_aliases = session.query(IndexRecord).\
+                filter(IndexRecord.did.in_(aliases)).\
+                all()
+            if len(records_with_same_name_as_aliases) > 0:
+                collided_names = [record.did for record in records_with_same_name_as_aliases]
+                raise UserError("Aliases have same name as existing GUID: {}".format(collided_names))
 
             # delete this GUID's aliases
             session.query(IndexRecordAlias).\

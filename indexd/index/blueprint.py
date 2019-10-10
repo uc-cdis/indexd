@@ -19,6 +19,8 @@ from .errors import MultipleRecordsFound
 from .errors import RevisionMismatch
 from .errors import UnhealthyCheck
 
+from indexd.utils import get_root_endpoint_names
+
 blueprint = flask.Blueprint("index", __name__)
 
 blueprint.config = dict()
@@ -380,9 +382,12 @@ def get_aliases(record):
     Get all aliases associated with this DID / GUID
     """
     try:
-        ret = blueprint.index_driver.get_aliases_for_did(record)
-        return flask.jsonify(ret), 200
+        aliases = blueprint.index_driver.get_aliases_for_did(record)
+        aliases_payload = [{"value": alias} for alias in aliases]
+        return flask.jsonify(aliases_payload), 200
     except NoRecordFound as err:
+        raise err
+    except UserError as err:
         raise err
 
 @blueprint.route("/index/<path:record>/aliases", methods=["POST"])
@@ -396,7 +401,21 @@ def replace_aliases(record):
     """
     aliases_json = flask.request.get_json()
     aliases = [record["value"] for record in aliases_json]
+    
+    # Validation: Confirm that alias does not share a name with any
+    # endpoints on the root of the Indexd API.
+    #
+    # Explanation: If an alias shared the name of an endpoint on the root 
+    # of the API, the alias would not be usable using the `/{GUID | ALIAS}` 
+    # endpoint to retrieve a record. (For example, if an alias was named "index"
+    # and there is an endpoint on the root of the API named `/index`)
+    protected_endpoint_names = get_root_endpoint_names() # FIXME how to get these?
+    aliases_with_name_collision = set(aliases).intersection(protected_endpoint_names)
+    if len(aliases_with_name_collision) > 0:
+        raise UserError("Alias(es) share names with protected API endpoints: {}".format(aliases_with_name_collision))
+
     ret = blueprint.index_driver.replace_aliases_for_did(aliases, record)
+
     return flask.jsonify(ret), 200
 
 @blueprint.route("/index/<path:record>/aliases", methods=["DELETE"])

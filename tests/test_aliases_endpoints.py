@@ -4,6 +4,8 @@ import string
 import json
 from tests.test_client import get_doc
 
+from indexd import get_app
+
 # Test fixtures and helper functions
 # =============================================
 def get_endpoint(guid):
@@ -69,6 +71,22 @@ def aliases(client, user, guid):
     assert res.status_code == 200
 
     return aliases
+
+@pytest.fixture(scope="function")
+def root_endpoints():
+    app = get_app()
+    rules = [str(rule) for rule in app.url_map.iter_rules()]
+    # rules are in format ['/_query/urls/metadata/q', '/ga4gh/dos/v1/dataobjects', ...]
+    # We want only the names of the root endpoints - so keep only the string
+    # between the first two forward slashes.
+    root_endpoints = [rule.split("/")[1] for rule in rules]
+    # remove duplicated values from root_endpoints
+    root_endpoints = list(set(root_endpoints))
+    # remove '<path:record>' from root_endpoints -- it represents the `/{GUID | ALIAS}`
+    # endpoint.
+    root_endpoints.remove("<path:record>")
+    return root_endpoints
+
 # =============================================
 
 # GET /index/{GUID}/aliases
@@ -278,7 +296,7 @@ def test_PUT_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
     expected_aliases = empty_aliases
     assert set(aliases_in_db) == set(empty_aliases)
 
-def test_PUT_aliases_alias_has_name_of_endpoint_on_root(client, user, guid, aliases):
+def test_PUT_aliases_alias_has_name_of_endpoint_on_root(client, user, guid, aliases, root_endpoints):
     """
     Expect 400 if one or more aliases has same name as an endpoint on the root 
     URL of the API. 
@@ -286,18 +304,7 @@ def test_PUT_aliases_alias_has_name_of_endpoint_on_root(client, user, guid, alia
     # Because of the `/{GUID|ALIAS}` endpoint, if an alias shared the name of an endpoint
     # on the root of the API such as `/latest`, if an alias was named "latest"  
     # it would cause difficulty resolving the alias. 
-    API_ROOT_ENDPOINTS = [
-        "urls"
-        "index",
-        "bulk",
-        "_query",
-        "alias",
-        "ga4gh",
-        "_status",
-        "_version",
-        "_stats"
-    ]
-    for bad_alias in API_ROOT_ENDPOINTS:
+    for bad_alias in root_endpoints:
         bad_alias_payload = to_payload([bad_alias])
         res = client.put(get_endpoint(guid), json=bad_alias_payload, headers=user)
         assert res.status_code == 400
