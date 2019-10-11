@@ -8,6 +8,8 @@ from indexd import get_app
 
 # Test fixtures and helper functions
 # =============================================
+NUM_RANDOM_ALIASES = 12
+
 def get_endpoint(guid):
     return "/index/{}/aliases".format(guid)
 
@@ -117,42 +119,146 @@ def test_POST_aliases_valid_GUID_valid_aliases(client, user, guid, aliases):
     """
     normal operation: expect to append to aliases and return list of all aliases
     """
-    pass
+    new_aliases = create_random_aliases(NUM_RANDOM_ALIASES)
+    new_alias_payload = to_payload(new_aliases)
+    res = client.post(get_endpoint(guid), json=new_alias_payload, headers=user)
+    assert res.status_code == 200
+
+    # expect new aliases to be appended to old aliases
+    res = client.get(get_endpoint(guid))
+    assert res.status_code == 200
+    aliases_in_db = payload_to_list(res.get_json())
+    expected_aliases = aliases + new_aliases
+    assert set(aliases_in_db) == set(expected_aliases)
+
 def test_POST_aliases_unauthenticated(client, user, guid, aliases):
     """
     expect request to fail with 403 if user is unauthenticated
     """
-    pass
+    new_aliases = create_random_aliases(NUM_RANDOM_ALIASES)
+    new_aliases_payload = to_payload(new_aliases)
+
+    res = client.post(get_endpoint(guid), json=new_aliases_payload)
+    assert res.status_code == 403
+
 def test_POST_aliases_invalid_GUID(client, user, guid, aliases):
     """
     expect to return 404 and have no effect for nonexistant GUID
     """
-    pass
+    fake_guid = guid + "but_fake"
+    alias_endpoint = get_endpoint(fake_guid)
+    new_aliases = create_random_aliases(NUM_RANDOM_ALIASES)
+    new_aliases_payload = to_payload(new_aliases)
+
+    res = client.post(alias_endpoint, json=new_aliases_payload)
+    assert res.status_code == 404
+
 def test_POST_aliases_nonunique_aliases(client, user, guid, aliases):
     """
     expect to return 400 and have no effect if valid GUID but one or more aliases 
     already associated with another GUID
     """
-    pass
+    # generate random aliases
+    new_aliases = create_random_aliases(NUM_RANDOM_ALIASES)
+    # add a subset of the generated aliases to a different GUID.
+    other_guid_aliases = random.sample(new_aliases, 1)
+    other_guid = create_random_record(client, user)
+    res = client.post(get_endpoint(other_guid), json=to_payload(other_guid_aliases), headers=user)
+    assert res.status_code == 200
+
+    # expect that an attempt to add the original set of random aliases
+    # will fail, as some of the aliases are already assigned to a different GUID.
+    res = client.post(get_endpoint(guid), json=to_payload(new_aliases), headers=user)
+    assert res.status_code == 400
+
+    # expect aliases that were already associated with GUID to be unchanged.
+    res = client.get(get_endpoint(guid))
+    assert res.status_code == 200
+    aliases_in_db = payload_to_list(res.get_json())
+    expected_aliases = aliases
+    assert set(aliases_in_db) == set(expected_aliases)
+
 def test_POST_aliases_GUID_already_has_alias(client, user, guid, aliases):
     """
     expect to return 400 and have no effect if valid GUID and one or more aliases 
     already associated with this GUID
     """
-    pass
+    # pick a random subset of the aliases already associated with this GUID
+    subset_old_aliases = random.sample(aliases, random.randint(1, len(aliases)))
+
+    # expect a POST request with the new subset of aliases to fail with 400
+    res = client.post(get_endpoint(guid), json=to_payload(subset_old_aliases), headers=user)
+    assert res.status_code == 400
+
 def test_POST_aliases_duplicate_aliases_in_request(client, user, guid, aliases):
     """
     expect to fail with 400 if valid GUID and one or more aliases duplicated
-    in request, but not already associated with another GUID
+    in request
     """
-    pass
+    # generate random aliases
+    new_aliases = create_random_aliases(NUM_RANDOM_ALIASES)
+
+    # duplicate some aliases: pick a random subset of the new aliases and
+    # append it to the new aliases
+    subset_new_aliases = random.sample(new_aliases, random.randint(1, len(new_aliases)))
+    duplicated_new_aliases = new_aliases + subset_new_aliases
+
+    # expect POST the duplicated aliases to fail
+    res = client.post(get_endpoint(guid), json=to_payload(duplicated_new_aliases), headers=user)
+    assert res.status_code == 400
+
 def test_POST_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
     """
     expect to succeed with no effect if passed an empty list of aliases
     """
-    pass
+    # POST an empty list of aliases
+    empty_aliases = []
+    res = client.post(get_endpoint(guid), json=to_payload(empty_aliases), headers=user)
+    assert res.status_code == 200
 
-NUM_RANDOM_ALIASES = 12
+    # expect aliases in db to be unchanged
+    res = client.get(get_endpoint(guid))
+    assert res.status_code == 200
+    aliases_in_db = payload_to_list(res.get_json())
+    expected_aliases = aliases
+    assert set(aliases_in_db) == set(expected_aliases)
+
+def test_POST_aliases_alias_has_name_of_endpoint_on_root(client, user, guid, aliases, root_endpoints):
+    """
+    Expect 400 if one or more aliases has same name as an endpoint on the root 
+    URL of the API. 
+    """
+    # Because of the `/{GUID|ALIAS}` endpoint, if an alias shared the name of an endpoint
+    # on the root of the API such as `/latest`, if an alias was named "latest"  
+    # it would cause difficulty resolving the alias. 
+    for bad_alias in root_endpoints:
+        bad_alias_payload = to_payload([bad_alias])
+        res = client.post(get_endpoint(guid), json=bad_alias_payload, headers=user)
+        assert res.status_code == 400
+        
+def test_POST_aliases_alias_has_name_of_existing_GUID(client, user, guid, aliases):
+    """
+    expect 400 if one or more aliases has same name as an existing GUID. This is
+    because an alias with the same name as a GUID would cause a search on the
+    `/{GUID|ALIAS}` endpoint to potentially resolve to two different records.
+    """
+    # Add a random GUID to the db
+    other_guid = create_random_record(client, user)
+
+    # Expect that adding an alias to our guid with the same name as other_guid
+    # will fail.
+    bad_alias = other_guid
+    bad_payload = to_payload([bad_alias])
+    res = client.post(get_endpoint(guid), json=bad_payload, headers=user)
+    assert res.status_code == 400
+
+def test_POST_no_body_in_request(client, user, guid, aliases):
+    """
+    expect POST with no body in request to fail with 400
+    """
+    res = client.post(get_endpoint(guid), headers=user)
+    assert res.status_code == 400
+
 # PUT /index/{GUID}/aliases
 # -------------------------
 def test_PUT_aliases_valid_GUID_valid_aliases(client, user, guid, aliases):
@@ -206,9 +312,6 @@ def test_PUT_aliases_nonunique_aliases(client, user, guid, aliases):
     other_guid = create_random_record(client, user)
     res = client.put(get_endpoint(other_guid), json=to_payload(other_guid_aliases), headers=user)
     assert res.status_code == 200
-    print("=====================")
-    print(other_guid_aliases)
-    print("=====================")
 
     # expect that an attempt to add the original set of random aliases
     # will fail, as some of the aliases are already assigned to a different GUID.
@@ -294,7 +397,7 @@ def test_PUT_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
     assert res.status_code == 200
     aliases_in_db = payload_to_list(res.get_json())
     expected_aliases = empty_aliases
-    assert set(aliases_in_db) == set(empty_aliases)
+    assert set(aliases_in_db) == set(expected_aliases)
 
 def test_PUT_aliases_alias_has_name_of_endpoint_on_root(client, user, guid, aliases, root_endpoints):
     """
@@ -325,6 +428,12 @@ def test_PUT_aliases_alias_has_name_of_existing_GUID(client, user, guid, aliases
     res = client.put(get_endpoint(guid), json=bad_payload, headers=user)
     assert res.status_code == 400
 
+def test_PUT_no_body_in_request(client, user, guid, aliases):
+    """
+    expect PUT with no body in request to fail with 400
+    """
+    res = client.put(get_endpoint(guid), headers=user)
+    assert res.status_code == 400
 
 # DELETE /index/{GUID}/aliases
 # ----------------------------
