@@ -392,14 +392,47 @@ def get_aliases(record):
 
 @blueprint.route("/index/<path:record>/aliases", methods=["POST"])
 def append_aliases(record):
-    raise NoRecordFound()
+    """
+    Append one or more aliases to aliases already associated with this
+    DID / GUID, if any.
+    """
+    # If MIME type of request is application/JSON and there is no body or the 
+    # JSON is malformed, flask.request_get_json  will throw 400 on its own. 
+    # If MIME type of request is not application/JSON, flask.request.get_json() 
+    # will return None.
+    aliases_json = flask.request.get_json()
+    if aliases_json is None:
+        raise UserError("No body in request")
+    aliases = [record["value"] for record in aliases_json]
+
+    # Validation: Confirm that alias does not share a name with any
+    # endpoints on the root of the Indexd API.
+    #
+    # Explanation: If an alias shared the name of an endpoint on the root 
+    # of the API, the alias would not be usable using the `/{GUID | ALIAS}` 
+    # endpoint to retrieve a record. (For example, if an alias was named "index"
+    # and there is an endpoint on the root of the API named `/index`)
+    protected_endpoint_names = get_root_endpoint_names() 
+    aliases_with_name_collision = set(aliases).intersection(protected_endpoint_names)
+    if len(aliases_with_name_collision) > 0:
+        raise UserError("Alias(es) share names with protected API endpoints: {}".format(aliases_with_name_collision))
+
+    ret = blueprint.index_driver.append_aliases_for_did(aliases, record)
+    
+    return flask.jsonify(ret), 200
 
 @blueprint.route("/index/<path:record>/aliases", methods=["PUT"])
 def replace_aliases(record):
     """
     Replace all aliases associated with this DID / GUID
     """
+    # If MIME type of request is application/JSON and there is no body or the 
+    # JSON is malformed, flask.request_get_json  will throw 400 on its own. 
+    # If MIME type of request is not application/JSON, flask.request.get_json() 
+    # will return None.
     aliases_json = flask.request.get_json()
+    if aliases_json is None:
+        raise UserError("No body in request")
     aliases = [record["value"] for record in aliases_json]
     
     # Validation: Confirm that alias does not share a name with any

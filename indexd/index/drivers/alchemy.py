@@ -774,6 +774,45 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             query = session.query(IndexRecordAlias).filter(IndexRecordAlias.did == did)
             return [i.name for i in query]
+    
+    def append_aliases_for_did(self, aliases, did):
+        """
+        Append one or more aliases to aliases already associated with one DID / GUID.
+        """
+        with self.session as session:
+            # validation: confirm index record with this GUID exists
+            index_record = session.query(IndexRecord).\
+                filter(IndexRecord.did == did).\
+                first()
+            if index_record is None:
+                raise NoRecordFound(did)
+
+            # validation: confirm aliases are not duplicated
+            if len(set(aliases)) != len(aliases):
+                raise UserError("Duplicate aliases in request")
+
+            # validation: confirm new aliases are not already associated with
+            # any record, including this one.
+            claimed_aliases = session.query(IndexRecordAlias).\
+                filter(IndexRecordAlias.name.in_(aliases)).\
+                all()
+            if len(claimed_aliases) > 0:
+                raise UserError("Aliases already claimed: {}".format(claimed_aliases))
+
+            # validation: confirm aliases do not have name of existing GUID
+            records_with_same_name_as_aliases = session.query(IndexRecord).\
+                filter(IndexRecord.did.in_(aliases)).\
+                all()
+            if len(records_with_same_name_as_aliases) > 0:
+                collided_names = [record.did for record in records_with_same_name_as_aliases]
+                raise UserError("Aliases have same name as existing GUID: {}".format(collided_names))
+
+            # add new aliases
+            index_record_aliases = [IndexRecordAlias(did=did, name=alias) for alias in aliases]
+            session.add_all(index_record_aliases)
+
+        return self.get_aliases_for_did(did)
+        
 
     def replace_aliases_for_did(self, aliases, did):
         """
