@@ -252,12 +252,20 @@ def test_POST_aliases_alias_has_name_of_existing_GUID(client, user, guid, aliase
     res = client.post(get_endpoint(guid), json=bad_payload, headers=user)
     assert res.status_code == 400
 
-def test_POST_no_body_in_request(client, user, guid, aliases):
+def test_POST_no_body(client, user, guid, aliases):
     """
     expect POST with no body in request to fail with 400
     """
     res = client.post(get_endpoint(guid), headers=user)
     assert res.status_code == 400
+
+def test_POST_bad_content_type(client, user, guid, aliases):
+    """
+    expect POST with a non-JSON content type (e.g., `text/plain`) to fail with 400
+    """
+    res = client.post(get_endpoint(guid), headers=user, content_type="text/plain")
+    assert res.status_code == 400
+
 
 # PUT /index/{GUID}/aliases
 # -------------------------
@@ -428,11 +436,18 @@ def test_PUT_aliases_alias_has_name_of_existing_GUID(client, user, guid, aliases
     res = client.put(get_endpoint(guid), json=bad_payload, headers=user)
     assert res.status_code == 400
 
-def test_PUT_no_body_in_request(client, user, guid, aliases):
+def test_PUT_no_body(client, user, guid, aliases):
     """
     expect PUT with no body in request to fail with 400
     """
-    res = client.put(get_endpoint(guid), headers=user)
+    res = client.put(get_endpoint(guid), json=None, headers=user)
+    assert res.status_code == 400
+
+def test_PUT_bad_content_type(client, user, guid, aliases):
+    """
+    expect PUT with a non-JSON content type (e.g., `text/plain`) to fail with 400
+    """
+    res = client.put(get_endpoint(guid), headers=user, content_type="text/plain")
     assert res.status_code == 400
 
 # DELETE /index/{GUID}/aliases
