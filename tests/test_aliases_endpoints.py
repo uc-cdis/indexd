@@ -456,17 +456,29 @@ def test_DELETE_all_aliases_valid_GUID(client, user, guid, aliases):
     """
     normal operation: expect to delete all aliases if valid GUID 
     """
-    pass
+    res = client.delete(get_endpoint(guid), headers=user)
+    assert res.status_code == 200
+
+    # expect all aliases to be gone
+    res = client.get(get_endpoint(guid))
+    aliases_in_db = payload_to_list(res.get_json())
+    expected_aliases = to_payload([])
+    assert aliases_in_db == expected_aliases
+
 def test_DELETE_all_aliases_unauthenticated(client, user, guid, aliases):
     """
     expect request to fail with 403 if user is unauthenticated
     """
-    pass
+    res = client.delete(get_endpoint(guid))
+    assert res.status_code == 403
+
 def test_DELETE_all_aliases_invalid_GUID(client, user, guid, aliases):
     """
     expect to return 404 and have no effect for nonexistant GUID
     """
-    pass
+    fake_guid = guid + "_but_fake"
+    res = client.delete(get_endpoint(fake_guid), headers=user)
+    assert res.status_code == 404
 
 # DELETE /index/{GUID}/aliases/{ALIAS}
 # ------------------------------------
@@ -475,20 +487,50 @@ def test_DELETE_one_alias_valid_GUID(client, user, guid, aliases):
     normal operation: expect to delete listed alias if valid GUID and 
     alias associated with this GUID
     """
-    pass
+    # pick one alias to delete
+    alias_to_delete = random.choice(aliases)
+    endpoint = get_endpoint(guid) + "/" + alias_to_delete
+    res = client.delete(endpoint, headers=user)
+    assert res.status_code == 200
+
+    # expect that alias to no longer be in this guid's aliases
+    res = client.get(get_endpoint(guid))
+    aliases_in_db = payload_to_list(res.get_json())
+    expected_aliases = aliases.remove(alias_to_delete)
+    assert set(aliases_in_db) == set(expected_aliases)
+    
 def test_DELETE_one_alias_unauthenticated(client, user, guid, aliases):
     """
     expect request to fail with 403 if user is unauthenticated
     """
-    pass
+    # pick one alias to delete
+    alias_to_delete = random.choice(aliases)
+    endpoint = get_endpoint(guid) + "/" + alias_to_delete
+
+    # expect an unauthenticated delete request to that alias to fail
+    res = client.delete(endpoint)
+    assert res.status_code == 403
+
 def test_DELETE_one_alias_invalid_GUID(client, user, guid, aliases):
     """
     expect to return 404 and have no effect for nonexistant GUID
     """
-    pass
+    # pick a nonexistant guid
+    fake_guid = guid + "_but_fake"
+
+    # pick a nonexistant alias to delete
+    alias_to_delete = "fake_alias"
+    endpoint = get_endpoint(fake_guid) + "/" + alias_to_delete
+    res = client.delete(endpoint, headers=user)
+    assert res.status_code == 404
+
 def test_DELETE_one_alias_GUID_does_not_have_alias(client, user, guid, aliases):
     """
     expect to return 404 and have no effect if alias not associated 
     with this GUID
     """
-    pass
+    # pick a nonexistant alias to delete on an existing guid
+    alias_to_delete = "fake_alias"
+    endpoint = get_endpoint(guid) + "/" + alias_to_delete
+    res = client.delete(endpoint, headers=user)
+    assert res.status_code == 404
