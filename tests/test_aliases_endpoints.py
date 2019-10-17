@@ -2,6 +2,7 @@ import pytest
 import random
 import string
 import json
+import urllib.parse
 from tests.test_client import get_doc
 
 from indexd import get_app
@@ -9,6 +10,9 @@ from indexd import get_app
 # Test fixtures and helper functions
 # =============================================
 NUM_RANDOM_ALIASES = 12
+
+def url_encode(str):
+    return urllib.parse.quote(str, safe="")
 
 def get_endpoint(guid):
     return "/index/{}/aliases".format(guid)
@@ -489,14 +493,14 @@ def test_DELETE_one_alias_valid_GUID(client, user, guid, aliases):
     """
     # pick one alias to delete
     alias_to_delete = random.choice(aliases)
-    endpoint = get_endpoint(guid) + "/" + alias_to_delete
+    endpoint = get_endpoint(guid) + "/" + url_encode(alias_to_delete)
     res = client.delete(endpoint, headers=user)
     assert res.status_code == 200
 
     # expect that alias to no longer be in this guid's aliases
     res = client.get(get_endpoint(guid))
     aliases_in_db = payload_to_list(res.get_json())
-    expected_aliases = aliases.remove(alias_to_delete)
+    expected_aliases = [a for a in aliases if a != alias_to_delete]
     assert set(aliases_in_db) == set(expected_aliases)
     
 def test_DELETE_one_alias_unauthenticated(client, user, guid, aliases):
@@ -505,7 +509,7 @@ def test_DELETE_one_alias_unauthenticated(client, user, guid, aliases):
     """
     # pick one alias to delete
     alias_to_delete = random.choice(aliases)
-    endpoint = get_endpoint(guid) + "/" + alias_to_delete
+    endpoint = get_endpoint(guid) + "/" + url_encode(alias_to_delete)
 
     # expect an unauthenticated delete request to that alias to fail
     res = client.delete(endpoint)
@@ -520,7 +524,7 @@ def test_DELETE_one_alias_invalid_GUID(client, user, guid, aliases):
 
     # pick a nonexistant alias to delete
     alias_to_delete = "fake_alias"
-    endpoint = get_endpoint(fake_guid) + "/" + alias_to_delete
+    endpoint = get_endpoint(fake_guid) + "/" + url_encode(alias_to_delete)
     res = client.delete(endpoint, headers=user)
     assert res.status_code == 404
 
@@ -531,6 +535,6 @@ def test_DELETE_one_alias_GUID_does_not_have_alias(client, user, guid, aliases):
     """
     # pick a nonexistant alias to delete on an existing guid
     alias_to_delete = "fake_alias"
-    endpoint = get_endpoint(guid) + "/" + alias_to_delete
+    endpoint = get_endpoint(guid) + "/" + url_encode(alias_to_delete)
     res = client.delete(endpoint, headers=user)
     assert res.status_code == 404
