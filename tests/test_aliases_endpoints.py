@@ -95,6 +95,27 @@ def root_endpoints():
 
 # =============================================
 
+
+# GET /{alias}
+# ------------------------
+def test_global_endpoint_valid_alias(client, guid, aliases):
+    """
+    expect query for alias on global endpoint to return the record associated with alias
+    """
+    for alias in aliases:
+        res = client.get("/" + url_encode(alias))
+        assert res.status_code == 200
+        record = res.get_json()
+        assert record["did"] == guid
+
+def test_global_endpoint_nonexistant_alias(client, guid, aliases):
+    """
+    expect query for alias on global endpoint to return 404 for a nonexistant record
+    """
+    fake_alias = aliases[0] + "_but_fake"
+    res = client.get("/" + url_encode(fake_alias))
+    assert res.status_code == 404
+
 # GET /index/{GUID}/aliases
 # -------------------------
 def test_GET_aliases_invalid_GUID(client, guid, aliases):
