@@ -452,8 +452,16 @@ def replace_aliases(record):
     return flask.jsonify(ret), 200
 
 @blueprint.route("/index/<path:record>/aliases", methods=["DELETE"])
-def delete_aliases(record):
-    raise NoRecordFound()
+def delete_all_aliases(record):
+    ret = blueprint.index_driver.delete_all_aliases_for_did(record)
+
+    return flask.jsonify("Aliases deleted successfully"), 200
+
+@blueprint.route("/index/<path:record>/aliases/<path:alias>", methods=["DELETE"])
+def delete_one_alias(record, alias):
+    ret = blueprint.index_driver.delete_one_alias_for_did(alias, record)
+
+    return flask.jsonify("Aliases deleted successfully"), 200
 
 @blueprint.route("/index/<path:record>/versions", methods=["GET"])
 def get_all_index_record_versions(record):

@@ -856,6 +856,47 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         return self.get_aliases_for_did(did)
 
+    def delete_all_aliases_for_did(self, did):
+        """
+        Delete all of this DID / GUID's aliases.
+        """
+        with self.session as session:
+            # validation: confirm index record with this GUID exists
+            index_record = session.query(IndexRecord).\
+                filter(IndexRecord.did == did).\
+                first()
+            if index_record is None:
+                raise NoRecordFound(did)
+
+            # delete all aliases
+            session.query(IndexRecordAlias).\
+                filter(IndexRecordAlias.did == did).\
+                delete(synchronize_session='evaluate')
+
+    def delete_one_alias_for_did(self, alias, did):
+        """
+        Delete one of this DID / GUID's aliases.
+        """
+        with self.session as session:
+            # validation: confirm index record with this GUID exists
+            index_record = session.query(IndexRecord).\
+                filter(IndexRecord.did == did).\
+                first()
+            if index_record is None:
+                raise NoRecordFound(did)
+
+            # validation: confirm this alias is associated with this GUID
+            alias_record = session.query(IndexRecordAlias).\
+                filter(IndexRecordAlias.did == did, IndexRecordAlias.name == alias).\
+                first()
+            if alias_record is None:
+                raise NoRecordFound("Alias {} is not associated with GUID {}".format(alias, did))
+
+            # delete just this alias
+            session.query(IndexRecordAlias).\
+                filter(IndexRecordAlias.did == did, IndexRecordAlias.name == alias).\
+                delete(synchronize_session='evaluate')
+    
     def get(self, did):
         """
         Gets a record given the record id or baseid.
