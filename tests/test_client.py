@@ -1367,7 +1367,8 @@ def test_index_stats(client, user):
     assert index_stats["fileCount"] == 3
     assert index_stats["totalFileSize"] == data_size
 
-
+# NOTE these tests apply to the '/alias/' endpoint, which is deprecated
+# in favor of the 'index/{GUID}/aliases' endpoint.
 def test_alias_list(client, user):
     assert client.get("/alias/").json["aliases"] == []
 
@@ -1488,7 +1489,6 @@ def test_alias_create(client, user):
 
     assert len(client.get("/alias/").json["aliases"]) == 1
     assert client.get("/alias/" + rec["name"]).json["name"] == ark
-
 
 def test_alias_get_global_endpoint(client, user):
     data = {
