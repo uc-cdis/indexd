@@ -175,7 +175,7 @@ def test_POST_aliases_invalid_GUID(client, user, guid, aliases):
     new_aliases = create_random_aliases(NUM_RANDOM_ALIASES)
     new_aliases_payload = to_payload(new_aliases)
 
-    res = client.post(alias_endpoint, json=new_aliases_payload)
+    res = client.post(alias_endpoint, json=new_aliases_payload, headers=user)
     assert res.status_code == 404
 
 def test_POST_aliases_nonunique_aliases(client, user, guid, aliases):
@@ -330,7 +330,7 @@ def test_PUT_aliases_invalid_GUID(client, user, guid, aliases):
     new_aliases = create_random_aliases(NUM_RANDOM_ALIASES)
     new_aliases_payload = to_payload(new_aliases)
 
-    res = client.put(alias_endpoint, json=new_aliases_payload)
+    res = client.put(alias_endpoint, json=new_aliases_payload, headers=user)
     assert res.status_code == 404
 
 def test_PUT_aliases_nonunique_aliases(client, user, guid, aliases):
