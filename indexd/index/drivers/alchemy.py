@@ -146,7 +146,7 @@ class IndexRecordAlias(Base):
     __tablename__ = "index_record_alias"
 
     did = Column(String, ForeignKey("index_record.did"), primary_key=True)
-    name = Column(String, primary_key=True)
+    name = Column(String, primary_key=True, unique=True)
 
     __table_args__ = (
         Index("index_record_alias_idx", "did"),
@@ -787,32 +787,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if index_record is None:
                 raise NoRecordFound(did)
 
-            # validation: confirm aliases are not duplicated
-            if len(set(aliases)) != len(aliases):
-                raise UserError("Duplicate aliases in request")
-
-            # validation: confirm new aliases are not already associated with
-            # any record, including this one.
-            claimed_aliases = session.query(IndexRecordAlias).\
-                filter(IndexRecordAlias.name.in_(aliases)).\
-                all()
-            if len(claimed_aliases) > 0:
-                raise UserError("Aliases already claimed: {}".format(claimed_aliases))
-
-            # validation: confirm aliases do not have name of existing GUID
-            records_with_same_name_as_aliases = session.query(IndexRecord).\
-                filter(IndexRecord.did.in_(aliases)).\
-                all()
-            if len(records_with_same_name_as_aliases) > 0:
-                collided_names = [record.did for record in records_with_same_name_as_aliases]
-                raise UserError("Aliases have same name as existing GUID: {}".format(collided_names))
-
             # add new aliases
             index_record_aliases = [IndexRecordAlias(did=did, name=alias) for alias in aliases]
-            session.add_all(index_record_aliases)
-
-        return self.get_aliases_for_did(did)
+            try:
+                session.add_all(index_record_aliases)
+                session.commit()
+            except IntegrityError:
+                raise UserError()
         
+        return
 
     def replace_aliases_for_did(self, aliases, did):
         """
@@ -826,35 +809,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if index_record is None:
                 raise NoRecordFound(did)
 
-            # validation: confirm aliases are not duplicated
-            if len(set(aliases)) != len(aliases):
-                raise UserError("Duplicate aliases in request")
-
-            # validation: confirm new aliases are not already associated with a
-            # different record
-            claimed_aliases = session.query(IndexRecordAlias).\
-                filter(IndexRecordAlias.did != did, IndexRecordAlias.name.in_(aliases)).\
-                all()
-            if len(claimed_aliases) > 0:
-                raise UserError("Aliases already claimed: {}".format(claimed_aliases))
-
-            # validation: confirm aliases do not have name of existing GUID
-            records_with_same_name_as_aliases = session.query(IndexRecord).\
-                filter(IndexRecord.did.in_(aliases)).\
-                all()
-            if len(records_with_same_name_as_aliases) > 0:
-                collided_names = [record.did for record in records_with_same_name_as_aliases]
-                raise UserError("Aliases have same name as existing GUID: {}".format(collided_names))
-
-            # delete this GUID's aliases
-            session.query(IndexRecordAlias).\
-                filter(IndexRecordAlias.did == did).\
-                delete(synchronize_session='evaluate')
-            # add new aliases
-            index_record_aliases = [IndexRecordAlias(did=did, name=alias) for alias in aliases]
-            session.add_all(index_record_aliases)
-
-        return self.get_aliases_for_did(did)
+            try:
+                # delete this GUID's aliases
+                session.query(IndexRecordAlias).\
+                    filter(IndexRecordAlias.did == did).\
+                    delete(synchronize_session='evaluate')
+                # add new aliases
+                index_record_aliases = [IndexRecordAlias(did=did, name=alias) for alias in aliases]
+                session.add_all(index_record_aliases)
+                session.commit()
+            except IntegrityError:
+                raise UserError()
 
     def delete_all_aliases_for_did(self, did):
         """
@@ -885,17 +850,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if index_record is None:
                 raise NoRecordFound(did)
 
-            # validation: confirm this alias is associated with this GUID
-            alias_record = session.query(IndexRecordAlias).\
-                filter(IndexRecordAlias.did == did, IndexRecordAlias.name == alias).\
-                first()
-            if alias_record is None:
-                raise NoRecordFound("Alias {} is not associated with GUID {}".format(alias, did))
-
             # delete just this alias
-            session.query(IndexRecordAlias).\
+            num_rows_deleted = session.query(IndexRecordAlias).\
                 filter(IndexRecordAlias.did == did, IndexRecordAlias.name == alias).\
                 delete(synchronize_session='evaluate')
+            
+            if num_rows_deleted == 0:
+                raise NoRecordFound(alias)
     
     def get(self, did):
         """
@@ -1384,6 +1345,10 @@ def migrate_12(session, **kwargs):
         "ALTER TABLE {} DROP COLUMN rbac;".format(IndexRecord.__tablename__)
     )
 
+def migrate_13(session, **kwargs):
+    session.execute(
+        "ALTER TABLE {} ADD UNIQUE ( name )".format(IndexRecordAlias.__tablename__)
+    )
 
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
@@ -1400,5 +1365,6 @@ SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_10,
     migrate_11,
     migrate_12,
+    migrate_13,
 ]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)

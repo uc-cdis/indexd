@@ -54,10 +54,10 @@ def aliases(client, user, guid):
     Associates aliases with a GUID in indexd and returns the new aliases.
     """
     aliases = [
-        '/.?=G}k@Up3LIlv+p96yaI06,t@?j=ejk[%+/', 
-        'Fa"uW<A"/\'hELmTjH%r%6@Tp^HaB^/', 
+        '.?=G}k@Up3LIlv+p96yaI06,t@?j=ejk[%+', 
+        'Fa"uW<A"/\'hELmTjH%r%6@Tp^HaB^', 
         '{j\'8D6d5fc]5#[*9n%|G9"hZ?z3:wX', 
-        '/"U7XsT+EXD|1?@$ywDV"ce<B}7v9t)'
+        '"U7XsT+EXD|1?@$ywDV"ce<B}7v9t)'
     ]
     alias_payload = to_payload(aliases)
 
@@ -74,26 +74,11 @@ def unused_aliases():
     already be in the db / associated with a GUID.
     """
     return [
-        'p96yaI06,t@?j=ejk[%+//.?=G}k@Up3LIlv+/', 
+        'p96yaI06,t@?j=ejk[%+//.?=G}k@Up3LIlv+', 
         'FajH%r%6@Tp^HaB^/"uW<A"/\'hELmT', 
         '{j\'8D6Z?z3:wXd5fc]5#[*9n%|G9"h', 
-        '/"B}7v9t)U7XsT+EXD|1?@$ywDV"ce<'
+        '"B}7v9t)U7XsT+EXD|1?@$ywDV"ce<'
     ]
-
-@pytest.fixture(scope="function")
-def root_endpoints():
-    app = get_app()
-    rules = [str(rule) for rule in app.url_map.iter_rules()]
-    # rules are in format ['/_query/urls/metadata/q', '/ga4gh/dos/v1/dataobjects', ...]
-    # We want only the names of the root endpoints - so keep only the string
-    # between the first two forward slashes.
-    root_endpoints = [rule.split("/")[1] for rule in rules]
-    # remove duplicated values from root_endpoints
-    root_endpoints = list(set(root_endpoints))
-    # remove '<path:record>' from root_endpoints -- it represents the `/{GUID | ALIAS}`
-    # endpoint.
-    root_endpoints.remove("<path:record>")
-    return root_endpoints
 
 # =============================================
 
@@ -118,6 +103,47 @@ def test_global_endpoint_nonexistant_alias(client, guid, aliases):
     res = client.get("/" + url_encode(fake_alias))
     assert res.status_code == 404
 
+def test_global_endpoint_alias_guid_collision(client, guid, aliases, user):
+    """
+    if an alias has the same name as a GUID, the global endpoint should resolve 
+    to the GUID, not resolve the alias
+    """
+    # create a new guid
+    guid_A = guid
+    guid_B = create_random_record(client, user)
+    # assign an alias with the value of guid_B to guid_A
+    aliases_payload = to_payload([guid_B])
+    res = client.post(get_endpoint(guid_A), json=aliases_payload, headers=user)
+    assert res.status_code == 200
+
+    # expect that a search for value of guid_B on the global endpoint should resolve
+    # to guid_B's record, not to guid_A's record
+    res = client.get("/" + url_encode(guid_B))
+    assert res.status_code == 200
+    record = res.get_json()
+    assert record["did"] == guid_B
+    assert record["did"] != guid_A
+
+def test_global_endpoint_alias_endpoint_collision(client, guid, aliases, user):
+    """
+    when an alias shares a name with an endpoint on the root of
+    the API, querying that endpoint should function as normal, 
+    not resolve the alias
+    """
+    # associate a new alias named "index/" with guid. "index/" is an endpoint
+    # on the root of the api.
+    aliases_payload = to_payload(["index"])
+    res = client.post(get_endpoint(guid), json=aliases_payload, headers=user)
+    assert res.status_code == 200
+
+    # when we query "_status", we expect to see the "_status" endpoint, not
+    # an alias.
+    res = client.get("index")
+    assert res.status_code == 200
+    body = res.get_json()
+    body_is_not_record = body.get("did", None) is None
+    assert body_is_not_record
+    
 # GET /index/{GUID}/aliases
 # -------------------------
 def test_GET_aliases_invalid_GUID(client, guid, aliases):
@@ -189,21 +215,20 @@ def test_POST_aliases_nonunique_aliases(client, user, guid, aliases, unused_alia
     expect to return 400 and have no effect if valid GUID but one or more aliases 
     already associated with another GUID
     """
-    # generate random aliases
-    new_aliases = unused_aliases
-    # add a subset of the generated aliases to a different GUID.
-    other_guid_aliases = new_aliases[0:1]
-    other_guid = create_random_record(client, user)
-    res = client.post(get_endpoint(other_guid), json=to_payload(other_guid_aliases), headers=user)
+    guid_A = guid
+    guid_B = create_random_record(client, user)
+
+    # add unused_aliases to guid_B
+    res = client.post(get_endpoint(guid_B), json=to_payload(unused_aliases), headers=user)
     assert res.status_code == 200
 
-    # expect that an attempt to add the original set of random aliases
-    # will fail, as some of the aliases are already assigned to a different GUID.
-    res = client.post(get_endpoint(guid), json=to_payload(new_aliases), headers=user)
+    # expect that an attempt to add unused_aliases to guid_A
+    # will fail, as aliases are already assigned to guid_B
+    res = client.post(get_endpoint(guid_A), json=to_payload(unused_aliases), headers=user)
     assert res.status_code == 400
 
-    # expect aliases that were already associated with GUID to be unchanged.
-    res = client.get(get_endpoint(guid))
+    # expect aliases that were already associated with guid_A to be unchanged.
+    res = client.get(get_endpoint(guid_A))
     assert res.status_code == 200
     aliases_in_db = payload_to_list(res.get_json())
     expected_aliases = aliases
@@ -237,6 +262,13 @@ def test_POST_aliases_duplicate_aliases_in_request(client, user, guid, aliases, 
     res = client.post(get_endpoint(guid), json=to_payload(duplicated_new_aliases), headers=user)
     assert res.status_code == 400
 
+    # expect aliases in db to be unchanged
+    res = client.get(get_endpoint(guid))
+    aliases_in_db = payload_to_list(res.get_json())
+    assert res.status_code == 200
+    expected_aliases = aliases
+    assert set(aliases_in_db) == set(expected_aliases)
+
 def test_POST_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
     """
     expect to succeed with no effect if passed an empty list of aliases
@@ -252,35 +284,6 @@ def test_POST_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
     aliases_in_db = payload_to_list(res.get_json())
     expected_aliases = aliases
     assert set(aliases_in_db) == set(expected_aliases)
-
-def test_POST_aliases_alias_has_name_of_endpoint_on_root(client, user, guid, aliases, root_endpoints):
-    """
-    Expect 400 if one or more aliases has same name as an endpoint on the root 
-    URL of the API. 
-    """
-    # Because of the `/{GUID|ALIAS}` endpoint, if an alias shared the name of an endpoint
-    # on the root of the API such as `/latest`, if an alias was named "latest"  
-    # it would cause difficulty resolving the alias. 
-    for bad_alias in root_endpoints:
-        bad_alias_payload = to_payload([bad_alias])
-        res = client.post(get_endpoint(guid), json=bad_alias_payload, headers=user)
-        assert res.status_code == 400
-        
-def test_POST_aliases_alias_has_name_of_existing_GUID(client, user, guid, aliases):
-    """
-    expect 400 if one or more aliases has same name as an existing GUID. This is
-    because an alias with the same name as a GUID would cause a search on the
-    `/{GUID|ALIAS}` endpoint to potentially resolve to two different records.
-    """
-    # Add a random GUID to the db
-    other_guid = create_random_record(client, user)
-
-    # Expect that adding an alias to our guid with the same name as other_guid
-    # will fail.
-    bad_alias = other_guid
-    bad_payload = to_payload([bad_alias])
-    res = client.post(get_endpoint(guid), json=bad_payload, headers=user)
-    assert res.status_code == 400
 
 def test_POST_no_body(client, user, guid, aliases):
     """
@@ -437,35 +440,6 @@ def test_PUT_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
     aliases_in_db = payload_to_list(res.get_json())
     expected_aliases = empty_aliases
     assert set(aliases_in_db) == set(expected_aliases)
-
-def test_PUT_aliases_alias_has_name_of_endpoint_on_root(client, user, guid, aliases, root_endpoints):
-    """
-    Expect 400 if one or more aliases has same name as an endpoint on the root 
-    URL of the API. 
-    """
-    # Because of the `/{GUID|ALIAS}` endpoint, if an alias shared the name of an endpoint
-    # on the root of the API such as `/latest`, if an alias was named "latest"  
-    # it would cause difficulty resolving the alias. 
-    for bad_alias in root_endpoints:
-        bad_alias_payload = to_payload([bad_alias])
-        res = client.put(get_endpoint(guid), json=bad_alias_payload, headers=user)
-        assert res.status_code == 400
-        
-def test_PUT_aliases_alias_has_name_of_existing_GUID(client, user, guid, aliases):
-    """
-    expect 400 if one or more aliases has same name as an existing GUID. This is
-    because an alias with the same name as a GUID would cause a search on the
-    `/{GUID|ALIAS}` endpoint to potentially resolve to two different records.
-    """
-    # Add a random GUID to the db
-    other_guid = create_random_record(client, user)
-
-    # Expect that adding an alias to our guid with the same name as other_guid
-    # will fail.
-    bad_alias = other_guid
-    bad_payload = to_payload([bad_alias])
-    res = client.put(get_endpoint(guid), json=bad_payload, headers=user)
-    assert res.status_code == 400
 
 def test_PUT_no_body(client, user, guid, aliases):
     """
