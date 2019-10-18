@@ -31,6 +31,7 @@ class AliasSchemaVersion(Base):
     __tablename__ = 'alias_schema_version'
     version = Column(Integer, primary_key=True)
 
+
 class AliasRecord(Base):
     '''
     Base alias record representation.
@@ -56,6 +57,7 @@ class AliasRecord(Base):
 
     keeper_authority = Column(String)
 
+
 class AliasRecordHash(Base):
     '''
     Base alias record hash representation.
@@ -66,6 +68,7 @@ class AliasRecordHash(Base):
     hash_type = Column(String, primary_key=True)
     hash_value = Column(String)
 
+
 class AliasRecordHostAuthority(Base):
     '''
     Base alias record host authority representation.
@@ -74,6 +77,7 @@ class AliasRecordHostAuthority(Base):
 
     name = Column(String, ForeignKey('alias_record.name'), primary_key=True)
     host = Column(String, primary_key=True)
+
 
 class SQLAlchemyAliasDriver(AliasDriverABC):
     '''
@@ -85,14 +89,14 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         Initialize the SQLAlchemy database driver.
         '''
         super(SQLAlchemyAliasDriver, self).__init__(conn, **config)
-        self.logger = logger or get_logger('SQLAlchemyAliasDriver')
+        self.logger = logger or get_logger("{}.{}".format(__name__, self.__class__.__name__))
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
 
         is_empty_db = is_empty_database(driver=self)
         Base.metadata.create_all()
         if is_empty_db:
-            init_schema_version(driver=self, model=AliasSchemaVersion, version=CURRENT_SCHEMA_VERSION)
+            init_schema_version(driver=self, model=AliasSchemaVersion, current_version=CURRENT_SCHEMA_VERSION)
 
         if auto_migrate:
             self.migrate_alias_database()
