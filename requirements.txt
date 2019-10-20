@@ -1,6 +1,6 @@
 flask==0.12.4
 jsonschema==2.5.1
-sqlalchemy==1.0.8
+sqlalchemy>=1.0.8
 sqlalchemy-utils>=0.32.21
 psycopg2>=2.7
 future>=0.16.0,<1.0.0
