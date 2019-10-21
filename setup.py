@@ -13,6 +13,7 @@ setup(
         'flask',
         'jsonschema',
         'sqlalchemy',
+        'sqlalchemy-utils',
         'future',
         'cdislogging',
         'indexclient',
