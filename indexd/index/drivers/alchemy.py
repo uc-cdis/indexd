@@ -787,6 +787,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if index_record is None:
                 raise NoRecordFound(did)
 
+            # authorization
+            auth.authorize("update", [u.resource for u in index_record.authz])
+
             # add new aliases
             index_record_aliases = [IndexRecordAlias(did=did, name=alias) for alias in aliases]
             try:
@@ -808,6 +811,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 first()
             if index_record is None:
                 raise NoRecordFound(did)
+
+            # authorization
+            auth.authorize("update", [u.resource for u in index_record.authz])
 
             try:
                 # delete this GUID's aliases
@@ -833,6 +839,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if index_record is None:
                 raise NoRecordFound(did)
 
+            # authorization
+            auth.authorize("delete", [u.resource for u in index_record.authz])
+
             # delete all aliases
             session.query(IndexRecordAlias).\
                 filter(IndexRecordAlias.did == did).\
@@ -849,6 +858,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 first()
             if index_record is None:
                 raise NoRecordFound(did)
+
+            # authorization
+            auth.authorize("delete", [u.resource for u in index_record.authz])
 
             # delete just this alias
             num_rows_deleted = session.query(IndexRecordAlias).\
@@ -882,7 +894,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         composite_fields = ["urls", "acl", "authz", "metadata", "urls_metadata"]
 
         with self.session as session:
-            query = session.query(IndexRecord).filter(IndexRecord.did == did) # FIXME -- add .for_update() to defend against race condition (?)
+            query = session.query(IndexRecord).filter(IndexRecord.did == did)
 
             try:
                 record = query.one()

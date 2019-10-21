@@ -391,7 +391,6 @@ def get_aliases(record):
         raise err
 
 @blueprint.route("/index/<path:record>/aliases", methods=["POST"])
-@authorize
 def append_aliases(record):
     """
     Append one or more aliases to aliases already associated with this
@@ -404,18 +403,12 @@ def append_aliases(record):
         raise UserError("No body in request")
     aliases = [record["value"] for record in aliases_json]
 
-    print("DEBUG", 0)
-    try:
-        ret = blueprint.index_driver.append_aliases_for_did(aliases, record)
-    except UserError as err:
-        print("DEBUG", 4)
-        raise err
-    print("DEBUG", "shouldn't see this")
+    # authorization done in driver
+    ret = blueprint.index_driver.append_aliases_for_did(aliases, record)
     
     return flask.jsonify(ret), 200
 
 @blueprint.route("/index/<path:record>/aliases", methods=["PUT"])
-@authorize
 def replace_aliases(record):
     """
     Replace all aliases associated with this DID / GUID
@@ -427,20 +420,21 @@ def replace_aliases(record):
         raise UserError("No body in request")
     aliases = [record["value"] for record in aliases_json]
     
+    # authorization done in driver
     ret = blueprint.index_driver.replace_aliases_for_did(aliases, record)
 
     return flask.jsonify(ret), 200
 
 @blueprint.route("/index/<path:record>/aliases", methods=["DELETE"])
-@authorize
 def delete_all_aliases(record):
+    # authorization done in driver
     ret = blueprint.index_driver.delete_all_aliases_for_did(record)
 
     return flask.jsonify("Aliases deleted successfully"), 200
 
 @blueprint.route("/index/<path:record>/aliases/<path:alias>", methods=["DELETE"])
-@authorize
 def delete_one_alias(record, alias):
+    # authorization done in driver
     ret = blueprint.index_driver.delete_one_alias_for_did(alias, record)
 
     return flask.jsonify("Aliases deleted successfully"), 200
