@@ -381,7 +381,9 @@ def get_aliases(record):
     """
     try:
         aliases = blueprint.index_driver.get_aliases_for_did(record)
-        aliases_payload = [{"value": alias} for alias in aliases]
+        aliases_payload = {
+            "aliases": [{"value": alias} for alias in aliases]
+        }
         return flask.jsonify(aliases_payload), 200
     except NoRecordFound as err:
         raise err
@@ -399,7 +401,7 @@ def append_aliases(record):
     aliases_json = flask.request.get_json()
     if aliases_json is None:
         raise UserError("No body in request")
-    aliases = [record["value"] for record in aliases_json]
+    aliases = [record["value"] for record in aliases_json["aliases"]]
 
     # authorization and error handling done in driver
     ret = blueprint.index_driver.append_aliases_for_did(aliases, record)
@@ -416,7 +418,7 @@ def replace_aliases(record):
     aliases_json = flask.request.get_json()
     if aliases_json is None:
         raise UserError("No body in request")
-    aliases = [record["value"] for record in aliases_json]
+    aliases = [record["value"] for record in aliases_json["aliases"]]
 
     # authorization and error handling done in driver
     ret = blueprint.index_driver.replace_aliases_for_did(aliases, record)

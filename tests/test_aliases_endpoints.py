@@ -18,14 +18,16 @@ def to_payload(aliases):
     Boxes a list of aliases into a JSON payload object expected
     by the server.
     """
-    return [{"value": alias} for alias in aliases]
+    return {
+        "aliases": [{"value": alias} for alias in aliases]
+    }
 
 def payload_to_list(alias_payload):
     """
     Unboxes a JSON payload object expected by the server into
     a list of alias names.
     """
-    return [record["value"] for record in alias_payload]
+    return [record["value"] for record in alias_payload["aliases"]]
 
 def create_random_record(client, user):
     """
@@ -472,7 +474,7 @@ def test_DELETE_all_aliases_valid_GUID(client, user, guid, aliases):
     # expect all aliases to be gone
     res = client.get(get_endpoint(guid))
     aliases_in_db = payload_to_list(res.get_json())
-    expected_aliases = to_payload([])
+    expected_aliases = []
     assert aliases_in_db == expected_aliases
 
 def test_DELETE_all_aliases_unauthenticated(client, user, guid, aliases):
