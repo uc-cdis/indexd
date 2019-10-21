@@ -21,7 +21,6 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
-from sqlalchemy.sql.expression import exists
 
 from indexd import auth
 from indexd.errors import UserError
@@ -774,7 +773,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             query = session.query(IndexRecordAlias).filter(IndexRecordAlias.did == did)
             return [i.name for i in query]
-    
+
     def append_aliases_for_did(self, aliases, did):
         """
         Append one or more aliases to aliases already associated with one DID / GUID.
@@ -797,7 +796,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 session.commit()
             except IntegrityError:
                 raise UserError()
-        
+
         return
 
     def replace_aliases_for_did(self, aliases, did):
@@ -866,10 +865,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             num_rows_deleted = session.query(IndexRecordAlias).\
                 filter(IndexRecordAlias.did == did, IndexRecordAlias.name == alias).\
                 delete(synchronize_session='evaluate')
-            
+
             if num_rows_deleted == 0:
                 raise NoRecordFound(alias)
-    
+
     def get(self, did):
         """
         Gets a record given the record id or baseid.

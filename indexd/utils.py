@@ -194,20 +194,3 @@ def is_empty_database(driver):
     table_list = Inspector.from_engine(driver.engine).get_table_names()
 
     return len(table_list) == 0
-
-def get_root_endpoint_names():
-    """
-    gets the API endpoints on the root of the API.
-    """
-    return [
-        "urls",
-        "index",
-        "bulk",
-        "_query",
-        "alias",
-        "ga4gh",
-        "_status",
-        "_version",
-        "_stats",
-        "static",
-    ]

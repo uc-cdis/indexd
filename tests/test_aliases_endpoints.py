@@ -2,7 +2,6 @@ import pytest
 import string
 import json
 import urllib.parse
-from tests.test_client import get_doc
 
 from indexd import get_app
 
@@ -32,7 +31,13 @@ def create_random_record(client, user):
     """
     Creates a random record in indexd and returns that record's GUID.
     """
-    document = get_doc()
+    document = {
+        "form": "object",
+        "size": 123,
+        "urls": ["s3://endpointurl/bucket/key"],
+        "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "metadata": {"project_id": "bpa-UChicago"},
+    }
     res = client.post("/index/", json=document, headers=user)
     assert res.status_code == 200
     # The GUID is the "did" (Document IDentifier) returned from a successful 
