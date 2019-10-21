@@ -84,3 +84,21 @@ PUT_RECORD_SCHEMA = {
         "urls_metadata": {"type": "object"},
     },
 }
+
+RECORD_ALIAS_SCHEMA = {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "additionalProperties": False,
+    "description": "Aliases that can be used in place of an Index record's DID",
+    "properties": {
+        "aliases": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "value": {"type": "string"}
+                }
+            }
+        }
+    }
+}

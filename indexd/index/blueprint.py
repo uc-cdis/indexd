@@ -13,6 +13,7 @@ from indexd.errors import UserError
 
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
+from .schema import RECORD_ALIAS_SCHEMA
 
 from .errors import NoRecordFound
 from .errors import MultipleRecordsFound
@@ -396,11 +397,12 @@ def append_aliases(record):
     Append one or more aliases to aliases already associated with this
     DID / GUID, if any.
     """
-    # If MIME type of request is not application/JSON, flask.request.get_json()
-    # will return None.
     aliases_json = flask.request.get_json()
-    if aliases_json is None:
-        raise UserError("No body in request")
+    try:
+        jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
+    except jsonschema.ValidationError as err:
+        raise UserError(err)
+
     aliases = [record["value"] for record in aliases_json["aliases"]]
 
     # authorization and error handling done in driver
@@ -416,8 +418,11 @@ def replace_aliases(record):
     # If MIME type of request is not application/JSON, flask.request.get_json()
     # will return None.
     aliases_json = flask.request.get_json()
-    if aliases_json is None:
-        raise UserError("No body in request")
+    try:
+        jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
+    except jsonschema.ValidationError as err:
+        raise UserError(err)
+
     aliases = [record["value"] for record in aliases_json["aliases"]]
 
     # authorization and error handling done in driver

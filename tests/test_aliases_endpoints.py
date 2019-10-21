@@ -70,6 +70,7 @@ def aliases(client, user, guid):
 
     url = get_endpoint(guid)
     res = client.put(url, json=alias_payload, headers=user)
+    print("DEBUG", alias_payload)
     assert res.status_code == 200
 
     return aliases
