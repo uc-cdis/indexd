@@ -435,8 +435,6 @@ paths:
       responses:
         '200':
           description: successful operation
-          schema:
-            $ref: '#/definitions/OutputRef'
         '400':
           description: 'Invalid request: One or more aliases are non-unique: one or more of the aliases are already associated with this or another GUID.'
           schema:
@@ -472,8 +470,6 @@ paths:
       responses:
         '200':
           description: success
-          schema:
-            $ref: '#/definitions/AliasInfo'
         '400':
           description: 'Invalid request: One or more aliases are non-unique: one or more of the aliases are already associated with another GUID.'
           schema:
