@@ -303,7 +303,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Initialize the SQLAlchemy database driver.
         """
         super(SQLAlchemyIndexDriver, self).__init__(conn, **config)
-        self.logger = logger or get_logger('SQLAlchemyIndexDriver')
+        self.logger = logger or get_logger(__name__ + "." + self.__class__.__name__)
         self.config = index_config or {}
 
         Base.metadata.bind = self.engine
@@ -315,7 +315,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             init_schema_version(
                 driver=self,
                 model=IndexSchemaVersion,
-                version=CURRENT_SCHEMA_VERSION)
+                current_version=CURRENT_SCHEMA_VERSION)
 
         if auto_migrate:
             self.migrate_index_database()
@@ -1282,7 +1282,7 @@ def migrate_12(session, **kwargs):
         # metadata migration to jsonb
         session.execute("""
             UPDATE index_record r
-            SET (index_metadata) = (m.meta)
+            SET index_metadata = m.meta
             FROM (
                 SELECT did, CAST(json_object_agg(key, value) AS JSONB) AS meta
                 FROM index_record_metadata
@@ -1294,7 +1294,7 @@ def migrate_12(session, **kwargs):
 
         session.execute("""
             UPDATE index_record r
-            SET (release_number) = (re.release_number)
+            SET release_number = re.release_number
             FROM (
                 SELECT did, value as release_number
                 FROM index_record_metadata
@@ -1313,7 +1313,7 @@ def migrate_12(session, **kwargs):
 
         session.execute("""
             UPDATE index_record_url_metadata_jsonb as main
-            SET (urls_metadata) = (um.meta)
+            SET urls_metadata = um.meta
             FROM (
                 SELECT did, url, CAST(json_object_agg(key, value) AS JSONB) AS meta
                 FROM index_record_url_metadata
@@ -1325,7 +1325,7 @@ def migrate_12(session, **kwargs):
 
         session.execute("""
             UPDATE index_record_url_metadata_jsonb as main
-            SET (type) = (t.type)
+            SET "type" = t.type
             FROM (
                 SELECT did, url, value AS type
                 FROM index_record_url_metadata
@@ -1336,7 +1336,7 @@ def migrate_12(session, **kwargs):
 
         session.execute("""
             UPDATE index_record_url_metadata_jsonb as main
-            SET (state) = (s.state)
+            SET state = s.state
             FROM (
                 SELECT did, url, value AS state
                 FROM index_record_url_metadata

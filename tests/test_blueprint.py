@@ -5,7 +5,6 @@ from indexd.bulk.blueprint import blueprint as indexd_bulk_blueprint
 from indexd.index.blueprint import blueprint as indexd_index_blueprint
 
 
-
 def test_flask_blueprint(index_driver, alias_driver):
     """
     Tests standing up the server using flask.
