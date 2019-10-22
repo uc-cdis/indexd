@@ -38,52 +38,44 @@ def setup_indexd_test_database(request):
     request.addfinalizer(try_drop_test_data)
 
 
-def truncate_tables(driver, base):
+def drop_tables(driver, base):
     """Drop all the tables in this application's scope.
 
     This has the same effect as deleting the sqlite file. Your test will have a
     fresh database for it's run.
     """
 
-    # Drop tables in reverse order to avoid cascade drop errors.
-    # metadata is a sqlalchemy property.
-    # sorted_tables is a list of tables sorted by their dependencies.
-    with driver.engine.begin() as txn:
+    with driver.session:
+        # Drop tables in reverse order to avoid cascade drop errors.
+        # metadata is a sqlalchemy property.
+        # sorted_tables is a list of tables sorted by their dependencies.
         for table in reversed(base.metadata.sorted_tables):
-            # do not clear schema versions so each test does not re-trigger migration.
-            if table.name not in ["index_schema_version", "alias_schema_version"]:
-                txn.execute("TRUNCATE {} CASCADE;".format(table.name))
+            # Check first to see if the table exists before dropping it.
+            table.drop(checkfirst=True)
 
 
 @pytest.fixture
 def index_driver():
-    driver = SQLAlchemyIndexDriver(PG_URL, auto_migrate=False)
+    driver = SQLAlchemyIndexDriver(PG_URL)
     yield driver
-    truncate_tables(driver, index_base)
+    drop_tables(driver, index_base)
     driver.dispose()
 
 
 @pytest.fixture
 def alias_driver():
-    driver = SQLAlchemyAliasDriver(PG_URL, auto_migrate=False)
+    driver = SQLAlchemyAliasDriver(PG_URL)
     yield driver
-    truncate_tables(driver, alias_base)
-    driver.dispose()
-
-
-@pytest.fixture(scope="session")
-def auth_driver():
-    driver = SQLAlchemyAuthDriver(PG_URL)
-    yield driver
+    drop_tables(driver, alias_base)
     driver.dispose()
 
 
 @pytest.fixture
-def indexd_admin_user(auth_driver):
-    username = password = "admin"
-    auth_driver.add(username, password)
-    yield username, password
-    auth_driver.delete("admin")
+def auth_driver():
+    driver = SQLAlchemyAuthDriver(PG_URL)
+    yield driver
+    drop_tables(driver, auth_base)
+    driver.dispose()
 
 
 @pytest.fixture
@@ -94,7 +86,7 @@ def index_driver_no_migrate():
     """
     driver = SQLAlchemyIndexDriver(PG_URL, auto_migrate=False)
     yield driver
-    truncate_tables(driver, index_base)
+    drop_tables(driver, index_base)
     driver.dispose()
 
 
@@ -106,17 +98,17 @@ def alias_driver_no_migrate():
     """
     driver = SQLAlchemyAliasDriver(PG_URL, auto_migrate=False)
     yield driver
-    truncate_tables(driver, alias_base)
+    drop_tables(driver, alias_base)
     driver.dispose()
 
 
 @pytest.fixture
 def create_indexd_tables(index_driver, alias_driver, auth_driver):
     """Make sure the tables are created but don't operate on them directly.
+
     Also set up the password to be accessed by the client tests.
-    Migration not required as tables will be created with most recent models
     """
-    pass
+    auth_driver.add('admin', 'admin')
 
 
 @pytest.fixture
@@ -127,13 +119,13 @@ def create_indexd_tables_no_migrate(
     There is no migration required for the SQLAlchemyAuthDriver.
     Also set up the password to be accessed by the client tests.
     """
-    pass
+    auth_driver.add('admin', 'admin')
 
 
 @pytest.fixture
-def indexd_client(indexd_server, create_indexd_tables, indexd_admin_user):
+def indexd_client(indexd_server, create_indexd_tables):
     """Create the tables and add an auth user"""
-    return IndexClient(indexd_server.baseurl, auth=(indexd_admin_user[0], indexd_admin_user[1]))
+    return IndexClient('http://localhost:8001', auth=('admin', 'admin'))
 
 
 @pytest.fixture(scope='session')

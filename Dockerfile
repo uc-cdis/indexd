@@ -1,4 +1,4 @@
-FROM quay.io/ncigdc/apache-base:1.0.3 as build
+FROM quay.io/ncigdc/apache-base:2.4.18-1.0.0 as build
 
 
 COPY . /indexd
@@ -17,11 +17,11 @@ RUN apt-get update \
  && pip install -r build/requirements.txt \
  && python setup.py install 
 
-FROM quay.io/ncigdc/apache-base:1.0.3
+FROM quay.io/ncigdc/apache-base:2.4.18-1.0.0
 
 LABEL org.label-schema.name="indexd" \
       org.label-schema.description="indexd container image" \
-      org.label-schema.version="2.2.0" \
+      org.label-schema.version="1.0.0" \
       org.label-schema.schema-version="1.0"
 
 RUN mkdir -p /var/www/indexd/ \

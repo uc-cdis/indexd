@@ -23,7 +23,6 @@ from indexd_test_utils import (
     create_indexd_tables_no_migrate,
     index_driver,
     index_driver_no_migrate,
-    indexd_admin_user,
     indexd_server,
     setup_indexd_test_database,
 )
@@ -57,23 +56,20 @@ def app(index_driver, alias_driver, auth_driver):
 @pytest.fixture
 def user(auth_driver):
     auth_driver.add('test', 'test')
-    yield {
+    return {
         'Authorization': (
             'Basic ' +
             base64.b64encode(b'test:test').decode('ascii')),
         'Content-Type': 'application/json'
     }
 
-    # clean user
-    auth_driver.delete('test')
-
 
 @pytest.fixture
-def swg_config(indexd_server, index_driver, alias_driver, indexd_admin_user):
+def swg_config(indexd_server, create_indexd_tables):
     config = swagger_client.Configuration()
-    config.host = indexd_server.baseurl
-    config.username = indexd_admin_user[0]
-    config.password = indexd_admin_user[1]
+    config.host = 'http://localhost:8001'
+    config.username = 'admin'
+    config.password = 'admin'
     return config
 
 

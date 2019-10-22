@@ -4,11 +4,6 @@ import re
 from sqlalchemy import create_engine
 from sqlalchemy.engine.reflection import Inspector
 
-import sqlalchemy_utils
-
-
-logger = logging.getLogger(__name__)
-
 
 def hint_match(record, hints):
     for hint in hints:
@@ -22,12 +17,19 @@ def try_drop_test_data(
 
     # Using an engine that connects to the `postgres` database allows us to
     # create a new database.
-    engine = create_engine("postgres://{user}@{host}/{name}".format(
-        user=root_user, host=host, name=database))
+    engine = create_engine("postgres://{user}@{host}/postgres".format(
+        user=root_user, host=host))
 
-    if sqlalchemy_utils.database_exists(engine.url):
-        sqlalchemy_utils.drop_database(engine.url)
+    conn = engine.connect()
+    conn.execute("commit")
 
+    try:
+        create_stmt = 'DROP DATABASE "{database}"'.format(database=database)
+        conn.execute(create_stmt)
+    except Exception as e:
+        logging.warn("Unable to drop test data: %s", e)
+
+    conn.close()
     engine.dispose()
 
 
@@ -41,12 +43,16 @@ def setup_database(
 
     # Create an engine connecting to the `postgres` database allows us to
     # create a new database from there.
-    engine = create_engine("postgres://{user}@{host}/{name}".format(
-        user=root_user, host=host, name=database))
-    if not sqlalchemy_utils.database_exists(engine.url):
-        sqlalchemy_utils.create_database(engine.url)
-
+    engine = create_engine("postgres://{user}@{host}/postgres".format(
+        user=root_user, host=host))
     conn = engine.connect()
+    conn.execute("commit")
+
+    create_stmt = 'CREATE DATABASE "{database}"'.format(database=database)
+    try:
+        conn.execute(create_stmt)
+    except Exception:
+        logging.warn('Unable to create database')
 
     if not no_user:
         try:
@@ -59,9 +65,36 @@ def setup_database(
             conn.execute(perm_stmt)
             conn.execute("commit")
         except Exception as e:
-            logger.warning("Unable to add user: %s", e)
+            logging.warn("Unable to add user: %s", e)
     conn.close()
-    engine.dispose()
+
+
+def create_tables(host, user, password, database):
+    """
+    create tables
+    """
+    engine = create_engine("postgres://{user}:{pwd}@{host}/{db}".format(
+        user=user, host=host, pwd=password, db=database))
+    conn = engine.connect()
+
+    create_index_record_stm = "CREATE TABLE index_record (\
+        did VARCHAR NOT NULL, rev VARCHAR, form VARCHAR, size BIGINT, PRIMARY KEY (did) )"
+    create_record_hash_stm = "CREATE TABLE index_record_hash (\
+        did VARCHAR NOT NULL, hash_type VARCHAR NOT NULL, hash_value VARCHAR, \
+        PRIMARY KEY (did, hash_type), FOREIGN KEY(did) REFERENCES index_record (did))"
+    create_record_url_stm = "CREATE TABLE index_record_url( \
+        did VARCHAR NOT NULL, url VARCHAR NOT NULL, PRIMARY KEY (did, url),\
+        FOREIGN KEY(did) REFERENCES index_record (did) )"
+    create_index_schema_version_stm = "CREATE TABLE index_schema_version (\
+        version INT)"
+    try:
+        conn.execute(create_index_record_stm)
+        conn.execute(create_record_hash_stm)
+        conn.execute(create_record_url_stm)
+        conn.execute(create_index_schema_version_stm)
+    except Exception:
+        logging.warn('Unable to create table')
+    conn.close()
 
 
 def check_engine_for_migrate(engine):
@@ -77,24 +110,24 @@ def check_engine_for_migrate(engine):
     return engine.dialect.supports_alter
 
 
-def init_schema_version(driver, model, current_version):
+def init_schema_version(driver, model, version):
     """
     initialize schema table with a initialized singleton of version
 
     Args:
         driver (object): an alias or index driver instance
         model (sqlalchemy.ext.declarative.api.Base): the version table model
-        current_version (int): current schema version
+
     Return:
         version (int): current version number in database
     """
     with driver.session as s:
         schema_version = s.query(model).first()
         if not schema_version:
-            schema_version = model(version=current_version)
+            schema_version = model(version=version)
             s.add(schema_version)
-        current_version = schema_version.version
-    return current_version
+        version = schema_version.version
+    return version
 
 
 def migrate_database(driver, migrate_functions, current_schema_version, model):
@@ -105,7 +138,7 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
     Args:
         driver (object): an alias or index driver instance
         migrate_functions (list): a list of migration functions
-        current_schema_version (int): version of current schema in code
+        curent_schema_version (int): version of current schema in code
         model (sqlalchemy.ext.declarative.api.Base): the version table model
 
     Return:
@@ -116,7 +149,7 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
     need_migrate = (current_schema_version - db_schema_version) > 0
 
     if not check_engine_for_migrate(driver.engine) and need_migrate:
-        logger.error(
+        driver.logger.error(
             'Engine {} does not support alter, skip migration'.format(
                 driver.engine.dialect.name))
         return
@@ -125,13 +158,13 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
         with driver.session as s:
             schema_version = s.query(model).first()
             schema_version.version += 1
-            logger.debug('migrating {} schema to {}'.format(
+            driver.logger.debug('migrating {} schema to {}'.format(
                 driver.__class__.__name__,
                 schema_version.version))
 
             f(engine=driver.engine, session=s)
-            s.merge(schema_version)
-            logger.debug('finished migration for version {}'.format(
+            s.add(schema_version)
+            driver.logger.debug('finished migration for version {}'.format(
                 schema_version.version))
 
 

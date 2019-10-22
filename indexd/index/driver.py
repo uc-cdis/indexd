@@ -8,7 +8,6 @@ class IndexDriverABC(SQLAlchemyDriverBase):
 
     Driver interface for interacting with index backends.
     '''
-
     def __init__(self, conn, **config):
         super(IndexDriverABC, self).__init__(conn, **config)
 

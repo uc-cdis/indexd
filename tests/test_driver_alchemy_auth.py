@@ -12,7 +12,6 @@ DIGESTED = SQLAlchemyAuthDriver.digest(PASSWORD)
 
 # TODO check if pytest has utilities for meta-programming of tests
 
-
 def test_driver_init_does_not_create_records(auth_driver, database_conn):
     """
     Tests for creation of records after driver init.
@@ -21,7 +20,7 @@ def test_driver_init_does_not_create_records(auth_driver, database_conn):
     count = database_conn.execute(
         'SELECT COUNT(*) FROM auth_record').fetchone()[0]
 
-    assert count == 0, 'driver created records upon initialization'
+    assert count == 0, 'driver created records upon initilization'
 
 
 def test_driver_auth_accepts_good_creds(auth_driver, database_conn):
@@ -34,7 +33,6 @@ def test_driver_auth_accepts_good_creds(auth_driver, database_conn):
     ))
 
     auth_driver.auth(USERNAME, PASSWORD)
-    auth_driver.delete(USERNAME)
 
 
 def test_driver_auth_rejects_bad_creds(auth_driver, database_conn):
@@ -51,7 +49,6 @@ def test_driver_auth_rejects_bad_creds(auth_driver, database_conn):
 
     with pytest.raises(AuthError):
         auth_driver.auth('invalid_' + USERNAME, PASSWORD)
-    auth_driver.delete(USERNAME)
 
 
 def test_driver_auth_returns_user_context(auth_driver, database_conn):
@@ -65,4 +62,3 @@ def test_driver_auth_returns_user_context(auth_driver, database_conn):
     user = auth_driver.auth(USERNAME, PASSWORD)
 
     assert user is not None, 'user context was None'
-    auth_driver.delete(USERNAME)
