@@ -13,6 +13,7 @@ setup(
         'flask<2',
         'jsonschema<3',
         'sqlalchemy==1.3.3',
+        'sqlalchemy-utils<1',
         'cdislogging<2',
         'indexclient<2',
         'doiclient<2',
