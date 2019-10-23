@@ -10,13 +10,13 @@ setup(
         ]
     },
     install_requires=[
-        'flask',
-        'jsonschema',
-        'sqlalchemy',
-        'future',
-        'cdislogging',
-        'indexclient',
-        'doiclient',
-        'dosclient',
+        'flask<2',
+        'jsonschema<3',
+        'sqlalchemy==1.3.3',
+        'cdislogging<2',
+        'indexclient<2',
+        'doiclient<2',
+        'dosclient<2',
+        'future<1',
     ],
 )
