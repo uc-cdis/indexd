@@ -1,0 +1,6 @@
+bin/*
+indexd/*
+requirements.txt
+setup.py
+test-requirements.txt
+wsgi.py
