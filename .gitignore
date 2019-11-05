@@ -58,6 +58,7 @@ docs/_build/
 
 #venv
 .venv*/
+venv/
 
 #.swp
 *.swp
@@ -68,3 +69,6 @@ settings.yaml
 
 # swagger
 swagger-codegen-cli-2.3.1.jar
+
+# IDE
+.vscode

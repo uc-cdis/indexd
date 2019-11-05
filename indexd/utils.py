@@ -158,13 +158,13 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
         with driver.session as s:
             schema_version = s.query(model).first()
             schema_version.version += 1
-            driver.logger.info('migrating {} schema to {}'.format(
+            driver.logger.debug('migrating {} schema to {}'.format(
                 driver.__class__.__name__,
                 schema_version.version))
 
             f(engine=driver.engine, session=s)
             s.add(schema_version)
-            driver.logger.info('finished migration for version {}'.format(
+            driver.logger.debug('finished migration for version {}'.format(
                 schema_version.version))
 
 
