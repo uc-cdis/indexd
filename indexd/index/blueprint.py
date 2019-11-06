@@ -22,7 +22,7 @@ from .errors import UnhealthyCheck
 
 from cdislogging import get_logger
 
-logger = get_logger("indexd/index blueprint", log_level="info") # TODO configure log levels
+logger = get_logger("indexd/index blueprint", log_level="info")
 
 blueprint = flask.Blueprint("index", __name__)
 
@@ -398,7 +398,9 @@ def append_aliases(record):
     Append one or more aliases to aliases already associated with this
     DID / GUID, if any.
     """
-    aliases_json = flask.request.get_json()
+    # we set force=True so that if MIME type of request is not application/JSON,
+    # get_json will still throw a UserError.
+    aliases_json = flask.request.get_json(force=True)
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
     except jsonschema.ValidationError as err:
@@ -418,9 +420,9 @@ def replace_aliases(record):
     """
     Replace all aliases associated with this DID / GUID
     """
-    # If MIME type of request is not application/JSON, flask.request.get_json()
-    # will return None.
-    aliases_json = flask.request.get_json()
+    # we set force=True so that if MIME type of request is not application/JSON,
+    # get_json will still throw a UserError.
+    aliases_json = flask.request.get_json(force=True)
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
     except jsonschema.ValidationError as err:

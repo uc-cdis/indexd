@@ -256,6 +256,14 @@ def create_urls_metadata(urls_metadata, record, session):
             session.add(IndexRecordUrlMetadata(url=url, key=k, value=v, did=record.did))
 
 
+def get_record_if_exists(did, session):
+    """
+    Searches for a record with this did and returns it.
+    If no record found, returns None.
+    """
+    return session.query(IndexRecord).filter(IndexRecord.did == did).first()
+
+
 class SQLAlchemyIndexDriver(IndexDriverABC):
     """
     SQLAlchemy implementation of index driver.
@@ -765,10 +773,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             self.logger.info(f"Trying to get all aliases for did {did}...")
-            # validation: confirm index record with this GUID exists
-            index_record = (
-                session.query(IndexRecord).filter(IndexRecord.did == did).first()
-            )
+
+            index_record = get_record_if_exists(did, session)
             if index_record is None:
                 self.logger.warn(f"No record found for did {did}")
                 raise NoRecordFound(did)
@@ -781,11 +787,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Append one or more aliases to aliases already associated with one DID / GUID.
         """
         with self.session as session:
-            self.logger.info(f"Trying to append new aliases {aliases} to aliases for did {did}...")
-            # validation: confirm index record with this GUID exists
-            index_record = (
-                session.query(IndexRecord).filter(IndexRecord.did == did).first()
+            self.logger.info(
+                f"Trying to append new aliases {aliases} to aliases for did {did}..."
             )
+
+            index_record = get_record_if_exists(did, session)
             if index_record is None:
                 self.logger.warn(f"No record found for did {did}")
                 raise NoRecordFound(did)
@@ -795,7 +801,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 resources = [u.resource for u in index_record.authz]
                 auth.authorize("update", resources)
             except AuthError as err:
-                self.logger.warn(f"Auth error while appending aliases to did {did}: User not authorized to update one or more of these resources: {resources}")
+                self.logger.warn(
+                    f"Auth error while appending aliases to did {did}: User not authorized to update one or more of these resources: {resources}"
+                )
                 raise err
 
             # add new aliases
@@ -807,21 +815,23 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 session.commit()
             except IntegrityError as err:
                 # One or more aliases in request were non-unique
-                self.logger.warn(f"One or more aliases in request already associated with this or another GUID: {aliases}")
-                raise UserError(f"One or more aliases in request already associated with this or another GUID: {aliases}")
-
-        return
+                self.logger.warn(
+                    f"One or more aliases in request already associated with this or another GUID: {aliases}"
+                )
+                raise UserError(
+                    f"One or more aliases in request already associated with this or another GUID: {aliases}"
+                )
 
     def replace_aliases_for_did(self, aliases, did):
         """
         Replace all aliases for one DID / GUID with new aliases.
         """
         with self.session as session:
-            self.logger.info(f"Trying to replace aliases for did {did} with new aliases {aliases}...")
-            # validation: confirm index record with this GUID exists
-            index_record = (
-                session.query(IndexRecord).filter(IndexRecord.did == did).first()
+            self.logger.info(
+                f"Trying to replace aliases for did {did} with new aliases {aliases}..."
             )
+
+            index_record = get_record_if_exists(did, session)
             if index_record is None:
                 self.logger.warn(f"No record found for did {did}")
                 raise NoRecordFound(did)
@@ -831,7 +841,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 resources = [u.resource for u in index_record.authz]
                 auth.authorize("update", resources)
             except AuthError as err:
-                self.logger.warn(f"Auth error while replacing aliases for did {did}: User not authorized to update one or more of these resources: {resources}")
+                self.logger.warn(
+                    f"Auth error while replacing aliases for did {did}: User not authorized to update one or more of these resources: {resources}"
+                )
                 raise err
 
             try:
@@ -845,11 +857,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 ]
                 session.add_all(index_record_aliases)
                 session.commit()
-                self.logger.info(f"Replaced aliases for did {did} with new aliases {aliases}")
+                self.logger.info(
+                    f"Replaced aliases for did {did} with new aliases {aliases}"
+                )
             except IntegrityError:
                 # One or more aliases in request were non-unique
-                self.logger.warn(f"One or more aliases in request already associated with another GUID: {aliases}")
-                raise UserError(f"One or more aliases in request already associated with another GUID: {aliases}")
+                self.logger.warn(
+                    f"One or more aliases in request already associated with another GUID: {aliases}"
+                )
+                raise UserError(
+                    f"One or more aliases in request already associated with another GUID: {aliases}"
+                )
 
     def delete_all_aliases_for_did(self, did):
         """
@@ -857,10 +875,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             self.logger.info(f"Trying to delete all aliases for did {did}...")
-            # validation: confirm index record with this GUID exists
-            index_record = (
-                session.query(IndexRecord).filter(IndexRecord.did == did).first()
-            )
+
+            index_record = get_record_if_exists(did, session)
             if index_record is None:
                 self.logger.warn(f"No record found for did {did}")
                 raise NoRecordFound(did)
@@ -870,7 +886,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 resources = [u.resource for u in index_record.authz]
                 auth.authorize("delete", resources)
             except AuthError as err:
-                self.logger.warn(f"Auth error while deleting all aliases for did {did}: User not authorized to delete one or more of these resources: {resources}")
+                self.logger.warn(
+                    f"Auth error while deleting all aliases for did {did}: User not authorized to delete one or more of these resources: {resources}"
+                )
                 raise err
 
             # delete all aliases
@@ -886,10 +904,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             self.logger.info(f"Trying to delete alias {alias} for did {did}...")
-            # validation: confirm index record with this GUID exists
-            index_record = (
-                session.query(IndexRecord).filter(IndexRecord.did == did).first()
-            )
+
+            index_record = get_record_if_exists(did, session)
             if index_record is None:
                 self.logger.warn(f"No record found for did {did}")
                 raise NoRecordFound(did)
@@ -899,7 +915,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 resources = [u.resource for u in index_record.authz]
                 auth.authorize("delete", resources)
             except AuthError as err:
-                self.logger.warn(f"Auth error deleting alias {alias} for did {did}: User not authorized to delete one or more of these resources: {resources}")
+                self.logger.warn(
+                    f"Auth error deleting alias {alias} for did {did}: User not authorized to delete one or more of these resources: {resources}"
+                )
                 raise err
 
             # delete just this alias
