@@ -236,7 +236,6 @@ def test_migrate_12(index_driver_no_migrate, create_indexd_tables_no_migrate, da
         assert row.urls_metadata == None
 
 
-
 def test_migrate_index(index_driver_no_migrate, database_conn):
     def test_migrate_index_internal(monkeypatch):
         called = []
