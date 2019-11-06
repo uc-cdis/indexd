@@ -765,9 +765,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             # validation: confirm index record with this GUID exists
-            index_record = session.query(IndexRecord).\
-                filter(IndexRecord.did == did).\
-                first()
+            index_record = (
+                session.query(IndexRecord).filter(IndexRecord.did == did).first()
+            )
             if index_record is None:
                 raise NoRecordFound(did)
 
@@ -780,9 +780,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             # validation: confirm index record with this GUID exists
-            index_record = session.query(IndexRecord).\
-                filter(IndexRecord.did == did).\
-                first()
+            index_record = (
+                session.query(IndexRecord).filter(IndexRecord.did == did).first()
+            )
             if index_record is None:
                 raise NoRecordFound(did)
 
@@ -790,7 +790,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             auth.authorize("update", [u.resource for u in index_record.authz])
 
             # add new aliases
-            index_record_aliases = [IndexRecordAlias(did=did, name=alias) for alias in aliases]
+            index_record_aliases = [
+                IndexRecordAlias(did=did, name=alias) for alias in aliases
+            ]
             try:
                 session.add_all(index_record_aliases)
                 session.commit()
@@ -805,9 +807,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             # validation: confirm index record with this GUID exists
-            index_record = session.query(IndexRecord).\
-                filter(IndexRecord.did == did).\
-                first()
+            index_record = (
+                session.query(IndexRecord).filter(IndexRecord.did == did).first()
+            )
             if index_record is None:
                 raise NoRecordFound(did)
 
@@ -816,11 +818,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 # delete this GUID's aliases
-                session.query(IndexRecordAlias).\
-                    filter(IndexRecordAlias.did == did).\
-                    delete(synchronize_session='evaluate')
+                session.query(IndexRecordAlias).filter(
+                    IndexRecordAlias.did == did
+                ).delete(synchronize_session="evaluate")
                 # add new aliases
-                index_record_aliases = [IndexRecordAlias(did=did, name=alias) for alias in aliases]
+                index_record_aliases = [
+                    IndexRecordAlias(did=did, name=alias) for alias in aliases
+                ]
                 session.add_all(index_record_aliases)
                 session.commit()
             except IntegrityError:
@@ -832,9 +836,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             # validation: confirm index record with this GUID exists
-            index_record = session.query(IndexRecord).\
-                filter(IndexRecord.did == did).\
-                first()
+            index_record = (
+                session.query(IndexRecord).filter(IndexRecord.did == did).first()
+            )
             if index_record is None:
                 raise NoRecordFound(did)
 
@@ -842,9 +846,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             auth.authorize("delete", [u.resource for u in index_record.authz])
 
             # delete all aliases
-            session.query(IndexRecordAlias).\
-                filter(IndexRecordAlias.did == did).\
-                delete(synchronize_session='evaluate')
+            session.query(IndexRecordAlias).filter(IndexRecordAlias.did == did).delete(
+                synchronize_session="evaluate"
+            )
 
     def delete_one_alias_for_did(self, alias, did):
         """
@@ -852,9 +856,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             # validation: confirm index record with this GUID exists
-            index_record = session.query(IndexRecord).\
-                filter(IndexRecord.did == did).\
-                first()
+            index_record = (
+                session.query(IndexRecord).filter(IndexRecord.did == did).first()
+            )
             if index_record is None:
                 raise NoRecordFound(did)
 
@@ -862,9 +866,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             auth.authorize("delete", [u.resource for u in index_record.authz])
 
             # delete just this alias
-            num_rows_deleted = session.query(IndexRecordAlias).\
-                filter(IndexRecordAlias.did == did, IndexRecordAlias.name == alias).\
-                delete(synchronize_session='evaluate')
+            num_rows_deleted = (
+                session.query(IndexRecordAlias)
+                .filter(IndexRecordAlias.did == did, IndexRecordAlias.name == alias)
+                .delete(synchronize_session="evaluate")
+            )
 
             if num_rows_deleted == 0:
                 raise NoRecordFound(alias)
@@ -1356,10 +1362,12 @@ def migrate_12(session, **kwargs):
         "ALTER TABLE {} DROP COLUMN rbac;".format(IndexRecord.__tablename__)
     )
 
+
 def migrate_13(session, **kwargs):
     session.execute(
         "ALTER TABLE {} ADD UNIQUE ( name )".format(IndexRecordAlias.__tablename__)
     )
+
 
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written

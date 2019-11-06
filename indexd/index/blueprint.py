@@ -375,6 +375,7 @@ def add_index_record_version(record):
 
     return flask.jsonify(ret), 200
 
+
 @blueprint.route("/index/<path:record>/aliases", methods=["GET"])
 def get_aliases(record):
     """
@@ -382,14 +383,13 @@ def get_aliases(record):
     """
     try:
         aliases = blueprint.index_driver.get_aliases_for_did(record)
-        aliases_payload = {
-            "aliases": [{"value": alias} for alias in aliases]
-        }
+        aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
         return flask.jsonify(aliases_payload), 200
     except NoRecordFound as err:
         raise err
     except UserError as err:
         raise err
+
 
 @blueprint.route("/index/<path:record>/aliases", methods=["POST"])
 def append_aliases(record):
@@ -409,6 +409,7 @@ def append_aliases(record):
     ret = blueprint.index_driver.append_aliases_for_did(aliases, record)
 
     return flask.jsonify(ret), 200
+
 
 @blueprint.route("/index/<path:record>/aliases", methods=["PUT"])
 def replace_aliases(record):
@@ -430,6 +431,7 @@ def replace_aliases(record):
 
     return flask.jsonify(ret), 200
 
+
 @blueprint.route("/index/<path:record>/aliases", methods=["DELETE"])
 def delete_all_aliases(record):
     # authorization and error handling done in driver
@@ -437,12 +439,14 @@ def delete_all_aliases(record):
 
     return flask.jsonify("Aliases deleted successfully"), 200
 
+
 @blueprint.route("/index/<path:record>/aliases/<path:alias>", methods=["DELETE"])
 def delete_one_alias(record, alias):
     # authorization and error handling done in driver
     blueprint.index_driver.delete_one_alias_for_did(alias, record)
 
     return flask.jsonify("Aliases deleted successfully"), 200
+
 
 @blueprint.route("/index/<path:record>/versions", methods=["GET"])
 def get_all_index_record_versions(record):

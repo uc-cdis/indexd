@@ -93,12 +93,7 @@ RECORD_ALIAS_SCHEMA = {
     "properties": {
         "aliases": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "value": {"type": "string"}
-                }
-            }
+            "items": {"type": "object", "properties": {"value": {"type": "string"}}},
         }
-    }
+    },
 }
