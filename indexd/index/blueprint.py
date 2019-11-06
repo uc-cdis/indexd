@@ -20,6 +20,10 @@ from .errors import MultipleRecordsFound
 from .errors import RevisionMismatch
 from .errors import UnhealthyCheck
 
+from cdislogging import get_logger
+
+logger = get_logger("indexd/index blueprint", log_level="info") # TODO configure log levels
+
 blueprint = flask.Blueprint("index", __name__)
 
 blueprint.config = dict()
@@ -381,14 +385,11 @@ def get_aliases(record):
     """
     Get all aliases associated with this DID / GUID
     """
-    try:
-        aliases = blueprint.index_driver.get_aliases_for_did(record)
-        aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
-        return flask.jsonify(aliases_payload), 200
-    except NoRecordFound as err:
-        raise err
-    except UserError as err:
-        raise err
+    # error handling done in driver
+    aliases = blueprint.index_driver.get_aliases_for_did(record)
+
+    aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
+    return flask.jsonify(aliases_payload), 200
 
 
 @blueprint.route("/index/<path:record>/aliases", methods=["POST"])
@@ -401,6 +402,7 @@ def append_aliases(record):
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
     except jsonschema.ValidationError as err:
+        logger.warn(f"Bad request body:\n{err}")
         raise UserError(err)
 
     aliases = [record["value"] for record in aliases_json["aliases"]]
@@ -422,6 +424,7 @@ def replace_aliases(record):
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
     except jsonschema.ValidationError as err:
+        logger.warn(f"Bad request body:\n{err}")
         raise UserError(err)
 
     aliases = [record["value"] for record in aliases_json["aliases"]]
