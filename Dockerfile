@@ -21,7 +21,7 @@ FROM quay.io/ncigdc/apache-base:1.0.3-py3.5
 
 LABEL org.label-schema.name="indexd" \
       org.label-schema.description="indexd container image" \
-      org.label-schema.version="1.0.0" \
+      org.label-schema.version="2.2.0" \
       org.label-schema.schema-version="1.0"
 
 RUN mkdir -p /var/www/indexd/ \
