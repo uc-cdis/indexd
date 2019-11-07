@@ -277,7 +277,7 @@ def test_POST_aliases_GUID_already_has_alias(client, user, guid, aliases):
     expect to return 400 and have no effect if valid GUID and one or more aliases 
     already associated with this GUID
     """
-    # pick a random subset of the aliases already associated with this GUID
+    # pick a subset of the aliases already associated with this GUID
     subset_old_aliases = aliases[0:1]
 
     # expect a POST request with the new subset of aliases to fail with 400
@@ -296,7 +296,7 @@ def test_POST_aliases_duplicate_aliases_in_request(
     """
     new_aliases = unused_aliases
 
-    # duplicate some aliases: pick a random subset of the new aliases and
+    # duplicate some aliases: pick a subset of the new aliases and
     # append it to the new aliases
     subset_new_aliases = new_aliases[0:1]
     duplicated_new_aliases = new_aliases + subset_new_aliases
@@ -470,7 +470,7 @@ def test_PUT_aliases_GUID_already_has_alias(client, user, guid, aliases):
     expect to replace aliases if valid GUID and one or more aliases already 
     associated with this GUID, but not already associated with another GUID
     """
-    # pick a random subset of the aliases already associated with this GUID
+    # pick a subset of the aliases already associated with this GUID
     subset_old_aliases = aliases[0:1]
 
     # expect a PUT request with the new subset of aliases to succeed
@@ -496,10 +496,9 @@ def test_PUT_aliases_duplicate_aliases_in_request(
     expect to fail with 400 if valid GUID and one or more aliases duplicated 
     in request
     """
-    # generate random aliases
     new_aliases = unused_aliases
 
-    # duplicate some aliases: pick a random subset of the new aliases and
+    # duplicate some aliases: pick a subset of the new aliases and
     # append it to the new aliases
     subset_new_aliases = new_aliases[0:1]
     duplicated_new_aliases = new_aliases + subset_new_aliases
