@@ -1368,8 +1368,6 @@ def test_index_stats(client, user):
     assert index_stats["totalFileSize"] == data_size
 
 
-
-
 @pytest.mark.parametrize(
     "typ,h",
     [
