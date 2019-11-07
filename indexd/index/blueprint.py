@@ -436,7 +436,6 @@ def replace_aliases(record):
     # authorization and error handling done in driver
     blueprint.index_driver.replace_aliases_for_did(aliases, record)
 
-    aliases = blueprint.index_driver.get_aliases_for_did(record)
     aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
     return flask.jsonify(aliases_payload), 200
 
