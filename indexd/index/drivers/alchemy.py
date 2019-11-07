@@ -366,17 +366,31 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 for u in urls:
                     query = query.filter(IndexRecordUrl.url == u)
 
+            # filter records that have ALL the ACL elements
             if acl:
-                query = query.join(IndexRecord.acl)
+                sub = session.query(IndexRecordACE.did)
+                dids = None
                 for u in acl:
-                    query = query.filter(IndexRecordACE.ace == u)
+                    subsub = sub.filter(IndexRecordACE.ace == u)
+                    if not dids:
+                        dids = set(e[0] for e in subsub.all())
+                    else:
+                        dids = dids.intersection(e[0] for e in subsub.all())
+                query = query.filter(IndexRecord.did.in_(dids))
             elif acl == []:
                 query = query.filter(IndexRecord.acl == None)
 
+            # filter records that have ALL the authz elements
             if authz:
-                query = query.join(IndexRecord.authz)
+                sub = session.query(IndexRecordAuthz.did)
+                dids = None
                 for u in authz:
-                    query = query.filter(IndexRecordAuthz.resource == u)
+                    subsub = sub.filter(IndexRecordAuthz.resource == u)
+                    if not dids:
+                        dids = set(e[0] for e in subsub.all())
+                    else:
+                        dids = dids.intersection(e[0] for e in subsub.all())
+                query = query.filter(IndexRecord.did.in_(dids))
             elif authz == []:
                 query = query.filter(IndexRecord.authz == None)
 
@@ -539,7 +553,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Returns a list of urls matching supplied size/hashes/dids.
         """
-        if not (size or hashes or ids):
+        if size is None and hashes is None and ids is None:
             raise UserError("Please provide size/hashes/ids to filter")
 
         with self.session as session:
