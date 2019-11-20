@@ -13,11 +13,16 @@ from indexd.errors import UserError
 
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
+from .schema import RECORD_ALIAS_SCHEMA
 
 from .errors import NoRecordFound
 from .errors import MultipleRecordsFound
 from .errors import RevisionMismatch
 from .errors import UnhealthyCheck
+
+from cdislogging import get_logger
+
+logger = get_logger("indexd/index blueprint", log_level="info")
 
 blueprint = flask.Blueprint("index", __name__)
 
@@ -373,6 +378,82 @@ def add_index_record_version(record):
     ret = {"did": did, "baseid": baseid, "rev": rev}
 
     return flask.jsonify(ret), 200
+
+
+@blueprint.route("/index/<path:record>/aliases", methods=["GET"])
+def get_aliases(record):
+    """
+    Get all aliases associated with this DID / GUID
+    """
+    # error handling done in driver
+    aliases = blueprint.index_driver.get_aliases_for_did(record)
+
+    aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
+    return flask.jsonify(aliases_payload), 200
+
+
+@blueprint.route("/index/<path:record>/aliases", methods=["POST"])
+def append_aliases(record):
+    """
+    Append one or more aliases to aliases already associated with this
+    DID / GUID, if any.
+    """
+    # we set force=True so that if MIME type of request is not application/JSON,
+    # get_json will still throw a UserError.
+    aliases_json = flask.request.get_json(force=True)
+    try:
+        jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
+    except jsonschema.ValidationError as err:
+        logger.warn(f"Bad request body:\n{err}")
+        raise UserError(err)
+
+    aliases = [record["value"] for record in aliases_json["aliases"]]
+
+    # authorization and error handling done in driver
+    blueprint.index_driver.append_aliases_for_did(aliases, record)
+
+    aliases = blueprint.index_driver.get_aliases_for_did(record)
+    aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
+    return flask.jsonify(aliases_payload), 200
+
+
+@blueprint.route("/index/<path:record>/aliases", methods=["PUT"])
+def replace_aliases(record):
+    """
+    Replace all aliases associated with this DID / GUID
+    """
+    # we set force=True so that if MIME type of request is not application/JSON,
+    # get_json will still throw a UserError.
+    aliases_json = flask.request.get_json(force=True)
+    try:
+        jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
+    except jsonschema.ValidationError as err:
+        logger.warn(f"Bad request body:\n{err}")
+        raise UserError(err)
+
+    aliases = [record["value"] for record in aliases_json["aliases"]]
+
+    # authorization and error handling done in driver
+    blueprint.index_driver.replace_aliases_for_did(aliases, record)
+
+    aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
+    return flask.jsonify(aliases_payload), 200
+
+
+@blueprint.route("/index/<path:record>/aliases", methods=["DELETE"])
+def delete_all_aliases(record):
+    # authorization and error handling done in driver
+    blueprint.index_driver.delete_all_aliases_for_did(record)
+
+    return flask.jsonify("Aliases deleted successfully"), 200
+
+
+@blueprint.route("/index/<path:record>/aliases/<path:alias>", methods=["DELETE"])
+def delete_one_alias(record, alias):
+    # authorization and error handling done in driver
+    blueprint.index_driver.delete_one_alias_for_did(alias, record)
+
+    return flask.jsonify("Aliases deleted successfully"), 200
 
 
 @blueprint.route("/index/<path:record>/versions", methods=["GET"])

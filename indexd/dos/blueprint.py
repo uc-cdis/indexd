@@ -23,7 +23,8 @@ def get_dos_record(record):
     """
     try:
         ret = blueprint.index_driver.get(record)
-        ret["alias"] = blueprint.index_driver.get_aliases_for_did(record)
+        # record may be a baseID or a DID / GUID. If record is a baseID, ret["did"] is the latest GUID for that record.
+        ret["alias"] = blueprint.index_driver.get_aliases_for_did(ret["did"])
     except IndexNoRecordFound:
         try:
             ret = blueprint.index_driver.get_by_alias(record)
