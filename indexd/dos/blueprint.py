@@ -82,29 +82,25 @@ def list_dos_records():
 
 
 def indexd_to_dos(record):
-    data_object = {
-        "id": record['did'],
-        "description": "",
-        "mime_type": "",
-    }
+    data_object = {"id": record["did"], "description": "", "mime_type": ""}
 
-    if 'file_name' in record:
-        data_object['name'] = record['file_name']
+    if "file_name" in record:
+        data_object["name"] = record["file_name"]
 
-    if 'created_date' in record:
-        data_object['created'] = record['created_date']
+    if "created_date" in record:
+        data_object["created"] = record["created_date"]
 
-    if 'updated_date' in record:
-        data_object['updated'] = record['updated_date']
+    if "updated_date" in record:
+        data_object["updated"] = record["updated_date"]
 
-    if 'rev' in record:
-        data_object['version'] = record['rev']
+    if "rev" in record:
+        data_object["version"] = record["rev"]
 
-    if 'size' in record:
-        data_object['size'] = record['size']
+    if "size" in record:
+        data_object["size"] = record["size"]
 
-    if 'alias' in record:
-        data_object['aliases'] = record['alias']
+    if "alias" in record:
+        data_object["aliases"] = record["alias"]
 
     # parse out checksums
     data_object["checksums"] = []
@@ -131,23 +127,27 @@ def indexd_to_dos(record):
 
 @blueprint.errorhandler(UserError)
 def handle_user_error(err):
-    ret = { 'msg': str(err), 'status_code': 400 }
+    ret = {"msg": str(err), "status_code": 400}
     return flask.jsonify(ret), 400
+
 
 @blueprint.errorhandler(AuthError)
 def handle_auth_error(err):
-    ret = { 'msg': str(err), 'status_code': 403 }
+    ret = {"msg": str(err), "status_code": 403}
     return flask.jsonify(ret), 403
+
 
 @blueprint.errorhandler(AliasNoRecordFound)
 def handle_no_alias_record_error(err):
-    ret = { 'msg': str(err), 'status_code': 404 }
+    ret = {"msg": str(err), "status_code": 404}
     return flask.jsonify(ret), 404
+
 
 @blueprint.errorhandler(IndexNoRecordFound)
 def handle_no_index_record_error(err):
-    ret = { 'msg': str(err), 'status_code': 404 }
+    ret = {"msg": str(err), "status_code": 404}
     return flask.jsonify(ret), 404
+
 
 @blueprint.record
 def get_config(setup_state):

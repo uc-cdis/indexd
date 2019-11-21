@@ -77,14 +77,14 @@ def dist_get_record(record):
 
     for indexd in sorted_dist:
         try:
-            if indexd['type'] == "doi": # Digital Object Identifier
-                fetcher_client = DOIClient(baseurl=indexd['host'])
+            if indexd["type"] == "doi":  # Digital Object Identifier
+                fetcher_client = DOIClient(baseurl=indexd["host"])
                 res = fetcher_client.get(record)
-            elif indexd['type'] == "dos": # Data Object Service
-                fetcher_client = DOSClient(baseurl=indexd['host'])
+            elif indexd["type"] == "dos":  # Data Object Service
+                fetcher_client = DOSClient(baseurl=indexd["host"])
                 res = fetcher_client.get(record)
-            elif indexd['type'] == "hs": # HydroShare and CommonsShare
-                fetcher_client = HSClient(baseurl=indexd['host'])
+            elif indexd["type"] == "hs":  # HydroShare and CommonsShare
+                fetcher_client = HSClient(baseurl=indexd["host"])
                 res = fetcher_client.get(record)
             else:
                 fetcher_client = IndexClient(baseurl=indexd["host"])
