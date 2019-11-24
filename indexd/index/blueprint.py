@@ -72,10 +72,11 @@ def get_index():
     if limit < 0 or limit > 1024:
         raise UserError("limit must be between 0 and 1024")
 
-    try:
-        page = int(page) if page is not None
-    except ValueError as err:
-        raise UserError("page must be an integer")
+    if page is not None:
+        try:
+            page = int(page)
+        except ValueError as err:
+            raise UserError("page must be an integer")
 
     size = flask.request.args.get("size")
     try:
