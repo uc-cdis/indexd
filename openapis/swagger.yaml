@@ -204,6 +204,11 @@ paths:
           description: number of records to return for this page, default to 100
           required: false
           type: integer
+        - name: page
+          in: query
+          description: pagination support without relying on dids. offsets results by limit*page
+          required: false
+          type: integer
       produces:
         - application/json
       responses:
@@ -423,7 +428,7 @@ paths:
       parameters:
         - name: GUID
           in: path
-          description: The GUID to associate the new aliases with. 
+          description: The GUID to associate the new aliases with.
           required: true
           type: string
         - in: body
@@ -495,7 +500,7 @@ paths:
       parameters:
         - name: GUID
           in: path
-          description: The GUID to delete these aliases from. 
+          description: The GUID to delete these aliases from.
           required: true
           type: string
       responses:
@@ -506,7 +511,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorResponse'
       security:
-        - basic_auth: []      
+        - basic_auth: []
   '/index/{GUID}/aliases/{ALIAS}':
     delete:
       tags:
@@ -519,7 +524,7 @@ paths:
       parameters:
         - name: GUID
           in: path
-          description: The GUID to delete this alias from. 
+          description: The GUID to delete this alias from.
           required: true
           type: string
         - name: ALIAS
@@ -535,7 +540,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorResponse'
       security:
-        - basic_auth: []      
+        - basic_auth: []
 
   '/index/{GUID}/latest':
     get:
@@ -1022,7 +1027,7 @@ definitions:
       properties:
         aliases:
           type: array
-          items: 
+          items:
             type: object
             properties:
               value:

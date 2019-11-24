@@ -323,6 +323,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     def ids(
         self,
         limit=100,
+        page=None,
         start=None,
         size=None,
         urls=None,
@@ -439,6 +440,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             else:
                 # only apply limit when ids is not provided
                 query = query.limit(limit)
+
+            if page is not None:
+                query = query.offset(limit * page)
 
             return [i.to_document_dict() for i in query]
 
