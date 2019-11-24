@@ -73,7 +73,7 @@ def get_index():
         raise UserError("limit must be between 0 and 1024")
 
     try:
-        page = 100 if page is None else int(page)
+        page = int(page) if page is not None
     except ValueError as err:
         raise UserError("page must be an integer")
 
