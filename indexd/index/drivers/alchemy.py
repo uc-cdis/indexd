@@ -433,7 +433,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if urls_metadata or negate_params:
                 query = query.distinct(IndexRecord.did)
 
-            if page:
+            if page is not None:
                 # when we're paginating, order by updated date so newly added stuff is
                 # at the end (reduce risk that a new records ends up in a page
                 # earlier on) and allows for some logic to check for newly added records
