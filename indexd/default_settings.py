@@ -7,6 +7,12 @@ CONFIG = {}
 CONFIG["JSONIFY_PRETTYPRINT_REGULAR"] = False
 AUTO_MIGRATE = True
 
+# - DEFAULT_PREFIX: prefix to be prepended.
+# - PREPEND_PREFIX: the prefix is preprended to the generated GUID when a
+#   new record is created WITHOUT a provided GUID.
+# - ADD_PREFIX_ALIAS: aliases are created for new records - "<PREFIX><GUID>".
+# Do NOT set both ADD_PREFIX_ALIAS and PREPEND_PREFIX to True, or aliases
+# will be created as "<PREFIX><PREFIX><GUID>".
 CONFIG["INDEX"] = {
     "driver": SQLAlchemyIndexDriver(
         "sqlite:///index.sq3",
@@ -14,8 +20,8 @@ CONFIG["INDEX"] = {
         echo=True,
         index_config={
             "DEFAULT_PREFIX": "testprefix:",
-            "ADD_PREFIX_ALIAS": True,
             "PREPEND_PREFIX": True,
+            "ADD_PREFIX_ALIAS": False,
         },
     )
 }
