@@ -892,6 +892,13 @@ def test_get_id(client, user):
 
 
 def test_index_prepend_prefix(client, user):
+    """
+    For index_config =
+    {
+        "DEFAULT_PREFIX": "testprefix:",
+        "PREPEND_PREFIX": True
+    }
+    """
     data = get_doc()
 
     res_1 = client.post("/index/", json=data, headers=user)
@@ -1128,6 +1135,21 @@ def test_index_get_global_endpoint(client, user):
     assert rec["size"] == data["size"]
     assert rec["urls"] == data["urls"]
     assert rec["hashes"]["md5"] == data["hashes"]["md5"]
+
+
+def test_index_add_prefix_alias(client, user):
+    """
+    For index_config =
+    {
+        "DEFAULT_PREFIX": "testprefix:",
+        "ADD_PREFIX_ALIAS": True
+    }
+    """
+    data = get_doc()
+
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
 
     res_2 = client.get("/testprefix:" + rec["did"])
     assert res_2.status_code == 200
