@@ -1,5 +1,5 @@
 import uuid
-from tests.test_settings import settings
+from tests.default_test_settings import settings
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 import sqlite3

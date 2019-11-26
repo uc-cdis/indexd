@@ -205,7 +205,9 @@ The `type` tells Indexd which client to use for that external service. In this c
 
 Indexd itself can be configured to append a prefix to the typical UUID in order to aide in the distributed resolution capabilities mentioned above. Specifically, we can add a prefix such as `dg.4GH5/` which may represent one instance of Indexd. For distributed resolution purposes, we can then create `hints` that let the central resolver know where to go when it receives a GUID with a prefix of `dg.4GH5/`.
 
-The prefix that a given Indexd instance uses is specified in the `DEFAULT_PREFIX` configuration in the settings file. In order to ensure that this gets used and aliases get created, specify `PREPEND_PREFIX` to `True` and `ADD_PREFIX_ALIAS` to `True` as well.
+The prefix that a given Indexd instance uses is specified in the `DEFAULT_PREFIX` configuration in the settings file. In order to ensure that this gets used, set `PREPEND_PREFIX` to `True`. Note that the prefix will only be prepended to GUIDs generated for new records that are indexed _without_ providing a GUID.
+
+The `ADD_PREFIX_ALIAS` configuration represents a different way of using the prefix: if set to `True`, instead of prepending the prefix to the GUID, indexd will create an alias of the form `<prefix><GUID>` for this record. Note that you should NOT set both `ADD_PREFIX_ALIAS` and `PREPEND_PREFIX` to `True`, or aliases will be created as `<prefix><prefix><GUID>`.
 
 ## Use Cases For Indexing Data
 
