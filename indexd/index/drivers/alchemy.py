@@ -323,6 +323,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     def ids(
         self,
         limit=100,
+        page=None,
         start=None,
         size=None,
         urls=None,
@@ -432,13 +433,22 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if urls_metadata or negate_params:
                 query = query.distinct(IndexRecord.did)
 
-            query = query.order_by(IndexRecord.did)
+            # order by updated date so newly added stuff is
+            # at the end (reduce risk that a new records ends up in a page
+            # earlier on) and allows for some logic to check for newly added records
+            # (e.g. parallelly processing from beginning -> middle and ending -> middle
+            #       and as a final step, checking the "ending"+1 to see if there are
+            #       new records).
+            query = query.order_by(IndexRecord.updated_date)
 
             if ids:
                 query = query.filter(IndexRecord.did.in_(ids))
             else:
                 # only apply limit when ids is not provided
                 query = query.limit(limit)
+
+            if page is not None:
+                query = query.offset(limit * page)
 
             return [i.to_document_dict() for i in query]
 

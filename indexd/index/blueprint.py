@@ -57,11 +57,12 @@ def get_index():
     """
     limit = flask.request.args.get("limit")
     start = flask.request.args.get("start")
+    page = flask.request.args.get("page")
 
     ids = flask.request.args.get("ids")
     if ids:
         ids = ids.split(",")
-        if start is not None or limit is not None:
+        if start is not None or limit is not None or page is not None:
             raise UserError("pagination is not supported when ids is provided")
     try:
         limit = 100 if limit is None else int(limit)
@@ -70,6 +71,12 @@ def get_index():
 
     if limit < 0 or limit > 1024:
         raise UserError("limit must be between 0 and 1024")
+
+    if page is not None:
+        try:
+            page = int(page)
+        except ValueError as err:
+            raise UserError("page must be an integer")
 
     size = flask.request.args.get("size")
     try:
@@ -123,6 +130,7 @@ def get_index():
     records = blueprint.index_driver.ids(
         start=start,
         limit=limit,
+        page=page,
         size=size,
         file_name=file_name,
         version=version,
@@ -142,6 +150,7 @@ def get_index():
         "records": records,
         "limit": limit,
         "start": start,
+        "page": page,
         "size": size,
         "file_name": file_name,
         "version": version,

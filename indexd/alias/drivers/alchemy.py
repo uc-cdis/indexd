@@ -138,7 +138,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         finally:
             session.close()
 
-    def aliases(self, limit=100, start=None, size=None, hashes=None):
+    def aliases(self, limit=100, start=None, size=None, hashes=None, page=None):
         """
         Returns list of records stored by the backend.
         """

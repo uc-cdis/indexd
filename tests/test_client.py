@@ -848,6 +848,46 @@ def test_index_list_with_start(client, user):
     assert rec3["did"] in dids
 
 
+def test_index_list_with_page(client, user):
+    data = {
+        "did": "testprefix:11111111-1111-1111-1111-111111111111",
+        "form": "object",
+        "size": 123,
+        "urls": ["s3://endpointurl/bucket/key"],
+        "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+    }
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec1 = res.json
+
+    data["did"] = "testprefix:22222222-2222-2222-2222-222222222222"
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec2 = res.json
+
+    data["did"] = "testprefix:33333333-3333-3333-3333-333333333333"
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec3 = res.json
+
+    res = client.get("/index/?page=0&limit=2")
+    assert res.status_code == 200
+    rec = res.json
+
+    dids = [record["did"] for record in rec["records"]]
+    assert len(rec["records"]) == 2
+    assert rec1["did"] in dids
+    assert rec2["did"] in dids
+
+    res = client.get("/index/?page=1&limit=2")
+    assert res.status_code == 200
+    rec = res.json
+
+    dids = [record["did"] for record in rec["records"]]
+    assert len(rec["records"]) == 1
+    assert rec3["did"] in dids
+
+
 def test_unauthorized_create(client):
     # test that unauthorized post throws 403 error
     data = get_doc()
