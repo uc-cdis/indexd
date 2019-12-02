@@ -3,7 +3,6 @@ import string
 import json
 import urllib.parse
 
-from indexd import get_app
 
 # Test fixtures and helper functions
 # =============================================
