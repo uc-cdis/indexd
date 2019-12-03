@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='indexd',
-    version='2.2.0',
+    version='2.3.0a1',
     packages=find_packages(),
     package_data={
         'index': [
