@@ -14,10 +14,15 @@ setup(
         'jsonschema<3',
         'sqlalchemy==1.3.3',
         'sqlalchemy-utils<1',
-        'cdislogging<2',
-        'indexclient<2',
-        'doiclient<2',
-        'dosclient<2',
-        'future<1',
+        'psycopg2>=2.7',
+        'cdislogging',
+        'indexclient',
+        'doiclient',
+        'dosclient',
+        'future<1'
+    ],
+    dependency_links=[
+        "git+https://github.com/uc-cdis/cdislogging.git@0.0.2#egg=cdislogging",
+        "git+https://github.com/NCI-GDC/indexclient.git@1.5.10#egg=indexclient",
     ],
 )
