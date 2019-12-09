@@ -15,6 +15,7 @@ setup(
         "indexclient",
         "doiclient",
         "dosclient",
+        "hsclient",
         "authutils",
         "gen3rbac",
     ],
@@ -22,6 +23,7 @@ setup(
         "git+https://github.com/uc-cdis/cdislogging.git@0.0.2#egg=cdislogging",
         "git+https://github.com/uc-cdis/indexclient.git@1.6.0#egg=indexclient",
         "git+https://github.com/uc-cdis/doiclient.git@1.0.0#egg=doiclient",
-        "git+https://github.com/uc-cdis/dosclient.git@1.0.0#egg=dosclient",
+        "git+https://github.com/uc-cdis/dosclient.git@1.1.0#egg=dosclient",
+        "git+https://github.com/uc-cdis/hsclient.git@1.0.0#egg=hsclient",
     ],
 )

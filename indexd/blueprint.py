@@ -5,6 +5,7 @@ import jsonschema
 from indexclient.client import IndexClient
 from doiclient.client import DOIClient
 from dosclient.client import DOSClient
+from hsclient.client import HSClient
 
 from indexd.utils import hint_match
 
@@ -76,11 +77,14 @@ def dist_get_record(record):
 
     for indexd in sorted_dist:
         try:
-            if indexd["type"] == "doi":
+            if indexd["type"] == "doi":  # Digital Object Identifier
                 fetcher_client = DOIClient(baseurl=indexd["host"])
                 res = fetcher_client.get(record)
-            elif indexd["type"] == "dos":
+            elif indexd["type"] == "dos":  # Data Object Service
                 fetcher_client = DOSClient(baseurl=indexd["host"])
+                res = fetcher_client.get(record)
+            elif indexd["type"] == "hs":  # HydroShare and CommonsShare
+                fetcher_client = HSClient(baseurl=indexd["host"])
                 res = fetcher_client.get(record)
             else:
                 fetcher_client = IndexClient(baseurl=indexd["host"])

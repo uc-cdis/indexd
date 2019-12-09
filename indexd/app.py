@@ -27,17 +27,17 @@ def app_init(app, settings=None):
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
 
 
-def get_app():
+def get_app(settings=None):
     app = flask.Flask("indexd")
 
     if "INDEXD_SETTINGS" in os.environ:
         sys.path.append(os.environ["INDEXD_SETTINGS"])
 
-    settings = None
-    try:
-        from local_settings import settings
-    except ImportError:
-        pass
+    if not settings:
+        try:
+            from local_settings import settings
+        except ImportError:
+            pass
 
     app_init(app, settings)
 

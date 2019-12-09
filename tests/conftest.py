@@ -2,13 +2,14 @@ from indexd import get_app
 import base64
 import pytest
 
+import importlib
+
 # indexd_server and indexd_client is needed as fixtures
 from cdisutilstest.code.conftest import indexd_server, indexd_client  # noqa
 from cdisutilstest.code.indexd_fixture import clear_database
 
-
 from indexd import auth
-import importlib
+from tests import default_test_settings
 
 
 @pytest.fixture
@@ -18,7 +19,8 @@ def app():
     from indexd import default_settings
 
     importlib.reload(default_settings)
-    yield get_app()
+
+    yield get_app(default_test_settings.settings)
     try:
         clear_database()
 
