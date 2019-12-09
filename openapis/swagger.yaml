@@ -87,7 +87,7 @@ paths:
         - name: hash
           in: query
           type: string
-          description: hashes specified as algorithm:value
+          description: hashes specified as algorithm:value. Multiple hashes can be specified, for example "?hash=a:xxx&hash=b:yyy"
         - name: ids
           in: query
           type: string
@@ -143,7 +143,7 @@ paths:
           type: string
         - name: metadata
           in: query
-          description: metadata in format key:value
+          description: metadata in format key:value. Multiple metadata values can be specified, for example "?metadata=a:xxx&metadata=b:yyy"
           required: false
           type: string
         - name: size
@@ -153,7 +153,7 @@ paths:
           type: integer
         - name: hash
           in: query
-          description: hash in format hash_type:hash_value
+          description: hash in format hash_type:hash_value. Multiple hashes can be specified, for example "?hash=a:xxx&hash=b:yyy"
           required: false
           type: string
         - name: uploader
@@ -168,9 +168,9 @@ paths:
             pagination params(start, limit) are not supported
           required: false
           type: string
-        - name: urls
+        - name: url
           in: query
-          description: comma delimited urls
+          description: URL to query. Multiple URLs can be specified, for example "?url=url1&url=url2"
           required: false
           type: string
         - name: acl
@@ -180,7 +180,7 @@ paths:
           type: string
         - name: authz
           in: query
-          description: comma delimited resoures
+          description: comma delimited resources
           required: false
           type: string
         - name: negate_params

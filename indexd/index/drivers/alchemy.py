@@ -370,36 +370,31 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if uploader is not None:
                 query = query.filter(IndexRecord.uploader == uploader)
 
+            # filter records that have ALL the URLs
             if urls:
-                query = query.join(IndexRecord.urls)
                 for u in urls:
-                    query = query.filter(IndexRecordUrl.url == u)
+                    sub = session.query(IndexRecordUrl.did).filter(
+                        IndexRecordUrl.url == u
+                    )
+                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
             # filter records that have ALL the ACL elements
             if acl:
-                sub = session.query(IndexRecordACE.did)
-                dids = None
                 for u in acl:
-                    subsub = sub.filter(IndexRecordACE.ace == u)
-                    if not dids:
-                        dids = set(e[0] for e in subsub.all())
-                    else:
-                        dids = dids.intersection(e[0] for e in subsub.all())
-                query = query.filter(IndexRecord.did.in_(dids))
+                    sub = session.query(IndexRecordACE.did).filter(
+                        IndexRecordACE.ace == u
+                    )
+                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
             elif acl == []:
                 query = query.filter(IndexRecord.acl == None)
 
             # filter records that have ALL the authz elements
             if authz:
-                sub = session.query(IndexRecordAuthz.did)
-                dids = None
                 for u in authz:
-                    subsub = sub.filter(IndexRecordAuthz.resource == u)
-                    if not dids:
-                        dids = set(e[0] for e in subsub.all())
-                    else:
-                        dids = dids.intersection(e[0] for e in subsub.all())
-                query = query.filter(IndexRecord.did.in_(dids))
+                    sub = session.query(IndexRecordAuthz.did).filter(
+                        IndexRecordAuthz.resource == u
+                    )
+                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
             elif authz == []:
                 query = query.filter(IndexRecord.authz == None)
 

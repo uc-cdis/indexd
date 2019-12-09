@@ -168,7 +168,9 @@ def test_index_list_by_multiple_authz(client, user):
     res = client.get("/index/?authz=" + ",".join(data["authz"]))
     assert res.status_code == 200
     rec = res.json
-    assert len(rec["records"]) == 1
+    assert len(rec["records"]) == 1, "Got records: {}".format(
+        json.dumps(rec["records"], indent=2)
+    )
     assert rec["records"][0]["authz"] == data["authz"]
 
 
@@ -187,8 +189,43 @@ def test_index_list_by_multiple_acl(client, user):
     res = client.get("/index/?acl=" + ",".join(data["acl"]))
     assert res.status_code == 200
     rec = res.json
-    assert len(rec["records"]) == 1
+    assert len(rec["records"]) == 1, "Got records: {}".format(
+        json.dumps(rec["records"], indent=2)
+    )
     assert rec["records"][0]["acl"] == data["acl"]
+
+
+def test_index_list_by_urls(client, user):
+    data = get_doc()
+
+    data["urls"] = ["s3://bucket1"]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+
+    data["urls"] = ["s3://bucket2"]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+
+    data["urls"] = ["s3://bucket2", "s3://bucket3"]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+
+    # query the record with a single URL
+    res = client.get("/index/?url=s3://bucket2")
+    assert res.status_code == 200
+    rec = res.json
+    assert len(rec["records"]) == 2, "Got records: {}".format(
+        json.dumps(rec["records"], indent=2)
+    )
+
+    # query the record with multiple URLs
+    res = client.get("/index/?url=s3://bucket2&url=s3://bucket3")
+    assert res.status_code == 200
+    rec = res.json
+    assert len(rec["records"]) == 1, "Got records: {}".format(
+        json.dumps(rec["records"], indent=2)
+    )
+    assert rec["records"][0]["urls"] == data["urls"]
 
 
 def test_index_list_by_version(client, user):
