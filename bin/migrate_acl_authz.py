@@ -49,7 +49,9 @@ def main():
         from indexd.default_settings import settings
     driver = settings["config"]["INDEX"]["driver"]
     try:
-        acl_converter = ACLConverter(args.arborist, getattr(args, "sheepdog"))
+        acl_converter = ACLConverter(
+            args.arborist, getattr(args, "sheepdog"), getattr(args, "use_tags")
+        )
     except EnvironmentError:
         logger.error("can't continue without database connection")
         sys.exit(1)
@@ -101,6 +103,12 @@ def parse_args():
         "--arborist-url", dest="arborist", help="URL for the arborist service"
     )
     parser.add_argument(
+        "--tags",
+        dest="use_tags",
+        help="Whether to use arborist tags. If set to False, the resource paths will be used",
+        default=False,
+    )
+    parser.add_argument(
         "--chunk-size",
         dest="chunk_size",
         type=int,
@@ -116,7 +124,7 @@ def parse_args():
 
 
 class ACLConverter(object):
-    def __init__(self, arborist_url, sheepdog_db=None):
+    def __init__(self, arborist_url, sheepdog_db=None, use_tags=False):
         self.arborist_url = arborist_url.rstrip("/")
         self.programs = set()
         self.projects = dict()
@@ -126,9 +134,12 @@ class ACLConverter(object):
             logger.info("using namespace {}".format(self.namespace))
         else:
             logger.info("not using any auth namespace")
-        # map resource paths to tags in arborist so we can save http calls
-        self.arborist_resources = dict()
         self.use_sheepdog_db = bool(sheepdog_db)
+
+        # if "use_tags" is True, map resource paths to tags in arborist so
+        # we can save http calls
+        self.use_arborist_tags = use_tags
+        self.arborist_resources = dict()
 
         if sheepdog_db:
             engine = create_engine(sheepdog_db, echo=False)
@@ -176,8 +187,9 @@ class ACLConverter(object):
             # really mis-formatted, like `["u'phs000123'"]`, or have spaces left in
             acl_item = acl_item.strip(" ")
             acl_item = acl_item.lstrip("u'")
-            if acl_item != "*":
-                acl_item = re.sub(r"\W+", "", acl_item)
+            # Pauline 2019-12-10 Disabling this, causes a bug when removing "-"
+            # if acl_item != "*":
+            #     acl_item = re.sub(r"\W+", "", acl_item)
 
             # update path based on ACL entry
             if not acl_item:
@@ -262,10 +274,13 @@ class ACLConverter(object):
                 )
             if not tag:
                 raise EnvironmentError("couldn't reach arborist")
-            self.arborist_resources[path] = tag
-            logger.info("using tag {} for path {}".format(tag, path))
 
-        return self.arborist_resources[path]
+            if self.use_arborist_tags:
+                self.arborist_resources[path] = tag
+                logger.info("using tag {} for path {}".format(tag, path))
+                return self.arborist_resources[path]
+
+            return path
 
 
 def column_windows(session, column, windowsize, start=None):
