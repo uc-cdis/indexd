@@ -170,17 +170,17 @@ paths:
           type: string
         - name: url
           in: query
-          description: URL to query. Multiple URLs can be specified, for example "?url=url1&url=url2"
+          description: URL to query. Multiple URLs can be specified, for example "?url=url1&url=url2" - in that case, returned records will have ALL URLs
           required: false
           type: string
         - name: acl
           in: query
-          description: comma delimited ace
+          description: comma delimited ACE - if multiple ACE are specified, returned records will have ALL ACEs
           required: false
           type: string
         - name: authz
           in: query
-          description: comma delimited resources
+          description: comma delimited resources - if multiple resources are specified, returned records will have ALL resources
           required: false
           type: string
         - name: negate_params
