@@ -370,22 +370,31 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if uploader is not None:
                 query = query.filter(IndexRecord.uploader == uploader)
 
+            # filter records that have ALL the URLs
             if urls:
-                query = query.join(IndexRecord.urls)
                 for u in urls:
-                    query = query.filter(IndexRecordUrl.url == u)
+                    sub = session.query(IndexRecordUrl.did).filter(
+                        IndexRecordUrl.url == u
+                    )
+                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
+            # filter records that have ALL the ACL elements
             if acl:
-                query = query.join(IndexRecord.acl)
                 for u in acl:
-                    query = query.filter(IndexRecordACE.ace == u)
+                    sub = session.query(IndexRecordACE.did).filter(
+                        IndexRecordACE.ace == u
+                    )
+                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
             elif acl == []:
                 query = query.filter(IndexRecord.acl == None)
 
+            # filter records that have ALL the authz elements
             if authz:
-                query = query.join(IndexRecord.authz)
                 for u in authz:
-                    query = query.filter(IndexRecordAuthz.resource == u)
+                    sub = session.query(IndexRecordAuthz.did).filter(
+                        IndexRecordAuthz.resource == u
+                    )
+                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
             elif authz == []:
                 query = query.filter(IndexRecord.authz == None)
 
@@ -557,7 +566,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Returns a list of urls matching supplied size/hashes/dids.
         """
-        if not (size or hashes or ids):
+        if size is None and hashes is None and ids is None:
             raise UserError("Please provide size/hashes/ids to filter")
 
         with self.session as session:

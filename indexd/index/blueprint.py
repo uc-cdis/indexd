@@ -169,7 +169,9 @@ def get_urls():
     """
     Returns a list of urls.
     """
-    ids = flask.request.args.getlist("ids")
+    ids = flask.request.args.get("ids")
+    if ids:
+        ids = ids.split(",")
     hashes = flask.request.args.getlist("hash")
     hashes = {h: v for h, v in (x.split(":", 1) for x in hashes)}
     size = flask.request.args.get("size")
