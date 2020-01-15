@@ -106,6 +106,10 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         password = self.digest(password)
         with self.session as session:
             query = session.query(AuthRecord)
+            try:
+                query.one()
+            except NoResultFound as err:
+                raise AuthError("No username / password configured in indexd")
 
             # Select on username / password.
             query = query.filter(AuthRecord.username == username)
@@ -125,8 +129,12 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
 
     def authz(self, method, resource):
         if not self.arborist:
-            raise AuthError("username / password mismatch")
+            raise AuthError(
+                "Arborist is not configured; cannot perform authorization check"
+            )
         if not resource:
+            # TODO: fix this. Setting authz to [] throws this error but
+            # admins should be able to do it
             raise AuthError("Permission denied.")
         if not self.arborist.auth_request(get_jwt_token(), "indexd", method, resource):
             raise AuthError("Permission denied.")
