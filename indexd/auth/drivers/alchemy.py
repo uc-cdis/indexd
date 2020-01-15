@@ -106,9 +106,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         password = self.digest(password)
         with self.session as session:
             query = session.query(AuthRecord)
-            try:
-                query.one()
-            except NoResultFound as err:
+            if not query.first():
                 raise AuthError("No username / password configured in indexd")
 
             # Select on username / password.
