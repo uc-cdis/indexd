@@ -32,6 +32,11 @@ CONFIG["ALIAS"] = {
     )
 }
 
+CONFIG["FENCE"] = {
+    "base_url": "https://caninedc.org/user" # using canine for testing
+    
+}
+
 CONFIG["DIST"] = [
     {
         "name": "Other IndexD",
@@ -45,6 +50,12 @@ CONFIG["DIST"] = [
         "host": "https://example.com/api/ga4gh/dos/v1/",
         "hints": [],
         "type": "dos",
+    },
+    {
+        "name": "DRS System",
+        "host": "https://example.com/api/ga4gh/drs/v1/",
+        "hints": [],
+        "type": "drs",
     },
 ]
 
