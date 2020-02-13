@@ -8,7 +8,19 @@ from indexd.index.drivers.alchemy import IndexRecord
 from indexd.index.errors import NoRecordFound, RevisionMismatch
 from tests.util import make_sql_statement
 
+
 #TODO check if pytest has utilities for meta-programming of tests
+
+
+@pytest.fixture(params=([], [1, 2, 3], [20, 10000000000000000]))
+def records_with_size(request, index_driver):
+    with index_driver.session as sxn:
+        for s in request.param:
+            record = IndexRecord(did=str(uuid.uuid4()), baseid=str(uuid.uuid4()),
+                                 rev=str(uuid.uuid4())[:8], size=s)
+            sxn.add(record)
+
+    return request.param
 
 
 def insert_base_data(database_conn):
@@ -22,6 +34,11 @@ def insert_base_data(database_conn):
     """, (did, baseid, rev, form, 1)))
 
     return did, baseid, rev, form
+
+
+def test_get_total_bytes(index_driver, records_with_size):
+    """Test that totalbytes return expected results"""
+    assert sum(records_with_size) == index_driver.totalbytes()
 
 
 def test_driver_init_does_not_create_records(index_driver, database_conn):

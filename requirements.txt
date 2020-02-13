@@ -4,6 +4,7 @@ sqlalchemy==1.3.3
 sqlalchemy-utils>=0.32.21
 psycopg2>=2.7
 future==0.18.1
+Werkzeug~=0.16.0
 -e git+https://github.com/NCI-GDC/indexclient.git@1.5.10#egg=indexclient
 -e git+https://github.com/uc-cdis/cdislogging.git@0.0.2#egg=cdislogging
 -e git+https://github.com/uc-cdis/doiclient.git@1.0.0#egg=doiclient
