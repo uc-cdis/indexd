@@ -1090,10 +1090,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Total number of bytes of data represented in the index.
         """
         with self.session as session:
-            result = session.execute(select([func.sum(IndexRecord.size)])).scalar()
+            result = session.query(func.sum(IndexRecord.size)).scalar()
             if result is None:
                 return 0
-            return long(result)
+            return int(result)
 
     def len(self):
         """
