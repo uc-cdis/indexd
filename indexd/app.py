@@ -27,7 +27,6 @@ def app_init(app, settings=None):
     app.register_blueprint(indexd_drs_blueprint)
     app.register_blueprint(cross_blueprint)
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
-    fence_url = settings["config"]["PRESIGNED_URL_ENDPT"]
 
 def get_app(settings=None):
     app = flask.Flask("indexd")
