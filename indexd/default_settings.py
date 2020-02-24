@@ -32,10 +32,7 @@ CONFIG["ALIAS"] = {
     )
 }
 
-CONFIG["FENCE"] = {
-    "base_url": "https://caninedc.org/user" # using canine for testing
-    
-}
+CONFIG["PRESIGNED_URL_ENDPT"] = "http://fence-service/"
 
 CONFIG["DIST"] = [
     {

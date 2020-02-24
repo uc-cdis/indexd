@@ -17,6 +17,8 @@ CONFIG["INDEX"] = {
     )
 }
 
+CONFIG["PRESIGNED_URL_ENDPT"] = "https://fictitious-commons.io/"
+
 settings = {"config": CONFIG, "auth": AUTH}
 
 settings["config"]["TEST_DB"] = "postgres://postgres@localhost/test_migration_db"

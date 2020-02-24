@@ -1,11 +1,16 @@
 import json
-
-import pytest
-
+import tests.conftest
+import requests
+import responses
 from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
+from tests.default_test_settings import settings
 
-from indexd.drs.blueprint import get_presigned_url
+
+# Initializing get requests
+full_url = settings['config']["PRESIGNED_URL_ENDPT"]+'user/data/download/dg.123/F0CC73D6-80E5-48A5-B8A0-D7ED5B75A10D?protocol=gs'
+presigned_url =  {'url':'https://storage.googleapis.com/nih-mock-project-released-phs123-c2/RootStudyConsentSet_phs000007.Whatever.v666.p1.c2.FBI-BMW-CIA.tar.gz?GoogleAccessId=internal-someuser-1399@dcpstage-210518.iam.gserviceaccount.com&Expires=1582215120&Signature=hUsgjkegdsfkjbsajkafnsdjksdnfjknbdsajkfbsdkjfbjdfbkjdasfbnjsdnfjsnd2FTr%2FKs2kGKs0fJ8v5elFk5NQAYdrGcU3kROrzJuHUbI%2BMZ839SAbAz2rbMBuC9e46%2BdB91%2FA==&userProject=dcf-mock-project'}
+responses.add(responses.GET, full_url, json = presigned_url, status = 200)
 
 
 def get_doc(has_version=True, multiple_endpointurl = False, has_content=False):
@@ -20,7 +25,6 @@ def get_doc(has_version=True, multiple_endpointurl = False, has_content=False):
     if multiple_endpointurl:
         for url_type in ["gs", "ftp", "sftp"]:
             doc["urls"].append("{}://endpointurl/bucket/key".format(url_type))
-    #add support for contents field (bundle stuff)
 
     return doc
 
@@ -34,7 +38,6 @@ def test_drs_get(client, user):
 
     assert res_2.status_code == 200
     rec_2 = res_2.json
-    print("WITHOUT SIGNED URL: {}".format(rec_2))
     assert rec_2["drs_object"]["id"] == rec_1["did"] 
     assert rec_2["drs_object"]["size"] == 123
     assert (
@@ -46,6 +49,7 @@ def test_drs_get(client, user):
 
 def test_drs_multiple_endpointurl(client,user):
     data = get_doc(multiple_endpointurl=True)
+
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
@@ -105,12 +109,18 @@ def test_get_drs_record_error(client, user):
     res = client.get("/ga4gh/drs/v1/objects/" + fake_did)
     assert res.status_code == 404
 
-def test_get_presigned_url(client, user):
-    data = get_doc()
-    res_1 = client.post("/index/", json=data, headers=user)
-    assert res_1.status_code == 200
-    rec_1 = res_1.json
-    res_2 = client.get("/ga4gh/drs/v1/objects/{}/access/{}".format(rec_1["did"], "s3"))
-    print(res_2.json)
-    assert res_2.status_code == 200
 
+@responses.activate
+def test_get_presigned_url(client, user):
+    did = "dg.123/F0CC73D6-80E5-48A5-B8A0-D7ED5B75A10D"
+    res_1 = requests.get(full_url)
+    assert res_1.status_code == 200
+    res_2 = client.get("ga4gh/drs/v1/objects/" + did + "/access/gs")
+    assert res_2.status_code == 200 
+
+@responses.activate
+def test_get_presigned_url_error(client, user):
+    did = "dg.123/1234soiduhasoi"
+    res_2 = client.get("ga4gh/drs/v1/objects/" + did + "/access/gs")
+    print("!!!!!!{}".format(res_2))
+    assert res_2.status_code != 200
