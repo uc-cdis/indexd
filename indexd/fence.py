@@ -38,14 +38,10 @@ class FenceRequest(object):
             flask.current_app.config.get("FENCE")
             or flask.current_app.config["BASE_URL"] + "/user"
         )
-        print(" FENCE SERVER: {}".format(fence_server))
         return fence_server.rstrip("/")
 
     @cached_property
     def get_signed_url_from_fence(self):
-        print("aaaaaaaaa{}".format(flask.current_app.config.get("PRESIGNED_URL_ENDPT")))
-        print("aaaaaaaaa{}".format(flask.current_app.config["PRESIGNED_URL_ENDPT"]))
-
         fence_server = (flask.current_app.config.get("PRESIGNED_URL_ENDPT")
                             or flask.current_app.config["PRESIGNED_URL_ENDPT"])
         fence_server = fence_server.rstrip("/") + "/user"

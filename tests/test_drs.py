@@ -122,5 +122,4 @@ def test_get_presigned_url(client, user):
 def test_get_presigned_url_error(client, user):
     did = "dg.123/1234soiduhasoi"
     res_2 = client.get("ga4gh/drs/v1/objects/" + did + "/access/gs")
-    print("!!!!!!{}".format(res_2))
     assert res_2.status_code != 200
