@@ -7,7 +7,7 @@ from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.drs.errors import UnexpectedError
 
-from indexd.fence import get_signed_url_for_object, FenceRequest
+from indexd.fence_client import get_signed_url_for_object, FenceRequest
 
 try:
     from local_settings import settings
@@ -28,7 +28,6 @@ def get_drs_object(object_id):
     Returns a specific DRSobject with object_id
     """
     ret = blueprint.index_driver.get(object_id)
-    # access_token
     return flask.jsonify(indexd_to_drs(ret)), 200
 
     
@@ -67,11 +66,13 @@ def get_signed_url(object_id, access_id=""):
     res = get_signed_url_for_object(object_id, access_id)
     if not res:
         raise IndexNoRecordFound("No signed url found")
-    return res
+    return res, 200
 
 
-def indexd_to_drs(record, access_id=""):
+def indexd_to_drs(record):
+    bearer_token = flask.request.headers.get('AUTHORIZATION')
     drs_object = {"id": record["did"], "description": "", "mime_type": ""}
+    
     if "file_name" in record:
         drs_object["name"] = record["file_name"]
 
@@ -101,7 +102,7 @@ def indexd_to_drs(record, access_id=""):
 
             drs_object["access_methods"].append({
                 "type":location_type, 
-                "access_url":get_signed_url_for_object(record["did"], access_id).json() if access_id and get_signed_url_for_object(record["did"], access_id) else {"url":location},
+                "access_url":get_signed_url_for_object(record["did"], "") if bearer_token else {"url":location},
                 "access_id":location_type, 
                 "region": ""
             })

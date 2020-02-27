@@ -23,32 +23,21 @@ def get_signed_url_for_object(object_id, access_id):
     return signed_url
 
 
-
-
 class FenceRequest(object):
 
     def __init__(self, object_id, access_id):
-        # self.base_url = base_url
         self.object_id = object_id
         self.access_id = access_id
 
     @cached_property
-    def fence_server(self):
-        fence_server = (
-            flask.current_app.config.get("FENCE")
-            or flask.current_app.config["BASE_URL"] + "/user"
-        )
-        return fence_server.rstrip("/")
-
-    @cached_property
     def get_signed_url_from_fence(self):
         fence_server = (flask.current_app.config.get("PRESIGNED_URL_ENDPT")
-                            or flask.current_app.config["PRESIGNED_URL_ENDPT"])
-        fence_server = fence_server.rstrip("/") + "/user"
-        api_url = fence_server + "/data/download/"
+                            or flask.current_app.presigned_url_endpt)
+        api_url = fence_server.rstrip("/") + "/data/download/"
         url = api_url + self.object_id + "?protocol=" + self.access_id 
+        headers = flask.request.headers
         try:
-            req = requests.get(url)
+            req = requests.get(url, headers = headers)
             return req.json()
         except Exception as e:
             logger.error(

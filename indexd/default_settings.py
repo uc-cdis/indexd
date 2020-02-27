@@ -32,7 +32,7 @@ CONFIG["ALIAS"] = {
     )
 }
 
-CONFIG["PRESIGNED_URL_ENDPT"] = "http://fence-service/"
+CONFIG["PRESIGNED_URL_ENDPT"] = "http://presigned-url-fence-service/"
 
 CONFIG["DIST"] = [
     {
