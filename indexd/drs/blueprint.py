@@ -56,7 +56,7 @@ def list_drs_records():
         start=start, limit=limit, urls=url, hashes=hashes
     )
 
-    ret = {"drs_objects": [indexd_to_drs(record)["drs_object"] for record in records]}
+    ret = {"drs_objects": [indexd_to_drs(record, True)["drs_object"] for record in records]}
 
     return flask.jsonify(ret), 200
 
@@ -69,7 +69,7 @@ def get_signed_url(object_id, access_id=""):
     return res, 200
 
 
-def indexd_to_drs(record):
+def indexd_to_drs(record, list_drs = False):
     bearer_token = flask.request.headers.get('AUTHORIZATION')
     drs_object = {"id": record["did"], "description": "", "mime_type": ""}
     
@@ -102,7 +102,7 @@ def indexd_to_drs(record):
 
             drs_object["access_methods"].append({
                 "type":location_type, 
-                "access_url":get_signed_url_for_object(record["did"], "") if bearer_token else {"url":location},
+                "access_url":get_signed_url_for_object(record["did"], "") if bearer_token and not list_drs else {"url":location},
                 "access_id":location_type, 
                 "region": ""
             })
