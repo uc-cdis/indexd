@@ -11,3 +11,9 @@ class ConfigurationError(Exception):
     """
     Configuration error.
     """
+
+
+class UnexpectedError(Exception):
+    """
+    Unexpected Error
+    """

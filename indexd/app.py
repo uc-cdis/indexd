@@ -6,6 +6,7 @@ from .dos.blueprint import blueprint as indexd_dos_blueprint
 from .drs.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
 
+from indexd.fence_client import FenceClient
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
 import os
@@ -20,6 +21,9 @@ def app_init(app, settings=None):
         from .default_settings import settings
     app.config.update(settings["config"])
     app.auth = settings["auth"]
+    app.fence_client = FenceClient(
+        url=os.environ.get("FENCE_URL") or "http://fence-service"
+    )
     app.register_blueprint(indexd_bulk_blueprint)
     app.register_blueprint(indexd_index_blueprint)
     app.register_blueprint(indexd_alias_blueprint)
@@ -27,7 +31,7 @@ def app_init(app, settings=None):
     app.register_blueprint(indexd_drs_blueprint)
     app.register_blueprint(cross_blueprint)
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
-    app.presigned_url_endpt = "http://presigned-url-fence-service/"
+
 
 def get_app(settings=None):
     app = flask.Flask("indexd")
@@ -40,7 +44,6 @@ def get_app(settings=None):
             from local_settings import settings
         except ImportError:
             pass
-    
 
     app_init(app, settings)
 

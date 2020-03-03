@@ -1,5 +1,6 @@
 from indexd.default_settings import *
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
+import os
 
 # override the default settings for INDEX because we want to test
 # both PREPEND_PREFIX and ADD_PREFIX_ALIAS, which should not both
@@ -17,7 +18,7 @@ CONFIG["INDEX"] = {
     )
 }
 
-CONFIG["PRESIGNED_URL_ENDPT"] = "https://fictitious-commons.io/"
+os.environ["FENCE_URL"] = "https://fictitious-commons.io/"
 
 settings = {"config": CONFIG, "auth": AUTH}
 
