@@ -901,7 +901,6 @@ paths:
       summary: List all DrsObject
       description: ''
       operationId: ListDrsObject
-      produces: -application/json
       responses:
         '200':
           description: successful operation
