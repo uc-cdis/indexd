@@ -5,14 +5,14 @@ import responses
 from tests.default_test_settings import settings
 
 
-def generate_presigned_url_response(did, protocol=""):
+def generate_presigned_url_response(did, protocol="", status=200):
     full_url = (
         "https://fictitious-commons.io/data/download/" + did + "?protocol=" + protocol
     )
     presigned_url = {
         "url": "https://storage.googleapis.com/nih-mock-project-released-phs123-c2/RootStudyConsentSet_phs000007.Whatever.v666.p1.c2.FBI-BMW-CIA.tar.gz?GoogleAccessId=internal-someuser-1399@dcpstage-210518.iam.gserviceaccount.com&Expires=1582215120&Signature=hUsgjkegdsfkjbsajkafnsdjksdnfjknbdsajkfbsdkjfbjdfbkjdasfbnjsdnfjsnd2FTr%2FKs2kGKs0fJ8v5elFk5NQAYdrGcU3kROrzJuHUbI%2BMZ839SAbAz2rbMBuC9e46%2BdB91%2FA==&userProject=dcf-mock-project"
     }
-    responses.add(responses.GET, full_url, json=presigned_url, status=200)
+    responses.add(responses.GET, full_url, json=presigned_url, status=status)
     return presigned_url
 
 
@@ -49,8 +49,7 @@ def test_drs_get(client, user):
     )
     assert rec_2["drs_object"]["checksums"][0]["type"] == "md5"
     assert (
-        rec_2["drs_object"]["description"]
-        == "drs://fictitious-commons.io/" + rec_1["did"]
+        rec_2["drs_object"]["self_uri"] == "drs://fictitious-commons.io/" + rec_1["did"]
     )
 
 
@@ -150,7 +149,8 @@ def test_get_presigned_url(client, user):
     for access_id in access_id_list:
         presigned = generate_presigned_url_response(rec_1["did"], access_id)
         res_2 = client.get(
-            "/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/" + access_id
+            "/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/" + access_id,
+            headers={"AUTHORIZATION": "12345"},
         )
         assert res_2.status_code == 200
         assert res_2.json == presigned
@@ -164,6 +164,31 @@ def test_get_presigned_url_no_access_id(client, user):
     rec_1 = res_1.json
     presigned = generate_presigned_url_response(rec_1["did"], "s3")
     res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/")
+    assert res_2.status_code == 404
+
+
+@responses.activate
+def test_get_presigned_url_no_bearer_token(client, user):
+    data = get_doc()
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    presigned = generate_presigned_url_response(rec_1["did"], "s3")
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/s3")
+    assert res_2.status_code == 403
+
+
+@responses.activate
+def test_get_presigned_url_wrong_access_id(client, user):
+    data = get_doc()
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    presigned = generate_presigned_url_response(rec_1["did"], "s3", status=404)
+    res_2 = client.get(
+        "/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/s3",
+        headers={"AUTHORIZATION": "12345"},
+    )
     assert res_2.status_code == 404
 
 

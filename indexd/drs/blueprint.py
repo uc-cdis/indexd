@@ -47,13 +47,12 @@ def get_signed_url(object_id, access_id):
 
 def indexd_to_drs(record, list_drs=False):
     bearer_token = flask.request.headers.get("AUTHORIZATION")
-
     server = os.environ.get("FENCE_URL") or "http://fence-service"
 
-    description = "drs://" + get_server_name(server) + "/" + record["did"]
+    self_uri = "drs://" + get_server_name(server) + "/" + record["did"]
     drs_object = {
         "id": record["did"],
-        "description": description,
+        "description": "",
         "mime_type": "application/json",
     }
 
@@ -62,11 +61,12 @@ def indexd_to_drs(record, list_drs=False):
     drs_object["updated_time"] = record["updated_date"]
     drs_object["size"] = record["size"]
 
-    drs_object["self_uri"] = ""
+    drs_object["description"] = ""
     drs_object["aliases"] = drs_object["contents"] = []
-    if "self_uri" in record:
-        drs_object["self_uri"] = record["self_uri"]
+    drs_object["self_uri"] = self_uri
 
+    if "description" in record:
+        drs_object["description"].append(record["description"])
     if "alias" in record:
         drs_object["aliases"].append(record["alias"])
 

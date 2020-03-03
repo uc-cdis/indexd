@@ -13,6 +13,7 @@ except ImportError:
     from indexd.default_settings import settings
 
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
+from indexd.auth.errors import AuthError
 from indexd.errors import UnexpectedError
 
 
@@ -30,6 +31,9 @@ class FenceClient(object):
         if access_id:
             url += "?protocol=" + access_id
         headers = flask.request.headers
+        if "AUTHORIZATION" not in headers:
+            logger.error("Bearer Token not available.")
+            raise AuthError("Not Authorized. Please Log In.")
         try:
             req = requests.get(url, headers=headers)
         except Exception as e:
@@ -42,9 +46,7 @@ class FenceClient(object):
                 )
             )
             raise IndexNoRecordFound(
-                "No document with id:{} with access_id:{}".format(
-                    self.file_id, access_id
-                )
+                "No document with id:{} with access_id:{}".format(object_id, access_id)
             )
         elif req.status_code != 200:
             raise UnexpectedError(req.text)
