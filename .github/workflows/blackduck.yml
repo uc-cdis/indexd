@@ -18,4 +18,4 @@ jobs:
       - name: Synopsys Detect
         uses: blackducksoftware/github-action@2.0.0
         with:
-          args: '--blackduck.url="${{ secrets.BLACKDUCK_URL}}" --blackduck.api.token="${{ secrets.BLACKDUCK_API_TOKEN}}" --detect.risk.report.pdf=true --detect.pip.requirements.path=requirements.txt'
+          args: '--blackduck.url="${{ secrets.BLACKDUCK_URL}}" --blackduck.api.token="${{ secrets.BLACKDUCK_API_TOKEN}}" --detect.risk.report.pdf=true --logging.level.detect DEBUG'
