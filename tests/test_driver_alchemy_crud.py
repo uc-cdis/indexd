@@ -507,7 +507,7 @@ def test_driver_get_latest_version_with_no_record():
 
 
 @util.removes("index.sq3")
-def test_driver_get_all_version():
+def test_driver_get_all_versions():
     """
     Tests retrieval of the lattest record version
     """
@@ -549,8 +549,8 @@ def test_driver_get_all_version():
         records = driver.get_all_versions(did)
         assert len(records) == NUMBER_OF_RECORD, "the number of records does not match"
 
-        for i in range(NUMBER_OF_RECORD):
-            record = records[i]
+        # make sure records are returned in creation date order
+        for i, record in records.items():
             assert record["did"] == dids[i], "record id does not match"
             assert record["rev"] == revs[i], "record revision does not match"
             assert record["size"] == size, "record size does not match"
@@ -564,7 +564,7 @@ def test_driver_get_all_version():
 
 
 @util.removes("index.sq3")
-def test_driver_get_all_version_with_no_record():
+def test_driver_get_all_versions_with_no_record():
     """
     Tests retrieval of the lattest record version
     """
