@@ -1151,7 +1151,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     def get_all_versions(self, did):
         """
-        Get all record versions given did
+        Get all record versions (in order of creation) given DID
         """
         ret = dict()
         with self.session as session:
@@ -1171,7 +1171,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound("multiple records found")
 
             query = session.query(IndexRecord)
-            records = query.filter(IndexRecord.baseid == baseid).all()
+            records = (
+                query.filter(IndexRecord.baseid == baseid)
+                .order_by(IndexRecord.created_date.asc())
+                .all()
+            )
 
             for idx, record in enumerate(records):
 

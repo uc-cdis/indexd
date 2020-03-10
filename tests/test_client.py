@@ -1484,19 +1484,35 @@ def test_get_latest_version(client, user):
 
 
 def test_get_all_versions(client, user):
+    dids = []
+
+    # create 1st version
     data = get_doc(has_metadata=False, has_baseid=False)
-    res_1 = client.post("/index/", json=data, headers=user)
-    assert res_1.status_code == 200
-    rec_1 = res_1.json
-    assert rec_1["did"]
-    res = client.post("/index/" + rec_1["did"], json=data, headers=user)
+    res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    res_2 = client.get("/index/{}/versions".format(rec_1["did"]))
-    rec_2 = res_2.json
-    assert len(rec_2) == 2
-    res_3 = client.get("/index/{}/versions".format(rec_1["baseid"]))
-    rec_3 = res_3.json
-    assert len(rec_3) == 2
+    rec1 = res.json
+    assert rec1["did"]
+    dids.append(rec1["did"])
+
+    # create 2nd version
+    res = client.post("/index/" + rec1["did"], json=data, headers=user)
+    assert res.status_code == 200
+    rec2 = res.json
+    assert rec2["did"]
+    dids.append(rec2["did"])
+
+    # make sure all versions are returned when hitting the /versions endpoint
+    res = client.get("/index/{}/versions".format(rec1["did"]))
+    recs1 = res.json
+    assert len(recs1) == 2
+    res = client.get("/index/{}/versions".format(rec1["baseid"]))
+    recs2 = res.json
+    assert len(recs2) == 2
+    assert recs1 == recs1
+
+    # make sure records are returned in creation date order
+    for i, record in recs1.items():
+        assert record["did"] == dids[int(i)], "record id does not match"
 
 
 def test_index_stats(client, user):

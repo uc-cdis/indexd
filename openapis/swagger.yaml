@@ -575,7 +575,7 @@ paths:
     get:
       tags:
         - index
-      summary: Get the metadata of index record versions associated with the given id
+      summary: Get the metadata of index record versions associated with the given id, in the order the versions were created
       operationId: getAllVersions
       produces:
         - application/json
