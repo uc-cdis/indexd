@@ -1,5 +1,6 @@
 mock
-pytest==3.0.6
-pytest-flask==0.8.1
+pytest~=3.10.1
+pytest-flask~=0.15.0
+pytest-cov
 PyYAML
 swagger_spec_validator
