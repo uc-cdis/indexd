@@ -1,5 +1,4 @@
 import flask
-import os
 from indexd.errors import AuthError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
@@ -25,9 +24,7 @@ def get_drs_object(object_id):
 @blueprint.route("/ga4gh/drs/v1/objects", methods=["GET"])
 def list_drs_records():
     records = get_index()[0].json["records"]
-    ret = {
-        "drs_objects": [indexd_to_drs(record, True)["drs_object"] for record in records]
-    }
+    ret = {"drs_objects": [indexd_to_drs(record, True) for record in records]}
 
     return flask.jsonify(ret), 200
 
@@ -47,9 +44,9 @@ def get_signed_url(object_id, access_id):
 
 def indexd_to_drs(record, list_drs=False):
     bearer_token = flask.request.headers.get("AUTHORIZATION")
-    server = os.environ.get("FENCE_URL") or "http://fence-service"
-
-    self_uri = "drs://" + get_server_name(server) + "/" + record["did"]
+    self_uri = (
+        "drs://" + get_server_name(flask.current_app.hostname) + "/" + record["did"]
+    )
     drs_object = {
         "id": record["did"],
         "description": "",
@@ -60,11 +57,10 @@ def indexd_to_drs(record, list_drs=False):
     drs_object["created_time"] = record["created_date"]
     drs_object["updated_time"] = record["updated_date"]
     drs_object["size"] = record["size"]
-
     drs_object["description"] = ""
     drs_object["aliases"] = drs_object["contents"] = []
     drs_object["self_uri"] = self_uri
-
+    drs_object["version"] = record["rev"]
     if "description" in record:
         drs_object["description"].append(record["description"])
     if "alias" in record:
@@ -100,9 +96,7 @@ def indexd_to_drs(record, list_drs=False):
     for k in record["hashes"]:
         drs_object["checksums"].append({"checksum": record["hashes"][k], "type": k})
 
-    result = {"drs_object": drs_object}
-
-    return result
+    return drs_object
 
 
 def get_server_name(server):

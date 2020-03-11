@@ -41,16 +41,12 @@ def test_drs_get(client, user):
 
     assert res_2.status_code == 200
     rec_2 = res_2.json
-    assert rec_2["drs_object"]["id"] == rec_1["did"]
-    assert rec_2["drs_object"]["size"] == 123
-    assert (
-        rec_2["drs_object"]["checksums"][0]["checksum"]
-        == "8b9942cf415384b27cadf1f4d2d682e5"
-    )
-    assert rec_2["drs_object"]["checksums"][0]["type"] == "md5"
-    assert (
-        rec_2["drs_object"]["self_uri"] == "drs://fictitious-commons.io/" + rec_1["did"]
-    )
+    assert rec_2["id"] == rec_1["did"]
+    assert rec_2["size"] == 123
+    assert rec_2["checksums"][0]["checksum"] == "8b9942cf415384b27cadf1f4d2d682e5"
+    assert rec_2["version"]
+    assert rec_2["checksums"][0]["type"] == "md5"
+    assert rec_2["self_uri"] == "drs://fictitious-commons.io/" + rec_1["did"]
 
 
 def test_drs_multiple_endpointurl(client, user):
@@ -63,7 +59,7 @@ def test_drs_multiple_endpointurl(client, user):
 
     assert res_2.status_code == 200
     rec_2 = res_2.json
-    assert rec_2["drs_object"]["id"] == rec_1["did"]
+    assert rec_2["id"] == rec_1["did"]
 
     endpointurls = [
         "sftp://endpointurl/bucket/key",
@@ -72,13 +68,13 @@ def test_drs_multiple_endpointurl(client, user):
         "s3://endpointurl/bucket/key",
     ]
     endpointtypes = ["sftp", "ftp", "gs", "s3"]
-    for url in rec_2["drs_object"]["access_methods"]:
+    for url in rec_2["access_methods"]:
         assert url["access_url"]["url"] in endpointurls
 
-    for url in rec_2["drs_object"]["access_methods"]:
+    for url in rec_2["access_methods"]:
         assert url["type"] in endpointtypes
 
-    for methods in rec_2["drs_object"]["access_methods"]:
+    for methods in rec_2["access_methods"]:
         assert methods["access_id"] in endpointtypes
 
 
@@ -94,15 +90,12 @@ def test_drs_get_with_presigned_url(client, user):
     )
     assert res_2.status_code == 200
     rec_2 = res_2.json
-    assert rec_2["drs_object"]["id"] == rec_1["did"]
-    assert rec_2["drs_object"]["size"] == 123
-    assert (
-        rec_2["drs_object"]["checksums"][0]["checksum"]
-        == "8b9942cf415384b27cadf1f4d2d682e5"
-    )
-    assert rec_2["drs_object"]["checksums"][0]["type"] == "md5"
+    assert rec_2["id"] == rec_1["did"]
+    assert rec_2["size"] == 123
+    assert rec_2["checksums"][0]["checksum"] == "8b9942cf415384b27cadf1f4d2d682e5"
+    assert rec_2["checksums"][0]["type"] == "md5"
 
-    assert rec_2["drs_object"]["access_methods"][0]["access_url"] == presigned
+    assert rec_2["access_methods"][0]["access_url"] == presigned
 
 
 def test_drs_list(client, user):

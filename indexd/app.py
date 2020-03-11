@@ -24,6 +24,7 @@ def app_init(app, settings=None):
     app.fence_client = FenceClient(
         url=os.environ.get("FENCE_URL") or "http://fence-service"
     )
+    app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
     app.register_blueprint(indexd_bulk_blueprint)
     app.register_blueprint(indexd_index_blueprint)
     app.register_blueprint(indexd_alias_blueprint)
