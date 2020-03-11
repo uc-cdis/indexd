@@ -32,7 +32,6 @@ CONFIG["ALIAS"] = {
     )
 }
 
-CONFIG["FENCE_URL"] = "http://fence-service/"
 
 CONFIG["DIST"] = [
     {

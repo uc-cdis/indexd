@@ -18,8 +18,8 @@ CONFIG["INDEX"] = {
     )
 }
 
-os.environ["FENCE_URL"] = os.environ["HOSTNAME"] = "https://fictitious-commons.io/"
-
+os.environ["FENCE_URL"] = "https://fictitious-commons.io/"
+os.environ["HOSTNAME"] = "fictitious-commons.io"
 settings = {"config": CONFIG, "auth": AUTH}
 
 settings["config"]["TEST_DB"] = "postgres://postgres@localhost/test_migration_db"
