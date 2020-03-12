@@ -32,7 +32,7 @@ def list_drs_records():
 @blueprint.route(
     "/ga4gh/drs/v1/objects/<path:object_id>/access/<path:access_id>", methods=["GET"]
 )
-def get_signed_url(object_id, access_id):
+def get_signed_url(object_id, access_id=None):
     res = flask.current_app.fence_client.get_signed_url_for_object(
         object_id=object_id, access_id=access_id
     )

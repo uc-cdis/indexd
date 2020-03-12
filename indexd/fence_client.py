@@ -13,11 +13,13 @@ except ImportError:
     from indexd.default_settings import settings
 
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
+from indexd.errors import UserError, UnexpectedError
 from indexd.auth.errors import AuthError
-from indexd.errors import UnexpectedError
 
 
 logger = get_logger(__name__)
+
+SUPPORTED_PROTOCOLS = ["s3", "http", "ftp", "https", "gs"]
 
 
 class FenceClient(object):
@@ -28,7 +30,11 @@ class FenceClient(object):
         fence_server = self.url
         api_url = fence_server.rstrip("/") + "/data/download/"
         url = api_url + object_id
-        if access_id:
+        if access_id is not None and access_id != "":
+            if access_id not in SUPPORTED_PROTOCOLS:
+                raise UserError(
+                    "The specified protocol {} is not supported".format(access_id)
+                )
             url += "?protocol=" + access_id
         headers = flask.request.headers
         if "AUTHORIZATION" not in headers:
