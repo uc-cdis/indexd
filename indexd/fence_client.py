@@ -1,16 +1,11 @@
 from cdislogging import get_logger
-import os
 
 import flask
 import requests
 
-try:
-    from local_settings import settings
-except ImportError:
-    from indexd.default_settings import settings
 
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
-from indexd.errors import UserError, UnexpectedError
+from indexd.errors import UnexpectedError
 from indexd.auth.errors import AuthError
 
 

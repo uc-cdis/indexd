@@ -156,7 +156,10 @@ def test_get_presigned_url_no_access_id(client, user):
     assert res_1.status_code == 200
     rec_1 = res_1.json
     generate_presigned_url_response(rec_1["did"], "s3")
-    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/", headers={"AUTHORIZATION":"12345"})
+    res_2 = client.get(
+        "/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/",
+        headers={"AUTHORIZATION": "12345"},
+    )
     assert res_2.status_code == 400
 
 
