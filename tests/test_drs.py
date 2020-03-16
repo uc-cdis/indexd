@@ -155,9 +155,9 @@ def test_get_presigned_url_no_access_id(client, user):
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    presigned = generate_presigned_url_response(rec_1["did"], "s3")
-    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/")
-    assert res_2.status_code == 404
+    generate_presigned_url_response(rec_1["did"], "s3")
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/", headers={"AUTHORIZATION":"12345"})
+    assert res_2.status_code == 400
 
 
 @responses.activate
@@ -166,7 +166,7 @@ def test_get_presigned_url_no_bearer_token(client, user):
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    presigned = generate_presigned_url_response(rec_1["did"], "s3")
+    generate_presigned_url_response(rec_1["did"], "s3")
     res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/s3")
     assert res_2.status_code == 403
 
@@ -177,16 +177,24 @@ def test_get_presigned_url_wrong_access_id(client, user):
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    presigned = generate_presigned_url_response(rec_1["did"], "s3", status=404)
+    generate_presigned_url_response(rec_1["did"], "s2", status=404)
     res_2 = client.get(
         "/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/s2",
         headers={"AUTHORIZATION": "12345"},
     )
-    assert res_2.status_code == 400
+    assert res_2.status_code == 404
 
 
 @responses.activate
 def test_get_presigned_url_error(client, user):
     did = "dg.123/1234soiduhasoi"
-    res_2 = client.get("ga4gh/drs/v1/objects/" + did + "/access/gs")
+    data = get_doc()
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    generate_presigned_url_response(rec_1["did"], "s2", status=404)
+    res_2 = client.get(
+        "/ga4gh/drs/v1/objects/" + did + "/access/s2",
+        headers={"AUTHORIZATION": "12345"},
+    )
     assert res_2.status_code != 200

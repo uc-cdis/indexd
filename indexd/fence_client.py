@@ -1,9 +1,6 @@
-from cached_property import cached_property
 from cdislogging import get_logger
 import os
 
-# from cdispyutils.config import get_value
-# from cdispyutils.hmac4 import generate_aws_presigned_url
 import flask
 import requests
 
@@ -19,8 +16,6 @@ from indexd.auth.errors import AuthError
 
 logger = get_logger(__name__)
 
-SUPPORTED_PROTOCOLS = ["s3", "http", "ftp", "https", "gs"]
-
 
 class FenceClient(object):
     def __init__(self, url):
@@ -30,16 +25,12 @@ class FenceClient(object):
         fence_server = self.url
         api_url = fence_server.rstrip("/") + "/data/download/"
         url = api_url + object_id
-        if access_id is not None and access_id != "":
-            if access_id not in SUPPORTED_PROTOCOLS:
-                raise UserError(
-                    "The specified protocol {} is not supported".format(access_id)
-                )
-            url += "?protocol=" + access_id
         headers = flask.request.headers
         if "AUTHORIZATION" not in headers:
             logger.error("Bearer Token not available.")
-            raise AuthError("Not Authorized. Please Log In.")
+            raise AuthError("Not Authorized. Access Token Required.")
+        if access_id:
+            url += "?protocol=" + access_id
         try:
             req = requests.get(url, headers=headers)
         except Exception as e:

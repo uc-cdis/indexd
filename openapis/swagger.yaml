@@ -898,8 +898,8 @@ paths:
         - DOS
   '/ga4gh/drs/v1/objects':
     get:
-      summary: List all DrsObject
-      description: ''
+      summary: List all DrsObject. 
+      description: 'Url field here contains their location and not the presigned url.'
       operationId: ListDrsObject
       responses:
         '200':
@@ -914,27 +914,28 @@ paths:
       summary: Get info about a DrsObject.
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
+        Returns presigned url given an access token in the url field, else returns file location.
       operationId: GetObject
       responses:
         '200':
           description: The DrsObject was found successfully.
           schema:
             $ref: '#/definitions/DrsObject'
-        '202':
-          description: >
-            The operation is delayed and will continue asynchronously.
-            The client should retry this same request after the delay specified by Retry-After header.
-          headers:
-            Retry-After:
-              description: >
-                Delay in seconds. The client should retry this same request after waiting for this duration.
-                To simplify client response processing, this must be an integral relative time in seconds.
-                This value SHOULD represent the minimum duration the client should wait before attempting
-                the operation again with a reasonable expectation of success. When it is not feasible
-                for the server to determine the actual expected delay, the server may return a
-                brief, fixed value instead.
-              type: integer
-              format: int64
+        # '202':
+        #   description: >
+        #     The operation is delayed and will continue asynchronously.
+        #     The client should retry this same request after the delay specified by Retry-After header.
+        #   headers:
+        #     Retry-After:
+        #       description: >
+        #         Delay in seconds. The client should retry this same request after waiting for this duration.
+        #         To simplify client response processing, this must be an integral relative time in seconds.
+        #         This value SHOULD represent the minimum duration the client should wait before attempting
+        #         the operation again with a reasonable expectation of success. When it is not feasible
+        #         for the server to determine the actual expected delay, the server may return a
+        #         brief, fixed value instead.
+        #       type: integer
+        #       format: int64
         '400':
           description: The request is malformed.
           schema:
@@ -965,6 +966,8 @@ paths:
           type: boolean
           default: false
           description: >-
+            NOT IMPLEMENTED YET. 
+            
             If false and the object_id refers to a bundle, then the ContentsObject array
             contains only those objects directly contained in the bundle. That is, if the
             bundle contains other bundles, those other bundles are not recursively
@@ -991,21 +994,21 @@ paths:
           description: The access URL was found successfully.
           schema:
             $ref: '#/definitions/AccessURL'
-        '202':
-          description: >
-            The operation is delayed and will continue asynchronously.
-            The client should retry this same request after the delay specified by Retry-After header.
-          headers:
-            Retry-After:
-              description: >
-                Delay in seconds. The client should retry this same request after waiting for this duration.
-                To simplify client response processing, this must be an integral relative time in seconds.
-                This value SHOULD represent the minimum duration the client should wait before attempting
-                the operation again with a reasonable expectation of success. When it is not feasible
-                for the server to determine the actual expected delay, the server may return a
-                brief, fixed value instead.
-              type: integer
-              format: int64
+        # '202':
+        #   description: >
+        #     The operation is delayed and will continue asynchronously.
+        #     The client should retry this same request after the delay specified by Retry-After header.
+        #   headers:
+        #     Retry-After:
+        #       description: >
+        #         Delay in seconds. The client should retry this same request after waiting for this duration.
+        #         To simplify client response processing, this must be an integral relative time in seconds.
+        #         This value SHOULD represent the minimum duration the client should wait before attempting
+        #         the operation again with a reasonable expectation of success. When it is not feasible
+        #         for the server to determine the actual expected delay, the server may return a
+        #         brief, fixed value instead.
+        #       type: integer
+        #       format: int64
         '400':
           description: The request is malformed.
           schema:
@@ -1945,7 +1948,7 @@ definitions:
   ListDrsObject:
     type: object
     properties:
-      DrsObjects: 
+      drs_objects: 
         type: array
         items:
           $ref: '#/definitions/DrsObject'

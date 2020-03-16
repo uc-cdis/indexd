@@ -29,10 +29,14 @@ def list_drs_records():
     return flask.jsonify(ret), 200
 
 
+@blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>/access", defaults={'access_id': None}, methods=["GET"]
+)
 @blueprint.route(
     "/ga4gh/drs/v1/objects/<path:object_id>/access/<path:access_id>", methods=["GET"]
 )
-def get_signed_url(object_id, access_id=None):
+def get_signed_url(object_id, access_id):
+    if not access_id:
+        raise(UserError("Access ID/Protocol is required."))
     res = flask.current_app.fence_client.get_signed_url_for_object(
         object_id=object_id, access_id=access_id
     )
@@ -49,18 +53,19 @@ def indexd_to_drs(record, list_drs=False):
         "id": record["did"],
         "description": "",
         "mime_type": "application/json",
+        "name": record["file_name"],
+        "created_time": record["created_date"],
+        "updated_time": record["updated_date"],
+        "size": record["size"],
+        "description": "",
+        "aliases": [],
+        "contents": [],
+        "self_uri": self_uri,
+        "version": record["rev"],
     }
 
-    drs_object["name"] = record["file_name"]
-    drs_object["created_time"] = record["created_date"]
-    drs_object["updated_time"] = record["updated_date"]
-    drs_object["size"] = record["size"]
-    drs_object["description"] = ""
-    drs_object["aliases"] = drs_object["contents"] = []
-    drs_object["self_uri"] = self_uri
-    drs_object["version"] = record["rev"]
     if "description" in record:
-        drs_object["description"].append(record["description"])
+        drs_object["description"] = record["description"]
     if "alias" in record:
         drs_object["aliases"].append(record["alias"])
 

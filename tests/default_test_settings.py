@@ -18,7 +18,7 @@ CONFIG["INDEX"] = {
     )
 }
 
-os.environ["FENCE_URL"] = "https://fictitious-commons.io/"
+os.environ["PRESIGNED_FENCE_URL"] = "https://fictitious-commons.io/"
 os.environ["HOSTNAME"] = "fictitious-commons.io"
 settings = {"config": CONFIG, "auth": AUTH}
 
