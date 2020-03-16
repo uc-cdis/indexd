@@ -16,7 +16,9 @@ def generate_presigned_url_response(did, protocol="", status=200):
     return presigned_url
 
 
-def get_doc(has_version=True, multiple_endpointurl=False, has_content=False):
+def get_doc(
+    has_version=True, multiple_endpointurl=False, has_content=False, urls=list()
+):
     doc = {
         "form": "object",
         "size": 123,
@@ -42,10 +44,11 @@ def test_drs_get(client, user):
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["id"] == rec_1["did"]
-    assert rec_2["size"] == 123
-    assert rec_2["checksums"][0]["checksum"] == "8b9942cf415384b27cadf1f4d2d682e5"
+    assert rec_2["size"] == data["size"]
+    for k in data["hashes"]:
+        assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
+        assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
-    assert rec_2["checksums"][0]["type"] == "md5"
     assert rec_2["self_uri"] == "drs://fictitious-commons.io/" + rec_1["did"]
 
 
@@ -61,21 +64,16 @@ def test_drs_multiple_endpointurl(client, user):
     rec_2 = res_2.json
     assert rec_2["id"] == rec_1["did"]
 
-    endpointurls = [
-        "sftp://endpointurl/bucket/key",
-        "ftp://endpointurl/bucket/key",
-        "gs://endpointurl/bucket/key",
-        "s3://endpointurl/bucket/key",
-    ]
-    endpointtypes = ["sftp", "ftp", "gs", "s3"]
+    object_urls = {
+        "sftp": "sftp://endpointurl/bucket/key",
+        "ftp": "ftp://endpointurl/bucket/key",
+        "gs": "gs://endpointurl/bucket/key",
+        "s3": "s3://endpointurl/bucket/key",
+    }
+    data = get_doc(urls=list(object_urls.values()))
     for url in rec_2["access_methods"]:
-        assert url["access_url"]["url"] in endpointurls
-
-    for url in rec_2["access_methods"]:
-        assert url["type"] in endpointtypes
-
-    for methods in rec_2["access_methods"]:
-        assert methods["access_id"] in endpointtypes
+        protocol = url["type"]
+        assert url["access_url"]["url"] == object_urls[protocol]
 
 
 @responses.activate
@@ -91,41 +89,33 @@ def test_drs_get_with_presigned_url(client, user):
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["id"] == rec_1["did"]
-    assert rec_2["size"] == 123
-    assert rec_2["checksums"][0]["checksum"] == "8b9942cf415384b27cadf1f4d2d682e5"
-    assert rec_2["checksums"][0]["type"] == "md5"
+    assert rec_2["size"] == data["size"]
+    for k in data["hashes"]:
+        assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
+        assert rec_2["checksums"][0]["type"] == k
 
     assert rec_2["access_methods"][0]["access_url"] == presigned
 
 
 def test_drs_list(client, user):
     data = get_doc()
-    number_of_objects = 20
 
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
 
-    res_2 = client.get("/ga4gh/drs/v1/objects?page_size=100")
+    res_2 = client.get("/ga4gh/drs/v1/objects")
     assert res_2.status_code == 200
 
     rec_2 = res_2.json
-    for _ in range(number_of_objects - 1):
-        # make copies of drs_objects
-        rec_2["drs_objects"].append(res_2.json["drs_objects"])
-    assert len(rec_2["drs_objects"]) == number_of_objects
-
     assert rec_2["drs_objects"][0]["id"] == rec_1["did"]
-    assert rec_2["drs_objects"][0]["size"] == 123
-    assert (
-        rec_2["drs_objects"][0]["checksums"][0]["checksum"]
-        == "8b9942cf415384b27cadf1f4d2d682e5"
-    )
-
-    assert rec_2["drs_objects"][0]["checksums"][0]["type"] == "md5"
+    assert rec_2["drs_objects"][0]["size"] == data["size"]
+    for k in data["hashes"]:
+        assert rec_2["drs_objects"][0]["checksums"][0]["checksum"] == data["hashes"][k]
+        assert rec_2["drs_objects"][0]["checksums"][0]["type"] == k
 
 
-def test_get_drs_record_error(client, user):
+def test_get_drs_record_not_found(client, user):
     # test exception raised at nonexistent
     fake_did = "testprefix:d96bab16-c4e1-44ac-923a-04328b6fe78f"
     res = client.get("/ga4gh/drs/v1/objects/" + fake_did)
@@ -133,7 +123,7 @@ def test_get_drs_record_error(client, user):
 
 
 @responses.activate
-def test_get_presigned_url(client, user):
+def test_get_presigned_url_with_access_id(client, user):
     data = get_doc()
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
@@ -149,7 +139,6 @@ def test_get_presigned_url(client, user):
         assert res_2.json == presigned
 
 
-@responses.activate
 def test_get_presigned_url_no_access_id(client, user):
     data = get_doc()
     res_1 = client.post("/index/", json=data, headers=user)
@@ -163,7 +152,6 @@ def test_get_presigned_url_no_access_id(client, user):
     assert res_2.status_code == 400
 
 
-@responses.activate
 def test_get_presigned_url_no_bearer_token(client, user):
     data = get_doc()
     res_1 = client.post("/index/", json=data, headers=user)
@@ -186,18 +174,3 @@ def test_get_presigned_url_wrong_access_id(client, user):
         headers={"AUTHORIZATION": "12345"},
     )
     assert res_2.status_code == 404
-
-
-@responses.activate
-def test_get_presigned_url_error(client, user):
-    did = "dg.123/1234soiduhasoi"
-    data = get_doc()
-    res_1 = client.post("/index/", json=data, headers=user)
-    assert res_1.status_code == 200
-    rec_1 = res_1.json
-    generate_presigned_url_response(rec_1["did"], "s2", status=404)
-    res_2 = client.get(
-        "/ga4gh/drs/v1/objects/" + did + "/access/s2",
-        headers={"AUTHORIZATION": "12345"},
-    )
-    assert res_2.status_code != 200
