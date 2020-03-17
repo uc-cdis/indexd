@@ -16,9 +16,7 @@ def generate_presigned_url_response(did, protocol="", status=200):
     return presigned_url
 
 
-def get_doc(
-    has_version=True, multiple_endpointurl=False, has_content=False, urls=list()
-):
+def get_doc(has_version=True, urls=list(), drs_list=0):
     doc = {
         "form": "object",
         "size": 123,
@@ -27,10 +25,13 @@ def get_doc(
     }
     if has_version:
         doc["version"] = "1"
-    if multiple_endpointurl:
-        for url_type in ["gs", "ftp", "sftp"]:
-            doc["urls"].append("{}://endpointurl/bucket/key".format(url_type))
-
+    if urls:
+        doc["urls"] = urls
+    # if drs_list > 0:
+    #     ret = {"drs_objects": []}
+    #     for _ in range(drs_list):
+    #         ret["drs_objects"].append(doc)
+    #     return ret
     return doc
 
 
@@ -53,8 +54,13 @@ def test_drs_get(client, user):
 
 
 def test_drs_multiple_endpointurl(client, user):
-    data = get_doc(multiple_endpointurl=True)
-
+    object_urls = {
+        "sftp": "sftp://endpointurl/bucket/key",
+        "ftp": "ftp://endpointurl/bucket/key",
+        "gs": "gs://endpointurl/bucket/key",
+        "s3": "s3://endpointurl/bucket/key",
+    }
+    data = get_doc(urls=list(object_urls.values()))
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
@@ -64,13 +70,6 @@ def test_drs_multiple_endpointurl(client, user):
     rec_2 = res_2.json
     assert rec_2["id"] == rec_1["did"]
 
-    object_urls = {
-        "sftp": "sftp://endpointurl/bucket/key",
-        "ftp": "ftp://endpointurl/bucket/key",
-        "gs": "gs://endpointurl/bucket/key",
-        "s3": "s3://endpointurl/bucket/key",
-    }
-    data = get_doc(urls=list(object_urls.values()))
     for url in rec_2["access_methods"]:
         protocol = url["type"]
         assert url["access_url"]["url"] == object_urls[protocol]
@@ -98,21 +97,18 @@ def test_drs_get_with_presigned_url(client, user):
 
 
 def test_drs_list(client, user):
+    record_length = 7
     data = get_doc()
-
-    res_1 = client.post("/index/", json=data, headers=user)
-    assert res_1.status_code == 200
-    rec_1 = res_1.json
-
+    submitted_guids = []
+    for _ in range(record_length):
+        res_1 = client.post("/index/", json=data, headers=user)
+        submitted_guids.append(res_1.json["did"])
+        assert res_1.status_code == 200
     res_2 = client.get("/ga4gh/drs/v1/objects")
     assert res_2.status_code == 200
-
     rec_2 = res_2.json
-    assert rec_2["drs_objects"][0]["id"] == rec_1["did"]
-    assert rec_2["drs_objects"][0]["size"] == data["size"]
-    for k in data["hashes"]:
-        assert rec_2["drs_objects"][0]["checksums"][0]["checksum"] == data["hashes"][k]
-        assert rec_2["drs_objects"][0]["checksums"][0]["type"] == k
+    assert len(rec_2["drs_objects"]) == record_length
+    assert submitted_guids.sort() == [r["id"] for r in rec_2["drs_objects"]].sort()
 
 
 def test_get_drs_record_not_found(client, user):
