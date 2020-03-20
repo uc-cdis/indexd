@@ -16,7 +16,7 @@ def authorize(*p):
     not present, or fallback to the previous check.
     """
     if len(p) == 1:
-        f, = p
+        (f,) = p
 
         @wraps(f)
         def check_auth(*args, **kwargs):
