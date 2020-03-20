@@ -40,5 +40,20 @@ def get_app(settings=None):
             pass
 
     app_init(app, settings)
+    _setup_redis_client(app)
 
     return app
+
+
+def _setup_redis_client(app):
+    """
+    Sets up the redis client based on config
+    """
+    redis_url_parts = urlparse(app.config["REDIS_HOST"])
+    ssl = redis_url_parts.scheme == "https"
+    app.redis_client = redis.Redis(
+        host=redis_url_parts.netloc,
+        port=app.config["REDIS_PORT"],
+        db=app.config["REDIS_DB"],
+        ssl=ssl,
+    )

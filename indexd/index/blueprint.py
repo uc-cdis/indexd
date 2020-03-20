@@ -220,9 +220,19 @@ def get_index_record(record):
     Returns a record.
     """
 
-    ret = blueprint.index_driver.get(record)
+    # check redis
+    json_record = flask.current_app.redis_client.get(record)
+    if json_record:
+        json_record = json_record.loads(json_record)
+    else:
+        # get from db
+        ret = blueprint.index_driver.get(record)
+        json_record = flask.jsonify(ret)
 
-    return flask.jsonify(ret), 200
+        # update redis
+        flask.current_app.redis_client.set(record, json.dumps(json_record))
+
+    return json_record, 200
 
 
 @blueprint.route("/index/", methods=["POST"])
@@ -311,6 +321,9 @@ def put_index_blank_record(record):
     )
     ret = {"did": did, "rev": rev, "baseid": baseid}
 
+    # invalidate redis for this did
+    flask.current_app.redis_client.delete(did)
+
     return flask.jsonify(ret), 200
 
 
@@ -330,6 +343,9 @@ def put_index_record(record):
 
     ret = {"did": did, "baseid": baseid, "rev": rev}
 
+    # invalidate redis for this did
+    flask.current_app.redis_client.delete(did)
+
     return flask.jsonify(ret), 200
 
 
@@ -344,6 +360,9 @@ def delete_index_record(record):
 
     # authorize done in delete
     blueprint.index_driver.delete(record, rev)
+
+    # invalidate redis for this did
+    flask.current_app.redis_client.delete(record)
 
     return "", 200
 
@@ -388,6 +407,9 @@ def add_index_record_version(record):
 
     ret = {"did": did, "baseid": baseid, "rev": rev}
 
+    # invalidate redis for this did
+    flask.current_app.redis_client.delete(did)
+
     return flask.jsonify(ret), 200
 
 
@@ -425,6 +447,10 @@ def append_aliases(record):
 
     aliases = blueprint.index_driver.get_aliases_for_did(record)
     aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
+
+    # invalidate redis for this did
+    flask.current_app.redis_client.delete(record)
+
     return flask.jsonify(aliases_payload), 200
 
 
@@ -448,6 +474,10 @@ def replace_aliases(record):
     blueprint.index_driver.replace_aliases_for_did(aliases, record)
 
     aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
+
+    # invalidate redis for this did
+    flask.current_app.redis_client.delete(record)
+
     return flask.jsonify(aliases_payload), 200
 
 
@@ -456,6 +486,9 @@ def delete_all_aliases(record):
     # authorization and error handling done in driver
     blueprint.index_driver.delete_all_aliases_for_did(record)
 
+    # invalidate redis for this did
+    flask.current_app.redis_client.delete(record)
+
     return flask.jsonify("Aliases deleted successfully"), 200
 
 
@@ -463,6 +496,9 @@ def delete_all_aliases(record):
 def delete_one_alias(record, alias):
     # authorization and error handling done in driver
     blueprint.index_driver.delete_one_alias_for_did(alias, record)
+
+    # invalidate redis for this did
+    flask.current_app.redis_client.delete(record)
 
     return flask.jsonify("Aliases deleted successfully"), 200
 
