@@ -1,4 +1,5 @@
 import flask
+import redis
 from urllib.parse import urlparse
 from .bulk.blueprint import blueprint as indexd_bulk_blueprint
 from .index.blueprint import blueprint as indexd_index_blueprint
