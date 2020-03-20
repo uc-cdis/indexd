@@ -20,9 +20,9 @@ CONFIG["INDEX"] = {
 
 os.environ["PRESIGNED_FENCE_URL"] = "https://fictitious-commons.io/"
 os.environ["HOSTNAME"] = "fictitious-commons.io"
-CONFIG["REDIS_HOST"]: "http://redis-service"
-CONFIG["REDIS_PORT"]: "6379"
-CONFIG["REDIS_DB"]: 0
+CONFIG["REDIS_HOST"] = "http://redis-service"
+CONFIG["REDIS_PORT"] = "6379"
+CONFIG["REDIS_DB"] = 0
 
 settings = {"config": CONFIG, "auth": AUTH}
 
