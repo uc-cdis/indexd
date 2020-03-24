@@ -442,13 +442,16 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if urls_metadata or negate_params:
                 query = query.distinct(IndexRecord.did)
 
-            # order by updated date so newly added stuff is
-            # at the end (reduce risk that a new records ends up in a page
-            # earlier on) and allows for some logic to check for newly added records
-            # (e.g. parallelly processing from beginning -> middle and ending -> middle
-            #       and as a final step, checking the "ending"+1 to see if there are
-            #       new records).
-            query = query.order_by(IndexRecord.updated_date)
+            if page is not None:
+                # order by updated date so newly added stuff is
+                # at the end (reduce risk that a new records ends up in a page
+                # earlier on) and allows for some logic to check for newly added records
+                # (e.g. parallelly processing from beginning -> middle and ending -> middle
+                #       and as a final step, checking the "ending"+1 to see if there are
+                #       new records).
+                query = query.order_by(IndexRecord.updated_date)
+            else:
+                query = query.order_by(IndexRecord.did)
 
             if ids:
                 query = query.filter(IndexRecord.did.in_(ids))
@@ -1148,7 +1151,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     def get_all_versions(self, did):
         """
-        Get all record versions given did
+        Get all record versions (in order of creation) given DID
         """
         ret = dict()
         with self.session as session:
@@ -1168,7 +1171,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound("multiple records found")
 
             query = session.query(IndexRecord)
-            records = query.filter(IndexRecord.baseid == baseid).all()
+            records = (
+                query.filter(IndexRecord.baseid == baseid)
+                .order_by(IndexRecord.created_date.asc())
+                .all()
+            )
 
             for idx, record in enumerate(records):
 
