@@ -223,17 +223,16 @@ def get_index_record(record):
     # check redis
     json_record = flask.current_app.redis_client.get(record)
     if json_record:
-        json_record = json_record.loads(json_record)
+        json_record = json.loads(json_record)
     else:
         # get from db
-        ret = blueprint.index_driver.get(record)
-        json_record = flask.jsonify(ret)
+        json_record = blueprint.index_driver.get(record)
 
         # update redis
         logger.info(f"setting redis record {record}")
         flask.current_app.redis_client.set(record, json.dumps(json_record))
 
-    return json_record, 200
+    return flask.jsonify(json_record), 200
 
 
 @blueprint.route("/index/", methods=["POST"])
