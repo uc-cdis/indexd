@@ -243,6 +243,15 @@ class IndexRecordHash(Base):
         Index("index_record_hash_type_value_idx", "hash_value", "hash_type"),
     )
 
+class DrsBundleRecord(Base):
+    """
+    DRS bundle record representaion. 
+    """
+
+    __tablename__ = "drs_bundle_record"
+
+    GUID = Column(String, primary_key=True)
+    bundle = Column(String)
 
 def create_urls_metadata(urls_metadata, record, session):
     """

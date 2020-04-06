@@ -35,6 +35,10 @@ INDEX_TABLES = {
         (1, "url", "VARCHAR", 1, None, 1 if OLD_SQLITE else 2),
     ],
     "index_schema_version": [(0, "version", "INTEGER", 1, None, 1)],
+    "drs_bundle_record": [
+        (0, "GUID", "VARCHAR", 1, None, 1),
+        (1, "bundle", "VARCHAR", 0, None, 0),
+    ],
 }
 
 ALIAS_TABLES = {
@@ -78,7 +82,10 @@ def test_sqlite3_index_setup_tables():
         )
 
         tables = [i[0] for i in c]
-
+        print(" ")
+        print("CONNECTION!!!!")
+        print(tables)
+        print(" ")
         for table in INDEX_TABLES:
             assert table in tables, "{table} not created".format(table=table)
 
