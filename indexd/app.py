@@ -43,7 +43,7 @@ def get_app(settings=None):
 
     if not settings:
         try:
-            from local_settings import settings
+            from .local_settings import settings
         except ImportError:
             pass
 
