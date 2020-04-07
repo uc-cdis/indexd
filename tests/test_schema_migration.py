@@ -39,6 +39,10 @@ INDEX_TABLES = {
         ("hash_value", "character varying"),
     ],
     "index_record_url": [("did", "character varying"), ("url", "character varying")],
+    "drs_bundle_record": [
+        ("GUID", "character varying"),
+        ("bundle", "character varying"),
+    ],
 }
 
 

@@ -303,7 +303,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     def migrate_index_database(self):
         """
-        migrate alias database to match CURRENT_SCHEMA_VERSION
+        migrate index database to match CURRENT_SCHEMA_VERSION
         """
         migrate_database(
             driver=self,
@@ -1343,7 +1343,7 @@ def migrate_3(session, **kwargs):
     )
 
     session.execute(
-        "CREATE INDEX {tb}__file_name_idx ON {tb} ( file_name )".format(
+        "x INDEX {tb}__file_name_idx ON {tb} ( file_name )".format(
             tb=IndexRecord.__tablename__
         )
     )
@@ -1461,6 +1461,10 @@ def migrate_13(session, **kwargs):
         "ALTER TABLE {} ADD UNIQUE ( name )".format(IndexRecordAlias.__tablename__)
     )
 
+def migrate_14(session, **kwargs):
+    session.execute(
+        "CREATE INDEX {tb}__guid_idx ON {tb} ADD UNIQUE ( GUID )".format(tb=DrsBundleRecord.__tablename__)
+    )
 
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
@@ -1478,5 +1482,6 @@ SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_11,
     migrate_12,
     migrate_13,
+    migrate_14,
 ]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
