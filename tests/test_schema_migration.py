@@ -40,8 +40,12 @@ INDEX_TABLES = {
     ],
     "index_record_url": [("did", "character varying"), ("url", "character varying")],
     "drs_bundle_record": [
-        ("GUID", "character varying"),
-        ("bundle", "character varying"),
+        ("bundle_id", "character varying"),
+        ("name", "character varying"),
+        ("created_time", "timestamp without time zone"),
+        ("checksum", "character varying"),
+        ("size", "bigint"),
+        ("bundle_data", "text"),
     ],
 }
 

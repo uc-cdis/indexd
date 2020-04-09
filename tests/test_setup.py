@@ -36,8 +36,12 @@ INDEX_TABLES = {
     ],
     "index_schema_version": [(0, "version", "INTEGER", 1, None, 1)],
     "drs_bundle_record": [
-        (0, "GUID", "VARCHAR", 1, None, 1),
-        (1, "bundle", "VARCHAR", 0, None, 0),
+        (0, "bundle_id", "VARCHAR", 1, None, 1),
+        (1, "name", "VARCHAR", 0, None, 0),
+        (2, "created_time", "DATETIME", 0, None, 0),
+        (3, "checksum", "VARCHAR", 0, None, 0),
+        (4, "size", "BIGINT", 0, None, 0),
+        (5, "bundle_data", "TEXT", 0, None, 0),
     ],
 }
 

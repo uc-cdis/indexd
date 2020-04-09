@@ -12,6 +12,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    Text,
     and_,
     func,
     or_,
@@ -250,8 +251,12 @@ class DrsBundleRecord(Base):
 
     __tablename__ = "drs_bundle_record"
 
-    GUID = Column(String, primary_key=True)
-    bundle = Column(String)
+    bundle_id = Column(String, primary_key=True)
+    name = Column(String)
+    created_time = Column(DateTime, default=datetime.datetime.utcnow)
+    checksum = Column(String)
+    size = Column(BigInteger)
+    bundle_data = Column(Text)
 
 def create_urls_metadata(urls_metadata, record, session):
     """
@@ -1463,7 +1468,7 @@ def migrate_13(session, **kwargs):
 
 def migrate_14(session, **kwargs):
     session.execute(
-        "CREATE INDEX {tb}__guid_idx ON {tb} ADD UNIQUE ( GUID )".format(tb=DrsBundleRecord.__tablename__)
+        "CREATE INDEX {tb}__guid_idx ON {tb} ADD UNIQUE ( bundle_id )".format(tb=DrsBundleRecord.__tablename__)
     )
 
 # ordered schema migration functions that the index should correspond to
