@@ -1,6 +1,8 @@
 import re
 import json
 import flask
+import hashlib
+import uuid
 import jsonschema
 import os.path
 import subprocess
@@ -14,6 +16,7 @@ from indexd.errors import UserError
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
 from .schema import RECORD_ALIAS_SCHEMA
+from .schema import BUNDLE_SCHEMA
 
 from .errors import NoRecordFound
 from .errors import MultipleRecordsFound
@@ -521,6 +524,80 @@ def version():
     base = {"version": VERSION, "commit": COMMIT}
 
     return flask.jsonify(base), 200
+
+
+@blueprint.route("/bundle/", methods=["POST"])
+@authorize
+def post_bundle():
+    """
+    Create a new bundle
+    """
+    from indexd.drs.blueprint import indexd_to_drs, get_drs_object
+    try:
+        jsonschema.validate(flask.request.json, BUNDLE_SCHEMA)
+    except jsonschema.ValidationError as err:
+        raise UserError(err)
+
+    name = flask.request.json.get("name")
+    bundles = flask.request.json.get("bundles")
+    bundle_id = flask.request.json.get("bundle_id")
+
+    if len(bundles) == 0:
+        raise UserError("Bundle data required.")
+    if not name:
+        raise UserError("Bundle name required.")
+
+    bundle_data = []
+    size = 0
+    for bundle in bundles:
+        data = get_index_record(bundle)[0]
+        print(data.json)
+        data = data.json
+        size += data["size"]
+        if "bundle_data" not in bundle:
+            # check if its a bundle or an object
+            data = indexd_to_drs(data, list_drs=True, expand=True) 
+            print(data)
+        bundle_data.append(data)
+    ret = blueprint.index_driver.add_bundle(
+        bundle_id=bundle_id, name=name, size=size, bundle_data=str(bundle_data),
+    )
+
+    return flask.jsonify(ret), 200
+
+
+@blueprint.route("/bundle/", methods=["GET"])
+def get_bundle_record_list():
+    """
+    Returns a list of bundle records.
+    """
+
+    ret = blueprint.index_driver.get_bundle_list()
+
+    return flask.jsonify(ret), 200
+
+
+@blueprint.route("/bundle/<path:bundle_id>", methods=["GET"])
+def get_bundle_record_with_id(bundle_id):
+    """
+    Returns a record given bundle_id
+    """
+    expand = False if flask.request.args.get("expand") == "false" else True
+    ret = blueprint.index_driver.get(bundle_id, expand)
+
+    return flask.jsonify(ret), 200
+
+
+@blueprint.route("/bundle/<path:bundle_id>", methods=["DELETE"])
+@authorize
+def delete_bundle_record(bundle_id):
+    """
+    Delete bundle record given bundle_id
+    """
+
+    blueprint.index_driver.delete_bundle(bundle_id)
+
+    return "", 200
 
 
 @blueprint.errorhandler(NoRecordFound)

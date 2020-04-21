@@ -3,6 +3,7 @@ from indexd.errors import AuthError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import UnexpectedError
+# from indexd.index.blueprint import get_index
 from indexd.index.blueprint import get_index
 
 blueprint = flask.Blueprint("drs", __name__)
@@ -12,13 +13,20 @@ blueprint.index_driver = None
 
 
 @blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["GET"])
-def get_drs_object(object_id):
+def get_drs_object(object_id, list_drs=True, expand=False):
     """
     Returns a specific DRSobject with object_id
     """
+    expand = True if flask.request.args.get("expand") == "true" else False
+
     ret = blueprint.index_driver.get(object_id)
 
-    return flask.jsonify(indexd_to_drs(ret)), 200
+    print("---------------from indexd---------------------------------")
+    print(ret["bundle_id"])
+
+    data = indexd_to_drs(ret, list_drs=True) if expand else indexd_to_drs(ret, list_drs=False, expand=True)
+
+    return flask.jsonify(data), 200
 
 
 @blueprint.route("/ga4gh/drs/v1/objects", methods=["GET"])
@@ -49,21 +57,39 @@ def get_signed_url(object_id, access_id):
     return res, 200
 
 
-def indexd_to_drs(record, list_drs=False):
+def indexd_to_drs(record, list_drs=False, expand=False):
     bearer_token = flask.request.headers.get("AUTHORIZATION")
-    self_uri = "drs://" + flask.current_app.hostname + "/" + record["did"]
+    print("-----------------------------------indexd to drs --------------------------------")
+    print(list_drs)
+    print(expand)
+    print(record)
+    # print(record.get("bundle_id"))
+
+    
+    did = record["did"] if "did" in record else record["bundle_id"]
+
+    self_uri = "drs://" + flask.current_app.hostname + "/" + did
+
+    name = record["file_name"] if "file_name" in record else record["name"]
+
+    created_time = record["created_date"] if "created_date" in record else record["created_time"]
+
+    version = record["rev"] if "rev" in record else ""
+
+    updated_date = record["updated_date"] if "updated_date" in record else ""
+
     drs_object = {
-        "id": record["did"],
+        "id": did,
         "description": "",
         "mime_type": "application/json",
-        "name": record["file_name"],
-        "created_time": record["created_date"],
-        "updated_time": record["updated_date"],
+        "name": name,
+        "created_time": created_time,
+        "updated_time": updated_date,
         "size": record["size"],
         "aliases": [],
         "contents": [],
         "self_uri": self_uri,
-        "version": record["rev"],
+        "version": version,
     }
 
     if "description" in record:
@@ -71,8 +97,12 @@ def indexd_to_drs(record, list_drs=False):
     if "alias" in record:
         drs_object["aliases"].append(record["alias"])
 
-    if "contents" in record:
-        drs_object["contents"] = record["contents"]
+    if "bundle_data" in record:
+        bundle_data = record["bundle_data"]
+        for bundle in bundle_data:
+            print("-----------------------------------------")
+            print(bundle)
+            drs_object["contents"].append(bundle_to_drs(bundle, expand=expand))
 
     # access_methods mapping
     if "urls" in record:
@@ -98,10 +128,39 @@ def indexd_to_drs(record, list_drs=False):
 
     # parse out checksums
     drs_object["checksums"] = []
-    for k in record["hashes"]:
-        drs_object["checksums"].append({"checksum": record["hashes"][k], "type": k})
+    if "hashes" in record:
+        for k in record["hashes"]:
+            drs_object["checksums"].append({"checksum": record["hashes"][k], "type": k})
+    else:
+        drs_object["checksums"].append({"checksum": record["checksum"], "type": "md5"})
 
     return drs_object
+
+
+def bundle_to_drs(record, expand):
+    did = record["did"] if "did" in record else record["bundle_id"]
+
+    self_uri = "drs://" + flask.current_app.hostname + "/" + did
+    
+    name = record["file_name"] if "file_name" in record else record["name"]
+    
+    created_time = record["created_date"] if "created_date" in record else record["created_time"]
+
+    drs_object = {
+        "id": did,
+        "name": name,
+        "created_time": created_time,
+        "self_uri": self_uri,
+    }
+    contents = record["contents"] if "contents" in record else record["bundle_data"]
+    if expand and len(contents) > 1:
+        drs_object["contents"] = bundle_to_drs(contents, expand=True)
+
+    return drs_object
+
+
+
+
 
 
 @blueprint.errorhandler(UserError)

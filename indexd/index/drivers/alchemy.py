@@ -1,7 +1,8 @@
 import datetime
 import uuid
+import hashlib
 from contextlib import contextmanager
-
+from ast import literal_eval
 from cdislogging import get_logger
 from sqlalchemy import (
     BigInteger,
@@ -244,6 +245,7 @@ class IndexRecordHash(Base):
         Index("index_record_hash_type_value_idx", "hash_value", "hash_type"),
     )
 
+
 class DrsBundleRecord(Base):
     """
     DRS bundle record representaion. 
@@ -257,6 +259,26 @@ class DrsBundleRecord(Base):
     checksum = Column(String)
     size = Column(BigInteger)
     bundle_data = Column(Text)
+
+    def to_document_dict(self, expand):
+        """
+        Get the full bundle document
+        expand: True to include bundle_data
+        """
+        ret = {
+            "bundle_id": self.bundle_id,
+            "name": self.name,
+            "created_time": self.created_time.isoformat(),
+            "checksum": self.checksum,
+            "size": self.size,
+        }
+
+        if expand:
+            bundle_data = literal_eval(self.bundle_data)
+            ret["bundle_data"] = bundle_data
+
+        return ret
+
 
 def create_urls_metadata(urls_metadata, record, session):
     """
@@ -737,6 +759,32 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
+    def add_blank_bundle(self):
+        """
+        Create a new blank record with only uploader and optionally
+        file_name fields filled
+        """
+        with self.session as session:
+            record = DrsBundleRecord()
+            base_version = BaseVersion()
+
+            bundle_id = str(uuid.uuid4())
+            name = str(uuid.uuid4())
+
+            record.bundle_id = bundle_id
+            base_version.baseid = bundle_id
+
+            # record.rev = str(uuid.uuid4())[:8]
+            # record.baseid = baseid
+            # record.uploader = uploader
+            # record.file_name = file_name
+
+            session.add(base_version)
+            session.add(record)
+            session.commit()
+
+            return record.bundle_id
+
     def update_blank_record(self, did, rev, size, hashes, urls):
         """
         Update a blank record with size and hashes, raise exception
@@ -969,7 +1017,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             self.logger.info(f"Deleted alias {alias} for did {did}.")
 
-    def get(self, did):
+    def get(self, did, expand=True):
         """
         Gets a record given the record id or baseid.
         If the given id is a baseid, it will return the latest version
@@ -982,7 +1030,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record = query.first()
             if record is None:
-                raise NoRecordFound("no record found")
+                record = self.get_bundle(bundle_id=did, expand=expand)
+                if record:
+                    return record
+                else:
+                    raise NoRecordFound("no record found")
+
             return record.to_document_dict()
 
     def update(self, did, rev, changing_fields):
@@ -1276,6 +1329,81 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 select([func.count()]).select_from(IndexRecord)
             ).scalar()
 
+    def add_bundle(
+        self, bundle_id=None, name=None, checksum=None, size=None, bundle_data=None,
+    ):
+        """
+        Add a bundle record 
+        """
+        with self.session as session:
+            record = DrsBundleRecord()
+            if not bundle_id:
+                bundle_id = str(uuid.uuid4())
+                if self.config.get("PREPEND_PREFIX"):
+                    bundle_id = self.config["DEFAULT_PREFIX"] + bundle_id
+            record.bundle_id = bundle_id
+
+            record.name = name
+
+            checksum = hashlib.md5(bundle_id.encode("utf-8")).hexdigest()
+            record.checksum = checksum
+
+            record.size = size
+
+            record.bundle_data = bundle_data
+
+            try:
+                session.add(record)
+                session.commit()
+            except IntegrityError:
+                raise UserError(
+                    'bundle id "{bundle_id}" already exists'.format(
+                        bundle_id=record.bundle_id
+                    ),
+                    400,
+                )
+
+            return record.bundle_id, record.name, record.bundle_data
+
+    def get_bundle_list(self):
+        """
+        Returns list of all bundles
+        """
+        with self.session as session:
+            query = session.query(DrsBundleRecord)
+
+            return [i.to_document_dict(expand=False) for i in query]
+
+    def get_bundle(self, bundle_id, expand=True):
+        """
+        Gets a bundle record given the bundle_id.
+        """
+        with self.session as session:
+            query = session.query(DrsBundleRecord)
+            query = query.filter(or_(DrsBundleRecord.bundle_id == bundle_id)).order_by(
+                DrsBundleRecord.created_time.desc()
+            )
+
+            record = query.first()
+            if record is None:
+                raise NoRecordFound("No bundle found")
+
+            return record.to_document_dict(expand)
+
+    def delete_bundle(self, bundle_id):
+        with self.session as session:
+            query = session.query(DrsBundleRecord)
+            query = query.filter(DrsBundleRecord.bundle_id == bundle_id)
+
+            try:
+                record = query.one()
+            except NoResultFound:
+                raise NoRecordFound("No bundle found")
+            except MultipleResultsFound:
+                raise MultipleRecordsFound("Multiple bundles found")
+
+            session.delete(record)
+
 
 def migrate_1(session, **kwargs):
     session.execute(
@@ -1466,10 +1594,6 @@ def migrate_13(session, **kwargs):
         "ALTER TABLE {} ADD UNIQUE ( name )".format(IndexRecordAlias.__tablename__)
     )
 
-def migrate_14(session, **kwargs):
-    session.execute(
-        "CREATE INDEX {tb}__guid_idx ON {tb} ADD UNIQUE ( bundle_id )".format(tb=DrsBundleRecord.__tablename__)
-    )
 
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
@@ -1487,6 +1611,5 @@ SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_11,
     migrate_12,
     migrate_13,
-    migrate_14,
 ]
 CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)

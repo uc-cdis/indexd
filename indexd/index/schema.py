@@ -97,3 +97,22 @@ RECORD_ALIAS_SCHEMA = {
         }
     },
 }
+
+BUNDLE_SCHEMA = {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "additionalProperties": False,
+    "description": "Creates a new bundle",
+    "required": ["bundles", "name"],
+    "properties": {
+        "bundle_id": {
+            "type": "string",
+            "pattern": "^.*[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+        },
+        "name": {
+            "description": "Required bundle name created my author of the bundle",
+            "type": "string",
+        },
+        "bundles": {"description": "Expanded bundles and objects.", "type": "array",},
+    },
+}

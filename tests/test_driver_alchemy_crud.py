@@ -110,6 +110,35 @@ def test_driver_add_object_record():
 
 
 @util.removes("index.sq3")
+def test_driver_add_bundle_record():
+    """
+    Tests creation of a record.
+    """
+    with sqlite3.connect("index.sq3") as conn:
+
+        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+
+        driver.add_blank_bundle()
+
+        count = conn.execute(
+            """
+            SELECT COUNT(*) FROM drs_bundle_record
+        """
+        ).fetchone()[0]
+
+        assert count == 1, "driver did not create record"
+
+        record = conn.execute(
+            """
+            SELECT * FROM drs_bundle_record
+        """
+        ).fetchone()
+
+        assert record != None
+        assert len(record) == 6
+
+
+@util.removes("index.sq3")
 def test_driver_add_container_record():
     """
     Tests creation of a record.
@@ -138,6 +167,38 @@ def test_driver_add_container_record():
         assert record[1], "record baseid not populated"
         assert record[2], "record rev not populated"
         assert record[3] == "container", "record form is not container"
+        assert record[4] == None, "record size non-null"
+
+
+@util.removes("index.sq3")
+def test_driver_add_bundles_record():
+    """
+    Tests creation of a record.
+    """
+    with sqlite3.connect("index.sq3") as conn:
+
+        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+
+        driver.add_bundle(name="bundle",)
+
+        count = conn.execute(
+            """
+            SELECT COUNT(*) FROM drs_bundle_record
+        """
+        ).fetchone()[0]
+
+        assert count == 1, "driver did not create record"
+
+        record = conn.execute(
+            """
+            SELECT * FROM drs_bundle_record
+        """
+        ).fetchone()
+
+        assert record[0], "record id not populated"
+        assert record[1], "record name not populated"
+        assert record[1] == "bundle", "record bundle is not container"
+        assert record[2], "record created date not populated"
         assert record[4] == None, "record size non-null"
 
 
@@ -860,3 +921,39 @@ def test_driver_delete_fails_with_invalid_rev():
 
         with pytest.raises(RevisionMismatch):
             driver.delete(did, "some_revision")
+
+
+@util.removes("index.sq3")
+def test_driver_get_bundle():
+    """
+    Tests retrieval of a record.
+    """
+    with sqlite3.connect("index.sq3") as conn:
+
+        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+
+        bundle_id = str(uuid.uuid4())
+        checksum = "iuhd91h9ufh928jidsoajh9du328"
+        size = 512
+        name = "object"
+        created_time = datetime.now()
+        bundle_data = "all the data!!"
+
+        conn.execute(
+            """
+            INSERT INTO drs_bundle_record(bundle_id, name, checksum, size, bundle_data, created_time) VALUES (?,?,?,?,?,?)
+        """,
+            (bundle_id, name, checksum, size, bundle_data, created_time),
+        )
+
+        conn.commit()
+
+        record = driver.get_bundle(bundle_id)
+
+        assert record["bundle_id"] == bundle_id, "record id does not match"
+        assert record["checksum"] == checksum, "record revision does not match"
+        assert record["size"] == size, "record size does not match"
+        assert record["name"] == name, "record form does not match"
+        assert (
+            record["created_time"] == created_time.isoformat()
+        ), "created date does not match"
