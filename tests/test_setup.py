@@ -39,9 +39,10 @@ INDEX_TABLES = {
         (0, "bundle_id", "VARCHAR", 1, None, 1),
         (1, "name", "VARCHAR", 0, None, 0),
         (2, "created_time", "DATETIME", 0, None, 0),
-        (3, "checksum", "VARCHAR", 0, None, 0),
-        (4, "size", "BIGINT", 0, None, 0),
-        (5, "bundle_data", "TEXT", 0, None, 0),
+        (3, "updated_time", "DATETIME", 0, None, 0),
+        (4, "checksum", "VARCHAR", 0, None, 0),
+        (5, "size", "BIGINT", 0, None, 0),
+        (6, "bundle_data", "TEXT", 0, None, 0),
     ],
 }
 

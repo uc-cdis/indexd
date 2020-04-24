@@ -3,6 +3,7 @@ from indexd.errors import AuthError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import UnexpectedError
+
 # from indexd.index.blueprint import get_index
 from indexd.index.blueprint import get_index
 
@@ -13,7 +14,7 @@ blueprint.index_driver = None
 
 
 @blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["GET"])
-def get_drs_object(object_id, list_drs=True, expand=False):
+def get_drs_object(object_id):
     """
     Returns a specific DRSobject with object_id
     """
@@ -21,10 +22,11 @@ def get_drs_object(object_id, list_drs=True, expand=False):
 
     ret = blueprint.index_driver.get(object_id)
 
-    print("---------------from indexd---------------------------------")
-    print(ret["bundle_id"])
-
-    data = indexd_to_drs(ret, list_drs=True) if expand else indexd_to_drs(ret, list_drs=False, expand=True)
+    data = (
+        indexd_to_drs(ret, expand=False, list_drs=False)
+        if not flask.request.args.get("expand")
+        else indexd_to_drs(ret, expand=expand, list_drs=False)
+    )
 
     return flask.jsonify(data), 200
 
@@ -57,26 +59,23 @@ def get_signed_url(object_id, access_id):
     return res, 200
 
 
-def indexd_to_drs(record, list_drs=False, expand=False):
-    bearer_token = flask.request.headers.get("AUTHORIZATION")
-    print("-----------------------------------indexd to drs --------------------------------")
-    print(list_drs)
-    print(expand)
-    print(record)
-    # print(record.get("bundle_id"))
+def indexd_to_drs(record, expand, list_drs=False):
 
-    
+    bearer_token = flask.request.headers.get("AUTHORIZATION")
+
     did = record["did"] if "did" in record else record["bundle_id"]
 
     self_uri = "drs://" + flask.current_app.hostname + "/" + did
 
     name = record["file_name"] if "file_name" in record else record["name"]
 
-    created_time = record["created_date"] if "created_date" in record else record["created_time"]
+    created_time = (
+        record["created_date"] if "created_date" in record else record["created_time"]
+    )
 
     version = record["rev"] if "rev" in record else ""
 
-    updated_date = record["updated_date"] if "updated_date" in record else ""
+    updated_date = (record["updated_date"] if "updated_date" in record else record["updated_time"])
 
     drs_object = {
         "id": did,
@@ -100,8 +99,6 @@ def indexd_to_drs(record, list_drs=False, expand=False):
     if "bundle_data" in record:
         bundle_data = record["bundle_data"]
         for bundle in bundle_data:
-            print("-----------------------------------------")
-            print(bundle)
             drs_object["contents"].append(bundle_to_drs(bundle, expand=expand))
 
     # access_methods mapping
@@ -124,7 +121,6 @@ def indexd_to_drs(record, list_drs=False, expand=False):
                     "region": "",
                 }
             )
-        print(drs_object)
 
     # parse out checksums
     drs_object["checksums"] = []
@@ -138,29 +134,31 @@ def indexd_to_drs(record, list_drs=False, expand=False):
 
 
 def bundle_to_drs(record, expand):
-    did = record["did"] if "did" in record else record["bundle_id"]
+    did = record["id"] if "id" in record else record["bundle_id"]
 
     self_uri = "drs://" + flask.current_app.hostname + "/" + did
-    
+
     name = record["file_name"] if "file_name" in record else record["name"]
-    
-    created_time = record["created_date"] if "created_date" in record else record["created_time"]
 
     drs_object = {
         "id": did,
         "name": name,
-        "created_time": created_time,
         "self_uri": self_uri,
+        "contents": [],
     }
-    contents = record["contents"] if "contents" in record else record["bundle_data"]
-    if expand and len(contents) > 1:
-        drs_object["contents"] = bundle_to_drs(contents, expand=True)
+    contents = (
+        record["contents"]
+        if "contents" in record
+        else record["bundle_data"]
+        if "bundle_data" in record
+        else None
+    )
+
+    if expand and contents != None:
+        for content in contents:
+            drs_object["contents"].append(bundle_to_drs(content, expand=True))
 
     return drs_object
-
-
-
-
 
 
 @blueprint.errorhandler(UserError)

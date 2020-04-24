@@ -256,11 +256,16 @@ class DrsBundleRecord(Base):
     bundle_id = Column(String, primary_key=True)
     name = Column(String)
     created_time = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_time = Column(DateTime, default=datetime.datetime.utcnow)
     checksum = Column(String)
     size = Column(BigInteger)
     bundle_data = Column(Text)
 
     def to_document_dict(self, expand):
+        print("-------------------------------------------------------")
+        print(self)
+        # print(self.created_time)
+        print(self.updated_time)
         """
         Get the full bundle document
         expand: True to include bundle_data
@@ -269,6 +274,7 @@ class DrsBundleRecord(Base):
             "bundle_id": self.bundle_id,
             "name": self.name,
             "created_time": self.created_time.isoformat(),
+            "updated_time": self.updated_time.isoformat(),
             "checksum": self.checksum,
             "size": self.size,
         }

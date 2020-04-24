@@ -533,6 +533,7 @@ def post_bundle():
     Create a new bundle
     """
     from indexd.drs.blueprint import indexd_to_drs, get_drs_object
+
     try:
         jsonschema.validate(flask.request.json, BUNDLE_SCHEMA)
     except jsonschema.ValidationError as err:
@@ -551,13 +552,13 @@ def post_bundle():
     size = 0
     for bundle in bundles:
         data = get_index_record(bundle)[0]
-        print(data.json)
         data = data.json
         size += data["size"]
-        if "bundle_data" not in bundle:
+        print("-----------------------post---------------------------------")
+        if "bundle_data" not in data:
+            print("------------------is object---------------")
             # check if its a bundle or an object
-            data = indexd_to_drs(data, list_drs=True, expand=True) 
-            print(data)
+            data = indexd_to_drs(data, list_drs=True, expand=True)
         bundle_data.append(data)
     ret = blueprint.index_driver.add_bundle(
         bundle_id=bundle_id, name=name, size=size, bundle_data=str(bundle_data),

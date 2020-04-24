@@ -37,9 +37,6 @@ def get_index_doc(has_version=True, urls=list(), add_bundle=False):
     return doc
 
 
-# def create_bundles(client, user, n_bundles):
-
-
 def create_index(client, user, add_bundle=False):
     i_data = get_index_doc(add_bundle=add_bundle)
     res1 = client.post("/index/", json=i_data, headers=user)
@@ -51,23 +48,27 @@ def create_index(client, user, add_bundle=False):
 
 
 def test_bundle_post(client, user):
+    """
+    Bundle 1
+        +-object1
+    """
     did_list, _ = create_index(client, user)
 
     data = get_bundle_doc(bundles=did_list)
     res2 = client.post("/bundle/", json=data, headers=user)
     rec2 = res2.json
-    print(rec2)
     assert res2.status_code == 200
 
 
 def test_bundle_get(client, user):
     """
     Post with bundle_id and get.
+    Bundle1
+        +-object1
     """
     did_list, rec = create_index(client, user)
     res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"])
     rec1 = res1.json
-
     bundle_id = str(uuid.uuid4())
     data = get_bundle_doc(did_list, bundle_id=bundle_id)
 
@@ -76,6 +77,7 @@ def test_bundle_get(client, user):
 
     res2 = client.get("/bundle/" + bundle_id)
     rec2 = res2.json
+    print(rec2)
     assert res2.status_code == 200
     assert rec2["bundle_id"] == bundle_id
     assert rec2["name"] == data["name"]
@@ -112,16 +114,36 @@ def test_redirect_to_bundle_from_index(client, user):
     res = client.get("/bundle/" + bundle_id)
     assert res.status_code == 200
 
-    print("--------------Get Bundle----------------------------")
-    print(res.json)
+    res3 = client.get("/index/" + bundle_id)
+    assert res3.status_code == 200
+
+
+def test_bundle_from_drs_endpoint(client, user):
+    did_list, _ = create_index(client, user)
+    bundle_id = str(uuid.uuid4())
+    data = get_bundle_doc(did_list, bundle_id=bundle_id)
+
+    res2 = client.post("/bundle/", json=data, headers=user)
+    assert res2.status_code == 200
+
+    res = client.get("/bundle/" + bundle_id)
+    assert res.status_code == 200
 
     res3 = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
     assert res3.status_code == 200
 
-# def test_bundle_from_drs_endpoint(client, user):
-
 
 def test_get_bundle_list(client, user):
+    """
+    bundle1
+        +-object1
+    bundle2
+        +-object2
+    .
+    .
+    bundlen
+        +-objectn
+    """
     n_records = 6
     for _ in range(n_records):
         did_list, _ = create_index(client, user)
@@ -140,6 +162,14 @@ def test_get_bundle_list(client, user):
 
 
 def test_multiple_bundle_data(client, user):
+    """
+    bundle1
+        +-object1
+        +-object2
+        .
+        .
+        +-objectn
+    """
     n_bundle_data = 5
     did_list = []
     for _ in range(n_bundle_data):
@@ -192,6 +222,18 @@ def test_bundle_delete(client, user):
 
 
 def test_bundle_data_bundle_and_index(client, user):
+    """
+    bundle_main
+        +-bundle1
+            +-object1
+        +-bundle2
+            +-object2
+        +-bundle3
+            +-object3
+        +-object1
+        +-object2
+        +-object3
+    """
     n_records = 3
     bundle_data_ids = []
     for _ in range(n_records):
@@ -219,7 +261,14 @@ def test_bundle_data_bundle_and_index(client, user):
 
 
 def test_nested_bundle_data(client, user):
-    n_nested = 4
+    """
+    bundle1
+        +-bundle2
+            +-bundle3
+                +-bundle4
+                    +-object1
+    """
+    n_nested = 6
     did_list, _ = create_index(client, user)
 
     base_bundle_id = str(uuid.uuid4())
@@ -229,18 +278,22 @@ def test_nested_bundle_data(client, user):
 
     for _ in range(n_nested - 2):
         bundle_id = str(uuid.uuid4())
+        assert bundle_id != base_bundle_id
         data = get_bundle_doc([base_bundle_id], bundle_id=bundle_id)
         res1 = client.post("/bundle/", json=data, headers=user)
         assert res1.status_code == 200
         base_bundle_id = bundle_id
 
+    assert base_bundle_id == bundle_id
     res2 = client.get("/bundle/" + base_bundle_id)
     assert res2.status_code == 200
     rec3 = res2.json
-    print(rec3)
-    for _ in range(n_nested - 1):
-        assert "bundle_data" in rec3
-        rec3 = rec3["bundle_data"][0]
+
+    for _ in range(n_nested - 2):
+        check = "bundle_data" in rec3 or "contents" in rec3
+        assert check
+        key = "bundle_data" if "bundle_data" in rec3 else "contents"
+        rec3 = rec3[key][0]
 
 
 def test_bundle_no_bundle_data(client, user):
@@ -259,27 +312,114 @@ def test_bundle_no_bundle_name(client, user):
     assert res.status_code == 400
 
 
-def test_get_drs_expand_bundle(client, user):
-
-    did_list, _ = create_index(client, user)
+def build_bundle(client, user):
+    """
+    bundle1
+        +-object1
+        +-bundle2
+            +-object2
+        +-bundle3
+            +-object3
+            +-bundle4
+                +-object4
+                +-bundle5
+                    +-bundle6
+                        +-object5
+    """
+    object_list = []
+    n_objects = 5
+    for _ in range(n_objects):
+        did_list, _ = create_index(client, user)
+        object_list.append(did_list[0])
 
     bundle_id = str(uuid.uuid4())
-
-    data = get_bundle_doc(did_list, bundle_id=bundle_id)
-
+    data = get_bundle_doc([object_list[0]], bundle_id=bundle_id)
     res = client.post("/bundle/", json=data, headers=user)
     assert res.status_code == 200
-    
-    res1 = client.get("/bundle/" + bundle_id)
-    assert res1.status_code == 200
-    rec1 = res1.json
+
+    bundle_id1 = str(uuid.uuid4())
+    data = get_bundle_doc([bundle_id], bundle_id=bundle_id1)
+    res = client.post("/bundle/", json=data, headers=user)
+    assert res.status_code == 200
+
+    bundle_id = str(uuid.uuid4())
+    data = get_bundle_doc([bundle_id1, object_list[1]], bundle_id=bundle_id)
+    res = client.post("/bundle/", json=data, headers=user)
+    assert res.status_code == 200
+
+    bundle_id1 = str(uuid.uuid4())
+    data = get_bundle_doc([bundle_id, object_list[2]], bundle_id=bundle_id1)
+    res = client.post("/bundle/", json=data, headers=user)
+    assert res.status_code == 200
+
+    bundle_id = str(uuid.uuid4())
+    data = get_bundle_doc([object_list[3]], bundle_id=bundle_id)
+    res = client.post("/bundle/", json=data, headers=user)
+    assert res.status_code == 200
+
+    bundle_id2 = str(uuid.uuid4())
+    data = get_bundle_doc([object_list[4], bundle_id, bundle_id1], bundle_id=bundle_id2)
+    res = client.post("/bundle/", json=data, headers=user)
+    assert res.status_code == 200
+
+    return bundle_id2
+
+
+def content_validation(contents):
+    for content in contents:
+        if len(content) != 0:
+            content_validation(content["contents"])
+        elif "contents" not in content:
+            return False
+    return True
+
+
+def test_get_drs_expand_contents_default(client, user):
+
+    bundle_id = build_bundle(client, user)
+    res = client.get("/bundle/" + bundle_id)
+    assert res.status_code == 200
 
     res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
     assert res2.status_code == 200
     rec2 = res2.json
 
-    assert rec2["id"] == rec1["bundle_id"]
-    assert rec2["size"] == rec1["size"]
-    assert rec2["name"] == rec1["name"]
-    print(rec2)
+    contents = rec2["contents"]
+    assert len(contents) == 3
 
+    # Check that the second layer of bundles is not expanded
+    for content in contents:
+        assert len(content["contents"]) == 0
+
+
+def test_get_drs_expand_contents_false(client, user):
+
+    bundle_id = build_bundle(client, user)
+    res = client.get("/bundle/" + bundle_id)
+    assert res.status_code == 200
+
+    res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id + "?expand=false")
+    assert res2.status_code == 200
+    rec2 = res2.json
+
+    contents = rec2["contents"]
+    assert len(contents) == 3
+
+    # Check that the second layer of bundles is not expanded
+    for content in contents:
+        assert len(content["contents"]) == 0
+
+
+def test_get_drs_expand_contents_true(client, user):
+
+    bundle_id = build_bundle(client, user)
+    res = client.get("/bundle/" + bundle_id)
+    assert res.status_code == 200
+
+    res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id + "?expand=true")
+    assert res2.status_code == 200
+    rec2 = res2.json
+
+    contents = rec2["contents"]
+
+    assert content_validation(contents)

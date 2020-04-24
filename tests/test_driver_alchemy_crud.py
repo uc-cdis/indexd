@@ -135,7 +135,7 @@ def test_driver_add_bundle_record():
         ).fetchone()
 
         assert record != None
-        assert len(record) == 6
+        assert len(record) == 7
 
 
 @util.removes("index.sq3")
@@ -194,12 +194,13 @@ def test_driver_add_bundles_record():
             SELECT * FROM drs_bundle_record
         """
         ).fetchone()
-
+        print(record)
         assert record[0], "record id not populated"
         assert record[1], "record name not populated"
-        assert record[1] == "bundle", "record bundle is not container"
+        assert record[1] == "bundle", "record name is not bundle"
         assert record[2], "record created date not populated"
-        assert record[4] == None, "record size non-null"
+        assert record[3], "record updated date not populated"
+        assert record[4], "record checksum not populated"
 
 
 @util.removes("index.sq3")
@@ -936,14 +937,13 @@ def test_driver_get_bundle():
         checksum = "iuhd91h9ufh928jidsoajh9du328"
         size = 512
         name = "object"
-        created_time = datetime.now()
-        bundle_data = "all the data!!"
-
+        created_time = updated_time = datetime.now()
+        bundle_data = "{'bundle_data': [{'access_methods': [{'access_id': 's3', 'access_url': {'url': 's3://endpointurl/bucket/key'}, 'region': '', 'type': 's3'}], 'aliases': [], 'checksums': [{'checksum': '8b9942cf415384b27cadf1f4d2d682e5', 'type': 'md5'}], 'contents': [], 'created_time': '2020-04-23T21:42:36.506404', 'description': '', 'id': 'testprefix:7e677693-9da3-455a-b51c-03467d5498b0', 'mime_type': 'application/json', 'name': None, 'self_uri': 'drs://fictitious-commons.io/testprefix:7e677693-9da3-455a-b51c-03467d5498b0', 'size': 123, 'updated_time': '2020-04-23T21:42:36.506410', 'version': '3c995667'}], 'bundle_id': '1ff381ef-55c7-42b9-b33f-81ac0689d131', 'checksum': '65b464c1aea98176ef2fa38e8b6b9fc7', 'created_time': '2020-04-23T21:42:36.564808', 'name': 'test_bundle', 'size': 123, 'updated_time': '2020-04-23T21:42:36.564819'}"
         conn.execute(
             """
-            INSERT INTO drs_bundle_record(bundle_id, name, checksum, size, bundle_data, created_time) VALUES (?,?,?,?,?,?)
+            INSERT INTO drs_bundle_record(bundle_id, name, checksum, size, bundle_data, created_time, updated_time) VALUES (?,?,?,?,?,?,?)
         """,
-            (bundle_id, name, checksum, size, bundle_data, created_time),
+            (bundle_id, name, checksum, size, bundle_data, created_time, updated_time),
         )
 
         conn.commit()
@@ -953,7 +953,10 @@ def test_driver_get_bundle():
         assert record["bundle_id"] == bundle_id, "record id does not match"
         assert record["checksum"] == checksum, "record revision does not match"
         assert record["size"] == size, "record size does not match"
-        assert record["name"] == name, "record form does not match"
+        assert record["name"] == name, "record name does not match"
         assert (
             record["created_time"] == created_time.isoformat()
+        ), "created date does not match"
+        assert (
+            record["updated_time"] == updated_time.isoformat()
         ), "created date does not match"
