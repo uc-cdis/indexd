@@ -36,7 +36,7 @@ tags:
       description: Find out more
       url: 'https://github.com/uc-cdis/indexd'
   - name: DOS
-    description: 'Data Object Service Retrieval Endpoints'
+    description: 'Data Object Service Retrieval Endpoints.'
   - name: DRS
     description: 'Data Repository Service Retrieval Endpoints'
   - name: system
