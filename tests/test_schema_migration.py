@@ -251,8 +251,6 @@ def test_migrate_index_versioning(monkeypatch):
                 table=table
             )
         )
-        print(schema)
-        print(cols)
         assert schema == [i for i in cols]
 
     vids = conn.execute("SELECT baseid FROM index_record").fetchall()

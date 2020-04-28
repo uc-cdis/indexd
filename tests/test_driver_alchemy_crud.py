@@ -194,7 +194,6 @@ def test_driver_add_bundles_record():
             SELECT * FROM drs_bundle_record
         """
         ).fetchone()
-        print(record)
         assert record[0], "record id not populated"
         assert record[1], "record name not populated"
         assert record[1] == "bundle", "record name is not bundle"
