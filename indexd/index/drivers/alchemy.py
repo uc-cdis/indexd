@@ -262,10 +262,6 @@ class DrsBundleRecord(Base):
     bundle_data = Column(Text)
 
     def to_document_dict(self, expand):
-        print("-------------------------------------------------------")
-        print(self)
-        # print(self.created_time)
-        print(self.updated_time)
         """
         Get the full bundle document
         expand: True to include bundle_data

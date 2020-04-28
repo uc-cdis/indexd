@@ -527,13 +527,16 @@ def version():
 
 
 @blueprint.route("/bundle/", methods=["POST"])
-@authorize
 def post_bundle():
     """
     Create a new bundle
     """
     from indexd.drs.blueprint import indexd_to_drs, get_drs_object
 
+    try:
+        authorize("create", ["/services/indexd/bundles"])
+    except:
+        raise AuthError("Invalid Token.")
     try:
         jsonschema.validate(flask.request.json, BUNDLE_SCHEMA)
     except jsonschema.ValidationError as err:
@@ -554,9 +557,7 @@ def post_bundle():
         data = get_index_record(bundle)[0]
         data = data.json
         size += data["size"]
-        print("-----------------------post---------------------------------")
         if "bundle_data" not in data:
-            print("------------------is object---------------")
             # check if its a bundle or an object
             data = indexd_to_drs(data, list_drs=True, expand=True)
         bundle_data.append(data)
@@ -590,12 +591,14 @@ def get_bundle_record_with_id(bundle_id):
 
 
 @blueprint.route("/bundle/<path:bundle_id>", methods=["DELETE"])
-@authorize
 def delete_bundle_record(bundle_id):
     """
     Delete bundle record given bundle_id
     """
-
+    try:
+        authorize("delete", ["/services/indexd/bundles"])
+    except:
+        raise AuthError("Invalid Token.")
     blueprint.index_driver.delete_bundle(bundle_id)
 
     return "", 200

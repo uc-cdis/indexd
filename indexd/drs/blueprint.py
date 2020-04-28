@@ -75,7 +75,9 @@ def indexd_to_drs(record, expand, list_drs=False):
 
     version = record["rev"] if "rev" in record else ""
 
-    updated_date = (record["updated_date"] if "updated_date" in record else record["updated_time"])
+    updated_date = (
+        record["updated_date"] if "updated_date" in record else record["updated_time"]
+    )
 
     drs_object = {
         "id": did,
