@@ -119,6 +119,28 @@ def test_bundle_get(client, user):
     assert rec2["bundle_data"][0] == rec1
 
 
+def test_bundle_get_form_type(client, user):
+    """
+    form = object when object
+    form = bundle when bundle
+    """
+    did_list, rec = create_index(client, user)
+    res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"])
+    rec1 = res1.json
+    rec1["form"] = "object"
+    bundle_id = str(uuid.uuid4())
+    data = get_bundle_doc(did_list, bundle_id=bundle_id)
+
+    res1 = client.post("/bundle/", json=data, headers=user)
+    assert res1.status_code == 200
+
+    res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
+    assert res2.status_code == 200
+
+    rec2 = res2.json
+    assert rec2["form"] == "bundle"
+
+
 def test_bundle_get_no_bundle_id(client, user):
     did_list, _ = create_index(client, user)
     bundle_id = str(uuid.uuid4())

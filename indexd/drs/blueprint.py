@@ -79,6 +79,8 @@ def indexd_to_drs(record, expand, list_drs=False):
         record["updated_date"] if "updated_date" in record else record["updated_time"]
     )
 
+    form = record["form"] if "form" in record else "bundle"
+
     drs_object = {
         "id": did,
         "description": "",
@@ -91,6 +93,7 @@ def indexd_to_drs(record, expand, list_drs=False):
         "contents": [],
         "self_uri": self_uri,
         "version": version,
+        "form": form,
     }
 
     if "description" in record:
