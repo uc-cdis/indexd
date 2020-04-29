@@ -550,6 +550,9 @@ def post_bundle():
         raise UserError("Bundle data required.")
     if not name:
         raise UserError("Bundle name required.")
+    
+    if len(bundles) != len(set(bundles)):
+        raise UserError("Duplicate GUID in bundles.")
 
     bundle_data = []
     size = 0

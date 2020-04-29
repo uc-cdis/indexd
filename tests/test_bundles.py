@@ -60,6 +60,15 @@ def test_bundle_post(client, user):
     assert res2.status_code == 200
 
 
+def test_post_drs_no_duplicate_bundles(client, user):
+    did_list, _ = create_index(client, user)
+
+    data = get_bundle_doc(bundles=[did_list[0],did_list[0],did_list[0]])
+    res2 = client.post("/bundle/", json=data, headers=user)
+    rec2 = res2.json
+    assert res2.status_code == 400
+
+
 def test_bundle_post_invalid_input(client, user):
     data = {}
     res2 = client.post("/bundle/", json=data, headers=user)
