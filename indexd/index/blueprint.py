@@ -526,6 +526,25 @@ def version():
     return flask.jsonify(base), 200
 
 
+def compute_checksum(bundle_data):
+    """
+    Checksum created by sorting alphabetically then concatenating first layer of bundles/objects.
+    """
+    checksums = []
+    # bundle_data = literal_eval(bundle_data)
+    for bundle in bundle_data:
+        print(bundle)
+        checksum = (
+            bundle["checksums"][0]["checksum"]
+            if "checksums" in bundle
+            else bundle["checksum"]
+        )
+        checksums.append(checksum)
+    checksums.sort()
+    checksum = "".join(checksums)
+    return hashlib.md5(checksum.encode("utf-8")).hexdigest()
+
+
 @blueprint.route("/bundle/", methods=["POST"])
 def post_bundle():
     """
@@ -550,7 +569,7 @@ def post_bundle():
         raise UserError("Bundle data required.")
     if not name:
         raise UserError("Bundle name required.")
-    
+
     if len(bundles) != len(set(bundles)):
         raise UserError("Duplicate GUID in bundles.")
 
@@ -564,8 +583,14 @@ def post_bundle():
             # check if its a bundle or an object
             data = indexd_to_drs(data, list_drs=True, expand=True)
         bundle_data.append(data)
+    checksum = compute_checksum(bundle_data)
+
     ret = blueprint.index_driver.add_bundle(
-        bundle_id=bundle_id, name=name, size=size, bundle_data=str(bundle_data),
+        bundle_id=bundle_id,
+        name=name,
+        size=size,
+        bundle_data=str(bundle_data),
+        checksum=checksum,
     )
 
     return flask.jsonify(ret), 200

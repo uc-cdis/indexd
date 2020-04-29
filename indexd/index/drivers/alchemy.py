@@ -1332,7 +1332,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             ).scalar()
 
     def add_bundle(
-        self, bundle_id=None, name=None, checksum=None, size=None, bundle_data=None,
+        self, bundle_id=None, name=None, checksum=None, size=None, bundle_data=None
     ):
         """
         Add a bundle record 
@@ -1347,7 +1347,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record.name = name
 
-            checksum = hashlib.md5(bundle_id.encode("utf-8")).hexdigest()
             record.checksum = checksum
 
             record.size = size
