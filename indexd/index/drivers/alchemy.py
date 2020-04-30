@@ -2,7 +2,6 @@ import datetime
 import uuid
 import hashlib
 from contextlib import contextmanager
-from ast import literal_eval
 from cdislogging import get_logger
 from sqlalchemy import (
     BigInteger,
@@ -276,7 +275,7 @@ class DrsBundleRecord(Base):
         }
 
         if expand:
-            bundle_data = literal_eval(self.bundle_data)
+            bundle_data = eval(self.bundle_data)
             ret["bundle_data"] = bundle_data
 
         return ret
