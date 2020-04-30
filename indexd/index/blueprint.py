@@ -589,7 +589,7 @@ def post_bundle():
         bundle_id=bundle_id,
         name=name,
         size=size,
-        bundle_data=str(bundle_data),
+        bundle_data=json.dumps(bundle_data),
         checksum=checksum,
     )
 

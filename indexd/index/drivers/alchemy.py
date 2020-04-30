@@ -1,5 +1,6 @@
 import datetime
 import uuid
+import json
 import hashlib
 from contextlib import contextmanager
 from cdislogging import get_logger
@@ -275,7 +276,7 @@ class DrsBundleRecord(Base):
         }
 
         if expand:
-            bundle_data = eval(self.bundle_data)
+            bundle_data = json.loads(self.bundle_data)
             ret["bundle_data"] = bundle_data
 
         return ret
