@@ -1366,12 +1366,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.bundle_id, record.name, record.bundle_data
 
-    def get_bundle_list(self):
+    def get_bundle_list(self, limit=100):
         """
         Returns list of all bundles
         """
         with self.session as session:
             query = session.query(DrsBundleRecord)
+            query = query.limit(limit)
 
             return [i.to_document_dict(expand=False) for i in query]
 

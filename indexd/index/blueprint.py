@@ -602,7 +602,17 @@ def get_bundle_record_list():
     Returns a list of bundle records.
     """
 
-    ret = blueprint.index_driver.get_bundle_list()
+    limit = flask.request.args.get("limit")
+
+    try:
+        limit = 100 if limit is None else int(limit)
+    except ValueError as err:
+        raise UserError("limit must be an integer")
+
+    if limit < 0 or limit > 1024:
+        raise UserError("limit must be between 0 and 1024")
+
+    ret = blueprint.index_driver.get_bundle_list(limit=limit)
 
     return flask.jsonify(ret), 200
 
