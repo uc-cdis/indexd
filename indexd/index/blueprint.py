@@ -535,6 +535,15 @@ def compute_checksum(checksums):
     return hashlib.md5(checksum.encode("utf-8")).hexdigest()
 
 
+def get_checksum(data):
+    if "hashes" in data:
+        return data["hashes"][list(data["hashes"])[0]]
+    elif "checksums" in data:
+        return data["checksums"][0]["checksum"]
+    elif "checksum" in data:
+        return data["checksum"]
+
+
 @blueprint.route("/bundle/", methods=["POST"])
 def post_bundle():
     """
@@ -567,11 +576,13 @@ def post_bundle():
     for bundle in bundles:
         data = get_index_record(bundle)[0]
         data = data.json
+        print("------------------------data---------------------------------")
+        print(data)
         size += data["size"]
+        checksums.append(get_checksum(data))
         data = bundle_to_drs(data, expand=True, is_content=True)
-        checksum = data["checksums"][0]["checksum"]
+        # del data["checksums"]
         bundle_data.append(data)
-        checksums.append(checksum)
     checksum = (
         flask.request.json.get("checksum")
         if flask.request.json.get("checksum")

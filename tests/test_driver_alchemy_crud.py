@@ -199,7 +199,6 @@ def test_driver_add_bundles_record():
         assert record[1] == "bundle", "record name is not bundle"
         assert record[2], "record created date not populated"
         assert record[3], "record updated date not populated"
-        assert record[4], "record checksum not populated"
 
 
 @util.removes("index.sq3")
@@ -949,7 +948,7 @@ def test_driver_get_bundle():
 
         record = driver.get_bundle(bundle_id)
 
-        assert record["bundle_id"] == bundle_id, "record id does not match"
+        assert record["id"] == bundle_id, "record id does not match"
         assert record["checksum"] == checksum, "record revision does not match"
         assert record["size"] == size, "record size does not match"
         assert record["name"] == name, "record name does not match"

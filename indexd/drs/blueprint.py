@@ -164,10 +164,7 @@ def bundle_to_drs(record, expand=False, is_content=False):
         "name": name,
         "drs_uri": drs_uri,
         "contents": [],
-        "checksums": [],
     }
-
-    parse_checksums(record, drs_object)
 
     contents = (
         record["contents"]
@@ -184,6 +181,9 @@ def bundle_to_drs(record, expand=False, is_content=False):
 
     if not is_content:
         # Show these only if its the leading bundle
+        drs_object["checksums"] = []
+        parse_checksums(record, drs_object)
+
         created_time = (
             record["created_date"]
             if "created_date" in record

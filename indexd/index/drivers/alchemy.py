@@ -269,7 +269,7 @@ class DrsBundleRecord(Base):
         expand: True to include bundle_data
         """
         ret = {
-            "bundle_id": self.bundle_id,
+            "id": self.bundle_id,
             "name": self.name,
             "created_time": self.created_time.isoformat(),
             "updated_time": self.updated_time.isoformat(),
