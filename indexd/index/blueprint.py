@@ -526,20 +526,10 @@ def version():
     return flask.jsonify(base), 200
 
 
-def compute_checksum(bundle_data):
+def compute_checksum(checksums):
     """
     Checksum created by sorting alphabetically then concatenating first layer of bundles/objects.
     """
-    checksums = []
-    # bundle_data = literal_eval(bundle_data)
-    for bundle in bundle_data:
-        print(bundle)
-        checksum = (
-            bundle["checksums"][0]["checksum"]
-            if "checksums" in bundle
-            else bundle["checksum"]
-        )
-        checksums.append(checksum)
     checksums.sort()
     checksum = "".join(checksums)
     return hashlib.md5(checksum.encode("utf-8")).hexdigest()
@@ -550,7 +540,7 @@ def post_bundle():
     """
     Create a new bundle
     """
-    from indexd.drs.blueprint import indexd_to_drs, get_drs_object
+    from indexd.drs.blueprint import indexd_to_drs, get_drs_object, bundle_to_drs
 
     try:
         authorize("create", ["/services/indexd/bundles"])
@@ -567,23 +557,26 @@ def post_bundle():
 
     if len(bundles) == 0:
         raise UserError("Bundle data required.")
-    if not name:
-        raise UserError("Bundle name required.")
 
     if len(bundles) != len(set(bundles)):
         raise UserError("Duplicate GUID in bundles.")
 
     bundle_data = []
     size = 0
+    checksums = []
     for bundle in bundles:
         data = get_index_record(bundle)[0]
         data = data.json
         size += data["size"]
-        if "bundle_data" not in data:
-            # check if its a bundle or an object
-            data = indexd_to_drs(data, list_drs=True, expand=True)
+        data = bundle_to_drs(data, expand=True, is_content=True)
+        checksum = data["checksums"][0]["checksum"]
         bundle_data.append(data)
-    checksum = compute_checksum(bundle_data)
+        checksums.append(checksum)
+    checksum = (
+        flask.request.json.get("checksum")
+        if flask.request.json.get("checksum")
+        else compute_checksum(checksums)
+    )
 
     ret = blueprint.index_driver.add_bundle(
         bundle_id=bundle_id,
@@ -622,8 +615,13 @@ def get_bundle_record_with_id(bundle_id):
     """
     Returns a record given bundle_id
     """
-    expand = False if flask.request.args.get("expand") == "false" else True
-    ret = blueprint.index_driver.get(bundle_id, expand)
+    from indexd.drs.blueprint import indexd_to_drs, bundle_to_drs
+
+    expand = True if flask.request.args.get("expand") == "true" else False
+
+    ret = blueprint.index_driver.get(bundle_id)
+
+    ret = bundle_to_drs(ret, expand=expand, is_content=False)
 
     return flask.jsonify(ret), 200
 

@@ -25,7 +25,7 @@ def get_drs_object(object_id):
     data = (
         indexd_to_drs(ret, expand=False, list_drs=False)
         if not flask.request.args.get("expand")
-        else indexd_to_drs(ret, expand=expand, list_drs=False)
+        else bundle_to_drs(ret, expand=expand)
     )
 
     return flask.jsonify(data), 200
@@ -59,11 +59,17 @@ def get_signed_url(object_id, access_id):
     return res, 200
 
 
-def indexd_to_drs(record, expand, list_drs=False):
+def indexd_to_drs(record, expand=False, list_drs=False):
 
     bearer_token = flask.request.headers.get("AUTHORIZATION")
 
-    did = record["did"] if "did" in record else record["bundle_id"]
+    did = (
+        record["id"]
+        if "id" in record
+        else record["did"]
+        if "did" in record
+        else record["bundle_id"]
+    )
 
     self_uri = "drs://" + flask.current_app.hostname + "/" + did
 
@@ -94,6 +100,7 @@ def indexd_to_drs(record, expand, list_drs=False):
         "self_uri": self_uri,
         "version": version,
         "form": form,
+        "checksums": [],
     }
 
     if "description" in record:
@@ -104,7 +111,9 @@ def indexd_to_drs(record, expand, list_drs=False):
     if "bundle_data" in record:
         bundle_data = record["bundle_data"]
         for bundle in bundle_data:
-            drs_object["contents"].append(bundle_to_drs(bundle, expand=expand))
+            drs_object["contents"].append(
+                bundle_to_drs(bundle, expand=expand, is_content=True)
+            )
 
     # access_methods mapping
     if "urls" in record:
@@ -128,42 +137,85 @@ def indexd_to_drs(record, expand, list_drs=False):
             )
 
     # parse out checksums
-    drs_object["checksums"] = []
-    if "hashes" in record:
-        for k in record["hashes"]:
-            drs_object["checksums"].append({"checksum": record["hashes"][k], "type": k})
-    else:
-        drs_object["checksums"].append({"checksum": record["checksum"], "type": "md5"})
+    parse_checksums(record, drs_object)
 
     return drs_object
 
 
-def bundle_to_drs(record, expand):
-    did = record["id"] if "id" in record else record["bundle_id"]
+def bundle_to_drs(record, expand=False, is_content=False):
+    """
+    is_content: is an expanded content in a bundle
+    """
 
-    self_uri = "drs://" + flask.current_app.hostname + "/" + did
+    did = (
+        record["id"]
+        if "id" in record
+        else record["did"]
+        if "did" in record
+        else record["bundle_id"]
+    )
+
+    drs_uri = "drs://" + flask.current_app.hostname + "/" + did
 
     name = record["file_name"] if "file_name" in record else record["name"]
 
     drs_object = {
         "id": did,
         "name": name,
-        "self_uri": self_uri,
+        "drs_uri": drs_uri,
         "contents": [],
+        "checksums": [],
     }
+
+    parse_checksums(record, drs_object)
+
     contents = (
         record["contents"]
         if "contents" in record
         else record["bundle_data"]
         if "bundle_data" in record
-        else None
+        else []
     )
 
-    if expand and contents != None:
+    if not expand:
         for content in contents:
-            drs_object["contents"].append(bundle_to_drs(content, expand=True))
+            content["contents"] = []
+    drs_object["contents"] = contents
+
+    if not is_content:
+        # Show these only if its the leading bundle
+        created_time = (
+            record["created_date"]
+            if "created_date" in record
+            else record["created_time"]
+        )
+
+        updated_time = (
+            record["updated_date"]
+            if "updated_date" in record
+            else record["updated_time"]
+        )
+        drs_object["created_time"] = created_time
+        drs_object["updated_time"] = updated_time
+        drs_object["size"] = record["size"]
 
     return drs_object
+
+
+def parse_checksums(record, drs_object):
+    if "hashes" in record:
+        for k in record["hashes"]:
+            drs_object["checksums"].append({"checksum": record["hashes"][k], "type": k})
+    else:
+        if "checksums" in record:
+            for checksum in record["checksums"]:
+                drs_object["checksums"].append(
+                    {"checksum": checksum["checksum"], "type": checksum["type"]}
+                )
+        else:
+            drs_object["checksums"].append(
+                {"checksum": record["checksum"], "type": "md5"}
+            )
 
 
 @blueprint.errorhandler(UserError)

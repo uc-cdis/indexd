@@ -103,7 +103,7 @@ BUNDLE_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
     "description": "Creates a new bundle",
-    "required": ["bundles", "name"],
+    "required": ["bundles"],
     "properties": {
         "bundle_id": {
             "type": "string",
@@ -114,5 +114,28 @@ BUNDLE_SCHEMA = {
             "type": "string",
         },
         "bundles": {"description": "Expanded bundles and objects.", "type": "array",},
+        "size": {
+            "description": "Sum of size of objects inside bundles.",
+            "type": "array",
+        },
+        "checksum": {
+            "type": "object",
+            "properties": {
+                "md5": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+                "sha1": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                "sha512": {"type": "string", "pattern": "^[0-9a-f]{128}$"},
+                "crc": {"type": "string", "pattern": "^[0-9a-f]{8}$"},
+                "etag": {"type": "string", "pattern": "^[0-9a-f]{32}(-\d+)?$"},
+            },
+            "anyOf": [
+                {"required": ["md5"]},
+                {"required": ["sha1"]},
+                {"required": ["sha256"]},
+                {"required": ["sha512"]},
+                {"required": ["crc"]},
+                {"required": ["etag"]},
+            ],
+        },
     },
 }

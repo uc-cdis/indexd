@@ -56,7 +56,6 @@ def test_bundle_post(client, user):
 
     data = get_bundle_doc(bundles=did_list)
     res2 = client.post("/bundle/", json=data, headers=user)
-    rec2 = res2.json
     assert res2.status_code == 200
 
 
@@ -65,7 +64,6 @@ def test_post_drs_no_duplicate_bundles(client, user):
 
     data = get_bundle_doc(bundles=[did_list[0], did_list[0], did_list[0]])
     res2 = client.post("/bundle/", json=data, headers=user)
-    rec2 = res2.json
     assert res2.status_code == 400
 
 
@@ -85,17 +83,6 @@ def test_bundle_post_no_bundle_data(client, user):
     assert res2.json["error"] == "Bundle data required."
 
 
-def test_bundle_post_no_bundle_name(client, user):
-    bundles = create_index(client, user)
-    data = {
-        "name": "",
-        "bundles": bundles,
-    }
-    res2 = client.post("/bundle/", json=data, headers=user)
-    assert res2.status_code == 400
-    assert res2.json["error"] == "Bundle name required."
-
-
 def test_bundle_get(client, user):
     """
     Post with bundle_id and get.
@@ -112,11 +99,15 @@ def test_bundle_get(client, user):
     assert res1.status_code == 200
 
     res2 = client.get("/bundle/" + bundle_id)
-    rec2 = res2.json
     assert res2.status_code == 200
-    assert rec2["bundle_id"] == bundle_id
+    rec2 = res2.json
+
+    assert rec2["id"] == bundle_id
     assert rec2["name"] == data["name"]
-    assert rec2["bundle_data"][0] == rec1
+    assert rec2["created_time"]
+    assert rec2["updated_time"]
+    assert rec2["checksums"]
+    assert rec2["size"] == 123
 
 
 def test_bundle_get_form_type(client, user):
@@ -167,7 +158,7 @@ def test_bundle_get_expand_false(client, user):
     res2 = client.get("/bundle/" + bundle_id + "?expand=false")
     rec2 = res2.json
     assert res2.status_code == 200
-    assert rec2["bundle_id"] == bundle_id
+    assert rec2["id"] == bundle_id
     assert rec2["name"] == data["name"]
     assert "bundle_data" not in rec2
 
@@ -249,12 +240,12 @@ def test_multiple_bundle_data(client, user):
     data = get_bundle_doc(did_list, bundle_id=bundle_id)
     res2 = client.post("/bundle/", json=data, headers=user)
     assert res2.status_code == 200
-    res3 = client.get("/bundle/" + bundle_id)
+    res3 = client.get("/bundle/" + bundle_id + "?expand=true")
     assert res3.status_code == 200
 
     rec3 = res3.json
-    bundle_data = rec3["bundle_data"]
-    assert len(rec3["bundle_data"]) == n_bundle_data
+    bundle_data = rec3["contents"]
+    assert len(rec3["contents"]) == n_bundle_data
 
     for data in bundle_data:
         assert data["id"] in did_list
@@ -324,9 +315,9 @@ def test_bundle_data_bundle_and_index(client, user):
     assert res2.status_code == 200
     rec3 = res2.json
 
-    assert len(rec3["bundle_data"]) == 2 * n_records
+    assert len(rec3["contents"]) == 2 * n_records
 
-    assert rec3["size"] == len(rec3["bundle_data"]) * 123
+    assert rec3["size"] == len(rec3["contents"]) * 123
 
 
 def test_nested_bundle_data(client, user):
@@ -345,7 +336,7 @@ def test_nested_bundle_data(client, user):
     res = client.post("/bundle/", json=base_data, headers=user)
     assert res.status_code == 200
 
-    for _ in range(n_nested - 2):
+    for _ in range(n_nested):
         bundle_id = str(uuid.uuid4())
         assert bundle_id != base_bundle_id
         data = get_bundle_doc([base_bundle_id], bundle_id=bundle_id)
@@ -354,31 +345,29 @@ def test_nested_bundle_data(client, user):
         base_bundle_id = bundle_id
 
     assert base_bundle_id == bundle_id
-    res2 = client.get("/bundle/" + base_bundle_id)
+    res2 = client.get("/bundle/" + bundle_id + "?expand=true")
     assert res2.status_code == 200
     rec3 = res2.json
 
-    for _ in range(n_nested - 2):
+    for _ in range(n_nested):
         check = "bundle_data" in rec3 or "contents" in rec3
         assert check
         key = "bundle_data" if "bundle_data" in rec3 else "contents"
         rec3 = rec3[key][0]
 
 
-def test_bundle_no_bundle_data(client, user):
-    data = get_bundle_doc([])
-
-    res = client.post("/bundle/", json=data, headers=user)
-    assert res.status_code == 400
-
-
 def test_bundle_no_bundle_name(client, user):
     did_list, _ = create_index(client, user)
-    data = get_bundle_doc(did_list)
-    del data["name"]
+    bundle_id = str(uuid.uuid4())
 
+    data = get_bundle_doc(did_list, bundle_id=bundle_id)
+    del data["name"]
     res = client.post("/bundle/", json=data, headers=user)
-    assert res.status_code == 400
+    assert res.status_code == 200
+    rec = res.json
+    assert rec[1] == bundle_id
+    # check bundle_name defaulted to id
+    assert rec[0] == bundle_id
 
 
 def build_bundle(client, user):
@@ -456,10 +445,6 @@ def test_get_drs_expand_contents_default(client, user):
     contents = rec2["contents"]
     assert len(contents) == 3
 
-    # Check that the second layer of bundles is not expanded
-    for content in contents:
-        assert len(content["contents"]) == 0
-
 
 def test_get_drs_expand_contents_false(client, user):
 
@@ -492,6 +477,3 @@ def test_get_drs_expand_contents_true(client, user):
     contents = rec2["contents"]
 
     assert content_validation(contents)
-
-
-# def test_drs_bundle_not_include_presigned_url(client, user):

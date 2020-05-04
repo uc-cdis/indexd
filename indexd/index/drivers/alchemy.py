@@ -1,6 +1,7 @@
 import datetime
 import uuid
 import json
+import flask
 import hashlib
 from contextlib import contextmanager
 from cdislogging import get_logger
@@ -25,6 +26,7 @@ from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd import auth
+from indexd.drs.blueprint import bundle_to_drs
 from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import (
@@ -1343,6 +1345,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 bundle_id = str(uuid.uuid4())
                 if self.config.get("PREPEND_PREFIX"):
                     bundle_id = self.config["DEFAULT_PREFIX"] + bundle_id
+            if not name:
+                name = bundle_id
+
             record.bundle_id = bundle_id
 
             record.name = name
@@ -1376,7 +1381,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return [i.to_document_dict(expand=False) for i in query]
 
-    def get_bundle(self, bundle_id, expand=True):
+    def get_bundle(self, bundle_id, expand=False):
         """
         Gets a bundle record given the bundle_id.
         """
@@ -1390,7 +1395,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if record is None:
                 raise NoRecordFound("No bundle found")
 
-            return record.to_document_dict(expand)
+            doc = record.to_document_dict(expand)
+            return doc
 
     def delete_bundle(self, bundle_id):
         with self.session as session:
