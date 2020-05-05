@@ -245,6 +245,37 @@ paths:
       security:
         - basic_auth: []
   '/index/blank/{GUID}':
+    post:
+      tags:
+        - index
+      summary: Create a new, blank version for the document associated to the provided uuid.
+      description: Creates a new blank version of a record with the provided GUID. Returns the GUID of the new version of the record and the baseid common to all versions of the record. Authorization (acl/authz fields) carry over from the original record to the new blank version. No other metadata (md5sum, etc) carries over from the original record to the new blank version.
+      operationId: addNewBlankVersion
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: the uuid associated to the record needed to have new version
+          required: true
+          type: string
+        - in: body
+          name: body
+          description: Metadata object that needs to be added to the store
+          required: true
+          schema:
+            $ref: '#/definitions/InputBlankInfo'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/OutputRef'
+        '400':
+          description: Invalid status value
+      security:
+        - basic_auth: []
     put:
       tags:
         - index
@@ -898,7 +929,7 @@ paths:
         - DOS
   '/ga4gh/drs/v1/objects':
     get:
-      summary: List all DrsObject. 
+      summary: List all DrsObject.
       description: 'Url field here contains their location and not the presigned url.'
       operationId: ListDrsObject
       responses:
@@ -966,13 +997,13 @@ paths:
           type: boolean
           default: false
           description: >-
-            NOT IMPLEMENTED YET. 
-            
+            NOT IMPLEMENTED YET.
+
             If false and the object_id refers to a bundle, then the ContentsObject array
             contains only those objects directly contained in the bundle. That is, if the
             bundle contains other bundles, those other bundles are not recursively
             included in the result.
-            
+
             If true and the object_id refers to a bundle, then the entire set of objects
             in the bundle is expanded. That is, if the bundle contains aother bundles,
             then those other bundles are recursively expanded and included in the result.
@@ -1043,7 +1074,7 @@ paths:
       tags:
         - DRS
       x-swagger-router-controller: ga4gh.drs.server
-    
+
   '/bulk/documents':
     post:
       tags:
@@ -1067,7 +1098,7 @@ paths:
         '400':
           description: Invalid status value
       security: []
-  
+
   '/_query/urls/q':
     get:
       tags:
@@ -1350,6 +1381,18 @@ definitions:
       rev:
         type: string
         pattern: '^[0-9a-f]{8}$'
+  OutputRefWithURL:
+    type: object
+    properties:
+      did:
+        $ref: "#/definitions/DID"
+      baseid:
+        $ref: "#/definitions/UUID"
+      rev:
+        type: string
+        pattern: '^[0-9a-f]{8}$'
+      url:
+        type: string
   AliasInputInfo:
     type: object
     required:
@@ -1785,7 +1828,7 @@ definitions:
         format: date-time
         description: |-
           Timestamp of content creation in RFC3339.
-          (This is the creation time of the underlying content, not of the JSON object.) 
+          (This is the creation time of the underlying content, not of the JSON object.)
       updated_time:
         type: string
         format: date-time
@@ -1904,7 +1947,7 @@ definitions:
           A name declared by the bundle author that must be
           used when materialising this object,
           overriding any name directly associated with the object itself.
-          The name must be unique with the containing bundle. 
+          The name must be unique with the containing bundle.
           This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_]. See http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282[portable filenames].
       id:
         type: string
@@ -1931,7 +1974,7 @@ definitions:
         items:
           example:
             {}
-        
+
     required:
       - name
   Error:
@@ -1944,15 +1987,15 @@ definitions:
         description: A detailed error message.
       status_code:
         type: integer
-        description: The integer representing the HTTP status code (e.g. 200, 404).  
+        description: The integer representing the HTTP status code (e.g. 200, 404).
   ListDrsObject:
     type: object
     properties:
-      drs_objects: 
+      drs_objects:
         type: array
         items:
           $ref: '#/definitions/DrsObject'
-          
+
   ListRecords:
     type: object
     properties:
