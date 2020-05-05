@@ -295,6 +295,29 @@ def post_index_blank_record():
     return flask.jsonify(ret), 201
 
 
+@blueprint.route("/index/blank/<path:record>", methods=["POST"])
+def add_index_blank_record_version(record):
+    """
+    Create a new blank version of the record with this GUID.
+    Authn/authz fields carry over from the previous version of the record.
+    Only uploader and optionally file_name fields are filled.
+    Returns the GUID of the new blank version and the baseid common to all versions
+    of the record.
+    """
+    uploader = flask.request.get_json().get("uploader")
+    file_name = flask.request.get_json().get("file_name")
+    if not uploader:
+        raise UserError("no uploader specified")
+
+    # authorize done in add_blank_version for both the old and new authz
+    did, baseid, rev = blueprint.index_driver.add_blank_version(
+        record=record, uploader=uploader, file_name=file_name
+    )
+
+    ret = {"did": did, "baseid": baseid, "rev": rev}
+
+    return flask.jsonify(ret), 200
+
 @blueprint.route("/index/blank/<path:record>", methods=["PUT"])
 @authorize
 def put_index_blank_record(record):
