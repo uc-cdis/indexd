@@ -3,6 +3,7 @@ from indexd.errors import AuthError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import UnexpectedError
+# from indexd.index.drivers.alchemy import ids, get_bundle_record_list
 
 # from indexd.index.blueprint import get_index
 from indexd.index.blueprint import get_index, get_bundle_record_list
@@ -51,8 +52,8 @@ def list_drs_records():
         except ValueError as err:
             raise UserError("page must be an integer")
 
-    records = get_index()[0].json["records"]
-    bundles = get_bundle_record_list()[0].json
+    records = blueprint.index_driver.ids(start=start, limit=limit, page=page)
+    bundles = blueprint.index_driver.get_bundle_list(start=start, limit=limit, page=page)
 
     ret = {
         "drs_objects": [indexd_to_drs(record, True) for record in records],
