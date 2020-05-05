@@ -5,7 +5,7 @@ from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import UnexpectedError
 
 # from indexd.index.blueprint import get_index
-from indexd.index.blueprint import get_index
+from indexd.index.blueprint import get_index, get_bundle_record_list
 
 blueprint = flask.Blueprint("drs", __name__)
 
@@ -33,8 +33,31 @@ def get_drs_object(object_id):
 
 @blueprint.route("/ga4gh/drs/v1/objects", methods=["GET"])
 def list_drs_records():
+    limit = flask.request.args.get("limit")
+    start = flask.request.args.get("start")
+    page = flask.request.args.get("page")
+
+    try:
+        limit = 100 if limit is None else int(limit)
+    except ValueError as err:
+        raise UserError("limit must be an integer")
+
+    if limit < 0 or limit > 1024:
+        raise UserError("limit must be between 0 and 1024")
+
+    if page is not None:
+        try:
+            page = int(page)
+        except ValueError as err:
+            raise UserError("page must be an integer")
+
     records = get_index()[0].json["records"]
-    ret = {"drs_objects": [indexd_to_drs(record, True) for record in records]}
+    bundles = get_bundle_record_list()[0].json
+
+    ret = {
+        "drs_objects": [indexd_to_drs(record, True) for record in records],
+        "bundles": [bundle_to_drs(bundle, is_content=True) for bundle in bundles],
+    }
 
     return flask.jsonify(ret), 200
 

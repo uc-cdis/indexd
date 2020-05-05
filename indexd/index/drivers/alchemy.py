@@ -263,7 +263,7 @@ class DrsBundleRecord(Base):
     size = Column(BigInteger)
     bundle_data = Column(Text)
 
-    def to_document_dict(self, expand):
+    def to_document_dict(self, expand=False):
         """
         Get the full bundle document
         expand: True to include bundle_data
@@ -1371,7 +1371,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.bundle_id, record.name, record.bundle_data
 
-    def get_bundle_list(self, limit=100):
+    def get_bundle_list(self, start=None, limit=100, page=None):
         """
         Returns list of all bundles
         """
@@ -1379,7 +1379,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             query = session.query(DrsBundleRecord)
             query = query.limit(limit)
 
-            return [i.to_document_dict(expand=False) for i in query]
+            if start is not None:
+                query = query.filter(DrsBundleRecord.bundle_id > start)
+
+            if page is not None:
+                query = query.offset(limit * page)
+
+            return [i.to_document_dict() for i in query]
 
     def get_bundle(self, bundle_id, expand=False):
         """
@@ -1387,6 +1393,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             query = session.query(DrsBundleRecord)
+
             query = query.filter(or_(DrsBundleRecord.bundle_id == bundle_id)).order_by(
                 DrsBundleRecord.created_time.desc()
             )

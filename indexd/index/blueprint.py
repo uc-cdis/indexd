@@ -576,12 +576,9 @@ def post_bundle():
     for bundle in bundles:
         data = get_index_record(bundle)[0]
         data = data.json
-        print("------------------------data---------------------------------")
-        print(data)
         size += data["size"]
         checksums.append(get_checksum(data))
         data = bundle_to_drs(data, expand=True, is_content=True)
-        # del data["checksums"]
         bundle_data.append(data)
     checksum = (
         flask.request.json.get("checksum")
@@ -607,6 +604,8 @@ def get_bundle_record_list():
     """
 
     limit = flask.request.args.get("limit")
+    start = flask.request.args.get("start")
+    page = flask.request.args.get("page")
 
     try:
         limit = 100 if limit is None else int(limit)
@@ -616,7 +615,13 @@ def get_bundle_record_list():
     if limit < 0 or limit > 1024:
         raise UserError("limit must be between 0 and 1024")
 
-    ret = blueprint.index_driver.get_bundle_list(limit=limit)
+    if page is not None:
+        try:
+            page = int(page)
+        except ValueError as err:
+            raise UserError("page must be an integer")
+
+    ret = blueprint.index_driver.get_bundle_list(start=start, limit=limit, page=page)
 
     return flask.jsonify(ret), 200
 
