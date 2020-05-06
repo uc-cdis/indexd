@@ -1445,7 +1445,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         while i + j < len(bundle) + len(objects):
             if i != len(bundle) and (
                 j == len(objects)
-                or bundle[i]["created_time"] < objects[j]["created_date"]
+                or bundle[i]["created_time"] > objects[j]["created_date"]
             ):
                 ret.append(bundle[i])
                 i += 1
