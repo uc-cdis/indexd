@@ -112,9 +112,18 @@ def test_drs_list(client, user):
     res_2 = client.get("/ga4gh/drs/v1/objects")
     assert res_2.status_code == 200
     rec_2 = res_2.json
-    assert len(rec_2["drs_objects"]) == record_length
-    assert len(rec_2["bundles"]) == record_length
+    assert len(rec_2["drs_objects"]) == 2 * record_length
     assert submitted_guids.sort() == [r["id"] for r in rec_2["drs_objects"]].sort()
+
+    res_3 = client.get("/ga4gh/drs/v1/objects/?form=bundle")
+    assert res_3.status_code == 200
+    rec_3 = res_3.json
+    assert len(rec_3["drs_objects"]) == record_length
+
+    res_4 = client.get("/ga4gh/drs/v1/objects/?form=object")
+    assert res_4.status_code == 200
+    rec_4 = res_4.json
+    assert len(rec_4["drs_objects"]) == record_length
 
 
 def test_get_drs_record_not_found(client, user):

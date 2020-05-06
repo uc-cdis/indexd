@@ -4,6 +4,8 @@ import pytest
 
 from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
+from tests.test_bundles import create_index, get_bundle_doc
+import uuid
 
 
 def get_doc(
@@ -97,6 +99,119 @@ def test_index_list_with_params(client, user):
     assert len(data_list["records"]) == 1
     assert data_list["records"][0]["did"] == rec_1["did"]
     assert data_list["records"][0]["urls_metadata"] == data1["urls_metadata"]
+
+
+def test_get_list_form_param(client, user):
+    """
+    bundle1
+        +-object1
+    bundle2
+        +-object2
+    .
+    .
+    bundlen
+        +-objectn
+    """
+    n_records = 6
+    for _ in range(n_records):
+        did_list, _ = create_index(client, user)
+        bundle_id = str(uuid.uuid4())
+        data = get_bundle_doc(did_list, bundle_id=bundle_id)
+
+        res2 = client.post("/bundle/", json=data, headers=user)
+        assert res2.status_code == 200
+
+    res3 = client.get("/index/")
+    assert res3.status_code == 200
+    rec3 = res3.json
+    assert len(rec3["records"]) == n_records
+
+    res3 = client.get("/index/?form=bundle")
+    assert res3.status_code == 200
+    rec3 = res3.json
+    assert len(rec3["records"]) == n_records
+
+    res3 = client.get("/index/?form=all")
+    assert res3.status_code == 200
+    rec3 = res3.json
+    assert len(rec3["records"]) == 2 * n_records
+
+
+def test_get_list_form_with_params(client, user):
+    n_records = 6
+    for _ in range(n_records):
+        did_list, _ = create_index(client, user)
+        bundle_id = str(uuid.uuid4())
+        data = get_bundle_doc(did_list, bundle_id=bundle_id)
+
+        res2 = client.post("/bundle/", json=data, headers=user)
+        assert res2.status_code == 200
+
+    data1 = get_doc()
+    data1["urls"] = [
+        "s3://endpointurl/bucket_2/key_2",
+        "s3://anotherurl/bucket_2/key_2",
+    ]
+    data1["urls_metadata"] = {
+        "s3://endpointurl/bucket_2/key_2": {"state": "error", "other": "xxx"},
+        "s3://anotherurl/bucket_2/key_2": {"state": "error", "other": "xxx"},
+    }
+    res_1 = client.post("/index/", json=data1, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+
+    data2 = get_doc()
+    data2["metadata"] = {"project_id": "other-project", "state": "abc", "other": "xxx"}
+    data2["urls"] = ["s3://endpointurl/bucket/key_2", "s3://anotherurl/bucket/key_2"]
+    data2["urls_metadata"] = {
+        "s3://endpointurl/bucket/key_2": {"state": "error", "other": "yyy"}
+    }
+    res_2 = client.post("/index/", json=data2, headers=user)
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+
+    data1_by_md = client.get("/index/?metadata=project_id:bpa-UChicago&param=all")
+    assert data1_by_md.status_code == 200
+    data1_list = data1_by_md.json
+    ids = [record["did"] for record in data1_list["records"] if "did" in record]
+    assert rec_1["did"] in ids
+
+    data2_by_md = client.get("/index/?form=all&metadata=project_id:other-project")
+    assert data2_by_md.status_code == 200
+    data2_list = data2_by_md.json
+    ids = [record["did"] for record in data2_list["records"] if "did" in record]
+    assert rec_2["did"] in ids
+
+    data_by_hash = client.get(
+        "/index/?form=all&hash=md5:8b9942cf415384b27cadf1f4d2d682e5"
+    )
+    assert data_by_hash.status_code == 200
+    data_list_all = data_by_hash.json
+    ids = [record["did"] for record in data_list_all["records"] if "did" in record]
+    assert rec_1["did"] in ids
+    assert rec_2["did"] in ids
+
+    data_by_ids = client.get("/index/?form=all&ids={}".format(rec_1["did"]))
+    assert data_by_ids.status_code == 200
+    data_list_all = data_by_ids.json
+
+    ids = [record["did"] for record in data_list_all["records"] if "did" in record]
+    assert rec_1["did"] in ids
+    assert not rec_2["did"] in ids
+
+    data_with_limit = client.get("/index/?form=all&limit=1")
+    assert data_with_limit.status_code == 200
+    data_list_limit = data_with_limit.json
+    assert len(data_list_limit["records"]) == 2
+
+    param = {"bucket": {"state": "error", "other": "xxx"}}
+
+    data_by_url_md = client.get("/index/?form=all&urls_metadata=" + json.dumps(param))
+    assert data_by_url_md.status_code == 200
+    data_list = data_by_url_md.json
+    assert len(data_list["records"]) == n_records + 1
+    ids = [record["did"] for record in data_list["records"] if "did" in record]
+    assert rec_1["did"] in ids
 
 
 def test_index_list_by_size(client, user):

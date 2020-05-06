@@ -204,8 +204,13 @@ def test_get_bundle_list(client, user):
     bundlen
         +-objectn
     """
+    n_bundles = 6
     n_records = 6
     for _ in range(n_records):
+        _, _ = create_index(client, user)
+    n_records = 6 + n_bundles
+
+    for _ in range(n_bundles):
         did_list, _ = create_index(client, user)
         bundle_id = str(uuid.uuid4())
         data = get_bundle_doc(did_list, bundle_id=bundle_id)
@@ -216,9 +221,19 @@ def test_get_bundle_list(client, user):
     res3 = client.get("/bundle/")
     assert res3.status_code == 200
     rec3 = res3.json
-    assert len(rec3) == n_records
+    assert len(rec3["records"]) == n_bundles
     # check to see bundle_data is not included
-    assert "bundle_data" not in rec3[0]
+    assert "bundle_data" not in rec3["records"][0]
+
+    res4 = client.get("/bundle/?form=object")
+    assert res4.status_code == 200
+    rec4 = res4.json
+    assert len(rec4["records"]) == n_records
+
+    res5 = client.get("/bundle/?form=all")
+    assert res5.status_code == 200
+    rec5 = res5.json
+    assert len(rec5["records"]) == n_records + n_bundles
 
 
 def test_multiple_bundle_data(client, user):
@@ -267,7 +282,7 @@ def test_bundle_delete(client, user):
     res3 = client.get("/bundle/")
     assert res3.status_code == 200
     rec3 = res3.json
-    assert len(rec3) == n_records
+    assert len(rec3["records"]) == n_records
 
     for i in range(n_delete):
         res4 = client.delete("/bundle/" + bundle_ids[i], headers=user)
@@ -278,7 +293,7 @@ def test_bundle_delete(client, user):
     res3 = client.get("/bundle/")
     assert res3.status_code == 200
     rec3 = res3.json
-    assert len(rec3) == n_records - n_delete
+    assert len(rec3["records"]) == n_records - n_delete
 
 
 def test_bundle_data_bundle_and_index(client, user):

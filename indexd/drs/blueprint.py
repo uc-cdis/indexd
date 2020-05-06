@@ -3,10 +3,7 @@ from indexd.errors import AuthError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import UnexpectedError
-# from indexd.index.drivers.alchemy import ids, get_bundle_record_list
 
-# from indexd.index.blueprint import get_index
-from indexd.index.blueprint import get_index, get_bundle_record_list
 
 blueprint = flask.Blueprint("drs", __name__)
 
@@ -38,6 +35,8 @@ def list_drs_records():
     start = flask.request.args.get("start")
     page = flask.request.args.get("page")
 
+    form = flask.request.args.get("form")
+
     try:
         limit = 100 if limit is None else int(limit)
     except ValueError as err:
@@ -52,12 +51,18 @@ def list_drs_records():
         except ValueError as err:
             raise UserError("page must be an integer")
 
-    records = blueprint.index_driver.ids(start=start, limit=limit, page=page)
-    bundles = blueprint.index_driver.get_bundle_list(start=start, limit=limit, page=page)
-
+    if form == "bundle":
+        records = blueprint.index_driver.get_bundle_list(
+            start=start, limit=limit, page=page
+        )
+    elif form == "object":
+        records = blueprint.index_driver.ids(start=start, limit=limit, page=page)
+    else:
+        records = blueprint.index_driver.get_bundle_and_object_list(
+            start=start, limit=limit, page=page
+        )
     ret = {
         "drs_objects": [indexd_to_drs(record, True) for record in records],
-        "bundles": [bundle_to_drs(bundle, is_content=True) for bundle in bundles],
     }
 
     return flask.jsonify(ret), 200

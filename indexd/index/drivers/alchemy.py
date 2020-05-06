@@ -1,8 +1,6 @@
 import datetime
 import uuid
 import json
-import flask
-import hashlib
 from contextlib import contextmanager
 from cdislogging import get_logger
 from sqlalchemy import (
@@ -26,7 +24,6 @@ from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd import auth
-from indexd.drs.blueprint import bundle_to_drs
 from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import (
@@ -275,6 +272,7 @@ class DrsBundleRecord(Base):
             "updated_time": self.updated_time.isoformat(),
             "checksum": self.checksum,
             "size": self.size,
+            "form": "bundle",
         }
 
         if expand:
@@ -773,15 +771,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             base_version = BaseVersion()
 
             bundle_id = str(uuid.uuid4())
-            name = str(uuid.uuid4())
 
             record.bundle_id = bundle_id
             base_version.baseid = bundle_id
-
-            # record.rev = str(uuid.uuid4())[:8]
-            # record.baseid = baseid
-            # record.uploader = uploader
-            # record.file_name = file_name
 
             session.add(base_version)
             session.add(record)
@@ -1404,6 +1396,63 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             doc = record.to_document_dict(expand)
             return doc
+
+    def get_bundle_and_object_list(
+        self,
+        limit=100,
+        page=None,
+        start=None,
+        size=None,
+        urls=None,
+        acl=None,
+        authz=None,
+        hashes=None,
+        file_name=None,
+        version=None,
+        uploader=None,
+        metadata=None,
+        ids=None,
+        urls_metadata=None,
+        negate_params=None,
+    ):
+        """
+        Gets bundles and objects and orders them by created time.
+        """
+        limit = int((limit / 2) + 1)
+        bundle = self.get_bundle_list(start=start, limit=limit, page=page)
+        objects = self.ids(
+            limit=limit,
+            page=page,
+            start=start,
+            size=size,
+            urls=urls,
+            acl=acl,
+            authz=authz,
+            hashes=hashes,
+            file_name=file_name,
+            version=version,
+            uploader=uploader,
+            metadata=metadata,
+            ids=ids,
+            urls_metadata=urls_metadata,
+            negate_params=negate_params,
+        )
+
+        ret = []
+        i = 0
+        j = 0
+
+        while i + j < len(bundle) + len(objects):
+            if i != len(bundle) and (
+                j == len(objects)
+                or bundle[i]["created_time"] < objects[j]["created_date"]
+            ):
+                ret.append(bundle[i])
+                i += 1
+            else:
+                ret.append(objects[j])
+                j += 1
+        return ret
 
     def delete_bundle(self, bundle_id):
         with self.session as session:

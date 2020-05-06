@@ -2,7 +2,6 @@ import re
 import json
 import flask
 import hashlib
-import uuid
 import jsonschema
 import os.path
 import subprocess
@@ -54,7 +53,7 @@ def validate_hashes(**hashes):
 
 
 @blueprint.route("/index/", methods=["GET"])
-def get_index():
+def get_index(form=None):
     """
     Returns a list of records.
     """
@@ -130,23 +129,47 @@ def get_index():
         except ValueError:
             raise UserError("negate_params must be a valid json string")
 
-    records = blueprint.index_driver.ids(
-        start=start,
-        limit=limit,
-        page=page,
-        size=size,
-        file_name=file_name,
-        version=version,
-        urls=urls,
-        acl=acl,
-        authz=authz,
-        hashes=hashes,
-        uploader=uploader,
-        ids=ids,
-        metadata=metadata,
-        urls_metadata=urls_metadata,
-        negate_params=negate_params,
-    )
+    form = flask.request.args.get("form") if not form else form
+    if form == "bundle":
+        records = blueprint.index_driver.get_bundle_list(
+            start=start, limit=limit, page=page
+        )
+    elif form == "all":
+        records = blueprint.index_driver.get_bundle_and_object_list(
+            limit=limit,
+            page=page,
+            start=start,
+            size=size,
+            urls=urls,
+            acl=acl,
+            authz=authz,
+            hashes=hashes,
+            file_name=file_name,
+            version=version,
+            uploader=uploader,
+            metadata=metadata,
+            ids=ids,
+            urls_metadata=urls_metadata,
+            negate_params=negate_params,
+        )
+    else:
+        records = blueprint.index_driver.ids(
+            start=start,
+            limit=limit,
+            page=page,
+            size=size,
+            file_name=file_name,
+            version=version,
+            urls=urls,
+            acl=acl,
+            authz=authz,
+            hashes=hashes,
+            uploader=uploader,
+            ids=ids,
+            metadata=metadata,
+            urls_metadata=urls_metadata,
+            negate_params=negate_params,
+        )
 
     base = {
         "ids": ids,
@@ -603,27 +626,11 @@ def get_bundle_record_list():
     Returns a list of bundle records.
     """
 
-    limit = flask.request.args.get("limit")
-    start = flask.request.args.get("start")
-    page = flask.request.args.get("page")
+    form = (
+        flask.request.args.get("form") if flask.request.args.get("form") else "bundle"
+    )
 
-    try:
-        limit = 100 if limit is None else int(limit)
-    except ValueError as err:
-        raise UserError("limit must be an integer")
-
-    if limit < 0 or limit > 1024:
-        raise UserError("limit must be between 0 and 1024")
-
-    if page is not None:
-        try:
-            page = int(page)
-        except ValueError as err:
-            raise UserError("page must be an integer")
-
-    ret = blueprint.index_driver.get_bundle_list(start=start, limit=limit, page=page)
-
-    return flask.jsonify(ret), 200
+    return get_index(form=form)
 
 
 @blueprint.route("/bundle/<path:bundle_id>", methods=["GET"])
