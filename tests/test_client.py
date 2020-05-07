@@ -646,6 +646,18 @@ def test_create_blank_version(client, user):
     for field in blank_fields:
         assert not blank_doc[field]
 
+def test_create_blank_version_no_existing_record(client, user):
+    """
+    Test that attempts to create a blank version of a nonexisting GUID
+    should fail with 404.
+    """
+    nonexistant_did = "00000000-0000-0000-0000-000000000000"
+
+    # Make a new blank version of the original record
+    doc = {"uploader": "uploader_123", "file_name": "test_file"}
+    url = "/index/blank/{}".format(nonexistant_did)
+    res = client.post(url, json=doc, headers=user)
+    assert res.status_code == 404, "Expected to fail to create new blank version, instead got {}".format(res.json)
 
 def test_fill_size_n_hash_for_blank_record(client, user):
     """
