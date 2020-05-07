@@ -1169,7 +1169,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
-            auth.authorize("update", [u.resource for u in old_record.authz] + authz)
+            auth.authorize("update", [u.resource for u in old_record.authz])
 
             new_record = IndexRecord()
             did = str(uuid.uuid4())

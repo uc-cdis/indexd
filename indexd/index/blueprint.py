@@ -311,12 +311,12 @@ def add_index_blank_record_version(record):
 
     # authorize done in add_blank_version for both the old and new authz
     did, baseid, rev = blueprint.index_driver.add_blank_version(
-        record=record, uploader=uploader, file_name=file_name
+        record, uploader=uploader, file_name=file_name
     )
 
     ret = {"did": did, "baseid": baseid, "rev": rev}
 
-    return flask.jsonify(ret), 200
+    return flask.jsonify(ret), 201
 
 @blueprint.route("/index/blank/<path:record>", methods=["PUT"])
 @authorize
