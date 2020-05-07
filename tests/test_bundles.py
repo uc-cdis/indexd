@@ -59,6 +59,24 @@ def test_bundle_post(client, user):
     assert res2.status_code == 200
 
 
+def test_bundle_post_self_reference(client, user):
+    """
+    Make sure this doesnt exist
+    Bundle 1 
+        Object 1
+        Bundle 1 
+        .
+        .
+    """
+    did_list, _ = create_index(client, user)
+    bundle_id = str(uuid.uuid4)
+
+    did_list.append(bundle_id)
+    data = get_bundle_doc(bundles=did_list, bundle_id=bundle_id)
+    res2 = client.post("/bundle/", json=data, headers=user)
+    assert res2.status_code == 400
+
+
 def test_post_drs_no_duplicate_bundles(client, user):
     did_list, _ = create_index(client, user)
 
