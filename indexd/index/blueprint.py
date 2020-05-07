@@ -318,6 +318,7 @@ def add_index_blank_record_version(record):
 
     return flask.jsonify(ret), 201
 
+
 @blueprint.route("/index/blank/<path:record>", methods=["PUT"])
 @authorize
 def put_index_blank_record(record):

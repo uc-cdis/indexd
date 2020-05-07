@@ -1149,12 +1149,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.baseid, record.rev
 
-    def add_blank_version(
-        self,
-        current_did,
-        file_name=None,
-        uploader=None,
-    ):
+    def add_blank_version(self, current_did, file_name=None, uploader=None):
         """
         Add a blank record version given did.
         Authn/authz fields carry over from previous version.

@@ -575,6 +575,7 @@ def test_create_blank_record_with_file_name(client, user):
     # test that record is blank
     assert_blank(rec)
 
+
 def test_create_blank_version(client, user):
     """
     Test that we can create a new, blank version of a record
@@ -593,10 +594,14 @@ def test_create_blank_version(client, user):
     doc["authz"] = mock_authz
     doc["baseid"] = mock_baseid
     res = client.post("/index/", json=doc, headers=user)
-    assert res.status_code == 200, "Failed to add original doc to index: {}".format(res.json)
+    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
+        res.json
+    )
     original_doc_guid = res.json["did"]
     res = client.get("/index/{}".format(original_doc_guid))
-    assert res.status_code == 200, "Failed to find original doc in index: {}".format(res.json)
+    assert res.status_code == 200, "Failed to find original doc in index: {}".format(
+        res.json
+    )
     original_doc = res.json
     assert original_doc["acl"] == mock_acl
     assert original_doc["authz"] == mock_authz
@@ -606,7 +611,9 @@ def test_create_blank_version(client, user):
     doc = {"uploader": "uploader_123", "file_name": "test_file"}
     url = "/index/blank/{}".format(original_doc["did"])
     res = client.post(url, json=doc, headers=user)
-    assert res.status_code == 201, "Failed to make new blank version: {}".format(res.json)
+    assert res.status_code == 201, "Failed to make new blank version: {}".format(
+        res.json
+    )
     blank_doc_guid = res.json["did"]
 
     # Confirm that the new blank record is in the index
@@ -638,6 +645,7 @@ def test_create_blank_version(client, user):
     ]
     for field in blank_fields:
         assert not blank_doc[field]
+
 
 def test_fill_size_n_hash_for_blank_record(client, user):
     """
