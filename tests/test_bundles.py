@@ -76,6 +76,22 @@ def test_bundle_post_self_reference(client, user):
     res2 = client.post("/bundle/", json=data, headers=user)
     assert res2.status_code == 400
 
+def test_bundle_post_defined_size_checksum(client, user):
+    did_list, _ = create_index(client, user)
+    bundle_id = str(uuid.uuid4)
+    data = {
+        "name": "test_bundle",
+        "bundles": did_list,
+        "bundle_id": bundle_id,
+        "checksum": "1bab24e003ac48840123e5bbe72a5ec9",
+        "size": 12345,
+    }
+    res2 = client.post("/bundle/", json=data, headers=user)
+    print(res2.json
+    )
+    assert res2.status_code == 200
+
+
 
 def test_post_drs_no_duplicate_bundles(client, user):
     did_list, _ = create_index(client, user)

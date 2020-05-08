@@ -586,6 +586,7 @@ def post_bundle():
     name = flask.request.json.get("name")
     bundles = flask.request.json.get("bundles")
     bundle_id = flask.request.json.get("bundle_id")
+    size = flask.request.json.get("size") if flask.request.json.get("size") else 0
 
     if len(bundles) == 0:
         raise UserError("Bundle data required.")
@@ -593,13 +594,15 @@ def post_bundle():
     if len(bundles) != len(set(bundles)):
         raise UserError("Duplicate GUID in bundles.")
 
+    if bundle_id in bundles:
+        raise UserError("Bundle referes to itself.")
+
     bundle_data = []
-    size = 0
     checksums = []
     for bundle in bundles:
         data = get_index_record(bundle)[0]
         data = data.json
-        size += data["size"]
+        size += data["size"] if not flask.request.json.get("size") else 0
         checksums.append(get_checksum(data))
         data = bundle_to_drs(data, expand=True, is_content=True)
         bundle_data.append(data)
