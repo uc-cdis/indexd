@@ -620,7 +620,7 @@ def post_bundle():
         checksum=checksum,
     )
 
-    return flask.jsonify(ret), 200
+    return flask.jsonify({"bundle_id": ret[0], "name": ret[1], "contents": ret[2]}), 200
 
 
 @blueprint.route("/bundle/", methods=["GET"])

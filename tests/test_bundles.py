@@ -413,9 +413,8 @@ def test_bundle_no_bundle_name(client, user):
     res = client.post("/bundle/", json=data, headers=user)
     assert res.status_code == 200
     rec = res.json
-    assert rec[1] == bundle_id
-    # check bundle_name defaulted to id
-    assert rec[0] == bundle_id
+    assert rec["bundle_id"] == bundle_id
+    assert rec["name"] == bundle_id
 
 
 def build_bundle(client, user):
