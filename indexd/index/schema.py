@@ -105,9 +105,7 @@ BUNDLE_SCHEMA = {
     "description": "Creates a new bundle",
     "required": ["bundles"],
     "properties": {
-        "bundle_id": {
-            "type": "string",
-        },
+        "bundle_id": {"type": "string",},
         "name": {
             "description": "Required bundle name created my author of the bundle",
             "type": "string",
@@ -118,9 +116,6 @@ BUNDLE_SCHEMA = {
             "type": "integer",
             "minimum": 0,
         },
-        "checksum": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{32}$",
-        },
+        "checksum": {"type": "string", "pattern": "^[0-9a-f]{32}$",},
     },
 }
