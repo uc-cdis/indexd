@@ -1180,11 +1180,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             new_record.acl = old_record.acl
             new_record.authz = old_record.authz
 
-            try:
-                session.add(new_record)
-                session.commit()
-            except IntegrityError:
-                raise UserError("{did} already exists".format(did=did), 400)
+            session.add(new_record)
+            session.commit()
 
             return new_record.did, new_record.baseid, new_record.rev
 
