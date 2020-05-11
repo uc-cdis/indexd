@@ -1311,6 +1311,17 @@ def test_index_create_with_version(client, user):
     rec = res.json
     assert rec["version"] == data["version"]
 
+def test_create_blank_record_with_baseid(client, user):
+    doc = {"uploader": "uploader_123", "baseid": "baseid_123"}
+
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201
+    rec = res.json
+    assert rec["did"]
+    res = client.get("/index/?baseid=" + doc["baseid"])
+    assert res.status_code == 200
+    rec = res.json
+    assert_blank(rec)
 
 def test_index_create_with_uploader(client, user):
     data = get_doc()
