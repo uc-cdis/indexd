@@ -116,6 +116,10 @@ def indexd_to_drs(record, expand=False, list_drs=False):
 
     form = record["form"] if "form" in record else "bundle"
 
+    description = record["description"] if "description" in record else None
+
+    alias = record["alias"] if "alias" in record else []
+
     drs_object = {
         "id": did,
         "description": "",
@@ -130,12 +134,12 @@ def indexd_to_drs(record, expand=False, list_drs=False):
         "version": version,
         "form": form,
         "checksums": [],
+        "description": description,
+        "aliases": alias,
     }
 
     if "description" in record:
         drs_object["description"] = record["description"]
-    if "alias" in record:
-        drs_object["aliases"].append(record["alias"])
 
     if "bundle_data" in record:
         bundle_data = record["bundle_data"]
