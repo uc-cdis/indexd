@@ -92,6 +92,20 @@ def test_bundle_post_defined_size_checksum(client, user):
     assert res2.status_code == 200
 
 
+def test_bundle_bundle_data_not_found(client, user):
+    bundle_id = str(uuid.uuid4)
+    data = {
+        "name": "test_bundle",
+        "bundles": ["1987hgd09183hd0981hjd0h08ashjd80"],
+        "bundle_id": bundle_id,
+        "checksum": "1bab24e003ac48840123e5bbe72a5ec9",
+        "size": 12345,
+    }
+    res2 = client.post("/bundle/", json=data, headers=user)
+    print(res2.json)
+    assert res2.status_code == 404
+
+
 def test_post_drs_no_duplicate_bundles(client, user):
     did_list, _ = create_index(client, user)
 
@@ -327,6 +341,17 @@ def test_bundle_delete(client, user):
     assert res3.status_code == 200
     rec3 = res3.json
     assert len(rec3["records"]) == n_records - n_delete
+
+
+def test_bundle_delete_invalid_bundle_id(client, user):
+    bundle_id = "12938hd981h123hd18hd80h028"
+    res = client.delete("/bundle/" + bundle_id, headers=user)
+    assert res.status_code == 404
+
+
+def test_bundle_delete_no_bundle_id(client, user):
+    res = client.delete("/bundle/", headers=user)
+    assert res.status_code == 405
 
 
 def test_bundle_data_bundle_and_index(client, user):
