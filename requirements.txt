@@ -10,3 +10,4 @@ git+https://github.com/uc-cdis/dosclient.git@1.1.0#egg=dosclient
 git+https://github.com/uc-cdis/hsclient.git@1.0.0#egg=hsclient
 authutils==4.0.0
 gen3rbac==0.1.2
+redis==3.4.1

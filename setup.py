@@ -18,6 +18,7 @@ setup(
         "hsclient",
         "authutils",
         "gen3rbac",
+        "redis~=3.4.1",
     ],
     dependency_links=[
         "git+https://github.com/uc-cdis/cdislogging.git@0.0.2#egg=cdislogging",
