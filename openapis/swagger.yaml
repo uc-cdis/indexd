@@ -979,6 +979,8 @@ paths:
             Recursion continues through the entire sub-tree of the bundle.
             If the object_id refers to a blob, then the query parameter is ignored.
       x-swagger-router-controller: ga4gh.drs.server
+      security:
+        - authToken: []
       tags:
         - DRS
   '/ga4gh/drs/v1/objects/{object_id}/access/{access_id}':
@@ -1040,6 +1042,8 @@ paths:
           required: true
           type: string
           description: An access_id from the access_methods list of a DrsObject
+      security:
+        - authToken: []
       tags:
         - DRS
       x-swagger-router-controller: ga4gh.drs.server
@@ -1163,15 +1167,16 @@ paths:
          description: invalid request parameters
 
 securityDefinitions:
-  cdis_auth:
-    type: oauth2
-    authorizationUrl: 'https://data-commons.org/oauth/dialog'
-    flow: implicit
-    scopes:
-      'write:index': modify any entry in the index
-      'read:index': read any entry from the index
   basic_auth:
     type: basic
+  authToken:
+    description: |
+      A valid authorization token must be passed in the 'Authorization' header.
+      Example syntax for using 'Authorization' header :
+        Bearer: token_string
+    type: apiKey
+    name: Authorization
+    in: header
 definitions:
   AliasInfo:
       type: object
