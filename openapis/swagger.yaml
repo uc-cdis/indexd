@@ -39,6 +39,8 @@ tags:
     description: 'Data Object Service Retrieval Endpoints'
   - name: DRS
     description: 'Data Repository Service Retrieval Endpoints'
+  - name: bundle
+    description: 'Bundle endpoints.'
   - name: system
     description: System endpoints
 schemes:
@@ -137,6 +139,12 @@ paths:
       description: ''
       operationId: listEntries
       parameters:
+        - name: form
+          in: query
+          description: specify wheather you want to list bundle, objects or both. 
+          required: false
+          type: "string"
+          enum: ["bundle", "object", "all"]
         - name: urls_metadata
           in: query
           description: |
@@ -285,7 +293,7 @@ paths:
     get:
       tags:
         - index
-      summary: Get the metadata associated with the given id
+      summary: Get the metadata associated with the given id. Resolves bundle id.
       operationId: getIndexEntry
       produces:
         - application/json
@@ -295,6 +303,10 @@ paths:
           description: entry id
           required: true
           type: string
+        - name: expand
+          type: boolean
+          in: query
+          description: 'Only shows first layer of contents when expand=false. Recursively unbundles contents when expand=true. false by default'
       responses:
         '200':
           description: successful operation
@@ -901,6 +913,13 @@ paths:
       summary: List all DrsObject. 
       description: 'Url field here contains their location and not the presigned url.'
       operationId: ListDrsObject
+      parameters:
+        - name: form
+          in: query
+          description: specify wheather you want to list bundle, objects or both. 
+          required: false
+          type: "string"
+          enum: ["bundle", "object", "all"]
       responses:
         '200':
           description: successful operation
@@ -914,7 +933,8 @@ paths:
       summary: Get info about a DrsObject.
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
-        Returns presigned url given an access token in the url field, else returns file location.
+        Returns presigned url given an access token in the url field, else returns file location. 
+        Resolves for bundles. 
       operationId: GetObject
       responses:
         '200':
@@ -979,6 +999,8 @@ paths:
             Recursion continues through the entire sub-tree of the bundle.
             If the object_id refers to a blob, then the query parameter is ignored.
       x-swagger-router-controller: ga4gh.drs.server
+      security:
+        - authToken: []
       tags:
         - DRS
   '/ga4gh/drs/v1/objects/{object_id}/access/{access_id}':
@@ -1040,10 +1062,122 @@ paths:
           required: true
           type: string
           description: An access_id from the access_methods list of a DrsObject
+      security:
+        - authToken: []
       tags:
         - DRS
       x-swagger-router-controller: ga4gh.drs.server
-    
+  '/bundle':
+    post:
+      tags:
+        - bundle
+      summary: Create a bundle.
+      description: ''
+      consumes: 
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Body takes in GUID, bundle_name, checksum, list of bundles to bundle, and size. Only bundls bundles is required, rest will be created by indexd if not provided. 
+          required: true
+          schema:
+            $ref: '#/definitions/InputBundle'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/BundleResponse'
+        '400':
+          description: Invalid input
+        '404':
+          description: GUID in bundle doesn't exist.
+      security:
+        - authToken: []
+    get:
+      summary: List all Bundles. 
+      description: 'By default lists all the bundles'
+      operationId: ListBundles
+      parameters:
+        - name: form
+          in: query
+          description: specify wheather you want to list bundle, objects or both. 
+          required: false
+          type: "string"
+          enum: ["bundle", "object", "all"]
+        - name: start
+          in: query
+          description: start did
+          required: false
+          type: string
+        - name: limit
+          in: query
+          description: number of records to return for this page, default to 100
+          required: false
+          type: integer
+        - name: page
+          in: query
+          description: pagination support without relying on dids. offsets results by limit*page
+          required: false
+          type: integer
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/ListBundles'
+      security: []
+      tags:
+        - bundle
+  '/bundle/{GUID}':
+    get:
+      tags:
+        - bundle
+      summary: Get bundle info for a given GUID
+      produces: 
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: Resolves for both bundle id and object id.
+          required: true
+          type: string
+        - name: expand
+          type: boolean
+          in: query
+          description: 'Only shows first layer of contents when expand=false. Recursively unbundles contents when expand=true. false by default'
+      responses:
+        '200':
+          description: successful operation
+          schema: 
+            $ref: '#/definitions/BundleGet'
+        '404':
+          description: bundle not found
+    delete:
+      tags:
+        - bundle
+      summary: delete bundle from bundle records
+      description: ''
+      produces: 
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: bundle id
+          required: true
+          type: string
+      responses:
+        '200':
+          description: Bundle is successfully deleted
+        '404':
+          description: Bundle ID not found
+      security:
+        - authToken: []
+          
+      
+      
   '/bulk/documents':
     post:
       tags:
@@ -1163,15 +1297,16 @@ paths:
          description: invalid request parameters
 
 securityDefinitions:
-  cdis_auth:
-    type: oauth2
-    authorizationUrl: 'https://data-commons.org/oauth/dialog'
-    flow: implicit
-    scopes:
-      'write:index': modify any entry in the index
-      'read:index': read any entry from the index
   basic_auth:
     type: basic
+  authToken:
+    description: |
+      A valid authorization token must be passed in the 'Authorization' header.
+      Example syntax for using 'Authorization' header :
+        Bearer: token_string
+    type: apiKey
+    name: Authorization
+    in: header
 definitions:
   AliasInfo:
       type: object
@@ -1952,7 +2087,90 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/DrsObject'
+  BundleGet:
+    type: object
+    properties:
+      id:
+        type: string
+      drs_uri:
+        type: string
+      name:
+        type: string
+      size:
+        type: integer
+      created_time:
+        type: string
+        format: date-time
+      updated_time:
+        type: string
+        format: date-time
+      checksums:
+        type: array
+        items:
+          $ref: '#/definitions/Checksum'
+      contents:
+        type: array
+        items:
+          $ref: '#/definitions/BundleContent'
           
+  BundleContent:
+    type: object
+    properties:
+      id:
+        type: string
+      drs_uri:
+        type: string
+      name:
+        type: string
+      contents:
+        type: array
+        items:
+          type: object
+    
+        
+  ListBundles:
+    type: object
+    properties:
+      ids:
+        type: array
+        items:
+          $ref: '#/definitions/DID'
+      records:
+        type: array
+        items:
+          $ref: "#/definitions/OutputBundle"
+      size:
+        type: integer
+        format: int64
+        description: size in bytes
+      start:
+        type: integer
+        format: int64
+        description: start index for the pagination
+      limit:
+        type: integer
+        format: int64
+        description: number of dids to return
+      file_name:
+        type: string
+      urls:
+        type: array
+        items:
+          type: string
+      acl:
+        type: array
+        items:
+          type: string
+      authz:
+        type: array
+        items:
+          type: string
+      hashes:
+        $ref: '#/definitions/HashInfo'
+      metadata:
+        type: object
+      version:
+        type: string          
   ListRecords:
     type: object
     properties:
@@ -1996,6 +2214,72 @@ definitions:
         type: object
       version:
         type: string
+        
+  InputBundle:
+    type: object
+    required:
+      - bundles
+    properties:
+      bundle_id:
+        $ref: '#/definitions/DID'
+      name:
+        type: string
+      size:
+        type: integer
+        format: int64
+        description: size in bytes
+      checksum:
+        type: string
+      bundles:
+        type: array
+        items:
+          type: string
+        description: list of guid to be in the bundle
+  
+  BundleResponse:
+    type: object
+    properties:
+      bundle_id:
+        $ref: '#/definitions/DID'
+      name:
+        type: string
+      contents:
+        type: array
+        items:
+          $ref: '#/definitions/OutputBundle'
+  
+
+  OutputBundle:
+    type: object
+    properties:
+      id:
+        $ref: "#/definitions/DID"
+      form:
+        type: string
+        description: how the entry was submitted to storage
+        enum:
+          - object
+          - container
+          - multipart
+          - bundle
+      size:
+        type: integer
+        format: int64
+        description: size in bytes
+      name:
+        type: string
+      checksum:
+        type: string
+      updated_time:
+        type: string
+        format: date-time
+        description: last updated time
+      created_time:
+        type: string
+        format: date-time
+        description: time created
+      
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'
+  
