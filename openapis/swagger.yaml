@@ -1167,13 +1167,6 @@ paths:
          description: invalid request parameters
 
 securityDefinitions:
-  cdis_auth:
-    type: oauth2
-    authorizationUrl: 'https://data-commons.org/oauth/dialog'
-    flow: implicit
-    scopes:
-      'write:index': modify any entry in the index
-      'read:index': read any entry from the index
   basic_auth:
     type: basic
   authToken:
