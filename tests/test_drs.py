@@ -41,7 +41,6 @@ def test_drs_get(client, user):
     assert res_1.status_code == 200
     rec_1 = res_1.json
     res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"])
-    print(rec_1["did"])
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["id"] == rec_1["did"]
