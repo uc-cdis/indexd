@@ -309,7 +309,7 @@ def add_index_blank_record_version(record):
     if not uploader:
         raise UserError("no uploader specified")
 
-    # authorize done in add_blank_version for both the old and new authz
+    # authorize done in add_blank_version for the existing record's authz
     did, baseid, rev = blueprint.index_driver.add_blank_version(
         record, uploader=uploader, file_name=file_name
     )
