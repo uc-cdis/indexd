@@ -266,7 +266,7 @@ paths:
           description: Metadata object that needs to be added to the store
           required: true
           schema:
-            $ref: '#/definitions/InputBlankInfo'
+            $ref: '#/definitions/InputBlankVersionInfo'
       responses:
         '200':
           description: successful operation
@@ -274,6 +274,8 @@ paths:
             $ref: '#/definitions/OutputRef'
         '400':
           description: Invalid status value
+        '404':
+          description: GUID does not exist
       security:
         - basic_auth: []
     put:
@@ -1337,6 +1339,18 @@ definitions:
       file_name:
         type: string
         description: name of the uploaded file
+  InputBlankVersionInfo:
+    type: object
+    properties:
+      uploader:
+        type: string
+        description: user who uploaded this file
+      file_name:
+        type: string
+        description: optional; name of the uploaded file
+      did:
+        type: string
+        description: optional; specify the GUID of the new blank version that is created.
   UpdateInputInfo:
     type: object
     properties:

@@ -20,7 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import joinedload, relationship, sessionmaker
-from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound, FlushError
 
 from indexd import auth
 from indexd.errors import UserError, AuthError
@@ -1149,7 +1149,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.baseid, record.rev
 
-    def add_blank_version(self, current_did, file_name=None, uploader=None):
+    def add_blank_version(self, current_did, new_did=None, file_name=None, uploader=None):
         """
         Add a blank record version given did.
         Authn/authz fields carry over from previous version.
@@ -1166,10 +1166,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             auth.authorize("update", [u.resource for u in old_record.authz])
 
+            # handle the edgecase where new_did matches the original doc's did to
+            # prevent sqlalchemy FlushError
+            if new_did == old_record.did:
+                raise UserError("{did} already exists".format(did=new_did), 400)
+
             new_record = IndexRecord()
-            did = str(uuid.uuid4())
-            if self.config.get("PREPEND_PREFIX"):
-                did = self.config["DEFAULT_PREFIX"] + did
+            did = new_did
+            if not did:
+                did = str(uuid.uuid4())
+                if self.config.get("PREPEND_PREFIX"):
+                    did = self.config["DEFAULT_PREFIX"] + did
 
             new_record.did = did
             new_record.baseid = old_record.baseid
@@ -1180,8 +1187,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             new_record.acl = old_record.acl
             new_record.authz = old_record.authz
 
-            session.add(new_record)
-            session.commit()
+            try:
+                session.add(new_record)
+                session.commit()
+            except IntegrityError:
+                raise UserError("{did} already exists".format(did=did), 400)
 
             return new_record.did, new_record.baseid, new_record.rev
 
@@ -1204,7 +1214,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 else:
                     baseid = record.baseid
             except MultipleResultsFound:
-                raise MultipleRecordsFound("multiple records found")
+                raise MultipleRecordsFoundadd_version("multiple records found")
 
             query = session.query(IndexRecord)
             records = (
