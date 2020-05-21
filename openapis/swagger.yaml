@@ -236,7 +236,7 @@ paths:
           schema:
             $ref: '#/definitions/InputBlankInfo'
       responses:
-        '200':
+        '201':
           description: successful operation
           schema:
             $ref: '#/definitions/OutputRef'
@@ -268,7 +268,7 @@ paths:
           schema:
             $ref: '#/definitions/InputBlankVersionInfo'
       responses:
-        '200':
+        '201':
           description: successful operation
           schema:
             $ref: '#/definitions/OutputRef'
@@ -1400,18 +1400,6 @@ definitions:
       rev:
         type: string
         pattern: '^[0-9a-f]{8}$'
-  OutputRefWithURL:
-    type: object
-    properties:
-      did:
-        $ref: "#/definitions/DID"
-      baseid:
-        $ref: "#/definitions/UUID"
-      rev:
-        type: string
-        pattern: '^[0-9a-f]{8}$'
-      url:
-        type: string
   AliasInputInfo:
     type: object
     required:
