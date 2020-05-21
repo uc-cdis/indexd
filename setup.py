@@ -17,7 +17,7 @@ setup(
         "dosclient",
         "hsclient",
         "authutils==4.0.0",
-        "gen3rbac",
+        "gen3authz>=0.4.0,<0.5.0",
     ],
     dependency_links=[
         "git+https://github.com/uc-cdis/cdislogging.git@0.0.2#egg=cdislogging",
