@@ -1223,17 +1223,29 @@ def test_index_prepend_prefix(client, user):
         "PREPEND_PREFIX": True
     }
     """
+    # create a new record, check the GUID has the prefix
     data = get_doc()
-
     res_1 = client.post("/index/", json=data, headers=user)
-    assert res_1.status_code == 200
+    assert res_1.status_code == 200, res_1.json
     rec_1 = res_1.json
     res_2 = client.get("/index/" + rec_1["did"])
-    assert res_2.status_code == 200
+    assert res_2.status_code == 200, res_2.json
     rec_2 = res_2.json
-
     assert rec_1["did"] == rec_2["did"]
     assert rec_2["did"].startswith("testprefix:")
+
+    # create a new version, check the GUID has the prefix
+    dataNew = {
+        "form": "object",
+        "size": 244,
+        "urls": ["s3://endpointurl/bucket2/key"],
+        "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"},
+    }
+    res_3 = client.post("/index/" + rec_1["did"], json=dataNew, headers=user)
+    assert res_3.status_code == 200, res_3.json
+    rec_3 = res_3.json
+    assert rec_3["baseid"] == rec_1["baseid"]
+    assert rec_3["did"].startswith("testprefix:")
 
 
 def test_index_get_with_baseid(client, user):

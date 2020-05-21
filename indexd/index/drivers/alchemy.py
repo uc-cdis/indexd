@@ -1111,7 +1111,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             baseid = record.baseid
             record = IndexRecord()
-            did = new_did or str(uuid.uuid4())
+            did = new_did
+            if not did:
+                did = str(uuid.uuid4())
+                if self.config.get("PREPEND_PREFIX"):
+                    did = self.config["DEFAULT_PREFIX"] + did
 
             record.did = did
             record.baseid = baseid
