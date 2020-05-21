@@ -769,6 +769,58 @@ def test_create_blank_version_no_existing_record(client, user):
         res.status_code == 404
     ), "Expected to fail to create new blank version, instead got {}".format(res.json)
 
+def test_create_blank_version_blank_record(client, user):
+    """
+    Test that attempts to create a blank version of a blank record
+    should succeed
+    """
+    # SETUP
+    # ---------
+    doc = {"uploader": "uploader_123"}
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201
+    original_doc = res.json
+    assert original_doc["did"]
+    assert original_doc["rev"]
+
+    # Make a new blank version of the original record
+    doc = {"uploader": "uploader_123"}
+    url = "/index/blank/{}".format(original_doc["did"])
+    res = client.post(url, json=doc, headers=user)
+    assert (
+        res.status_code == 201
+    ), "Failed to create blank version of blank record, instead got {}".format(res.json)
+    blank_doc_guid = res.json["did"]
+
+    # Confirm that the new blank record is in the index
+    res = client.get("/index/{}".format(blank_doc_guid))
+    assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
+    blank_doc = res.json
+    # -----------
+
+    # The new blank record should have a GUID and a rev, and the updated/created date
+    # should be set
+    assert blank_doc["did"]
+    assert blank_doc["rev"]
+    # The new blank record should be a version of the original doc
+    # (i.e. both records should share a baseid)
+    assert blank_doc["baseid"] == original_doc["baseid"]
+    # The new blank doc should have an acl/authz of None, matching the original blank doc
+    assert not blank_doc["acl"]
+    assert not blank_doc["authz"]
+
+    # The new blank record should be blank (other metadata fields should not be filled)
+    blank_fields = [
+        "hashes",
+        "metadata",
+        "urls",
+        "urls_metadata",
+        "version",
+        "size",
+        "form",
+    ]
+    for field in blank_fields:
+        assert not blank_doc[field]
 
 def test_fill_size_n_hash_for_blank_record(client, user):
     """
