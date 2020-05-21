@@ -274,7 +274,7 @@ def post_index_record():
 
 
 @blueprint.route("/index/blank/", methods=["POST"])
-@authorize
+@authorize("file_upload", ["/data_file"])
 def post_index_blank_record():
     """
     Create a blank new record with only uploader and optionally
@@ -296,7 +296,7 @@ def post_index_blank_record():
 
 
 @blueprint.route("/index/blank/<path:record>", methods=["PUT"])
-@authorize
+@authorize("file_upload", ["/data_file"])
 def put_index_blank_record(record):
     """
     Update a blank record with size, hashes and url
