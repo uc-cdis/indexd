@@ -5,7 +5,7 @@ import hashlib
 from contextlib import contextmanager
 
 from authutils.token import get_jwt_token
-from rbac.client.arborist.client import ArboristClient
+from gen3authz.client.arborist.client import ArboristClient
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy.orm import sessionmaker
