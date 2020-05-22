@@ -576,6 +576,255 @@ def test_create_blank_record_with_file_name(client, user):
     assert_blank(rec)
 
 
+def test_create_blank_version(client, user):
+    """
+    Test that we can create a new, blank version of a record
+    with POST /index/blank/{GUID}. The new blank version should
+    retain the acl/authz of the previous record.
+    """
+    mock_acl = ["acl_A", "acl_B"]
+    mock_authz = ["fake/authz/A", "fake/authz/B"]
+    mock_baseid = "00000000-0000-0000-0000-000000000000"
+
+    # SETUP
+    # ----------
+    # Add an original record to the index
+    doc = get_doc()
+    doc["acl"] = mock_acl
+    doc["authz"] = mock_authz
+    doc["baseid"] = mock_baseid
+    res = client.post("/index/", json=doc, headers=user)
+    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
+        res.json
+    )
+    original_doc_guid = res.json["did"]
+    res = client.get("/index/{}".format(original_doc_guid))
+    assert res.status_code == 200, "Failed to find original doc in index: {}".format(
+        res.json
+    )
+    original_doc = res.json
+    assert original_doc["acl"] == mock_acl
+    assert original_doc["authz"] == mock_authz
+    assert original_doc["baseid"] == mock_baseid
+
+    # Make a new blank version of the original record
+    doc = {"uploader": "uploader_123", "file_name": "test_file"}
+    url = "/index/blank/{}".format(original_doc["did"])
+    res = client.post(url, json=doc, headers=user)
+    assert res.status_code == 201, "Failed to make new blank version: {}".format(
+        res.json
+    )
+    blank_doc_guid = res.json["did"]
+
+    # Confirm that the new blank record is in the index
+    res = client.get("/index/{}".format(blank_doc_guid))
+    assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
+    blank_doc = res.json
+    # -----------
+
+    # The new blank record should have a GUID and a rev, and the updated/created date
+    # should be set
+    assert blank_doc["did"]
+    assert blank_doc["rev"]
+    # The new blank record should be a version of the original doc
+    # (i.e. both records should share a baseid)
+    assert blank_doc["baseid"] == original_doc["baseid"]
+    # The new blank record should retain the acl/authz of the original doc
+    assert blank_doc["acl"] == original_doc["acl"]
+    assert blank_doc["authz"] == original_doc["authz"]
+
+    # The new blank record should be blank (other metadata fields should not be filled)
+    blank_fields = [
+        "hashes",
+        "metadata",
+        "urls",
+        "urls_metadata",
+        "version",
+        "size",
+        "form",
+    ]
+    for field in blank_fields:
+        assert not blank_doc[field]
+
+
+def test_create_blank_version_specify_did(client, user):
+    """
+    Test that we can specify the new GUID of a new, blank version of a record
+    with POST /index/blank/{GUID}.
+    """
+    # SETUP
+    # ----------
+    # Add an original record to the index
+    doc = get_doc()
+    mock_acl = ["acl_A", "acl_B"]
+    mock_authz = ["fake/authz/A", "fake/authz/B"]
+    mock_baseid = "00000000-0000-0000-0000-000000000000"
+    doc["acl"] = mock_acl
+    doc["authz"] = mock_authz
+    doc["baseid"] = mock_baseid
+    res = client.post("/index/", json=doc, headers=user)
+    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
+        res.json
+    )
+    original_doc_guid = res.json["did"]
+    res = client.get("/index/{}".format(original_doc_guid))
+    assert res.status_code == 200, "Failed to find original doc in index: {}".format(
+        res.json
+    )
+    original_doc = res.json
+    assert original_doc["acl"] == mock_acl
+    assert original_doc["authz"] == mock_authz
+    assert original_doc["baseid"] == mock_baseid
+
+    # Make a new blank version of the original record, specifying the guid
+    specified_guid = "11111111-1111-1111-1111-111111111111"
+    doc = {"uploader": "uploader_123", "file_name": "test_file", "did": specified_guid}
+    url = "/index/blank/{}".format(original_doc["did"])
+    res = client.post(url, json=doc, headers=user)
+    assert res.status_code == 201, "Failed to make new blank version: {}".format(
+        res.json
+    )
+    blank_doc_guid = res.json["did"]
+
+    # Confirm that the new blank record is in the index
+    res = client.get("/index/{}".format(blank_doc_guid))
+    assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
+    blank_doc = res.json
+    # -----------
+
+    # Expect the new version's guid to be the guid we specified
+    assert blank_doc_guid == specified_guid
+
+
+def test_create_blank_version_specify_guid_already_exists(client, user):
+    """
+    Test that if we try to specify the GUID of a new blank version, but the
+    new GUID we specified already exists in the index, the operation fails with 400.
+    """
+    # SETUP
+    # ----------
+    # Add an original record to the index
+    doc = get_doc()
+    mock_acl = ["acl_A", "acl_B"]
+    mock_authz = ["fake/authz/A", "fake/authz/B"]
+    mock_baseid = "00000000-0000-0000-0000-000000000000"
+    doc["acl"] = mock_acl
+    doc["authz"] = mock_authz
+    doc["baseid"] = mock_baseid
+    res = client.post("/index/", json=doc, headers=user)
+    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
+        res.json
+    )
+    original_doc_guid = res.json["did"]
+    res = client.get("/index/{}".format(original_doc_guid))
+    assert res.status_code == 200, "Failed to find original doc in index: {}".format(
+        res.json
+    )
+    original_doc = res.json
+    assert original_doc["acl"] == mock_acl
+    assert original_doc["authz"] == mock_authz
+    assert original_doc["baseid"] == mock_baseid
+
+    # Add another, unrelated record to the index
+    res = client.post("/index/", json=get_doc(), headers=user)
+    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
+        res.json
+    )
+    preexisting_guid = res.json["did"]
+    # -----------
+
+    # Attempt to create new blank version of doc, specifying the new guid to be
+    # a guid that already exists in the index. Expect the operation to fail with 400.
+    specified_guid = preexisting_guid
+    doc = {"uploader": "uploader_123", "file_name": "test_file", "did": specified_guid}
+    url = "/index/blank/{}".format(original_doc["did"])
+    res = client.post(url, json=doc, headers=user)
+    assert (
+        res.status_code == 400
+    ), "Request should have failed with 400 user error: {}".format(res.json)
+
+    # Attempt to create new blank version of doc, specifying the new guid to be
+    # the guid of the original record we're making a new blank version of.
+    # Expect the operation to fail with 400.
+    specified_guid = original_doc_guid
+    doc = {"uploader": "uploader_123", "file_name": "test_file", "did": specified_guid}
+    url = "/index/blank/{}".format(original_doc["did"])
+    res = client.post(url, json=doc, headers=user)
+    assert (
+        res.status_code == 400
+    ), "Request should have failed with 400 user error: {}".format(res.json)
+
+
+def test_create_blank_version_no_existing_record(client, user):
+    """
+    Test that attempts to create a blank version of a nonexisting GUID
+    should fail with 404.
+    """
+    nonexistant_did = "00000000-0000-0000-0000-000000000000"
+
+    # Make a new blank version of the original record
+    doc = {"uploader": "uploader_123", "file_name": "test_file"}
+    url = "/index/blank/{}".format(nonexistant_did)
+    res = client.post(url, json=doc, headers=user)
+    assert (
+        res.status_code == 404
+    ), "Expected to fail to create new blank version, instead got {}".format(res.json)
+
+
+def test_create_blank_version_blank_record(client, user):
+    """
+    Test that attempts to create a blank version of a blank record
+    should succeed
+    """
+    # SETUP
+    # ---------
+    doc = {"uploader": "uploader_123"}
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201
+    original_doc = res.json
+    assert original_doc["did"]
+    assert original_doc["rev"]
+
+    # Make a new blank version of the original record
+    doc = {"uploader": "uploader_123"}
+    url = "/index/blank/{}".format(original_doc["did"])
+    res = client.post(url, json=doc, headers=user)
+    assert (
+        res.status_code == 201
+    ), "Failed to create blank version of blank record, instead got {}".format(res.json)
+    blank_doc_guid = res.json["did"]
+
+    # Confirm that the new blank record is in the index
+    res = client.get("/index/{}".format(blank_doc_guid))
+    assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
+    blank_doc = res.json
+    # -----------
+
+    # The new blank record should have a GUID and a rev, and the updated/created date
+    # should be set
+    assert blank_doc["did"]
+    assert blank_doc["rev"]
+    # The new blank record should be a version of the original doc
+    # (i.e. both records should share a baseid)
+    assert blank_doc["baseid"] == original_doc["baseid"]
+    # The new blank doc should have an acl/authz of None, matching the original blank doc
+    assert not blank_doc["acl"]
+    assert not blank_doc["authz"]
+
+    # The new blank record should be blank (other metadata fields should not be filled)
+    blank_fields = [
+        "hashes",
+        "metadata",
+        "urls",
+        "urls_metadata",
+        "version",
+        "size",
+        "form",
+    ]
+    for field in blank_fields:
+        assert not blank_doc[field]
+
+
 def test_fill_size_n_hash_for_blank_record(client, user):
     """
     Test that can fill size and hashes for empty record

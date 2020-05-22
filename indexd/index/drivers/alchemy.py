@@ -1153,6 +1153,54 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.baseid, record.rev
 
+    def add_blank_version(
+        self, current_did, new_did=None, file_name=None, uploader=None
+    ):
+        """
+        Add a blank record version given did.
+        Authn/authz fields carry over from previous version.
+        """
+        with self.session as session:
+            query = session.query(IndexRecord).filter_by(did=current_did)
+
+            try:
+                old_record = query.one()
+            except NoResultFound:
+                raise NoRecordFound("no record found")
+            except MultipleResultsFound:
+                raise MultipleRecordsFound("multiple records found")
+
+            auth.authorize("update", [u.resource for u in old_record.authz])
+
+            # handle the edgecase where new_did matches the original doc's did to
+            # prevent sqlalchemy FlushError
+            if new_did == old_record.did:
+                raise UserError("{did} already exists".format(did=new_did), 400)
+
+            new_record = IndexRecord()
+            did = new_did
+            if not did:
+                did = str(uuid.uuid4())
+                if self.config.get("PREPEND_PREFIX"):
+                    did = self.config["DEFAULT_PREFIX"] + did
+
+            new_record.did = did
+            new_record.baseid = old_record.baseid
+            new_record.rev = str(uuid.uuid4())[:8]
+            new_record.file_name = file_name
+            new_record.uploader = uploader
+
+            new_record.acl = old_record.acl
+            new_record.authz = old_record.authz
+
+            try:
+                session.add(new_record)
+                session.commit()
+            except IntegrityError:
+                raise UserError("{did} already exists".format(did=did), 400)
+
+            return new_record.did, new_record.baseid, new_record.rev
+
     def get_all_versions(self, did):
         """
         Get all record versions (in order of creation) given DID
