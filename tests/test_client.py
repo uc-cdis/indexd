@@ -754,6 +754,7 @@ def test_create_blank_version_specify_guid_already_exists(client, user):
         res.status_code == 400
     ), "Request should have failed with 400 user error: {}".format(res.json)
 
+
 def test_create_blank_version_no_existing_record(client, user):
     """
     Test that attempts to create a blank version of a nonexisting GUID
@@ -768,6 +769,7 @@ def test_create_blank_version_no_existing_record(client, user):
     assert (
         res.status_code == 404
     ), "Expected to fail to create new blank version, instead got {}".format(res.json)
+
 
 def test_create_blank_version_blank_record(client, user):
     """
@@ -821,6 +823,7 @@ def test_create_blank_version_blank_record(client, user):
     ]
     for field in blank_fields:
         assert not blank_doc[field]
+
 
 def test_fill_size_n_hash_for_blank_record(client, user):
     """

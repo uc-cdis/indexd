@@ -20,7 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import joinedload, relationship, sessionmaker
-from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound, FlushError
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd import auth
 from indexd.errors import UserError, AuthError
@@ -1153,7 +1153,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.baseid, record.rev
 
-    def add_blank_version(self, current_did, new_did=None, file_name=None, uploader=None):
+    def add_blank_version(
+        self, current_did, new_did=None, file_name=None, uploader=None
+    ):
         """
         Add a blank record version given did.
         Authn/authz fields carry over from previous version.
@@ -1218,7 +1220,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 else:
                     baseid = record.baseid
             except MultipleResultsFound:
-                raise MultipleRecordsFoundadd_version("multiple records found")
+                raise MultipleRecordsFound("multiple records found")
 
             query = session.query(IndexRecord)
             records = (
