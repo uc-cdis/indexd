@@ -283,8 +283,6 @@ def post_index_blank_record():
 
     uploader = flask.request.get_json().get("uploader")
     file_name = flask.request.get_json().get("file_name")
-    if not uploader:
-        raise UserError("no uploader specified")
 
     did, rev, baseid = blueprint.index_driver.add_blank_record(
         uploader=uploader, file_name=file_name
@@ -307,8 +305,6 @@ def add_index_blank_record_version(record):
     uploader = flask.request.get_json().get("uploader")
     file_name = flask.request.get_json().get("file_name")
     new_did = flask.request.json.get("did")
-    if not uploader:
-        raise UserError("no uploader specified")
 
     # authorize done in add_blank_version for the existing record's authz
     did, baseid, rev = blueprint.index_driver.add_blank_version(
