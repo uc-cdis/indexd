@@ -628,6 +628,39 @@ paths:
         '400':
           description: Invalid status value
       security: []
+    put:
+      tags:
+        - index
+      summary: Update metadata for all versions of this record. Only some metadata fields can be updated in this way.
+      operationId: updateAllVersions
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          type: string
+        - in: body
+          name: body
+          description: The metadata to update for all versions of the record. Only some fields can be updated in this way.
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateAllVersionsInputInfo'
+      responses:
+        '200':
+          description: Successful operation. Returns the GUIDs of the records that were updated.
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/OutputRef'
+        '400':
+          description: The metadata to update is invalid.
+        '404':
+          description: GUID not found.
+      security: []
   '/alias/':
     get:
       deprecated: true
@@ -1387,6 +1420,17 @@ definitions:
       hashes:
         $ref: '#/definitions/HashInfo'
       urls:
+        type: array
+        items:
+          type: string
+  UpdateAllVersionsInputInfo:
+    type: object
+    properties:
+      acl:
+        type: array
+        items:
+          type: string
+      authz:
         type: array
         items:
           type: string
