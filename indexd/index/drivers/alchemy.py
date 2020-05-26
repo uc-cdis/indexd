@@ -1235,6 +1235,46 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         return ret
 
+    def update_all_versions(self, did, acl=None, authz=None):
+        """
+        Update all record versions with new acl and authz
+        """
+        with self.session as session:
+            query = session.query(IndexRecord).filter_by(did=current_did)
+
+            try:
+                old_record = query.one()
+            except NoResultFound:
+                raise NoRecordFound("no record found")
+            except MultipleResultsFound:
+                raise MultipleRecordsFound("multiple records found")
+
+            # FIXME need to support acl field here?
+            auth.authorize("update", [u.resource for u in old_record.authz])
+
+            # NOTE does user need to be authorized for just this record, or authorized for all versions?
+            # Find all versions
+            query = session.query(IndexRecord)
+            records = (
+                query.filter(IndexRecord.baseid == baseid)
+                .order_by(IndexRecord.created_date.asc())
+                .all()
+            )
+
+            ret = []
+            # Update fields for all versions
+            for idx, record in enumerate(records):
+                record.acl = acl
+                record.authz = authz
+                record.rev = str(uuid.uuid4())[:8]
+                ret.append(
+                    {"did": record.did, "baseid": record.baseid, "rev": record.rev}
+                )
+
+            session.commit()
+            return ret
+
+
     def get_latest_version(self, did, has_version=None):
         """
         Get the lattest record version given did
