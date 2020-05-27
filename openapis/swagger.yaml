@@ -658,6 +658,8 @@ paths:
               $ref: '#/definitions/OutputRef'
         '400':
           description: The metadata to update is invalid.
+        '403':
+          description: The requester is not authorized to perform this action. The requester must have the Update permission on all versions of the record.
         '404':
           description: GUID not found.
       security: []
