@@ -1249,10 +1249,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
-            # FIXME need to support acl field here?
-            auth.authorize("update", [u.resource for u in old_record.authz])
-
-            # NOTE does user need to be authorized for just this record, or authorized for all versions?
             # Find all versions
             query = session.query(IndexRecord)
             records = (
@@ -1260,6 +1256,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 .order_by(IndexRecord.created_date.asc())
                 .all()
             )
+
+            # User requires update permissions for all versions of the record
+            all_versions_authz = {r.authz for r in records}
+            auth.authorize("update", [u.resource for u in all_versions_authz])
 
             ret = []
             # Update fields for all versions
