@@ -283,9 +283,10 @@ def post_index_blank_record():
 
     uploader = flask.request.get_json().get("uploader")
     file_name = flask.request.get_json().get("file_name")
+    authz = flask.request.get_json().get("authz")
 
     did, rev, baseid = blueprint.index_driver.add_blank_record(
-        uploader=uploader, file_name=file_name
+        uploader=uploader, file_name=file_name, authz=authz
     )
 
     ret = {"did": did, "rev": rev, "baseid": baseid}

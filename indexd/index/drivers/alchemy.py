@@ -695,11 +695,28 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
-    def add_blank_record(self, uploader, file_name=None):
+    def add_blank_record(self, uploader, file_name=None, authz=None):
         """
         Create a new blank record with only uploader and optionally
-        file_name fields filled
+        file_name and authz fields filled
         """
+        # if an authz is provided, ensure that user can actually create for that resource
+        if authz:
+            if not isinstance(authz, list):
+                self.logger.error(
+                    f"authz must be a list: {authz}. Uploader: {uploader}"
+                )
+                raise UserError(f"authz must be a list: {authz}")
+
+            try:
+                authorize("create", authz)
+            except AuthError as err:
+                self.logger.error(
+                    f"Auth error when attempting to create a blank record. User "
+                    f"does not have access to 'create' for authz resource: {authz}"
+                )
+                raise err
+
         with self.session as session:
             record = IndexRecord()
             base_version = BaseVersion()
@@ -717,19 +734,43 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.uploader = uploader
             record.file_name = file_name
 
+            if authz:
+                record.authz = [
+                    IndexRecordAuthz(did=record.did, resource=resource)
+                    for resource in set(authz)
+                ]
+
             session.add(base_version)
             session.add(record)
             session.commit()
 
             return record.did, record.rev, record.baseid
 
-    def update_blank_record(self, did, rev, size, hashes, urls):
+    def update_blank_record(self, did, rev, size, hashes, urls, authz=None):
         """
-        Update a blank record with size and hashes, raise exception
+        Update a blank record with size and hashes, urls, authz, and raise exception
         if the record is non-empty or the revision is not matched
         """
         hashes = hashes or {}
         urls = urls or []
+
+        # if an authz is provided, ensure that user can actually update for that resource
+        if authz:
+            if not isinstance(authz, list):
+                self.logger.error(
+                    f"authz must be a list: {authz}. Uploader: {uploader}"
+                )
+                raise UserError(f"authz must be a list: {authz}")
+
+            try:
+                resources = [u.resource for u in index_record.authz]
+                auth.authorize("update", resources + authz)
+            except AuthError as err:
+                self.logger.error(
+                    f"Auth error when attempting to update a blank record. User "
+                    f"does not have access to 'update' for authz resource: {authz}"
+                )
+                raise err
 
         if not size or not hashes:
             raise UserError("No size or hashes provided")
@@ -756,6 +797,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 for h, v in hashes.items()
             ]
             record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
+
+            if authz:
+                record.authz = [
+                    IndexRecordAuthz(did=record.did, resource=resource)
+                    for resource in set(authz)
+                ]
 
             record.rev = str(uuid.uuid4())[:8]
 
