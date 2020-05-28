@@ -1775,6 +1775,53 @@ def test_get_all_versions(client, user):
     for i, record in recs1.items():
         assert record["did"] == dids[int(i)], "record id does not match"
 
+def test_update_all_versions(client, user):
+    dids = []
+    mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
+    mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
+    mock_authz_A = ["mock_authz_A1", "mock_authz_A2"]
+    mock_authz_B = ["mock_authz_B1", "mock_authz_B2"]
+
+    # SETUP
+    # -------
+    # create 1st version
+    data = get_doc(has_metadata=False, has_baseid=False)
+    data["acl"] = mock_acl_A
+    data["authz"] = mock_authz_A
+
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec1 = res.json
+    assert rec1["did"]
+    dids.append(rec1["did"])
+
+    # create 2nd version
+    res = client.post("/index/" + rec1["did"], json=data, headers=user)
+    assert res.status_code == 200
+    rec2 = res.json
+    assert rec2["did"]
+    dids.append(rec2["did"])
+    # ----------
+
+    # Update all versions
+    update_data = {
+        "acl": mock_acl_B,
+        "authz": mock_authz_B
+    }
+    res = client.put("/index/{}/versions".format(rec1["did"]), json=update_data, headers=user)
+    assert res.status_code == 200, "Failed to update all version: {}".format(res.json)
+    # Expect the GUIDs of all updated versions to be returned by the request,
+    # in order of version creation
+    assert dids == [record["did"] for record in res.json]
+
+    # Expect all versions to have the new acl/authz
+    res = client.get("/index/{}/versions".format(rec1["did"]))
+    assert res.status_code == 200, "Failed to get all versions"
+    print("TEST_PRINT: {}".format(res.json))
+    for _, version in res.json.items():
+        assert version["acl"] == mock_acl_B
+        assert version["authz"] == mock_authz_B
+
 
 def test_index_stats(client, user):
     # populate the index with three different size records
