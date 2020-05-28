@@ -1263,17 +1263,22 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             )
 
             # User requires update permissions for all versions of the record
-            all_resources = [resource for resource in record.authz for record in records]
-            auth.authorize("update", list(set(all_resources)))
+            all_resources = []
+            for rec in records:
+                for resource in rec.authz:
+                    all_resources.append(resource)
+            auth.authorize("update", all_resources)
 
             ret = []
             # Update fields for all versions
             for record in records:
-                record.acl = [IndexRecordACE(did=record.did, ace=ace) for ace in set(acl)]
-                record.authz = [
-                    IndexRecordAuthz(did=record.did, resource=resource)
-                    for resource in set(authz)
-                ]
+                if acl:
+                    record.acl = [IndexRecordACE(did=record.did, ace=ace) for ace in set(acl)]
+                if authz:
+                    record.authz = [
+                        IndexRecordAuthz(did=record.did, resource=resource)
+                        for resource in set(authz)
+                    ]
                 record.rev = str(uuid.uuid4())[:8]
                 ret.append(
                     {"did": record.did, "baseid": record.baseid, "rev": record.rev}
