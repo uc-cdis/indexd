@@ -1240,16 +1240,21 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Update all record versions with new acl and authz
         """
         with self.session as session:
-            query = session.query(IndexRecord).filter_by(did=current_did)
+            query = session.query(IndexRecord).filter_by(did=did)
 
             try:
-                old_record = query.one()
+                record = query.one()
+                baseid = record.baseid
             except NoResultFound:
-                raise NoRecordFound("no record found")
+                record = session.query(BaseVersion).filter_by(baseid=did).first()
+                if not record:
+                    raise NoRecordFound("no record found")
+                else:
+                    baseid = record.baseid
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
-            # Find all versions
+            # Find all versions of this record
             query = session.query(IndexRecord)
             records = (
                 query.filter(IndexRecord.baseid == baseid)
@@ -1258,19 +1263,21 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             )
 
             # User requires update permissions for all versions of the record
-            all_versions_authz = {r.authz for r in records}
-            auth.authorize("update", [u.resource for u in all_versions_authz])
+            all_resources = [resource for resource in record.authz for record in records]
+            auth.authorize("update", list(set(all_resources)))
 
             ret = []
             # Update fields for all versions
-            for idx, record in enumerate(records):
-                record.acl = acl
-                record.authz = authz
+            for record in records:
+                record.acl = [IndexRecordACE(did=record.did, ace=ace) for ace in set(acl)]
+                record.authz = [
+                    IndexRecordAuthz(did=record.did, resource=resource)
+                    for resource in set(authz)
+                ]
                 record.rev = str(uuid.uuid4())[:8]
                 ret.append(
                     {"did": record.did, "baseid": record.baseid, "rev": record.rev}
                 )
-
             session.commit()
             return ret
 

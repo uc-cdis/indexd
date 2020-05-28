@@ -106,11 +106,11 @@ UPDATE_ALL_VERSIONS_SCHEMA = {
     "properties": {
       "acl": {
         "type": "array",
-        "items"{ "type": "string" },
+        "items": { "type": "string" },
         },
       "authz": {
         "type": "array",
-        "items"{ "type": "string" },
+        "items":{ "type": "string" },
         },
     },
 }

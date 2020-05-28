@@ -504,7 +504,7 @@ def get_all_index_record_versions(record):
     return flask.jsonify(ret), 200
 
 @blueprint.route("/index/<path:record>/versions", methods=["PUT"])
-def get_all_index_record_versions(record):
+def update_all_index_record_versions(record):
     """
     Update metadata for all record versions.
     NOTE currently the only fields that can be updated for all versions are
