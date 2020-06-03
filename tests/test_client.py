@@ -1958,6 +1958,7 @@ def test_update_all_versions_fail_on_missing_permissions(client, user, use_mock_
     doc_1["authz"] = ["resource_A"]
     res = client.post("/index/", json=doc_1, headers=admin_user)
     assert res.status_code == 200, res.json
+    rec1 = res.json
 
     # Second version is accessible to test user.
     doc_2 = get_doc(has_metadata=False, has_baseid=False)
