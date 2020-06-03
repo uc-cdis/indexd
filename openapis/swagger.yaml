@@ -615,9 +615,9 @@ paths:
       produces:
         - application/json
       parameters:
-        - name: GUID
+        - name: GUID / baseid
           in: path
-          description: entry id
+          description: GUID of any record version, or the baseid common to all versions
           required: true
           type: string
       responses:
@@ -638,9 +638,9 @@ paths:
       produces:
         - application/json
       parameters:
-        - name: GUID
+        - name: GUID / baseid
           in: path
-          description: entry id
+          description: GUID of any record version, or the baseid common to all versions
           required: true
           type: string
         - in: body
