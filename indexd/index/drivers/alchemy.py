@@ -709,7 +709,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise UserError(f"authz must be a list: {authz}")
 
             try:
-                authorize("create", authz)
+                auth.authorize("create", authz)
             except AuthError as err:
                 self.logger.error(
                     f"Auth error when attempting to create a blank record. User "
