@@ -1273,7 +1273,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             # Update fields for all versions
             for record in records:
                 if acl:
-                    record.acl = [IndexRecordACE(did=record.did, ace=ace) for ace in set(acl)]
+                    record.acl = [
+                        IndexRecordACE(did=record.did, ace=ace) for ace in set(acl)
+                    ]
                 if authz:
                     record.authz = [
                         IndexRecordAuthz(did=record.did, resource=resource)
@@ -1285,7 +1287,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 )
             session.commit()
             return ret
-
 
     def get_latest_version(self, did, has_version=None):
         """

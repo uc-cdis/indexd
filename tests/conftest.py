@@ -64,6 +64,7 @@ def use_mock_authz(mock_authz_permissions):
     The username is read from the HTTP Basic Auth header of incoming requests.
     """
     orig = auth.authorize
+
     def mock_authorize(method, resources):
         username = request.authorization.username
         user_permissions = mock_authz_permissions.get(username, None)
@@ -72,6 +73,7 @@ def use_mock_authz(mock_authz_permissions):
         for resource in resources:
             if resource not in user_permissions.get(method, []):
                 raise AuthError("Permission denied.")
+
     auth.authorize = mock_authorize
     yield
     auth.authorize = orig

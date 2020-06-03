@@ -104,13 +104,7 @@ UPDATE_ALL_VERSIONS_SCHEMA = {
     "additionalProperties": False,
     "description": "The metadata to update for all versions of the record. Only some fields can be updated in this way.",
     "properties": {
-      "acl": {
-        "type": "array",
-        "items": { "type": "string" },
-        },
-      "authz": {
-        "type": "array",
-        "items":{ "type": "string" },
-        },
+        "acl": {"type": "array", "items": {"type": "string"}},
+        "authz": {"type": "array", "items": {"type": "string"}},
     },
 }

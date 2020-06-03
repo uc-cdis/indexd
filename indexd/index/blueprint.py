@@ -503,6 +503,7 @@ def get_all_index_record_versions(record):
 
     return flask.jsonify(ret), 200
 
+
 @blueprint.route("/index/<path:record>/versions", methods=["PUT"])
 def update_all_index_record_versions(record):
     """
@@ -520,11 +521,7 @@ def update_all_index_record_versions(record):
     acl = request_json.get("acl", None)
     authz = request_json.get("authz", None)
     # authorization and error handling done in driver
-    ret = blueprint.index_driver.update_all_versions(
-        record,
-        acl=acl,
-        authz=authz,
-    )
+    ret = blueprint.index_driver.update_all_versions(record, acl=acl, authz=authz)
 
     return flask.jsonify(ret), 200
 
