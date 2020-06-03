@@ -884,8 +884,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 session.commit()
             except IntegrityError as err:
                 # One or more aliases in request were non-unique
-                self.logger.warn(
-                    f"One or more aliases in request already associated with this or another GUID: {aliases}"
+                self.logger.error(
+                    f"One or more aliases in request already associated with this or another GUID: {aliases}",
+                    exc_info=True,
                 )
                 raise UserError(
                     f"One or more aliases in request already associated with this or another GUID: {aliases}"
