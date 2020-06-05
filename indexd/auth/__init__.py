@@ -22,10 +22,9 @@ def authorize(*p):
         def check_auth(*args, **kwargs):
             if not request.authorization:
                 raise AuthError("Username / password required.")
-            user = current_app.auth.auth(
+            current_app.auth.auth(
                 request.authorization.username, request.authorization.password
             )
-            request.authorization = user
 
             return f(*args, **kwargs)
 
