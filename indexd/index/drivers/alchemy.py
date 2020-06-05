@@ -695,11 +695,28 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
-    def add_blank_record(self, uploader, file_name=None):
+    def add_blank_record(self, uploader, file_name=None, authz=None):
         """
         Create a new blank record with only uploader and optionally
-        file_name fields filled
+        file_name and authz fields filled
         """
+        # if an authz is provided, ensure that user can actually create for that resource
+        if authz:
+            if not isinstance(authz, list):
+                self.logger.error(
+                    f"authz must be a list: {authz}. Uploader: {uploader}"
+                )
+                raise UserError(f"authz must be a list: {authz}")
+
+            try:
+                auth.authorize("create", authz)
+            except AuthError as err:
+                self.logger.error(
+                    f"Auth error when attempting to create a blank record. User "
+                    f"does not have access to 'create' for authz resource: {authz}"
+                )
+                raise err
+
         with self.session as session:
             record = IndexRecord()
             base_version = BaseVersion()
@@ -716,6 +733,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.baseid = baseid
             record.uploader = uploader
             record.file_name = file_name
+
+            if authz:
+                record.authz = [
+                    IndexRecordAuthz(did=record.did, resource=resource)
+                    for resource in set(authz)
+                ]
 
             session.add(base_version)
             session.add(record)
