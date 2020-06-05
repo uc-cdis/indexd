@@ -303,13 +303,14 @@ def add_index_blank_record_version(record):
     Returns the GUID of the new blank version and the baseid common to all versions
     of the record.
     """
+    new_did = flask.request.json.get("did")
     uploader = flask.request.get_json().get("uploader")
     file_name = flask.request.get_json().get("file_name")
-    new_did = flask.request.json.get("did")
+    authz = flask.request.get_json().get("authz")
 
     # authorize done in add_blank_version for the existing record's authz
     did, baseid, rev = blueprint.index_driver.add_blank_version(
-        record, new_did=new_did, uploader=uploader, file_name=file_name
+        record, new_did=new_did, uploader=uploader, file_name=file_name, authz=authz
     )
 
     ret = {"did": did, "baseid": baseid, "rev": rev}

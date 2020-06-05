@@ -1177,12 +1177,29 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return record.did, record.baseid, record.rev
 
     def add_blank_version(
-        self, current_did, new_did=None, file_name=None, uploader=None
+        self, current_did, new_did=None, file_name=None, uploader=None, authz=None
     ):
         """
         Add a blank record version given did.
-        Authn/authz fields carry over from previous version.
+        If authz is not specified, acl/authz fields carry over from previous version.
         """
+        # if an authz is provided, ensure that user can actually create for that resource
+        if authz:
+            if not isinstance(authz, list):
+                self.logger.error(
+                    f"authz must be a list: {authz}. Uploader: {uploader}"
+                )
+                raise UserError(f"authz must be a list: {authz}")
+
+            try:
+                auth.authorize("create", authz)
+            except AuthError as err:
+                self.logger.error(
+                    f"Auth error when attempting to create a blank record. User "
+                    f"does not have access to 'create' for authz resource: {authz}"
+                )
+                raise err
+
         with self.session as session:
             query = session.query(IndexRecord).filter_by(did=current_did)
 
@@ -1213,8 +1230,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             new_record.file_name = file_name
             new_record.uploader = uploader
 
-            new_record.acl = old_record.acl
-            new_record.authz = old_record.authz
+            if authz:
+                new_record.acl = []
+                new_record.authz = [
+                    IndexRecordAuthz(did=did, resource=resource)
+                    for resource in set(authz)
+                ]
+            else:
+                new_record.acl = old_record.acl
+                new_record.authz = old_record.authz
 
             try:
                 session.add(new_record)
