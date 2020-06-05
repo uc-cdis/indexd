@@ -581,7 +581,6 @@ def test_create_blank_record_with_authz(client, user):
     Test that new blank records only contain the uploader
     and optionally file_name fields: test with file name
     """
-
     doc = {"uploader": "uploader1", "authz": ["/programs/A"]}
     res = client.post("/index/blank/", json=doc, headers=user)
     assert res.status_code == 201
@@ -957,7 +956,7 @@ def test_update_blank_record_with_authz(client, user):
     rec = res.json
     assert rec["size"] == 10
     assert rec["hashes"]["md5"] == "8b9942cf415384b27cadf1f4d2d981f5"
-    assert rec["authz"] == ["/programs/A"]
+    assert rec["authz"] == ["/programs/A"]  # authz as provided
 
 
 def test_update_blank_record_with_new_authz(client, user):
