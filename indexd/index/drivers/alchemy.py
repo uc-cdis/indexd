@@ -788,13 +788,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     )
                     raise UserError(f"authz must be a list: {authz}")
 
+                old_authz = [u.resource for u in record.authz]
                 try:
-                    old_authz = [u.resource for u in record.authz]
                     auth.authorize("update", old_authz + authz)
                 except AuthError as err:
                     self.logger.error(
                         f"Auth error when attempting to update a blank record. User "
-                        f"does not have access to 'update' for authz resource: {authz}"
+                        f"does not have access to 'update' for authz resource: {old_authz + authz}"
                     )
                     raise err
 
@@ -1219,7 +1219,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 auth.authorize("create", authz)
             except AuthError as err:
                 self.logger.error(
-                    f"Auth error when attempting to create a blank record. User "
+                    f"Auth error when attempting to create a blank record version. User "
                     f"does not have access to 'create' for authz resource: {authz}"
                 )
                 raise err
@@ -1234,7 +1234,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
-            auth.authorize("update", [u.resource for u in old_record.authz])
+            old_authz = [u.resource for u in old_record.authz]
+            try:
+                auth.authorize("update", old_authz)
+            except AuthError as err:
+                self.logger.error(
+                    f"Auth error when attempting to create a blank record version. User "
+                    f"does not have access to 'update' for authz resource: {old_authz}"
+                )
+                raise err
 
             # handle the edgecase where new_did matches the original doc's did to
             # prevent sqlalchemy FlushError

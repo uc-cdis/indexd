@@ -279,7 +279,14 @@ def post_index_blank_record():
     Create a blank new record with only uploader and optionally
     file_name fields filled
     """
-    authorize("file_upload", ["/data_file"])
+    try:
+        authorize("file_upload", ["/data_file"])
+    except AuthError as err:
+        self.logger.error(
+            f"Auth error when attempting to create a blank record. User "
+            f"does not have access to 'file_upload' for authz resource: /data_file"
+        )
+        raise err
 
     uploader = flask.request.get_json().get("uploader")
     file_name = flask.request.get_json().get("file_name")
@@ -323,7 +330,14 @@ def put_index_blank_record(record):
     """
     Update a blank record with size, hashes and url
     """
-    authorize("file_upload", ["/data_file"])
+    try:
+        authorize("file_upload", ["/data_file"])
+    except AuthError as err:
+        self.logger.error(
+            f"Auth error when attempting to update a blank record. User "
+            f"does not have access to 'file_upload' for authz resource: /data_file"
+        )
+        raise err
 
     rev = flask.request.args.get("rev")
     size = flask.request.get_json().get("size")
