@@ -746,10 +746,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
-    def update_blank_record(self, did, rev, size, hashes, urls):
+    def update_blank_record(self, did, rev, size, hashes, urls, authz=None):
         """
-        Update a blank record with size and hashes, raise exception
-        if the record is non-empty or the revision is not matched
+        Update a blank record with size, hashes, urls, authz and raise
+        exception if the record is non-empty or the revision is not matched
         """
         hashes = hashes or {}
         urls = urls or []
@@ -779,6 +779,29 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 for h, v in hashes.items()
             ]
             record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
+
+            if authz:
+                # if an authz is provided, ensure that user can actually update for that resource (both old authz and new authz)
+                if not isinstance(authz, list):
+                    self.logger.error(
+                        f"authz must be a list: {authz}. Uploader: {uploader}"
+                    )
+                    raise UserError(f"authz must be a list: {authz}")
+
+                try:
+                    old_authz = [u.resource for u in record.authz]
+                    auth.authorize("update", old_authz + authz)
+                except AuthError as err:
+                    self.logger.error(
+                        f"Auth error when attempting to update a blank record. User "
+                        f"does not have access to 'update' for authz resource: {authz}"
+                    )
+                    raise err
+
+                record.authz = [
+                    IndexRecordAuthz(did=record.did, resource=resource)
+                    for resource in set(authz)
+                ]
 
             record.rev = str(uuid.uuid4())[:8]
 
@@ -861,7 +884,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except IntegrityError as err:
                 # One or more aliases in request were non-unique
                 self.logger.warn(
-                    f"One or more aliases in request already associated with this or another GUID: {aliases}"
+                    f"One or more aliases in request already associated with this or another GUID: {aliases}",
+                    exc_info=True,
                 )
                 raise UserError(
                     f"One or more aliases in request already associated with this or another GUID: {aliases}"
