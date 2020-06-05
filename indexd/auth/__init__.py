@@ -33,7 +33,7 @@ def authorize(*p):
     else:
         method, resource = p
         if request.authorization:
-            request.authorization = current_app.auth.auth(
+            current_app.auth.auth(
                 request.authorization.username, request.authorization.password
             )
         else:
