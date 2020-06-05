@@ -1263,11 +1263,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             )
 
             # User requires update permissions for all versions of the record
-            all_resources = []
-            for rec in records:
-                for resource in rec.authz:
-                    all_resources.append(resource)
-            auth.authorize("update", all_resources)
+            all_resources = {
+                resource
+                for rec in records
+                for resource in rec.authz
+            }
+            auth.authorize("update", list(all_resources))
 
             ret = []
             # Update fields for all versions

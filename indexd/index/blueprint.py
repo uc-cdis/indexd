@@ -518,8 +518,8 @@ def update_all_index_record_versions(record):
         logger.warn(f"Bad request body:\n{err}")
         raise UserError(err)
 
-    acl = request_json.get("acl", None)
-    authz = request_json.get("authz", None)
+    acl = request_json.get("acl")
+    authz = request_json.get("authz")
     # authorization and error handling done in driver
     ret = blueprint.index_driver.update_all_versions(record, acl=acl, authz=authz)
 
