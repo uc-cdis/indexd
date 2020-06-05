@@ -576,6 +576,30 @@ def test_create_blank_record_with_file_name(client, user):
     assert_blank(rec)
 
 
+def test_create_blank_record_with_authz(client, user):
+    """
+    Test that new blank records only contain the uploader
+    and optionally file_name fields: test with file name
+    """
+
+    doc = {"uploader": "uploader1", "authz": ["/programs/A"]}
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    assert rec["baseid"]
+
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["uploader"] == "uploader1"
+    assert rec["authz"] == ["/programs/A"]  # authz as provided
+
+    # test that record is blank
+    assert_blank(rec, with_authz=True)
+
+
 def test_create_blank_version(client, user):
     """
     Test that we can create a new, blank version of a record
@@ -622,8 +646,7 @@ def test_create_blank_version(client, user):
     blank_doc = res.json
     # -----------
 
-    # The new blank record should have a GUID and a rev, and the updated/created date
-    # should be set
+    # The new blank record should have a GUID and a rev
     assert blank_doc["did"]
     assert blank_doc["rev"]
     # The new blank record should be a version of the original doc
@@ -645,6 +668,53 @@ def test_create_blank_version(client, user):
     ]
     for field in blank_fields:
         assert not blank_doc[field]
+
+
+def test_create_blank_version_with_authz(client, user):
+    """
+    Test that we can create a new, blank version of a record
+    with POST /index/blank/{GUID} and specify the authz.
+    """
+    # add an original record to the index
+    doc = get_doc()
+    doc["authz"] = ["programs/A"]
+    res = client.post("/index/", json=doc, headers=user)
+    assert res.status_code == 200, "Failed to add original doc to index"
+    original_guid = res.json["did"]
+    res = client.get("/index/{}".format(original_guid))
+    assert res.status_code == 200, "Failed to find original doc in index"
+    baseid = res.json["baseid"]
+    assert res.json["authz"] == ["programs/A"]
+
+    # make a new blank version of the original record
+    payload = {"uploader": "uploader1", "authz": ["programs/B"]}
+    url = "/index/blank/{}".format(original_guid)
+    res = client.post(url, json=payload, headers=user)
+    assert res.status_code == 201, "Failed to make new blank version: {}".format(
+        res.json
+    )
+    res = client.get("/index/{}".format(res.json["did"]))
+    assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
+    new_version = res.json
+
+    # check non-blank fields
+    assert new_version["did"]
+    assert new_version["rev"]
+    assert new_version["baseid"] == baseid
+    assert new_version["authz"] == ["programs/B"]  # authz as provided
+
+    # check blank fields
+    blank_fields = [
+        "hashes",
+        "metadata",
+        "urls",
+        "urls_metadata",
+        "version",
+        "size",
+        "form",
+    ]
+    for field in blank_fields:
+        assert not new_version[field]
 
 
 def test_create_blank_version_specify_did(client, user):
@@ -800,8 +870,7 @@ def test_create_blank_version_blank_record(client, user):
     blank_doc = res.json
     # -----------
 
-    # The new blank record should have a GUID and a rev, and the updated/created date
-    # should be set
+    # The new blank record should have a GUID and a rev
     assert blank_doc["did"]
     assert blank_doc["rev"]
     # The new blank record should be a version of the original doc
@@ -853,6 +922,80 @@ def test_fill_size_n_hash_for_blank_record(client, user):
     rec = res.json
     assert rec["size"] == 10
     assert rec["hashes"]["md5"] == "8b9942cf415384b27cadf1f4d2d981f5"
+
+
+def test_update_blank_record_with_authz(client, user):
+    """
+    Test that can add an authz when updating size and hashes of a
+    blank record WITHOUT existing authz
+    """
+    # create a blank record
+    doc = {"uploader": "uploader_1"}
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    did, rev = rec["did"], rec["rev"]
+
+    # update the blank record
+    updated = {
+        "size": 10,
+        "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"},
+        "authz": ["/programs/A"],
+    }
+    res = client.put(
+        "/index/blank/{}?rev={}".format(did, rev), headers=user, json=updated
+    )
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["did"] == did
+    assert rec["rev"] != rev
+
+    res = client.get("/index/" + did)
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["size"] == 10
+    assert rec["hashes"]["md5"] == "8b9942cf415384b27cadf1f4d2d981f5"
+    assert rec["authz"] == ["/programs/A"]
+
+
+def test_update_blank_record_with_new_authz(client, user):
+    """
+    Test that can add an authz when updating size and hashes of a
+    blank record WITH existing authz
+    """
+    # create a blank record
+    doc = {"uploader": "uploader_1", "authz": ["/programs/A"]}
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    did, rev = rec["did"], rec["rev"]
+    res = client.get("/index/{}".format(did))
+    assert res.json["authz"] == ["/programs/A"]  # authz as provided
+
+    # update the blank record
+    updated = {
+        "size": 10,
+        "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"},
+        "authz": ["/programs/B"],
+    }
+    res = client.put(
+        "/index/blank/{}?rev={}".format(did, rev), headers=user, json=updated
+    )
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["did"] == did
+    assert rec["rev"] != rev
+
+    res = client.get("/index/" + did)
+    assert res.status_code == 200
+    rec = res.json
+    assert rec["size"] == 10
+    assert rec["hashes"]["md5"] == "8b9942cf415384b27cadf1f4d2d981f5"
+    assert rec["authz"] == ["/programs/B"]  # authz as provided
 
 
 def test_get_empty_acl_authz_record(client, user):
