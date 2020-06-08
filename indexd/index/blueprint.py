@@ -279,19 +279,11 @@ def post_index_blank_record():
     Create a blank new record with only uploader and optionally
     file_name fields filled
     """
-    try:
-        authorize("file_upload", ["/data_file"])
-    except AuthError as err:
-        self.logger.error(
-            f"Auth error when attempting to create a blank record. User "
-            f"does not have access to 'file_upload' for authz resource: /data_file"
-        )
-        raise err
-
     uploader = flask.request.get_json().get("uploader")
     file_name = flask.request.get_json().get("file_name")
     authz = flask.request.get_json().get("authz")
 
+    # authorize done in add_blank_record
     did, rev, baseid = blueprint.index_driver.add_blank_record(
         uploader=uploader, file_name=file_name, authz=authz
     )
@@ -330,21 +322,13 @@ def put_index_blank_record(record):
     """
     Update a blank record with size, hashes and url
     """
-    try:
-        authorize("file_upload", ["/data_file"])
-    except AuthError as err:
-        self.logger.error(
-            f"Auth error when attempting to update a blank record. User "
-            f"does not have access to 'file_upload' for authz resource: /data_file"
-        )
-        raise err
-
     rev = flask.request.args.get("rev")
     size = flask.request.get_json().get("size")
     hashes = flask.request.get_json().get("hashes")
     urls = flask.request.get_json().get("urls")
     authz = flask.request.get_json().get("authz")
 
+    # authorize done in update_blank_record
     did, rev, baseid = blueprint.index_driver.update_blank_record(
         did=record, rev=rev, size=size, hashes=hashes, urls=urls, authz=authz
     )
@@ -364,6 +348,7 @@ def put_index_record(record):
         raise UserError(err)
 
     rev = flask.request.args.get("rev")
+
     # authorize done in update
     did, baseid, rev = blueprint.index_driver.update(record, rev, flask.request.json)
 
