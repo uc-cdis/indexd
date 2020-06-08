@@ -1926,18 +1926,6 @@ def test_update_all_versions_fail_on_bad_metadata(client, user):
         assert version["authz"] == mock_authz_A
 
 
-@pytest.mark.parametrize(
-    "mock_authz_permissions",
-    [
-        {
-            "test": {
-                "create": ["resource_A", "resource_B"],
-                "update": ["resource_A", "resource_B"],
-            },
-            "test_user": {"update": ["resource_B"]},
-        }
-    ],
-)
 def test_update_all_versions_fail_on_missing_permissions(client, user, use_mock_authz):
     """
     If user does not have the 'update' permission on any record, request should
@@ -1945,34 +1933,37 @@ def test_update_all_versions_fail_on_missing_permissions(client, user, use_mock_
     """
     # SETUP
     # -------
-    admin_user = user
-    test_user = {
-        "Authorization": (
-            "Basic " + base64.b64encode(b"test_user:test").decode("ascii")
-        ),
-        "Content-Type": "application/json",
-    }
-
-    # Base document is inaccessible to test user.
+    # Set up mock authz to allow test user to create two versions of a record with
+    # different `authz` values.
     doc_1 = get_doc(has_metadata=False, has_baseid=False)
     doc_1["authz"] = ["resource_A"]
-    res = client.post("/index/", json=doc_1, headers=admin_user)
+    res = client.post("/index/", json=doc_1, headers=user)
     assert res.status_code == 200, res.json
     rec1 = res.json
 
-    # Second version is accessible to test user.
     doc_2 = get_doc(has_metadata=False, has_baseid=False)
     doc_2["authz"] = ["resource_B"]
-    res = client.post("/index/" + rec1["did"], json=doc_2, headers=admin_user)
+    res = client.post("/index/" + rec1["did"], json=doc_2, headers=user)
     assert res.status_code == 200, res.json
     rec2 = res.json
     # ----------
 
-    # If user B attempts to update all versions, expect request to fail with 403.
+    # Configure mock authz to allow updating both versions: Expect request to succeed
+    use_mock_authz([("update", "resource_A"), ("update", "resource_B")])
     update_data = {"authz": ["new_authz"]}
-    res = client.put(
-        "/index/{}/versions".format(rec2["did"]), json=update_data, headers=test_user
-    )
+    res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
+    assert res.status_code == 200, "Expected operation to succeed: {}".format(res.json)
+
+    # Configure mock authz to only allow updating first version: Expect request to fail with 403
+    use_mock_authz([("update", "resource_A")])
+    res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
+    assert (
+        res.status_code == 403
+    ), "Expected operation to fail due to lack of user permissions: {}".format(res.json)
+
+    # Configure mock authz to only allow updating second version: Expect request to fail with 403
+    use_mock_authz([("update", "resource_B")])
+    res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
     assert (
         res.status_code == 403
     ), "Expected operation to fail due to lack of user permissions: {}".format(res.json)

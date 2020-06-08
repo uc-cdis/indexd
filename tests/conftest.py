@@ -2,6 +2,7 @@ from indexd import get_app
 import base64
 import pytest
 from flask import request
+from unittest.mock import patch
 
 import importlib
 
@@ -48,32 +49,39 @@ def skip_authz():
     auth.authorize = orig
 
 
-@pytest.fixture
-def use_mock_authz(mock_authz_permissions):
+@pytest.fixture(scope="function")
+def use_mock_authz(request):
     """
-    Fixture for enabling mocking of authz permission system. Takes as a parameter
-    an authz configuration dict in the form of:
-    ```
-    {
-        $username: {
-            $method: [$resource]
-        }
-    }
-    ```
-    This configures which usernames have which permissions.
-    The username is read from the HTTP Basic Auth header of incoming requests.
+    Fixture for enabling mocking of indexd authz system. Returns a function
+    that, when called, will override indexd's authz to allow the specified permissions.
+    The returned function takes a list of allowed permissions, in the form of
+    a list of tuples of (method, resource). If allowed_permissions is not specified,
+    all authz requests will succeed.
+
+    Example: Calling `use_mock_authz([("update", "resource_1")])` inside a unit test
+    will mock indexd's authz system to allow all requests to update resource_1 to succeed,
+    and all other requests will fail, regardless of the user.
+    The fixture can be called multiple times in a unit test to change the allowed permissions.
     """
-    orig = auth.authorize
 
-    def mock_authorize(method, resources):
-        username = request.authorization.username
-        user_permissions = mock_authz_permissions.get(username, None)
-        if not user_permissions:
-            raise AuthError("Permission denied.")
-        for resource in resources:
-            if resource not in user_permissions.get(method, []):
-                raise AuthError("Permission denied.")
+    def _use_mock_authz(allowed_permissions=None):
+        # If user does not specify any allowed permissions, authorize all requests
+        if not allowed_permissions:
+            mock_authz = lambda *x: x
+        else:
 
-    auth.authorize = mock_authorize
-    yield
-    auth.authorize = orig
+            def mock_authz(method, resources):
+                for r in resources:
+                    resource = r.resource
+                    if (method, resource) not in allowed_permissions:
+                        raise AuthError(
+                            "Mock indexd.auth.authz: ({},{}) is not one of the allowed permissions: {}".format(
+                                method, resource, allowed_permissions
+                            )
+                        )
+
+        patched_authz = patch("flask.current_app.auth.authz", mock_authz)
+        patched_authz.start()
+        request.addfinalizer(patched_authz.stop)
+
+    return _use_mock_authz
