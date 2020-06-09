@@ -14,6 +14,7 @@ from indexd.errors import UserError
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
 from .schema import RECORD_ALIAS_SCHEMA
+from .schema import UPDATE_ALL_VERSIONS_SCHEMA
 
 from .errors import NoRecordFound
 from .errors import MultipleRecordsFound
@@ -497,6 +498,28 @@ def get_all_index_record_versions(record):
     Get all record versions
     """
     ret = blueprint.index_driver.get_all_versions(record)
+
+    return flask.jsonify(ret), 200
+
+
+@blueprint.route("/index/<path:record>/versions", methods=["PUT"])
+def update_all_index_record_versions(record):
+    """
+    Update metadata for all record versions.
+    NOTE currently the only fields that can be updated for all versions are
+    (`authz`, `acl`).
+    """
+    request_json = flask.request.get_json(force=True)
+    try:
+        jsonschema.validate(request_json, UPDATE_ALL_VERSIONS_SCHEMA)
+    except jsonschema.ValidationError as err:
+        logger.warn(f"Bad request body:\n{err}")
+        raise UserError(err)
+
+    acl = request_json.get("acl")
+    authz = request_json.get("authz")
+    # authorization and error handling done in driver
+    ret = blueprint.index_driver.update_all_versions(record, acl=acl, authz=authz)
 
     return flask.jsonify(ret), 200
 
