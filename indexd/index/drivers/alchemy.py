@@ -1235,6 +1235,56 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         return ret
 
+    def update_all_versions(self, did, acl=None, authz=None):
+        """
+        Update all record versions with new acl and authz
+        """
+        with self.session as session:
+            query = session.query(IndexRecord).filter_by(did=did)
+
+            try:
+                record = query.one()
+                baseid = record.baseid
+            except NoResultFound:
+                record = session.query(BaseVersion).filter_by(baseid=did).first()
+                if not record:
+                    raise NoRecordFound("no record found")
+                else:
+                    baseid = record.baseid
+            except MultipleResultsFound:
+                raise MultipleRecordsFound("multiple records found")
+
+            # Find all versions of this record
+            query = session.query(IndexRecord)
+            records = (
+                query.filter(IndexRecord.baseid == baseid)
+                .order_by(IndexRecord.created_date.asc())
+                .all()
+            )
+
+            # User requires update permissions for all versions of the record
+            all_resources = {resource for rec in records for resource in rec.authz}
+            auth.authorize("update", list(all_resources))
+
+            ret = []
+            # Update fields for all versions
+            for record in records:
+                if acl:
+                    record.acl = [
+                        IndexRecordACE(did=record.did, ace=ace) for ace in set(acl)
+                    ]
+                if authz:
+                    record.authz = [
+                        IndexRecordAuthz(did=record.did, resource=resource)
+                        for resource in set(authz)
+                    ]
+                record.rev = str(uuid.uuid4())[:8]
+                ret.append(
+                    {"did": record.did, "baseid": record.baseid, "rev": record.rev}
+                )
+            session.commit()
+            return ret
+
     def get_latest_version(self, did, has_version=None):
         """
         Get the lattest record version given did

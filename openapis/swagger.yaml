@@ -617,7 +617,7 @@ paths:
       parameters:
         - name: GUID
           in: path
-          description: entry id
+          description: GUID of any record version, or the baseid common to all versions
           required: true
           type: string
       responses:
@@ -627,6 +627,41 @@ paths:
             $ref: '#/definitions/BulkOutputInfo'
         '400':
           description: Invalid status value
+      security: []
+    put:
+      tags:
+        - index
+      summary: Update metadata for all versions of this record. Only some metadata fields can be updated in this way.
+      operationId: updateAllVersions
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: GUID
+          in: path
+          description: GUID of any record version, or the baseid common to all versions
+          required: true
+          type: string
+        - in: body
+          name: body
+          description: The metadata to update for all versions of the record. Only some fields can be updated in this way.
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateAllVersionsInputInfo'
+      responses:
+        '200':
+          description: Successful operation. Returns the GUIDs of the records that were updated.
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/OutputRef'
+        '400':
+          description: The metadata to update is invalid.
+        '403':
+          description: The requester is not authorized to perform this action. The requester must have the Update permission on all versions of the record.
+        '404':
+          description: GUID not found.
       security: []
   '/alias/':
     get:
@@ -1387,6 +1422,17 @@ definitions:
       hashes:
         $ref: '#/definitions/HashInfo'
       urls:
+        type: array
+        items:
+          type: string
+  UpdateAllVersionsInputInfo:
+    type: object
+    properties:
+      acl:
+        type: array
+        items:
+          type: string
+      authz:
         type: array
         items:
           type: string

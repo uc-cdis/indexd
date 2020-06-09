@@ -1,4 +1,5 @@
 import json
+import base64
 
 import pytest
 
@@ -1774,6 +1775,198 @@ def test_get_all_versions(client, user):
     # make sure records are returned in creation date order
     for i, record in recs1.items():
         assert record["did"] == dids[int(i)], "record id does not match"
+
+
+def test_update_all_versions(client, user):
+    dids = []
+    mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
+    mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
+    mock_authz_A = ["mock_authz_A1", "mock_authz_A2"]
+    mock_authz_B = ["mock_authz_B1", "mock_authz_B2"]
+
+    # SETUP
+    # -------
+    # create 1st version
+    data = get_doc(has_metadata=False, has_baseid=False)
+    data["acl"] = mock_acl_A
+    data["authz"] = mock_authz_A
+
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec1 = res.json
+    assert rec1["did"]
+    dids.append(rec1["did"])
+
+    # create 2nd version
+    res = client.post("/index/" + rec1["did"], json=data, headers=user)
+    assert res.status_code == 200
+    rec2 = res.json
+    assert rec2["did"]
+    dids.append(rec2["did"])
+    # ----------
+
+    # Update all versions
+    update_data = {"acl": mock_acl_B, "authz": mock_authz_B}
+    res = client.put(
+        "/index/{}/versions".format(rec1["did"]), json=update_data, headers=user
+    )
+    assert res.status_code == 200, "Failed to update all version: {}".format(res.json)
+    # Expect the GUIDs of all updated versions to be returned by the request,
+    # in order of version creation
+    assert dids == [record["did"] for record in res.json]
+
+    # Expect all versions to have the new acl/authz
+    res = client.get("/index/{}/versions".format(rec1["did"]))
+    assert res.status_code == 200, "Failed to get all versions"
+    for _, version in res.json.items():
+        assert version["acl"] == mock_acl_B
+        assert version["authz"] == mock_authz_B
+
+
+def test_update_all_versions_using_baseid(client, user):
+    mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
+    mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
+    mock_authz_A = ["mock_authz_A1", "mock_authz_A2"]
+    mock_authz_B = ["mock_authz_B1", "mock_authz_B2"]
+
+    # SETUP
+    # -------
+    # create 1st version
+    data = get_doc(has_metadata=False, has_baseid=False)
+    data["acl"] = mock_acl_A
+    data["authz"] = mock_authz_A
+
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec1 = res.json
+    assert rec1["did"]
+    baseid = rec1["baseid"]
+
+    # create 2nd version
+    res = client.post("/index/" + rec1["did"], json=data, headers=user)
+    assert res.status_code == 200
+    rec2 = res.json
+    assert rec2["baseid"] == baseid
+    # ----------
+
+    # Update all versions
+    update_data = {"acl": mock_acl_B, "authz": mock_authz_B}
+    res = client.put(
+        "/index/{}/versions".format(baseid), json=update_data, headers=user
+    )
+    assert res.status_code == 200, "Failed to update all version: {}".format(res.json)
+
+    # Expect all versions to have the new acl/authz
+    res = client.get("/index/{}/versions".format(rec1["did"]))
+    assert res.status_code == 200, "Failed to get all versions"
+    for _, version in res.json.items():
+        assert version["acl"] == mock_acl_B
+        assert version["authz"] == mock_authz_B
+
+
+def test_update_all_versions_guid_not_found(client, user):
+    bad_guid = "00000000-0000-0000-0000-000000000000"
+
+    update_data = {"acl": ["mock_acl"], "authz": ["mock_authz"]}
+    res = client.put(
+        "/index/{}/versions".format(bad_guid), json=update_data, headers=user
+    )
+    # Expect the operation to fail with 404 -- Guid not found
+    assert (
+        res.status_code == 404
+    ), "Expected update operation to fail with 404: {}".format(res.json)
+
+
+def test_update_all_versions_fail_on_bad_metadata(client, user):
+    """
+    When making an update request, endpoint should return 400 (User error) if
+    the metadata to update contains any fields that cannot be updated across all versions.
+    Currently the only allowed fields are ('acl', 'authz').
+    """
+    mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
+    mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
+    mock_authz_A = ["mock_authz_A1", "mock_authz_A2"]
+    mock_authz_B = ["mock_authz_B1", "mock_authz_B2"]
+
+    # SETUP
+    # -------
+    # create 1st version
+    data = get_doc(has_metadata=False, has_baseid=False)
+    data["acl"] = mock_acl_A
+    data["authz"] = mock_authz_A
+
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec1 = res.json
+    assert rec1["did"]
+    baseid = rec1["baseid"]
+
+    # create 2nd version
+    res = client.post("/index/" + rec1["did"], json=data, headers=user)
+    assert res.status_code == 200
+    rec2 = res.json
+    assert rec2["baseid"] == baseid
+    # ----------
+
+    # Update all versions
+    update_data = {"urls": ["url_A"], "acl": mock_acl_B, "authz": mock_authz_B}
+    res = client.put(
+        "/index/{}/versions".format(baseid), json=update_data, headers=user
+    )
+    # Expect the operation to fail with 400
+    assert (
+        res.status_code == 400
+    ), "Expected update operation to fail with 400: {}".format(res.json)
+
+    # Expect all versions to retain the old acl/authz
+    res = client.get("/index/{}/versions".format(rec1["did"]))
+    assert res.status_code == 200, "Failed to get all versions"
+    for _, version in res.json.items():
+        assert version["acl"] == mock_acl_A
+        assert version["authz"] == mock_authz_A
+
+
+def test_update_all_versions_fail_on_missing_permissions(client, user, use_mock_authz):
+    """
+    If user does not have the 'update' permission on any record, request should
+    fail with 403.
+    """
+    # SETUP
+    # -------
+    # Set up mock authz to allow test user to create two versions of a record with
+    # different `authz` values.
+    doc_1 = get_doc(has_metadata=False, has_baseid=False)
+    doc_1["authz"] = ["resource_A"]
+    res = client.post("/index/", json=doc_1, headers=user)
+    assert res.status_code == 200, res.json
+    rec1 = res.json
+
+    doc_2 = get_doc(has_metadata=False, has_baseid=False)
+    doc_2["authz"] = ["resource_B"]
+    res = client.post("/index/" + rec1["did"], json=doc_2, headers=user)
+    assert res.status_code == 200, res.json
+    rec2 = res.json
+    # ----------
+
+    # Configure mock authz to allow updating both versions: Expect request to succeed
+    use_mock_authz([("update", "resource_A"), ("update", "resource_B")])
+    update_data = {"authz": ["new_authz"]}
+    res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
+    assert res.status_code == 200, "Expected operation to succeed: {}".format(res.json)
+
+    # Configure mock authz to only allow updating first version: Expect request to fail with 403
+    use_mock_authz([("update", "resource_A")])
+    res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
+    assert (
+        res.status_code == 403
+    ), "Expected operation to fail due to lack of user permissions: {}".format(res.json)
+
+    # Configure mock authz to only allow updating second version: Expect request to fail with 403
+    use_mock_authz([("update", "resource_B")])
+    res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
+    assert (
+        res.status_code == 403
+    ), "Expected operation to fail due to lack of user permissions: {}".format(res.json)
 
 
 def test_index_stats(client, user):
