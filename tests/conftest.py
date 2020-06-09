@@ -55,8 +55,9 @@ def use_mock_authz(request):
     Fixture for enabling mocking of indexd authz system. Returns a function
     that, when called, will override indexd's authz to allow the specified permissions.
     The returned function takes a list of allowed permissions, in the form of
-    a list of tuples of (method, resource). If allowed_permissions is not specified,
-    all authz requests will succeed.
+    a list of tuples of (method, resource).
+    - If allowed_permissions is not specified, all authz requests will succeed.
+    - If allowed_permissions is an empty list, all authz requests will fail.
 
     Example: Calling `use_mock_authz([("update", "resource_1")])` inside a unit test
     will mock indexd's authz system to allow all requests to update resource_1 to succeed,
@@ -65,14 +66,19 @@ def use_mock_authz(request):
     """
 
     def _use_mock_authz(allowed_permissions=None):
-        # If user does not specify any allowed permissions, authorize all requests
-        if not allowed_permissions:
+        """
+        Args:
+            allowed_permissions (list of (string, list) tuples), (optional):
+                Only authorize the listed (method, resources) tuples.
+                By default, authorize all requests.
+        """
+        if allowed_permissions is None:
             mock_authz = lambda *x: x
         else:
+            assert isinstance(allowed_permissions, list)
 
             def mock_authz(method, resources):
-                for r in resources:
-                    resource = r.resource
+                for resource in resources:
                     if (method, resource) not in allowed_permissions:
                         raise AuthError(
                             "Mock indexd.auth.authz: ({},{}) is not one of the allowed permissions: {}".format(
