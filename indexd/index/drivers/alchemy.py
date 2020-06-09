@@ -695,11 +695,33 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
-    def add_blank_record(self, uploader, file_name=None):
+    def add_blank_record(self, uploader, file_name=None, authz=None):
         """
         Create a new blank record with only uploader and optionally
-        file_name fields filled
+        file_name and authz fields filled
         """
+        # if an authz is provided, ensure that user can actually create for that resource
+        authorized = False
+        authz_err_msg = "Auth error when attempting to update a blank record. User must have '{}' access on '{}'."
+        if authz:
+            try:
+                auth.authorize("create", authz)
+                authorized = True
+            except AuthError as err:
+                self.logger.error(
+                    authz_err_msg.format("create", authz)
+                    + " Falling back to 'file_upload' on '/data_file'."
+                )
+
+        if not authorized:
+            # either no 'authz' was provided, or user doesn't have
+            # the right CRUD access. Fall back on 'file_upload' logic
+            try:
+                auth.authorize("file_upload", ["/data_file"])
+            except AuthError as err:
+                self.logger.error(authz_err_msg.format("file_upload", "/data_file"))
+                raise
+
         with self.session as session:
             record = IndexRecord()
             base_version = BaseVersion()
@@ -717,22 +739,25 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.uploader = uploader
             record.file_name = file_name
 
+            if authz:
+                record.authz = [
+                    IndexRecordAuthz(did=record.did, resource=resource)
+                    for resource in set(authz)
+                ]
+
             session.add(base_version)
             session.add(record)
             session.commit()
 
             return record.did, record.rev, record.baseid
 
-    def update_blank_record(self, did, rev, size, hashes, urls):
+    def update_blank_record(self, did, rev, size, hashes, urls, authz=None):
         """
-        Update a blank record with size and hashes, raise exception
-        if the record is non-empty or the revision is not matched
+        Update a blank record with size, hashes, urls, authz and raise
+        exception if the record is non-empty or the revision is not matched
         """
         hashes = hashes or {}
         urls = urls or []
-
-        if not size or not hashes:
-            raise UserError("No size or hashes provided")
 
         with self.session as session:
             query = session.query(IndexRecord).filter(IndexRecord.did == did)
@@ -756,6 +781,36 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 for h, v in hashes.items()
             ]
             record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
+
+            authorized = False
+            authz_err_msg = "Auth error when attempting to update a blank record. User must have '{}' access on '{}'."
+            if authz:
+                # if an authz is provided, ensure that user can actually
+                # create/update for that resource (old authz and new authz)
+                old_authz = [u.resource for u in record.authz]
+                all_authz = old_authz + authz
+                try:
+                    auth.authorize("update", all_authz)
+                    authorized = True
+                except AuthError as err:
+                    self.logger.error(
+                        authz_err_msg.format("update", all_authz)
+                        + " Falling back to 'file_upload' on '/data_file'."
+                    )
+
+                record.authz = [
+                    IndexRecordAuthz(did=record.did, resource=resource)
+                    for resource in set(authz)
+                ]
+
+            if not authorized:
+                # either no 'authz' was provided, or user doesn't have
+                # the right CRUD access. Fall back on 'file_upload' logic
+                try:
+                    auth.authorize("file_upload", ["/data_file"])
+                except AuthError as err:
+                    self.logger.error(authz_err_msg.format("file_upload", "/data_file"))
+                    raise
 
             record.rev = str(uuid.uuid4())[:8]
 
@@ -838,7 +893,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except IntegrityError as err:
                 # One or more aliases in request were non-unique
                 self.logger.warn(
-                    f"One or more aliases in request already associated with this or another GUID: {aliases}"
+                    f"One or more aliases in request already associated with this or another GUID: {aliases}",
+                    exc_info=True,
                 )
                 raise UserError(
                     f"One or more aliases in request already associated with this or another GUID: {aliases}"
@@ -975,6 +1031,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Updates an existing record with new values.
         """
+        authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}'."
 
         composite_fields = ["urls", "acl", "authz", "metadata", "urls_metadata"]
 
@@ -991,7 +1048,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch("revision mismatch")
 
-            auth.authorize("update", [u.resource for u in record.authz])
             # Some operations are dependant on other operations. For example
             # urls has to be updated before urls_metadata because of schema
             # constraints.
@@ -1013,14 +1069,25 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     for ace in set(changing_fields["acl"])
                 ]
 
+            all_authz = [u.resource for u in record.authz]
             if "authz" in changing_fields:
+                new_authz = list(set(changing_fields["authz"]))
+                all_authz += new_authz
+
                 for resource in record.authz:
                     session.delete(resource)
 
                 record.authz = [
                     IndexRecordAuthz(did=record.did, resource=resource)
-                    for resource in set(changing_fields["authz"])
+                    for resource in new_authz
                 ]
+
+            # authorization check: `update` access on old AND new resources
+            try:
+                auth.authorize("update", all_authz)
+            except AuthError as err:
+                self.logger.error(authz_err_msg.format("update", all_authz))
+                raise
 
             if "metadata" in changing_fields:
                 for md_record in record.index_metadata:
@@ -1154,12 +1221,21 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return record.did, record.baseid, record.rev
 
     def add_blank_version(
-        self, current_did, new_did=None, file_name=None, uploader=None
+        self, current_did, new_did=None, file_name=None, uploader=None, authz=None
     ):
         """
         Add a blank record version given did.
-        Authn/authz fields carry over from previous version.
+        If authz is not specified, acl/authz fields carry over from previous version.
         """
+        # if an authz is provided, ensure that user can actually create for that resource
+        authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}'."
+        if authz:
+            try:
+                auth.authorize("create", authz)
+            except AuthError as err:
+                self.logger.error(authz_err_msg.format("create", authz))
+                raise
+
         with self.session as session:
             query = session.query(IndexRecord).filter_by(did=current_did)
 
@@ -1170,7 +1246,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
-            auth.authorize("update", [u.resource for u in old_record.authz])
+            old_authz = [u.resource for u in old_record.authz]
+            try:
+                auth.authorize("update", old_authz)
+            except AuthError as err:
+                self.logger.error(authz_err_msg.format("update", old_authz))
+                raise
 
             # handle the edgecase where new_did matches the original doc's did to
             # prevent sqlalchemy FlushError
@@ -1190,8 +1271,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             new_record.file_name = file_name
             new_record.uploader = uploader
 
-            new_record.acl = old_record.acl
-            new_record.authz = old_record.authz
+            if authz:
+                new_record.acl = []
+                new_record.authz = [
+                    IndexRecordAuthz(did=did, resource=resource)
+                    for resource in set(authz)
+                ]
+            else:
+                new_record.acl = old_record.acl
+                new_record.authz = old_record.authz
 
             try:
                 session.add(new_record)
@@ -1263,7 +1351,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             )
 
             # User requires update permissions for all versions of the record
-            all_resources = {resource for rec in records for resource in rec.authz}
+            all_resources = {r.resource for rec in records for r in rec.authz}
             auth.authorize("update", list(all_resources))
 
             ret = []

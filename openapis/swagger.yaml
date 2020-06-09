@@ -224,7 +224,7 @@ paths:
       tags:
         - index
       summary: Create a blank record
-      description: ''
+      description: An authz can optionally be specified.
       operationId: createBlankEntry
       produces:
         - application/json
@@ -249,7 +249,7 @@ paths:
       tags:
         - index
       summary: Create a new, blank version for the document associated to the provided uuid.
-      description: Creates a new blank version of a record with the provided GUID. Returns the GUID of the new version of the record and the baseid common to all versions of the record. Authorization (acl/authz fields) carry over from the original record to the new blank version. No other metadata (md5sum, etc) carries over from the original record to the new blank version.
+      description: Creates a new blank version of a record with the provided GUID. Returns the GUID of the new version of the record and the baseid common to all versions of the record. Authorization (acl/authz fields) carry over from the original record to the new blank version, unless an authz is provided. No other metadata (md5sum, etc) carries over from the original record to the new blank version.
       operationId: addNewBlankVersion
       consumes:
         - application/json
@@ -281,7 +281,7 @@ paths:
     put:
       tags:
         - index
-      summary: Update only hashes and size for blank index
+      summary: Update only hashes, size and optionally urls and authz for blank index
       description: ''
       operationId: updateBlankEntry
       consumes:
@@ -1379,18 +1379,28 @@ definitions:
       file_name:
         type: string
         description: name of the uploaded file
+      authz:
+        description: optional
+        type: array
+        items:
+          type: string
   InputBlankVersionInfo:
     type: object
     properties:
+      did:
+        type: string
+        description: optional; specify the GUID of the new blank version that is created.
       uploader:
         type: string
         description: user who uploaded this file
       file_name:
         type: string
         description: optional; name of the uploaded file
-      did:
-        type: string
-        description: optional; specify the GUID of the new blank version that is created.
+      authz:
+        description: optional
+        type: array
+        items:
+          type: string
   UpdateInputInfo:
     type: object
     properties:
@@ -1422,6 +1432,11 @@ definitions:
       hashes:
         $ref: '#/definitions/HashInfo'
       urls:
+        type: array
+        items:
+          type: string
+      authz:
+        description: optional
         type: array
         items:
           type: string

@@ -280,13 +280,13 @@ def post_index_blank_record():
     Create a blank new record with only uploader and optionally
     file_name fields filled
     """
-    authorize("file_upload", ["/data_file"])
-
     uploader = flask.request.get_json().get("uploader")
     file_name = flask.request.get_json().get("file_name")
+    authz = flask.request.get_json().get("authz")
 
+    # authorize done in add_blank_record
     did, rev, baseid = blueprint.index_driver.add_blank_record(
-        uploader=uploader, file_name=file_name
+        uploader=uploader, file_name=file_name, authz=authz
     )
 
     ret = {"did": did, "rev": rev, "baseid": baseid}
@@ -303,13 +303,14 @@ def add_index_blank_record_version(record):
     Returns the GUID of the new blank version and the baseid common to all versions
     of the record.
     """
+    new_did = flask.request.json.get("did")
     uploader = flask.request.get_json().get("uploader")
     file_name = flask.request.get_json().get("file_name")
-    new_did = flask.request.json.get("did")
+    authz = flask.request.get_json().get("authz")
 
     # authorize done in add_blank_version for the existing record's authz
     did, baseid, rev = blueprint.index_driver.add_blank_version(
-        record, new_did=new_did, uploader=uploader, file_name=file_name
+        record, new_did=new_did, uploader=uploader, file_name=file_name, authz=authz
     )
 
     ret = {"did": did, "baseid": baseid, "rev": rev}
@@ -322,15 +323,15 @@ def put_index_blank_record(record):
     """
     Update a blank record with size, hashes and url
     """
-    authorize("file_upload", ["/data_file"])
-
     rev = flask.request.args.get("rev")
     size = flask.request.get_json().get("size")
     hashes = flask.request.get_json().get("hashes")
     urls = flask.request.get_json().get("urls")
+    authz = flask.request.get_json().get("authz")
 
+    # authorize done in update_blank_record
     did, rev, baseid = blueprint.index_driver.update_blank_record(
-        did=record, rev=rev, size=size, hashes=hashes, urls=urls
+        did=record, rev=rev, size=size, hashes=hashes, urls=urls, authz=authz
     )
     ret = {"did": did, "rev": rev, "baseid": baseid}
 
@@ -348,6 +349,7 @@ def put_index_record(record):
         raise UserError(err)
 
     rev = flask.request.args.get("rev")
+
     # authorize done in update
     did, baseid, rev = blueprint.index_driver.update(record, rev, flask.request.json)
 

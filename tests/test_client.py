@@ -577,6 +577,57 @@ def test_create_blank_record_with_file_name(client, user):
     assert_blank(rec)
 
 
+def test_create_blank_record_with_authz(client, use_mock_authz):
+    """
+    Test that a new blank record can be created with a specified
+    authz when the user has the expected access
+    """
+    old_authz = "/programs/A"
+    new_authz = "/programs/B"
+
+    # - user has create access on the resource
+    use_mock_authz([("create", old_authz)])
+    doc = {"uploader": "uploader1", "authz": [old_authz]}
+    res = client.post("/index/blank/", json=doc)
+    assert res.status_code == 201, res.json
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    assert rec["baseid"]
+
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["uploader"] == "uploader1"
+    assert rec["authz"] == [old_authz]  # authz as provided
+    assert_blank(rec, with_authz=True)  # test that record is blank
+
+    # - user doesn't have create access on the resource:
+    #   fall back on `file_upload` on `/data_file` access
+    use_mock_authz([("file_upload", "/data_file")])
+    doc = {"uploader": "uploader1", "authz": [new_authz]}
+    res = client.post("/index/blank/", json=doc)
+    assert res.status_code == 201, res.json
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    assert rec["baseid"]
+
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["uploader"] == "uploader1"
+    assert rec["authz"] == [new_authz]  # authz as provided
+    assert_blank(rec, with_authz=True)  # test that record is blank
+
+    # - user has neither create access on the resource or
+    #   `file_upload` on `/data_file` access: unauthorized
+    use_mock_authz([])
+    doc = {"uploader": "uploader1", "authz": [new_authz]}
+    res = client.post("/index/blank/", json=doc)
+    assert res.status_code == 403, res.json
+
+
 def test_create_blank_version(client, user):
     """
     Test that we can create a new, blank version of a record
@@ -623,8 +674,7 @@ def test_create_blank_version(client, user):
     blank_doc = res.json
     # -----------
 
-    # The new blank record should have a GUID and a rev, and the updated/created date
-    # should be set
+    # The new blank record should have a GUID and a rev
     assert blank_doc["did"]
     assert blank_doc["rev"]
     # The new blank record should be a version of the original doc
@@ -646,6 +696,64 @@ def test_create_blank_version(client, user):
     ]
     for field in blank_fields:
         assert not blank_doc[field]
+
+
+def test_create_blank_version_with_authz(client, user, use_mock_authz):
+    """
+    Test that a new version of a blank record can be created with a
+    different authz when the user has the expected access
+    """
+    old_authz = "/programs/A"
+    new_authz = "/programs/B"
+
+    # add an original record to the index
+    doc = get_doc()
+    doc["authz"] = [old_authz]
+    res = client.post("/index/", json=doc, headers=user)
+    assert res.status_code == 200, res.json
+    original_guid = res.json["did"]
+    res = client.get("/index/{}".format(original_guid))
+    assert res.status_code == 200, res.json
+    baseid = res.json["baseid"]
+    assert res.json["authz"] == [old_authz]
+
+    # - user has create access on the new resource but doesn't
+    #   have update access on the old resource
+    # should fail to make a new blank version of the original record
+    use_mock_authz([("create", new_authz)])
+    payload = {"uploader": "uploader1", "authz": [new_authz]}
+    url = "/index/blank/{}".format(original_guid)
+    res = client.post(url, json=payload)
+    assert res.status_code == 403, res.json
+
+    # - user has the required "create" and "update" access
+    # make a new blank version of the original record
+    use_mock_authz([("create", new_authz), ("update", old_authz)])
+    url = "/index/blank/{}".format(original_guid)
+    res = client.post(url, json=payload)
+    assert res.status_code == 201, res.json
+    res = client.get("/index/{}".format(res.json["did"]))
+    assert res.status_code == 200, res.json
+    new_version = res.json
+
+    # check non-blank fields
+    assert new_version["did"]
+    assert new_version["rev"]
+    assert new_version["baseid"] == baseid
+    assert new_version["authz"] == [new_authz]  # authz as provided
+
+    # check blank fields
+    blank_fields = [
+        "hashes",
+        "metadata",
+        "urls",
+        "urls_metadata",
+        "version",
+        "size",
+        "form",
+    ]
+    for field in blank_fields:
+        assert not new_version[field]
 
 
 def test_create_blank_version_specify_did(client, user):
@@ -801,8 +909,7 @@ def test_create_blank_version_blank_record(client, user):
     blank_doc = res.json
     # -----------
 
-    # The new blank record should have a GUID and a rev, and the updated/created date
-    # should be set
+    # The new blank record should have a GUID and a rev
     assert blank_doc["did"]
     assert blank_doc["rev"]
     # The new blank record should be a version of the original doc
@@ -854,6 +961,130 @@ def test_fill_size_n_hash_for_blank_record(client, user):
     rec = res.json
     assert rec["size"] == 10
     assert rec["hashes"]["md5"] == "8b9942cf415384b27cadf1f4d2d981f5"
+
+
+def test_update_blank_record_with_authz(client, user, use_mock_authz):
+    """
+    Test that a blank record (WITHOUT AUTHZ) can be updated
+    with an authz when the user has the expected access
+    """
+    new_authz = "/programs/A"
+    new_authz2 = "/programs/B"
+
+    # create a blank record
+    doc = {"uploader": "uploader_1"}
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201, res.json
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    did, rev = rec["did"], rec["rev"]
+
+    # - user doesn't have update access on the resource
+    # should fail to make a new blank version of the original record
+    use_mock_authz([])
+    to_update = {
+        "authz": [new_authz],
+    }
+    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
+    assert res.status_code == 403, res.json
+
+    # - user has update access on the new resource
+    # update the blank record
+    use_mock_authz([("update", new_authz)])
+    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["did"] == did
+    assert rec["rev"] != rev
+    rev = rec["rev"]
+
+    res = client.get("/index/" + did)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["authz"] == [new_authz]  # authz as provided
+
+    # - user doesn't have update access on the resource:
+    #   fall back on `file_upload` on `/data_file` access
+    # update the blank record
+    use_mock_authz([("file_upload", "/data_file")])
+    to_update = {
+        "authz": [new_authz2],
+    }
+    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["did"] == did
+    assert rec["rev"] != rev
+
+    res = client.get("/index/" + did)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["authz"] == [new_authz2]  # authz as provided
+
+
+def test_update_blank_record_with_authz_new(client, user, use_mock_authz):
+    """
+    Test that a blank record (WITH AUTHZ) can be updated
+    with a different authz when the user has the expected access
+    """
+    old_authz = "/programs/A"
+    new_authz = "/programs/B"
+    new_authz2 = "/programs/C"
+
+    # create a blank record
+    doc = {"uploader": "uploader_1", "authz": [old_authz]}
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201, res.json
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    did, rev = rec["did"], rec["rev"]
+    res = client.get("/index/{}".format(did))
+    assert res.json["authz"] == [old_authz]  # authz as provided
+
+    # - user has update access on the new resource but doesn't
+    #   have update access on the old resource
+    # should fail to make a new blank version of the original record
+    use_mock_authz([("update", new_authz)])
+    to_update = {
+        "authz": [new_authz],
+    }
+    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
+    assert res.status_code == 403, res.json
+
+    # - user has the required "update" and "update" access
+    # update the blank record
+    use_mock_authz([("update", new_authz), ("update", old_authz)])
+    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["did"] == did
+    assert rec["rev"] != rev
+    rev = rec["rev"]
+
+    res = client.get("/index/" + did)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["authz"] == [new_authz]  # authz as provided
+
+    # - user doesn't have update access on the resources:
+    #   fall back on `file_upload` on `/data_file` access
+    # update the blank record
+    use_mock_authz([("file_upload", "/data_file")])
+    to_update = {
+        "authz": [new_authz2],
+    }
+    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["did"] == did
+    assert rec["rev"] != rev
+
+    res = client.get("/index/" + did)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["authz"] == [new_authz2]  # authz as provided
 
 
 def test_get_empty_acl_authz_record(client, user):
@@ -987,19 +1218,7 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(client, user):
     assert len(ids) == 2
 
 
-def test_bad_update_blank_record(client, user):
-    doc = {"file_name": "test_file_name_1", "uploader": "test_uploader_1"}
-    res = client.post("/index/blank", json=doc, headers=user)
-    assert res.status_code == 201
-    rec = res.json
-
-    # test that empty update throws 400 error
-    data = {"size": "", "hashes": {"": ""}}
-    res = client.put(
-        "/index/blank/{}?rev={}".format(rec["did"], rec["rev"]), json=data, headers=user
-    )
-    assert res.status_code == 400
-
+def test_cant_update_inexistent_blank_record(client, user):
     # test that non-existent did throws 400 error
     data = {"size": 123, "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}
     fake_did = "testprefix:455ffb35-1b0e-49bd-a4ab-3afe9f3aece9"
@@ -1550,14 +1769,16 @@ def test_index_add_prefix_alias(client, user):
 
 
 def test_index_update(client, user):
+    # create record
     data = get_doc()
-
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
     rec = res.json
     assert rec["did"]
     assert rec["rev"]
     assert client.get("/index/" + rec["did"]).json["metadata"] == data["metadata"]
+
+    # update record
     dataNew = get_doc()
     del dataNew["hashes"]
     del dataNew["size"]
@@ -1572,6 +1793,8 @@ def test_index_update(client, user):
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["rev"] != rec["rev"]
+
+    # check record was updated
     response = client.get("/index/" + rec_2["did"])
     assert response.status_code == 200
     record = response.json
@@ -1579,6 +1802,7 @@ def test_index_update(client, user):
     assert record["acl"] == dataNew["acl"]
     assert record["authz"] == dataNew["authz"]
 
+    # create record
     data = get_doc()
     data["did"] = "cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d"
     res = client.post("/index/", json=data, headers=user)
@@ -1586,6 +1810,8 @@ def test_index_update(client, user):
     rec = res.json
     assert rec["did"]
     assert rec["rev"]
+
+    # update record
     dataNew = {
         "urls": ["s3://endpointurl/bucket/key"],
         "file_name": "test",
@@ -1597,6 +1823,41 @@ def test_index_update(client, user):
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["rev"] != rec["rev"]
+
+
+def test_index_update_with_authz_check(client, user, use_mock_authz):
+    old_authz = "/programs/A"
+    new_authz = "/programs/B"
+
+    # create record
+    data = get_doc()
+    data["authz"] = [old_authz]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    rev = rec["rev"]
+
+    # user doesn't have all the required access: cannot update record
+    use_mock_authz([("update", new_authz)])
+    to_update = {"authz": [new_authz]}
+    res = client.put("/index/{}?rev={}".format(rec["did"], rev), json=to_update)
+    assert res.status_code == 403, res.json
+
+    # user has all the required access: can update record
+    use_mock_authz([("update", new_authz), ("update", old_authz)])
+    to_update = {"authz": [new_authz]}
+    res = client.put("/index/{}?rev={}".format(rec["did"], rev), json=to_update)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["rev"] != rev
+
+    # check record was updated
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["authz"] == [new_authz]
 
 
 def test_index_update_duplicate_acl_authz(client, user):
