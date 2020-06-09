@@ -759,9 +759,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         hashes = hashes or {}
         urls = urls or []
 
-        if not size or not hashes:
-            raise UserError("No size or hashes provided")
-
         with self.session as session:
             query = session.query(IndexRecord).filter(IndexRecord.did == did)
 
@@ -791,24 +788,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 # if an authz is provided, ensure that user can actually
                 # create/update for that resource (old authz and new authz)
                 old_authz = [u.resource for u in record.authz]
-                authorized_old_authz, authorized_new_authz = False, False
+                all_authz = old_authz + authz
                 try:
-                    auth.authorize("update", old_authz)
-                    authorized_old_authz = True
+                    auth.authorize("update", all_authz)
+                    authorized = True
                 except AuthError as err:
                     self.logger.error(
-                        authz_err_msg.format("update", old_authz)
+                        authz_err_msg.format("update", all_authz)
                         + " Falling back to 'file_upload' on '/data_file'."
                     )
-                try:
-                    auth.authorize("create", authz)
-                    authorized_new_authz = True
-                except AuthError as err:
-                    self.logger.error(
-                        authz_err_msg.format("create", authz)
-                        + " Falling back to 'file_upload' on '/data_file'."
-                    )
-                authorized = authorized_old_authz and authorized_new_authz
 
                 record.authz = [
                     IndexRecordAuthz(did=record.did, resource=resource)
@@ -1060,13 +1048,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch("revision mismatch")
 
-            old_authz = [u.resource for u in record.authz]
-            try:
-                auth.authorize("update", old_authz)
-            except AuthError as err:
-                self.logger.error(authz_err_msg.format("update", old_authz))
-                raise
-
             # Some operations are dependant on other operations. For example
             # urls has to be updated before urls_metadata because of schema
             # constraints.
@@ -1088,13 +1069,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     for ace in set(changing_fields["acl"])
                 ]
 
+            all_authz = [u.resource for u in record.authz]
             if "authz" in changing_fields:
                 new_authz = list(set(changing_fields["authz"]))
-                try:
-                    auth.authorize("create", new_authz)
-                except AuthError as err:
-                    self.logger.error(authz_err_msg.format("create", new_authz))
-                    raise
+                all_authz += new_authz
 
                 for resource in record.authz:
                     session.delete(resource)
@@ -1103,6 +1081,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     IndexRecordAuthz(did=record.did, resource=resource)
                     for resource in new_authz
                 ]
+
+            # authorization check: `update` access on old AND new resources
+            try:
+                auth.authorize("update", all_authz)
+            except AuthError as err:
+                self.logger.error(authz_err_msg.format("update", all_authz))
+                raise
 
             if "metadata" in changing_fields:
                 for md_record in record.index_metadata:
