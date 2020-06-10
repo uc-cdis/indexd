@@ -16,7 +16,7 @@ setup(
         "doiclient",
         "dosclient",
         "hsclient",
-        "authutils",
+        "authutils==4.0.0",
         "gen3rbac",
     ],
     dependency_links=[
