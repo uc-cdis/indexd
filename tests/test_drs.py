@@ -74,6 +74,7 @@ def test_drs_multiple_endpointurl(client, user):
         protocol = url["type"]
         assert url["access_url"]["url"] == object_urls[protocol]
 
+
 def test_drs_list(client, user):
     record_length = 7
     data = get_doc()
