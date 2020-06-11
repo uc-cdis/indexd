@@ -50,6 +50,7 @@ def get_signed_url(object_id, access_id):
 
 
 def indexd_to_drs(record, list_drs=False):
+    bearer_token = flask.request.headers.get("AUTHORIZATION")
     self_uri = "drs://" + flask.current_app.hostname + "/" + record["did"]
     drs_object = {
         "id": record["did"],
