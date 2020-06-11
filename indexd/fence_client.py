@@ -40,6 +40,8 @@ class FenceClient(object):
             raise IndexNoRecordFound(
                 "No document with id:{} with access_id:{}".format(object_id, access_id)
             )
+        if req.status_code == 401:
+            raise req
         elif req.status_code != 200:
             raise UnexpectedError(req.text)
         return req.json()
