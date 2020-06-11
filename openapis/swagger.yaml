@@ -982,7 +982,6 @@ paths:
       summary: Get info about a DrsObject.
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
-        Returns presigned url given an access token in the url field, else returns file location.
       operationId: GetObject
       responses:
         '200':

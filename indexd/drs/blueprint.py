@@ -85,11 +85,7 @@ def indexd_to_drs(record, list_drs=False):
             drs_object["access_methods"].append(
                 {
                     "type": location_type,
-                    "access_url": flask.current_app.fence_client.get_signed_url_for_object(
-                        record["did"], ""
-                    )
-                    if bearer_token and not list_drs
-                    else {"url": location},
+                    "access_url": {"url": location},
                     "access_id": location_type,
                     "region": "",
                 }
