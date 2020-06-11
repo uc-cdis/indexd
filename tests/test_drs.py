@@ -74,27 +74,6 @@ def test_drs_multiple_endpointurl(client, user):
         assert url["access_url"]["url"] == object_urls[protocol]
 
 
-@responses.activate
-def test_drs_get_with_presigned_url(client, user):
-    data = get_doc()
-    res_1 = client.post("/index/", json=data, headers=user)
-    assert res_1.status_code == 200
-    rec_1 = res_1.json
-    presigned = generate_presigned_url_response(rec_1["did"])
-    res_2 = client.get(
-        "/ga4gh/drs/v1/objects/" + rec_1["did"], headers={"AUTHORIZATION": "12345"}
-    )
-    assert res_2.status_code == 200
-    rec_2 = res_2.json
-    assert rec_2["id"] == rec_1["did"]
-    assert rec_2["size"] == data["size"]
-    for k in data["hashes"]:
-        assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
-        assert rec_2["checksums"][0]["type"] == k
-
-    assert rec_2["access_methods"][0]["access_url"] == presigned
-
-
 def test_drs_list(client, user):
     record_length = 7
     data = get_doc()
