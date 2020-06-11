@@ -43,6 +43,6 @@ class FenceClient(object):
         if req.status_code == 401:
             raise AuthzError("Unauthorized: Access denied due to invalid credentials.")
         elif req.status_code != 200:
-            logger.error("Error {}:{}".format(req.status_code, req.text))
-            raise UnexpectedError(req.text)
+            logger.error("Fence Errored with {}".format(req.status_code))
+            raise UnexpectedError("Fence Errored with {}".format(req.status_code))
         return req.json()
