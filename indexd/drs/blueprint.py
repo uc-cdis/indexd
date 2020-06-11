@@ -1,5 +1,5 @@
 import flask
-from indexd.errors import AuthError
+from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import UnexpectedError

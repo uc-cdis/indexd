@@ -6,7 +6,7 @@ import requests
 
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import UnexpectedError
-from indexd.auth.erors import AuthError, AuthzError
+from indexd.auth.errors import AuthError, AuthzError
 
 
 logger = get_logger(__name__)
