@@ -106,7 +106,7 @@ def handle_user_error(err):
     return flask.jsonify(ret), 400
 
 
-@blueprint.errorhandler(AuthError)
+@blueprint.errorhandler(AuthzError)
 def handle_auth_error(err):
     ret = {"msg": str(err), "status_code": 401}
     return flask.jsonify(ret), 401

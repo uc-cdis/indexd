@@ -6,7 +6,7 @@ import requests
 
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import UnexpectedError
-from indexd.auth.errors import AuthError
+from indexd.auth.erors import AuthError, AuthzError
 
 
 logger = get_logger(__name__)
@@ -41,7 +41,7 @@ class FenceClient(object):
                 "No document with id:{} with access_id:{}".format(object_id, access_id)
             )
         if req.status_code == 401:
-            raise req
+            raise AuthzError("Unauthorized: Access denied due to invalid credentials.")
         elif req.status_code != 200:
             raise UnexpectedError(req.text)
         return req.json()
