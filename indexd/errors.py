@@ -17,6 +17,7 @@ class IndexdUnexpectedError(Exception):
     """
     Unexpected Error
     """
+
     def __init__(self, code=500, message="Unexpected Error"):
-        self.code = code 
+        self.code = code
         self.message = str(message)
