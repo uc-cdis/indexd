@@ -18,12 +18,7 @@ def get_drs_object(object_id):
     expand = True if flask.request.args.get("expand") == "true" else False
 
     ret = blueprint.index_driver.get(object_id)
-    print()
-    # data = (
-    #     bundle_to_drs(ret, expand=expand)
-    #     if "bundle_data" in ret
-    #     else indexd_to_drs(ret, expand=False, list_drs=False)
-    # )
+
     data = indexd_to_drs(ret, expand=expand, list_drs=False)
 
     return flask.jsonify(data), 200

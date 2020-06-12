@@ -47,6 +47,9 @@ INDEX_TABLES = {
         ("checksum", "character varying"),
         ("size", "bigint"),
         ("bundle_data", "text"),
+        ("description", "text"),
+        ("version", "character varying"),
+        ("aliases", "character varying"),
     ],
 }
 

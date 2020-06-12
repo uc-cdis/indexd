@@ -135,7 +135,7 @@ def test_driver_add_bundle_record():
         ).fetchone()
 
         assert record != None
-        assert len(record) == 7
+        assert len(record) == 10
 
 
 @util.removes("index.sq3")

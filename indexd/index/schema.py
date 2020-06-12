@@ -117,6 +117,12 @@ BUNDLE_SCHEMA = {
             "minimum": 0,
         },
         "checksum": {"type": "string", "pattern": "^[0-9a-f]{32}$",},
+        "description": {"type": "string"},
+        "version": {
+            "description": "optional version string of the object",
+            "type": "string",
+        },
+        "aliases": {"type": "array"},
     },
 }
 

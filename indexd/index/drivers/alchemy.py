@@ -259,6 +259,9 @@ class DrsBundleRecord(Base):
     checksum = Column(String)
     size = Column(BigInteger)
     bundle_data = Column(Text)
+    description = Column(Text)
+    version = Column(String)
+    aliases = Column(String)
 
     def to_document_dict(self, expand=False):
         """
@@ -273,6 +276,9 @@ class DrsBundleRecord(Base):
             "checksum": self.checksum,
             "size": self.size,
             "form": "bundle",
+            "version": self.version,
+            "description": self.description,
+            "aliases": self.aliases,
         }
 
         if expand:
@@ -788,7 +794,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             session.commit()
 
             return record.did, record.rev, record.baseid
-    
+
     def add_blank_bundle(self):
         """
         Create a new blank record with only uploader and optionally
@@ -808,7 +814,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             session.commit()
 
             return record.bundle_id
-
 
     def update_blank_record(self, did, rev, size, hashes, urls, authz=None):
         """
