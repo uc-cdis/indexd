@@ -23,6 +23,7 @@ from .errors import RevisionMismatch
 from .errors import UnhealthyCheck
 
 from cdislogging import get_logger
+from indexd.drs.blueprint import indexd_to_drs, get_drs_object, bundle_to_drs
 
 logger = get_logger("indexd/index blueprint", log_level="info")
 
@@ -552,6 +553,12 @@ def version():
 def compute_checksum(checksums):
     """
     Checksum created by sorting alphabetically then concatenating first layer of bundles/objects.
+
+    Args:
+        checksums (list): list of checksums from the first layer of bundles and objects
+    
+    Returns:
+        md5 checksum
     """
     checksums.sort()
     checksum = "".join(checksums)
@@ -572,7 +579,6 @@ def post_bundle():
     """
     Create a new bundle
     """
-    from indexd.drs.blueprint import indexd_to_drs, get_drs_object, bundle_to_drs
 
     try:
         authorize("create", ["/services/indexd/bundles"])

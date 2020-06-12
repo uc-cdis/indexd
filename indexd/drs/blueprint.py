@@ -19,12 +19,13 @@ def get_drs_object(object_id):
     expand = True if flask.request.args.get("expand") == "true" else False
 
     ret = blueprint.index_driver.get(object_id)
-
-    data = (
-        indexd_to_drs(ret, expand=False, list_drs=False)
-        if not flask.request.args.get("expand")
-        else bundle_to_drs(ret, expand=expand)
-    )
+    print()
+    # data = (
+    #     bundle_to_drs(ret, expand=expand)
+    #     if "bundle_data" in ret
+    #     else indexd_to_drs(ret, expand=False, list_drs=False)
+    # )
+    data = indexd_to_drs(ret, expand=expand, list_drs=False)
 
     return flask.jsonify(data), 200
 
@@ -141,7 +142,7 @@ def indexd_to_drs(record, expand=False, list_drs=False):
     if "description" in record:
         drs_object["description"] = record["description"]
 
-    if "bundle_data" in record:
+    if expand == True and "bundle_data" in record:
         bundle_data = record["bundle_data"]
         for bundle in bundle_data:
             drs_object["contents"].append(
@@ -199,18 +200,15 @@ def bundle_to_drs(record, expand=False, is_content=False):
         "contents": [],
     }
 
-    contents = (
-        record["contents"]
-        if "contents" in record
-        else record["bundle_data"]
-        if "bundle_data" in record
-        else []
-    )
-
-    if not expand:
-        for content in contents:
-            content["contents"] = []
-    drs_object["contents"] = contents
+    if expand:
+        contents = (
+            record["contents"]
+            if "contents" in record
+            else record["bundle_data"]
+            if "bundle_data" in record
+            else []
+        )
+        drs_object["contents"] = contents
 
     if not is_content:
         # Show these only if its the leading bundle
