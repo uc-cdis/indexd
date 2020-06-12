@@ -15,12 +15,8 @@ from indexd.errors import UserError
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
 from .schema import RECORD_ALIAS_SCHEMA
-<<<<<<< HEAD
 from .schema import BUNDLE_SCHEMA
-||||||| merged common ancestors
-=======
 from .schema import UPDATE_ALL_VERSIONS_SCHEMA
->>>>>>> c7391036633b5a0c7992e7e10e7d4851abbb3d82
 
 from .errors import NoRecordFound
 from .errors import MultipleRecordsFound
