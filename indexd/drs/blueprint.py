@@ -2,16 +2,8 @@ import flask
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
-<<<<<<< HEAD
-from indexd.errors import UnexpectedError
-
-||||||| merged common ancestors
-from indexd.errors import UnexpectedError
-from indexd.index.blueprint import get_index
-=======
 from indexd.errors import IndexdUnexpectedError
 from indexd.index.blueprint import get_index
->>>>>>> c7391036633b5a0c7992e7e10e7d4851abbb3d82
 
 blueprint = flask.Blueprint("drs", __name__)
 
