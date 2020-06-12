@@ -97,7 +97,6 @@ RECORD_ALIAS_SCHEMA = {
         }
     },
 }
-<<<<<<< HEAD
 
 BUNDLE_SCHEMA = {
     "$schema": "http://json-schema.org/schema#",
@@ -120,8 +119,6 @@ BUNDLE_SCHEMA = {
         "checksum": {"type": "string", "pattern": "^[0-9a-f]{32}$",},
     },
 }
-||||||| merged common ancestors
-=======
 
 UPDATE_ALL_VERSIONS_SCHEMA = {
     "$schema": "http://json-schema.org/schema#",
@@ -133,4 +130,3 @@ UPDATE_ALL_VERSIONS_SCHEMA = {
         "authz": {"type": "array", "items": {"type": "string"}},
     },
 }
->>>>>>> c7391036633b5a0c7992e7e10e7d4851abbb3d82

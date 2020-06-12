@@ -789,33 +789,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
-<<<<<<< HEAD
-    def add_blank_bundle(self):
-        """
-        Create a new blank record with only uploader and optionally
-        file_name fields filled
-        """
-        with self.session as session:
-            record = DrsBundleRecord()
-            base_version = BaseVersion()
-
-            bundle_id = str(uuid.uuid4())
-
-            record.bundle_id = bundle_id
-            base_version.baseid = bundle_id
-
-            session.add(base_version)
-            session.add(record)
-            session.commit()
-
-            return record.bundle_id
-
-    def update_blank_record(self, did, rev, size, hashes, urls):
-||||||| merged common ancestors
-    def update_blank_record(self, did, rev, size, hashes, urls):
-=======
     def update_blank_record(self, did, rev, size, hashes, urls, authz=None):
->>>>>>> c7391036633b5a0c7992e7e10e7d4851abbb3d82
         """
         Update a blank record with size, hashes, urls, authz and raise
         exception if the record is non-empty or the revision is not matched
