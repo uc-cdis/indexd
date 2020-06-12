@@ -788,6 +788,27 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             session.commit()
 
             return record.did, record.rev, record.baseid
+    
+    def add_blank_bundle(self):
+        """
+        Create a new blank record with only uploader and optionally
+        file_name fields filled
+        """
+        with self.session as session:
+            record = DrsBundleRecord()
+            base_version = BaseVersion()
+
+            bundle_id = str(uuid.uuid4())
+
+            record.bundle_id = bundle_id
+            base_version.baseid = bundle_id
+
+            session.add(base_version)
+            session.add(record)
+            session.commit()
+
+            return record.bundle_id
+
 
     def update_blank_record(self, did, rev, size, hashes, urls, authz=None):
         """

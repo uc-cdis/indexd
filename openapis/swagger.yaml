@@ -1001,13 +1001,7 @@ paths:
       summary: Get info about a DrsObject.
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
-<<<<<<< HEAD
-        Returns presigned url given an access token in the url field, else returns file location. 
-        Resolves for bundles. 
-||||||| merged common ancestors
-        Returns presigned url given an access token in the url field, else returns file location.
-=======
->>>>>>> c7391036633b5a0c7992e7e10e7d4851abbb3d82
+        Resolves for bundles.
       operationId: GetObject
       responses:
         '200':
@@ -1140,7 +1134,6 @@ paths:
       tags:
         - DRS
       x-swagger-router-controller: ga4gh.drs.server
-<<<<<<< HEAD
   '/bundle':
     post:
       tags:
@@ -1252,11 +1245,6 @@ paths:
           
       
       
-||||||| merged common ancestors
-    
-=======
-
->>>>>>> c7391036633b5a0c7992e7e10e7d4851abbb3d82
   '/bulk/documents':
     post:
       tags:
@@ -2204,7 +2192,6 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/DrsObject'
-<<<<<<< HEAD
   BundleGet:
     type: object
     properties:
@@ -2289,11 +2276,6 @@ definitions:
         type: object
       version:
         type: string          
-||||||| merged common ancestors
-          
-=======
-
->>>>>>> c7391036633b5a0c7992e7e10e7d4851abbb3d82
   ListRecords:
     type: object
     properties:

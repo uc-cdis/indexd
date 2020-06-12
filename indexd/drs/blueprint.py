@@ -3,7 +3,6 @@ from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
-from indexd.index.blueprint import get_index
 
 blueprint = flask.Blueprint("drs", __name__)
 
