@@ -176,6 +176,8 @@ def test_bundle_get_form_type(client, user):
     assert res2.status_code == 200
 
     rec2 = res2.json
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print(rec2)
     assert rec2["form"] == "bundle"
 
 
@@ -384,7 +386,7 @@ def test_bundle_data_bundle_and_index(client, user):
     res1 = client.post("/bundle/", json=data_main, headers=user)
     assert res1.status_code == 200
 
-    res2 = client.get("/bundle/" + bundle_id_main)
+    res2 = client.get("/bundle/" + bundle_id_main + "?expand=true")
     assert res2.status_code == 200
     rec3 = res2.json
 
@@ -515,7 +517,7 @@ def test_get_drs_expand_contents_default(client, user):
     rec2 = res2.json
 
     contents = rec2["contents"]
-    assert len(contents) == 3
+    assert len(contents) == 0
 
 
 def test_get_drs_expand_contents_false(client, user):
@@ -529,11 +531,7 @@ def test_get_drs_expand_contents_false(client, user):
     rec2 = res2.json
 
     contents = rec2["contents"]
-    assert len(contents) == 3
-
-    # Check that the second layer of bundles is not expanded
-    for content in contents:
-        assert len(content["contents"]) == 0
+    assert len(contents) == 0
 
 
 def test_get_drs_expand_contents_true(client, user):
