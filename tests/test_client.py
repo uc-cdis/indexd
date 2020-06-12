@@ -1,4 +1,5 @@
 import json
+import base64
 
 import pytest
 
@@ -691,6 +692,362 @@ def test_create_blank_record_with_file_name(client, user):
     assert_blank(rec)
 
 
+def test_create_blank_record_with_authz(client, use_mock_authz):
+    """
+    Test that a new blank record can be created with a specified
+    authz when the user has the expected access
+    """
+    old_authz = "/programs/A"
+    new_authz = "/programs/B"
+
+    # - user has create access on the resource
+    use_mock_authz([("create", old_authz)])
+    doc = {"uploader": "uploader1", "authz": [old_authz]}
+    res = client.post("/index/blank/", json=doc)
+    assert res.status_code == 201, res.json
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    assert rec["baseid"]
+
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["uploader"] == "uploader1"
+    assert rec["authz"] == [old_authz]  # authz as provided
+    assert_blank(rec, with_authz=True)  # test that record is blank
+
+    # - user doesn't have create access on the resource:
+    #   fall back on `file_upload` on `/data_file` access
+    use_mock_authz([("file_upload", "/data_file")])
+    doc = {"uploader": "uploader1", "authz": [new_authz]}
+    res = client.post("/index/blank/", json=doc)
+    assert res.status_code == 201, res.json
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    assert rec["baseid"]
+
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["uploader"] == "uploader1"
+    assert rec["authz"] == [new_authz]  # authz as provided
+    assert_blank(rec, with_authz=True)  # test that record is blank
+
+    # - user has neither create access on the resource or
+    #   `file_upload` on `/data_file` access: unauthorized
+    use_mock_authz([])
+    doc = {"uploader": "uploader1", "authz": [new_authz]}
+    res = client.post("/index/blank/", json=doc)
+    assert res.status_code == 403, res.json
+
+
+def test_create_blank_version(client, user):
+    """
+    Test that we can create a new, blank version of a record
+    with POST /index/blank/{GUID}. The new blank version should
+    retain the acl/authz of the previous record.
+    """
+    mock_acl = ["acl_A", "acl_B"]
+    mock_authz = ["fake/authz/A", "fake/authz/B"]
+    mock_baseid = "00000000-0000-0000-0000-000000000000"
+
+    # SETUP
+    # ----------
+    # Add an original record to the index
+    doc = get_doc()
+    doc["acl"] = mock_acl
+    doc["authz"] = mock_authz
+    doc["baseid"] = mock_baseid
+    res = client.post("/index/", json=doc, headers=user)
+    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
+        res.json
+    )
+    original_doc_guid = res.json["did"]
+    res = client.get("/index/{}".format(original_doc_guid))
+    assert res.status_code == 200, "Failed to find original doc in index: {}".format(
+        res.json
+    )
+    original_doc = res.json
+    assert original_doc["acl"] == mock_acl
+    assert original_doc["authz"] == mock_authz
+    assert original_doc["baseid"] == mock_baseid
+
+    # Make a new blank version of the original record
+    doc = {"uploader": "uploader_123", "file_name": "test_file"}
+    url = "/index/blank/{}".format(original_doc["did"])
+    res = client.post(url, json=doc, headers=user)
+    assert res.status_code == 201, "Failed to make new blank version: {}".format(
+        res.json
+    )
+    blank_doc_guid = res.json["did"]
+
+    # Confirm that the new blank record is in the index
+    res = client.get("/index/{}".format(blank_doc_guid))
+    assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
+    blank_doc = res.json
+    # -----------
+
+    # The new blank record should have a GUID and a rev
+    assert blank_doc["did"]
+    assert blank_doc["rev"]
+    # The new blank record should be a version of the original doc
+    # (i.e. both records should share a baseid)
+    assert blank_doc["baseid"] == original_doc["baseid"]
+    # The new blank record should retain the acl/authz of the original doc
+    assert blank_doc["acl"] == original_doc["acl"]
+    assert blank_doc["authz"] == original_doc["authz"]
+
+    # The new blank record should be blank (other metadata fields should not be filled)
+    blank_fields = [
+        "hashes",
+        "metadata",
+        "urls",
+        "urls_metadata",
+        "version",
+        "size",
+        "form",
+    ]
+    for field in blank_fields:
+        assert not blank_doc[field]
+
+
+def test_create_blank_version_with_authz(client, user, use_mock_authz):
+    """
+    Test that a new version of a blank record can be created with a
+    different authz when the user has the expected access
+    """
+    old_authz = "/programs/A"
+    new_authz = "/programs/B"
+
+    # add an original record to the index
+    doc = get_doc()
+    doc["authz"] = [old_authz]
+    res = client.post("/index/", json=doc, headers=user)
+    assert res.status_code == 200, res.json
+    original_guid = res.json["did"]
+    res = client.get("/index/{}".format(original_guid))
+    assert res.status_code == 200, res.json
+    baseid = res.json["baseid"]
+    assert res.json["authz"] == [old_authz]
+
+    # - user has create access on the new resource but doesn't
+    #   have update access on the old resource
+    # should fail to make a new blank version of the original record
+    use_mock_authz([("create", new_authz)])
+    payload = {"uploader": "uploader1", "authz": [new_authz]}
+    url = "/index/blank/{}".format(original_guid)
+    res = client.post(url, json=payload)
+    assert res.status_code == 403, res.json
+
+    # - user has the required "create" and "update" access
+    # make a new blank version of the original record
+    use_mock_authz([("create", new_authz), ("update", old_authz)])
+    url = "/index/blank/{}".format(original_guid)
+    res = client.post(url, json=payload)
+    assert res.status_code == 201, res.json
+    res = client.get("/index/{}".format(res.json["did"]))
+    assert res.status_code == 200, res.json
+    new_version = res.json
+
+    # check non-blank fields
+    assert new_version["did"]
+    assert new_version["rev"]
+    assert new_version["baseid"] == baseid
+    assert new_version["authz"] == [new_authz]  # authz as provided
+
+    # check blank fields
+    blank_fields = [
+        "hashes",
+        "metadata",
+        "urls",
+        "urls_metadata",
+        "version",
+        "size",
+        "form",
+    ]
+    for field in blank_fields:
+        assert not new_version[field]
+
+
+def test_create_blank_version_specify_did(client, user):
+    """
+    Test that we can specify the new GUID of a new, blank version of a record
+    with POST /index/blank/{GUID}.
+    """
+    # SETUP
+    # ----------
+    # Add an original record to the index
+    doc = get_doc()
+    mock_acl = ["acl_A", "acl_B"]
+    mock_authz = ["fake/authz/A", "fake/authz/B"]
+    mock_baseid = "00000000-0000-0000-0000-000000000000"
+    doc["acl"] = mock_acl
+    doc["authz"] = mock_authz
+    doc["baseid"] = mock_baseid
+    res = client.post("/index/", json=doc, headers=user)
+    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
+        res.json
+    )
+    original_doc_guid = res.json["did"]
+    res = client.get("/index/{}".format(original_doc_guid))
+    assert res.status_code == 200, "Failed to find original doc in index: {}".format(
+        res.json
+    )
+    original_doc = res.json
+    assert original_doc["acl"] == mock_acl
+    assert original_doc["authz"] == mock_authz
+    assert original_doc["baseid"] == mock_baseid
+
+    # Make a new blank version of the original record, specifying the guid
+    specified_guid = "11111111-1111-1111-1111-111111111111"
+    doc = {"uploader": "uploader_123", "file_name": "test_file", "did": specified_guid}
+    url = "/index/blank/{}".format(original_doc["did"])
+    res = client.post(url, json=doc, headers=user)
+    assert res.status_code == 201, "Failed to make new blank version: {}".format(
+        res.json
+    )
+    blank_doc_guid = res.json["did"]
+
+    # Confirm that the new blank record is in the index
+    res = client.get("/index/{}".format(blank_doc_guid))
+    assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
+    blank_doc = res.json
+    # -----------
+
+    # Expect the new version's guid to be the guid we specified
+    assert blank_doc_guid == specified_guid
+
+
+def test_create_blank_version_specify_guid_already_exists(client, user):
+    """
+    Test that if we try to specify the GUID of a new blank version, but the
+    new GUID we specified already exists in the index, the operation fails with 400.
+    """
+    # SETUP
+    # ----------
+    # Add an original record to the index
+    doc = get_doc()
+    mock_acl = ["acl_A", "acl_B"]
+    mock_authz = ["fake/authz/A", "fake/authz/B"]
+    mock_baseid = "00000000-0000-0000-0000-000000000000"
+    doc["acl"] = mock_acl
+    doc["authz"] = mock_authz
+    doc["baseid"] = mock_baseid
+    res = client.post("/index/", json=doc, headers=user)
+    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
+        res.json
+    )
+    original_doc_guid = res.json["did"]
+    res = client.get("/index/{}".format(original_doc_guid))
+    assert res.status_code == 200, "Failed to find original doc in index: {}".format(
+        res.json
+    )
+    original_doc = res.json
+    assert original_doc["acl"] == mock_acl
+    assert original_doc["authz"] == mock_authz
+    assert original_doc["baseid"] == mock_baseid
+
+    # Add another, unrelated record to the index
+    res = client.post("/index/", json=get_doc(), headers=user)
+    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
+        res.json
+    )
+    preexisting_guid = res.json["did"]
+    # -----------
+
+    # Attempt to create new blank version of doc, specifying the new guid to be
+    # a guid that already exists in the index. Expect the operation to fail with 400.
+    specified_guid = preexisting_guid
+    doc = {"uploader": "uploader_123", "file_name": "test_file", "did": specified_guid}
+    url = "/index/blank/{}".format(original_doc["did"])
+    res = client.post(url, json=doc, headers=user)
+    assert (
+        res.status_code == 400
+    ), "Request should have failed with 400 user error: {}".format(res.json)
+
+    # Attempt to create new blank version of doc, specifying the new guid to be
+    # the guid of the original record we're making a new blank version of.
+    # Expect the operation to fail with 400.
+    specified_guid = original_doc_guid
+    doc = {"uploader": "uploader_123", "file_name": "test_file", "did": specified_guid}
+    url = "/index/blank/{}".format(original_doc["did"])
+    res = client.post(url, json=doc, headers=user)
+    assert (
+        res.status_code == 400
+    ), "Request should have failed with 400 user error: {}".format(res.json)
+
+
+def test_create_blank_version_no_existing_record(client, user):
+    """
+    Test that attempts to create a blank version of a nonexisting GUID
+    should fail with 404.
+    """
+    nonexistant_did = "00000000-0000-0000-0000-000000000000"
+
+    # Make a new blank version of the original record
+    doc = {"uploader": "uploader_123", "file_name": "test_file"}
+    url = "/index/blank/{}".format(nonexistant_did)
+    res = client.post(url, json=doc, headers=user)
+    assert (
+        res.status_code == 404
+    ), "Expected to fail to create new blank version, instead got {}".format(res.json)
+
+
+def test_create_blank_version_blank_record(client, user):
+    """
+    Test that attempts to create a blank version of a blank record
+    should succeed
+    """
+    # SETUP
+    # ---------
+    doc = {"uploader": "uploader_123"}
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201
+    original_doc = res.json
+    assert original_doc["did"]
+    assert original_doc["rev"]
+
+    # Make a new blank version of the original record
+    doc = {"uploader": "uploader_123"}
+    url = "/index/blank/{}".format(original_doc["did"])
+    res = client.post(url, json=doc, headers=user)
+    assert (
+        res.status_code == 201
+    ), "Failed to create blank version of blank record, instead got {}".format(res.json)
+    blank_doc_guid = res.json["did"]
+
+    # Confirm that the new blank record is in the index
+    res = client.get("/index/{}".format(blank_doc_guid))
+    assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
+    blank_doc = res.json
+    # -----------
+
+    # The new blank record should have a GUID and a rev
+    assert blank_doc["did"]
+    assert blank_doc["rev"]
+    # The new blank record should be a version of the original doc
+    # (i.e. both records should share a baseid)
+    assert blank_doc["baseid"] == original_doc["baseid"]
+    # The new blank doc should have an acl/authz of None, matching the original blank doc
+    assert not blank_doc["acl"]
+    assert not blank_doc["authz"]
+
+    # The new blank record should be blank (other metadata fields should not be filled)
+    blank_fields = [
+        "hashes",
+        "metadata",
+        "urls",
+        "urls_metadata",
+        "version",
+        "size",
+        "form",
+    ]
+    for field in blank_fields:
+        assert not blank_doc[field]
+
+
 def test_fill_size_n_hash_for_blank_record(client, user):
     """
     Test that can fill size and hashes for empty record
@@ -719,6 +1076,130 @@ def test_fill_size_n_hash_for_blank_record(client, user):
     rec = res.json
     assert rec["size"] == 10
     assert rec["hashes"]["md5"] == "8b9942cf415384b27cadf1f4d2d981f5"
+
+
+def test_update_blank_record_with_authz(client, user, use_mock_authz):
+    """
+    Test that a blank record (WITHOUT AUTHZ) can be updated
+    with an authz when the user has the expected access
+    """
+    new_authz = "/programs/A"
+    new_authz2 = "/programs/B"
+
+    # create a blank record
+    doc = {"uploader": "uploader_1"}
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201, res.json
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    did, rev = rec["did"], rec["rev"]
+
+    # - user doesn't have update access on the resource
+    # should fail to make a new blank version of the original record
+    use_mock_authz([])
+    to_update = {
+        "authz": [new_authz],
+    }
+    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
+    assert res.status_code == 403, res.json
+
+    # - user has update access on the new resource
+    # update the blank record
+    use_mock_authz([("update", new_authz)])
+    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["did"] == did
+    assert rec["rev"] != rev
+    rev = rec["rev"]
+
+    res = client.get("/index/" + did)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["authz"] == [new_authz]  # authz as provided
+
+    # - user doesn't have update access on the resource:
+    #   fall back on `file_upload` on `/data_file` access
+    # update the blank record
+    use_mock_authz([("file_upload", "/data_file")])
+    to_update = {
+        "authz": [new_authz2],
+    }
+    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["did"] == did
+    assert rec["rev"] != rev
+
+    res = client.get("/index/" + did)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["authz"] == [new_authz2]  # authz as provided
+
+
+def test_update_blank_record_with_authz_new(client, user, use_mock_authz):
+    """
+    Test that a blank record (WITH AUTHZ) can be updated
+    with a different authz when the user has the expected access
+    """
+    old_authz = "/programs/A"
+    new_authz = "/programs/B"
+    new_authz2 = "/programs/C"
+
+    # create a blank record
+    doc = {"uploader": "uploader_1", "authz": [old_authz]}
+    res = client.post("/index/blank/", json=doc, headers=user)
+    assert res.status_code == 201, res.json
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    did, rev = rec["did"], rec["rev"]
+    res = client.get("/index/{}".format(did))
+    assert res.json["authz"] == [old_authz]  # authz as provided
+
+    # - user has update access on the new resource but doesn't
+    #   have update access on the old resource
+    # should fail to make a new blank version of the original record
+    use_mock_authz([("update", new_authz)])
+    to_update = {
+        "authz": [new_authz],
+    }
+    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
+    assert res.status_code == 403, res.json
+
+    # - user has the required "update" and "update" access
+    # update the blank record
+    use_mock_authz([("update", new_authz), ("update", old_authz)])
+    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["did"] == did
+    assert rec["rev"] != rev
+    rev = rec["rev"]
+
+    res = client.get("/index/" + did)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["authz"] == [new_authz]  # authz as provided
+
+    # - user doesn't have update access on the resources:
+    #   fall back on `file_upload` on `/data_file` access
+    # update the blank record
+    use_mock_authz([("file_upload", "/data_file")])
+    to_update = {
+        "authz": [new_authz2],
+    }
+    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["did"] == did
+    assert rec["rev"] != rev
+
+    res = client.get("/index/" + did)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["authz"] == [new_authz2]  # authz as provided
 
 
 def test_get_empty_acl_authz_record(client, user):
@@ -852,19 +1333,7 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(client, user):
     assert len(ids) == 2
 
 
-def test_bad_update_blank_record(client, user):
-    doc = {"file_name": "test_file_name_1", "uploader": "test_uploader_1"}
-    res = client.post("/index/blank", json=doc, headers=user)
-    assert res.status_code == 201
-    rec = res.json
-
-    # test that empty update throws 400 error
-    data = {"size": "", "hashes": {"": ""}}
-    res = client.put(
-        "/index/blank/{}?rev={}".format(rec["did"], rec["rev"]), json=data, headers=user
-    )
-    assert res.status_code == 400
-
+def test_cant_update_inexistent_blank_record(client, user):
     # test that non-existent did throws 400 error
     data = {"size": 123, "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}
     fake_did = "testprefix:455ffb35-1b0e-49bd-a4ab-3afe9f3aece9"
@@ -1144,17 +1613,29 @@ def test_index_prepend_prefix(client, user):
         "PREPEND_PREFIX": True
     }
     """
+    # create a new record, check the GUID has the prefix
     data = get_doc()
-
     res_1 = client.post("/index/", json=data, headers=user)
-    assert res_1.status_code == 200
+    assert res_1.status_code == 200, res_1.json
     rec_1 = res_1.json
     res_2 = client.get("/index/" + rec_1["did"])
-    assert res_2.status_code == 200
+    assert res_2.status_code == 200, res_2.json
     rec_2 = res_2.json
-
     assert rec_1["did"] == rec_2["did"]
     assert rec_2["did"].startswith("testprefix:")
+
+    # create a new version, check the GUID has the prefix
+    dataNew = {
+        "form": "object",
+        "size": 244,
+        "urls": ["s3://endpointurl/bucket2/key"],
+        "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"},
+    }
+    res_3 = client.post("/index/" + rec_1["did"], json=dataNew, headers=user)
+    assert res_3.status_code == 200, res_3.json
+    rec_3 = res_3.json
+    assert rec_3["baseid"] == rec_1["baseid"]
+    assert rec_3["did"].startswith("testprefix:")
 
 
 def test_index_get_with_baseid(client, user):
@@ -1403,14 +1884,16 @@ def test_index_add_prefix_alias(client, user):
 
 
 def test_index_update(client, user):
+    # create record
     data = get_doc()
-
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
     rec = res.json
     assert rec["did"]
     assert rec["rev"]
     assert client.get("/index/" + rec["did"]).json["metadata"] == data["metadata"]
+
+    # update record
     dataNew = get_doc()
     del dataNew["hashes"]
     del dataNew["size"]
@@ -1425,6 +1908,8 @@ def test_index_update(client, user):
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["rev"] != rec["rev"]
+
+    # check record was updated
     response = client.get("/index/" + rec_2["did"])
     assert response.status_code == 200
     record = response.json
@@ -1432,6 +1917,7 @@ def test_index_update(client, user):
     assert record["acl"] == dataNew["acl"]
     assert record["authz"] == dataNew["authz"]
 
+    # create record
     data = get_doc()
     data["did"] = "cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d"
     res = client.post("/index/", json=data, headers=user)
@@ -1439,6 +1925,8 @@ def test_index_update(client, user):
     rec = res.json
     assert rec["did"]
     assert rec["rev"]
+
+    # update record
     dataNew = {
         "urls": ["s3://endpointurl/bucket/key"],
         "file_name": "test",
@@ -1450,6 +1938,41 @@ def test_index_update(client, user):
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["rev"] != rec["rev"]
+
+
+def test_index_update_with_authz_check(client, user, use_mock_authz):
+    old_authz = "/programs/A"
+    new_authz = "/programs/B"
+
+    # create record
+    data = get_doc()
+    data["authz"] = [old_authz]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["did"]
+    assert rec["rev"]
+    rev = rec["rev"]
+
+    # user doesn't have all the required access: cannot update record
+    use_mock_authz([("update", new_authz)])
+    to_update = {"authz": [new_authz]}
+    res = client.put("/index/{}?rev={}".format(rec["did"], rev), json=to_update)
+    assert res.status_code == 403, res.json
+
+    # user has all the required access: can update record
+    use_mock_authz([("update", new_authz), ("update", old_authz)])
+    to_update = {"authz": [new_authz]}
+    res = client.put("/index/{}?rev={}".format(rec["did"], rev), json=to_update)
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["rev"] != rev
+
+    # check record was updated
+    res = client.get("/index/" + rec["did"])
+    assert res.status_code == 200, res.json
+    rec = res.json
+    assert rec["authz"] == [new_authz]
 
 
 def test_index_update_duplicate_acl_authz(client, user):
@@ -1628,6 +2151,198 @@ def test_get_all_versions(client, user):
     # make sure records are returned in creation date order
     for i, record in recs1.items():
         assert record["did"] == dids[int(i)], "record id does not match"
+
+
+def test_update_all_versions(client, user):
+    dids = []
+    mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
+    mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
+    mock_authz_A = ["mock_authz_A1", "mock_authz_A2"]
+    mock_authz_B = ["mock_authz_B1", "mock_authz_B2"]
+
+    # SETUP
+    # -------
+    # create 1st version
+    data = get_doc(has_metadata=False, has_baseid=False)
+    data["acl"] = mock_acl_A
+    data["authz"] = mock_authz_A
+
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec1 = res.json
+    assert rec1["did"]
+    dids.append(rec1["did"])
+
+    # create 2nd version
+    res = client.post("/index/" + rec1["did"], json=data, headers=user)
+    assert res.status_code == 200
+    rec2 = res.json
+    assert rec2["did"]
+    dids.append(rec2["did"])
+    # ----------
+
+    # Update all versions
+    update_data = {"acl": mock_acl_B, "authz": mock_authz_B}
+    res = client.put(
+        "/index/{}/versions".format(rec1["did"]), json=update_data, headers=user
+    )
+    assert res.status_code == 200, "Failed to update all version: {}".format(res.json)
+    # Expect the GUIDs of all updated versions to be returned by the request,
+    # in order of version creation
+    assert dids == [record["did"] for record in res.json]
+
+    # Expect all versions to have the new acl/authz
+    res = client.get("/index/{}/versions".format(rec1["did"]))
+    assert res.status_code == 200, "Failed to get all versions"
+    for _, version in res.json.items():
+        assert version["acl"] == mock_acl_B
+        assert version["authz"] == mock_authz_B
+
+
+def test_update_all_versions_using_baseid(client, user):
+    mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
+    mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
+    mock_authz_A = ["mock_authz_A1", "mock_authz_A2"]
+    mock_authz_B = ["mock_authz_B1", "mock_authz_B2"]
+
+    # SETUP
+    # -------
+    # create 1st version
+    data = get_doc(has_metadata=False, has_baseid=False)
+    data["acl"] = mock_acl_A
+    data["authz"] = mock_authz_A
+
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec1 = res.json
+    assert rec1["did"]
+    baseid = rec1["baseid"]
+
+    # create 2nd version
+    res = client.post("/index/" + rec1["did"], json=data, headers=user)
+    assert res.status_code == 200
+    rec2 = res.json
+    assert rec2["baseid"] == baseid
+    # ----------
+
+    # Update all versions
+    update_data = {"acl": mock_acl_B, "authz": mock_authz_B}
+    res = client.put(
+        "/index/{}/versions".format(baseid), json=update_data, headers=user
+    )
+    assert res.status_code == 200, "Failed to update all version: {}".format(res.json)
+
+    # Expect all versions to have the new acl/authz
+    res = client.get("/index/{}/versions".format(rec1["did"]))
+    assert res.status_code == 200, "Failed to get all versions"
+    for _, version in res.json.items():
+        assert version["acl"] == mock_acl_B
+        assert version["authz"] == mock_authz_B
+
+
+def test_update_all_versions_guid_not_found(client, user):
+    bad_guid = "00000000-0000-0000-0000-000000000000"
+
+    update_data = {"acl": ["mock_acl"], "authz": ["mock_authz"]}
+    res = client.put(
+        "/index/{}/versions".format(bad_guid), json=update_data, headers=user
+    )
+    # Expect the operation to fail with 404 -- Guid not found
+    assert (
+        res.status_code == 404
+    ), "Expected update operation to fail with 404: {}".format(res.json)
+
+
+def test_update_all_versions_fail_on_bad_metadata(client, user):
+    """
+    When making an update request, endpoint should return 400 (User error) if
+    the metadata to update contains any fields that cannot be updated across all versions.
+    Currently the only allowed fields are ('acl', 'authz').
+    """
+    mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
+    mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
+    mock_authz_A = ["mock_authz_A1", "mock_authz_A2"]
+    mock_authz_B = ["mock_authz_B1", "mock_authz_B2"]
+
+    # SETUP
+    # -------
+    # create 1st version
+    data = get_doc(has_metadata=False, has_baseid=False)
+    data["acl"] = mock_acl_A
+    data["authz"] = mock_authz_A
+
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec1 = res.json
+    assert rec1["did"]
+    baseid = rec1["baseid"]
+
+    # create 2nd version
+    res = client.post("/index/" + rec1["did"], json=data, headers=user)
+    assert res.status_code == 200
+    rec2 = res.json
+    assert rec2["baseid"] == baseid
+    # ----------
+
+    # Update all versions
+    update_data = {"urls": ["url_A"], "acl": mock_acl_B, "authz": mock_authz_B}
+    res = client.put(
+        "/index/{}/versions".format(baseid), json=update_data, headers=user
+    )
+    # Expect the operation to fail with 400
+    assert (
+        res.status_code == 400
+    ), "Expected update operation to fail with 400: {}".format(res.json)
+
+    # Expect all versions to retain the old acl/authz
+    res = client.get("/index/{}/versions".format(rec1["did"]))
+    assert res.status_code == 200, "Failed to get all versions"
+    for _, version in res.json.items():
+        assert version["acl"] == mock_acl_A
+        assert version["authz"] == mock_authz_A
+
+
+def test_update_all_versions_fail_on_missing_permissions(client, user, use_mock_authz):
+    """
+    If user does not have the 'update' permission on any record, request should
+    fail with 403.
+    """
+    # SETUP
+    # -------
+    # Set up mock authz to allow test user to create two versions of a record with
+    # different `authz` values.
+    doc_1 = get_doc(has_metadata=False, has_baseid=False)
+    doc_1["authz"] = ["resource_A"]
+    res = client.post("/index/", json=doc_1, headers=user)
+    assert res.status_code == 200, res.json
+    rec1 = res.json
+
+    doc_2 = get_doc(has_metadata=False, has_baseid=False)
+    doc_2["authz"] = ["resource_B"]
+    res = client.post("/index/" + rec1["did"], json=doc_2, headers=user)
+    assert res.status_code == 200, res.json
+    rec2 = res.json
+    # ----------
+
+    # Configure mock authz to allow updating both versions: Expect request to succeed
+    use_mock_authz([("update", "resource_A"), ("update", "resource_B")])
+    update_data = {"authz": ["new_authz"]}
+    res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
+    assert res.status_code == 200, "Expected operation to succeed: {}".format(res.json)
+
+    # Configure mock authz to only allow updating first version: Expect request to fail with 403
+    use_mock_authz([("update", "resource_A")])
+    res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
+    assert (
+        res.status_code == 403
+    ), "Expected operation to fail due to lack of user permissions: {}".format(res.json)
+
+    # Configure mock authz to only allow updating second version: Expect request to fail with 403
+    use_mock_authz([("update", "resource_B")])
+    res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
+    assert (
+        res.status_code == 403
+    ), "Expected operation to fail due to lack of user permissions: {}".format(res.json)
 
 
 def test_index_stats(client, user):

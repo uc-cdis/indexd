@@ -12,7 +12,7 @@ def authorize(*p):
     Replaces the request authorization with a user context.
     Raises AuthError if authorization fails.
 
-    If called with (method, resource), it will check with Arborist if HTTP Basic Auth is
+    If called with (method, resources), it will check with Arborist if HTTP Basic Auth is
     not present, or fallback to the previous check.
     """
     if len(p) == 1:
@@ -22,19 +22,20 @@ def authorize(*p):
         def check_auth(*args, **kwargs):
             if not request.authorization:
                 raise AuthError("Username / password required.")
-            user = current_app.auth.auth(
+            current_app.auth.auth(
                 request.authorization.username, request.authorization.password
             )
-            request.authorization = user
 
             return f(*args, **kwargs)
 
         return check_auth
     else:
-        method, resource = p
+        method, resources = p
         if request.authorization:
-            request.authorization = current_app.auth.auth(
+            current_app.auth.auth(
                 request.authorization.username, request.authorization.password
             )
         else:
-            current_app.auth.authz(method, resource)
+            if not isinstance(resources, list):
+                raise UserError(f"'authz' must be a list, received '{resources}'.")
+            current_app.auth.authz(method, list(set(resources)))

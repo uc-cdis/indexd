@@ -15,7 +15,12 @@ from indexd.errors import UserError
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
 from .schema import RECORD_ALIAS_SCHEMA
+<<<<<<< HEAD
 from .schema import BUNDLE_SCHEMA
+||||||| merged common ancestors
+=======
+from .schema import UPDATE_ALL_VERSIONS_SCHEMA
+>>>>>>> c7391036633b5a0c7992e7e10e7d4851abbb3d82
 
 from .errors import NoRecordFound
 from .errors import MultipleRecordsFound
@@ -300,20 +305,18 @@ def post_index_record():
 
 
 @blueprint.route("/index/blank/", methods=["POST"])
-@authorize
 def post_index_blank_record():
     """
     Create a blank new record with only uploader and optionally
     file_name fields filled
     """
-
     uploader = flask.request.get_json().get("uploader")
     file_name = flask.request.get_json().get("file_name")
-    if not uploader:
-        raise UserError("no uploader specified")
+    authz = flask.request.get_json().get("authz")
 
+    # authorize done in add_blank_record
     did, rev, baseid = blueprint.index_driver.add_blank_record(
-        uploader=uploader, file_name=file_name
+        uploader=uploader, file_name=file_name, authz=authz
     )
 
     ret = {"did": did, "rev": rev, "baseid": baseid}
@@ -321,8 +324,31 @@ def post_index_blank_record():
     return flask.jsonify(ret), 201
 
 
+@blueprint.route("/index/blank/<path:record>", methods=["POST"])
+def add_index_blank_record_version(record):
+    """
+    Create a new blank version of the record with this GUID.
+    Authn/authz fields carry over from the previous version of the record.
+    Only uploader and optionally file_name fields are filled.
+    Returns the GUID of the new blank version and the baseid common to all versions
+    of the record.
+    """
+    new_did = flask.request.json.get("did")
+    uploader = flask.request.get_json().get("uploader")
+    file_name = flask.request.get_json().get("file_name")
+    authz = flask.request.get_json().get("authz")
+
+    # authorize done in add_blank_version for the existing record's authz
+    did, baseid, rev = blueprint.index_driver.add_blank_version(
+        record, new_did=new_did, uploader=uploader, file_name=file_name, authz=authz
+    )
+
+    ret = {"did": did, "baseid": baseid, "rev": rev}
+
+    return flask.jsonify(ret), 201
+
+
 @blueprint.route("/index/blank/<path:record>", methods=["PUT"])
-@authorize
 def put_index_blank_record(record):
     """
     Update a blank record with size, hashes and url
@@ -331,9 +357,11 @@ def put_index_blank_record(record):
     size = flask.request.get_json().get("size")
     hashes = flask.request.get_json().get("hashes")
     urls = flask.request.get_json().get("urls")
+    authz = flask.request.get_json().get("authz")
 
+    # authorize done in update_blank_record
     did, rev, baseid = blueprint.index_driver.update_blank_record(
-        did=record, rev=rev, size=size, hashes=hashes, urls=urls
+        did=record, rev=rev, size=size, hashes=hashes, urls=urls, authz=authz
     )
     ret = {"did": did, "rev": rev, "baseid": baseid}
 
@@ -351,6 +379,7 @@ def put_index_record(record):
         raise UserError(err)
 
     rev = flask.request.args.get("rev")
+
     # authorize done in update
     did, baseid, rev = blueprint.index_driver.update(record, rev, flask.request.json)
 
@@ -499,6 +528,28 @@ def get_all_index_record_versions(record):
     Get all record versions
     """
     ret = blueprint.index_driver.get_all_versions(record)
+
+    return flask.jsonify(ret), 200
+
+
+@blueprint.route("/index/<path:record>/versions", methods=["PUT"])
+def update_all_index_record_versions(record):
+    """
+    Update metadata for all record versions.
+    NOTE currently the only fields that can be updated for all versions are
+    (`authz`, `acl`).
+    """
+    request_json = flask.request.get_json(force=True)
+    try:
+        jsonschema.validate(request_json, UPDATE_ALL_VERSIONS_SCHEMA)
+    except jsonschema.ValidationError as err:
+        logger.warn(f"Bad request body:\n{err}")
+        raise UserError(err)
+
+    acl = request_json.get("acl")
+    authz = request_json.get("authz")
+    # authorization and error handling done in driver
+    ret = blueprint.index_driver.update_all_versions(record, acl=acl, authz=authz)
 
     return flask.jsonify(ret), 200
 
