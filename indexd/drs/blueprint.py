@@ -1,8 +1,8 @@
 import flask
-from indexd.errors import AuthError
+from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
-from indexd.errors import UnexpectedError
+from indexd.errors import IndexdUnexpectedError
 from indexd.index.blueprint import get_index
 
 blueprint = flask.Blueprint("drs", __name__)
@@ -106,8 +106,8 @@ def handle_user_error(err):
     return flask.jsonify(ret), 400
 
 
-@blueprint.errorhandler(AuthError)
-def handle_auth_error(err):
+@blueprint.errorhandler(AuthzError)
+def handle_authz_error(err):
     ret = {"msg": str(err), "status_code": 401}
     return flask.jsonify(ret), 401
 
@@ -124,10 +124,10 @@ def handle_no_index_record_error(err):
     return flask.jsonify(ret), 404
 
 
-@blueprint.errorhandler(UnexpectedError)
+@blueprint.errorhandler(IndexdUnexpectedError)
 def handle_unexpected_error(err):
-    ret = {"msg": str(err), "status_code": 500}
-    return flask.jsonify(ret), 500
+    ret = {"msg": err.message, "status_code": err.code}
+    return flask.jsonify(ret), err.code
 
 
 @blueprint.record

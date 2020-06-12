@@ -97,6 +97,19 @@ def test_get_drs_record_not_found(client, user):
 
 
 @responses.activate
+def test_get_presigned_url_unauthorized(client, user):
+    data = get_doc()
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    generate_presigned_url_response(rec_1["did"], "s3", status=401)
+    res_2 = client.get(
+        "/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/s3", headers=user,
+    )
+    assert res_2.status_code == 401
+
+
+@responses.activate
 def test_get_presigned_url_with_access_id(client, user):
     data = get_doc()
     res_1 = client.post("/index/", json=data, headers=user)
