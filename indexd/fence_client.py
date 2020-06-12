@@ -5,7 +5,7 @@ import requests
 
 
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
-from indexd.errors import UnexpectedError
+from indexd.errors import IndexdUnexpectedError
 from indexd.auth.errors import AuthError, AuthzError
 
 
@@ -30,7 +30,7 @@ class FenceClient(object):
             req = requests.get(url, headers=headers)
         except Exception as e:
             logger.error("failed to reach fence at {0}: {1}".format(url + object_id, e))
-            raise UnexpectedError("Failed to retrieve access url")
+            raise IndexdUnexpectedError("Failed to retrieve access url")
         if req.status_code == 404:
             logger.error(
                 "Not found. Fence could not find {}: {} with access id: {}".format(
@@ -43,6 +43,11 @@ class FenceClient(object):
         if req.status_code == 401:
             raise AuthzError("Unauthorized: Access denied due to invalid credentials.")
         elif req.status_code != 200:
-            logger.error("Fence Errored with {}".format(req.status_code))
-            raise UnexpectedError("Fence Errored with {}".format(req.status_code))
+            err_msg = "Unable to get presigned URL from Fence"
+            logger.error(
+                "{} - code: {} - details:\n{}".format(
+                    err_msg, req.status_code, req.text
+                )
+            )
+            raise IndexdUnexpectedError(code=req.status_code, message=err_msg)
         return req.json()
