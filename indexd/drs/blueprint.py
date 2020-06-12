@@ -127,7 +127,7 @@ def handle_no_index_record_error(err):
 @blueprint.errorhandler(IndexdUnexpectedError)
 def handle_unexpected_error(err):
     ret = {"msg": err.message, "status_code": err.code}
-    return flask.jsonify(ret), 500
+    return flask.jsonify(ret), err.code
 
 
 @blueprint.record
