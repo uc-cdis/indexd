@@ -640,6 +640,17 @@ def post_bundle():
     bundles = flask.request.json.get("bundles")
     bundle_id = flask.request.json.get("bundle_id")
     size = flask.request.json.get("size") if flask.request.json.get("size") else 0
+    description = (
+        flask.request.json.get("description")
+        if flask.request.json.get("description")
+        else ""
+    )
+    version = (
+        flask.request.json.get("version") if flask.request.json.get("version") else ""
+    )
+    aliases = (
+        flask.request.json.get("aliases") if flask.request.json.get("aliases") else []
+    )
 
     if len(bundles) == 0:
         raise UserError("Bundle data required.")
@@ -652,6 +663,8 @@ def post_bundle():
 
     bundle_data = []
     checksums = []
+
+    # get bundles/records that already exists and add it to bundle_data
     for bundle in bundles:
         data = get_index_record(bundle)[0]
         data = data.json
@@ -671,6 +684,9 @@ def post_bundle():
         size=size,
         bundle_data=json.dumps(bundle_data),
         checksum=checksum,
+        description=description,
+        version=version,
+        aliases=json.dumps(aliases),
     )
 
     return flask.jsonify({"bundle_id": ret[0], "name": ret[1], "contents": ret[2]}), 200
@@ -694,7 +710,6 @@ def get_bundle_record_with_id(bundle_id):
     """
     Returns a record given bundle_id
     """
-    from indexd.drs.blueprint import indexd_to_drs, bundle_to_drs
 
     expand = True if flask.request.args.get("expand") == "true" else False
 

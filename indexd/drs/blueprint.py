@@ -103,7 +103,13 @@ def indexd_to_drs(record, expand=False, list_drs=False):
         record["created_date"] if "created_date" in record else record["created_time"]
     )
 
-    version = record["rev"] if "rev" in record else ""
+    version = (
+        record["rev"]
+        if "rev" in record
+        else record["version"]
+        if "version" in record
+        else ""
+    )
 
     updated_date = (
         record["updated_date"] if "updated_date" in record else record["updated_time"]
@@ -113,7 +119,13 @@ def indexd_to_drs(record, expand=False, list_drs=False):
 
     description = record["description"] if "description" in record else None
 
-    alias = record["alias"] if "alias" in record else []
+    alias = (
+        record["alias"]
+        if "alias" in record
+        else eval(record["aliases"])
+        if "aliases" in record
+        else []
+    )
 
     drs_object = {
         "id": did,
@@ -123,14 +135,13 @@ def indexd_to_drs(record, expand=False, list_drs=False):
         "created_time": created_time,
         "updated_time": updated_date,
         "size": record["size"],
-        "aliases": [],
+        "aliases": alias,
         "contents": [],
         "self_uri": self_uri,
         "version": version,
         "form": form,
         "checksums": [],
         "description": description,
-        "aliases": alias,
     }
 
     if "description" in record:
@@ -202,6 +213,15 @@ def bundle_to_drs(record, expand=False, is_content=False):
 
     if not is_content:
         # Show these only if its the leading bundle
+        description = record["description"] if "description" in record else ""
+        aliases = (
+            record["alias"]
+            if "alias" in record
+            else eval(record["aliases"])
+            if "aliases" in record
+            else []
+        )
+        version = record["version"] if "version" in record else ""
         drs_object["checksums"] = []
         parse_checksums(record, drs_object)
 
@@ -219,6 +239,9 @@ def bundle_to_drs(record, expand=False, is_content=False):
         drs_object["created_time"] = created_time
         drs_object["updated_time"] = updated_time
         drs_object["size"] = record["size"]
+        drs_object["aliases"] = aliases
+        drs_object["description"] = description
+        drs_object["version"] = version
 
     return drs_object
 

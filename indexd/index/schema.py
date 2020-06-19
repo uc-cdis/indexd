@@ -122,7 +122,7 @@ BUNDLE_SCHEMA = {
             "description": "optional version string of the object",
             "type": "string",
         },
-        "aliases": {"type": "array"},
+        "aliases": {"description": "Optional", "type": "array",},
     },
 }
 

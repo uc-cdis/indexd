@@ -1522,7 +1522,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             ).scalar()
 
     def add_bundle(
-        self, bundle_id=None, name=None, checksum=None, size=None, bundle_data=None
+        self,
+        bundle_id=None,
+        name=None,
+        checksum=None,
+        size=None,
+        bundle_data=None,
+        description=None,
+        version=None,
+        aliases=None,
     ):
         """
         Add a bundle record 
@@ -1545,6 +1553,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.size = size
 
             record.bundle_data = bundle_data
+
+            record.description = description
+
+            record.version = version
+
+            record.aliases = aliases
 
             try:
                 session.add(record)
@@ -1591,6 +1605,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise NoRecordFound("No bundle found")
 
             doc = record.to_document_dict(expand)
+
             return doc
 
     def get_bundle_and_object_list(

@@ -59,6 +59,56 @@ def test_bundle_post(client, user):
     assert res2.status_code == 200
 
 
+def test_bundle_get_post_with_optional_fields(client, user):
+    """
+    Bundle 1
+        +-object1
+
+    Bundel 2
+        +-Bundle 1 
+            +-object1 
+        +-object1 
+    """
+    did_list, _ = create_index(client, user)
+
+    data = get_bundle_doc(bundles=did_list)
+    data["description"] = "This is a cool bundle."
+    data["version"] = "v13cde"
+    data["aliases"] = ["123", "456"]
+
+    res2 = client.post("/bundle/", json=data, headers=user)
+    rec2 = res2.json
+    did = rec2["bundle_id"]
+    assert res2.status_code == 200
+
+    res3 = client.get("/ga4gh/drs/v1/objects/" + did)
+    rec3 = res3.json
+    assert res3.status_code == 200
+    assert rec3["description"] == data["description"]
+    assert rec3["version"] == data["version"]
+    assert rec3["aliases"] == data["aliases"]
+
+    res4 = client.get("/bundle/" + did)
+    rec4 = res4.json
+    assert res4.status_code == 200
+    assert rec4["description"] == data["description"]
+    assert rec4["version"] == data["version"]
+    assert rec4["aliases"] == data["aliases"]
+
+    # Nested bundle shouldn't contain optional fields
+    data2 = get_bundle_doc(bundles=[did, did_list[0]])
+    res5 = client.post("/bundle/", json=data2, headers=user)
+    did2 = res5.json["bundle_id"]
+    assert res5.status_code == 200
+    res6 = client.get("/bundle/" + did2 + "?expand=true")
+    rec6 = res6.json
+    contents = rec6["contents"]
+    for content in contents:
+        assert "description" not in content
+        assert "version" not in content
+        assert "aliases" not in content
+
+
 def test_bundle_post_self_reference(client, user):
     """
     Make sure this doesnt exist
