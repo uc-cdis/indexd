@@ -189,6 +189,7 @@ Indexd's distributed resolution logic for a given GUID/alias is roughly as follo
         * [More info DOS](https://github.com/ga4gh/data-repository-service-schemas)
             * NOTE: Was renamed to DRS
         * Resolving to servers with other identifiers, like [ARK IDs](http://n2t.net/e/ark_ids.html) could be supported if a client was created (otherwise, you can use the _aliases_ in Indexd to simply map from an existing identifier to a GUID)
+        * We have a [GA4GH DRS Implementation](./docs/drs.md) which includes bundles.
   * The distributed resolution can be "smart", in that you can configure `hints` that tell a central resolver Indexd that a given input should be resolved with a specific distributed service
     * The `hints` are a list of regexes that will attempt to match against given input
     * For example: `hints: ["10\..*"]` for DOIs since they'll begin with `10.`
