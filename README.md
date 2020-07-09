@@ -1,5 +1,5 @@
 <div>
-<img align="left" src="./docs/indexD.svg" alt="Indexd Logo" hspace="20"/>
+  <img align="left" src="./docs/indexD.svg" alt="Indexd Logo" hspace="20"/>
 </div>
 
 # Indexd
