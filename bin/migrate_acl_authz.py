@@ -199,13 +199,12 @@ class ACLConverter(object):
                 # if there's a * it should just be open. return early
                 path = "/open"
                 break
-            elif not self.use_sheepdog_db or (
-                projects_found == 0 and self.is_program(acl_item)
-            ):
+            elif not self.use_sheepdog_db or self.is_program(acl_item):
                 # if we don't have sheepdog we have to assume everything is a "program".
-                # also, we only want to set the path to a program if we haven't found a
-                # path for a project already.
-                path = "/programs/{}".format(acl_item)
+                if projects_found == 0:
+                    # we only want to set the path to a program if we haven't found a
+                    # path for a project already.
+                    path = "/programs/{}".format(acl_item)
                 programs_found += 1
             elif acl_item in self.projects:
                 # always want to update to project if possible

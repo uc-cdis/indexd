@@ -9,7 +9,7 @@ setup(
         "flask==1.1.1",
         "jsonschema==2.5.1",
         "sqlalchemy==1.3.3",
-        "sqlalchemy-utils>=0.33.11",
+        "sqlalchemy-utils>=0.33.11,<=0.36.6",
         "psycopg2>=2.7",
         "cdislogging>=0.0.2",
         "indexclient",
