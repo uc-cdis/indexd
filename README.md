@@ -114,7 +114,7 @@ data as well as the type.
 - Install [swagger-codegen](https://swagger.io/swagger-codegen/)
 - Run:
 ```
-pip install -r test-requirements.txt
+pip install -r dev-requirements.txt -r requirements.txt
 swagger-codegen generate -i openapis/swagger.yaml -l python -o swagger_client
 cd swagger_client; python setup.py develop; cd -
 py.test -v tests/

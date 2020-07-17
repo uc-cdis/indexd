@@ -1,0 +1,12 @@
+-c requirements.txt
+
+# Workaround to continue running tests on Python 2.
+# Some Python 2 applications may want to run indexd as part of their tests.
+more-itertools~=5.0
+
+# TODO Relax pytest-cov constraints when we upgrade pytest.
+pytest~=3.10
+pytest-cov>=2.8,<2.10
+pytest-flask~=0.15
+PyYAML~=5.3
+swagger_spec_validator~=2.5
