@@ -14,4 +14,3 @@ Publish API documentation with the [swagger-ui](https://github.com/swagger-api/s
 ## OpenAPI Spec
 
 The swagger definition format has been open sourced as the OpenAPI Specification administered by the Linux Foundation.  As of writing this the latest spec defining the structure and elements of a swagger.yaml file is [version 3](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md).
-
