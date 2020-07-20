@@ -119,7 +119,7 @@ def test_global_endpoint_nonexistant_alias(client, guid, aliases):
 
 def test_global_endpoint_alias_guid_collision(client, guid, aliases, user):
     """
-    if an alias has the same name as a GUID, the global endpoint should resolve 
+    if an alias has the same name as a GUID, the global endpoint should resolve
     to the GUID, not resolve the alias
     """
     # create a new guid
@@ -142,7 +142,7 @@ def test_global_endpoint_alias_guid_collision(client, guid, aliases, user):
 def test_global_endpoint_alias_endpoint_collision(client, guid, aliases, user):
     """
     when an alias shares a name with an endpoint on the root of
-    the API, querying that endpoint should function as normal, 
+    the API, querying that endpoint should function as normal,
     not resolve the alias
     """
     # associate a new alias named "index/" with guid. "index/" is an endpoint
@@ -242,7 +242,7 @@ def test_POST_aliases_invalid_GUID(client, user, guid, aliases, unused_aliases):
 
 def test_POST_aliases_nonunique_aliases(client, user, guid, aliases, unused_aliases):
     """
-    expect to return 400 and have no effect if valid GUID but one or more aliases 
+    expect to return 400 and have no effect if valid GUID but one or more aliases
     already associated with another GUID
     """
     guid_A = guid
@@ -273,7 +273,7 @@ def test_POST_aliases_nonunique_aliases(client, user, guid, aliases, unused_alia
 
 def test_POST_aliases_GUID_already_has_alias(client, user, guid, aliases):
     """
-    expect to return 400 and have no effect if valid GUID and one or more aliases 
+    expect to return 400 and have no effect if valid GUID and one or more aliases
     already associated with this GUID
     """
     # pick a subset of the aliases already associated with this GUID
@@ -357,7 +357,7 @@ def test_PUT_aliases_valid_GUID_valid_aliases(
     client, user, guid, aliases, unused_aliases
 ):
     """
-    normal operation: expect to replace aliases and return list of new aliases 
+    normal operation: expect to replace aliases and return list of new aliases
     for this GUID
     """
     new_aliases = unused_aliases
@@ -411,7 +411,7 @@ def test_PUT_aliases_invalid_GUID(client, user, guid, aliases, unused_aliases):
 
 def test_PUT_aliases_nonunique_aliases(client, user, guid, aliases, unused_aliases):
     """
-    expect to return 400 and have no effect if valid GUID but one or more aliases 
+    expect to return 400 and have no effect if valid GUID but one or more aliases
     already associated with another GUID
     """
     new_aliases = unused_aliases
@@ -466,7 +466,7 @@ def test_PUT_aliases_previously_used_valid_alias(
 
 def test_PUT_aliases_GUID_already_has_alias(client, user, guid, aliases):
     """
-    expect to replace aliases if valid GUID and one or more aliases already 
+    expect to replace aliases if valid GUID and one or more aliases already
     associated with this GUID, but not already associated with another GUID
     """
     # pick a subset of the aliases already associated with this GUID
@@ -492,7 +492,7 @@ def test_PUT_aliases_duplicate_aliases_in_request(
     client, user, guid, aliases, unused_aliases
 ):
     """
-    expect to fail with 400 if valid GUID and one or more aliases duplicated 
+    expect to fail with 400 if valid GUID and one or more aliases duplicated
     in request
     """
     new_aliases = unused_aliases
@@ -547,7 +547,7 @@ def test_PUT_bad_content_type(client, user, guid, aliases):
 # ----------------------------
 def test_DELETE_all_aliases_valid_GUID(client, user, guid, aliases):
     """
-    normal operation: expect to delete all aliases if valid GUID 
+    normal operation: expect to delete all aliases if valid GUID
     """
     res = client.delete(get_endpoint(guid), headers=user)
     assert res.status_code == 200, res.text
@@ -587,7 +587,7 @@ def test_DELETE_all_aliases_invalid_GUID(client, user, guid, aliases):
 # ------------------------------------
 def test_DELETE_one_alias_valid_GUID(client, user, guid, aliases):
     """
-    normal operation: expect to delete listed alias if valid GUID and 
+    normal operation: expect to delete listed alias if valid GUID and
     alias associated with this GUID
     """
     # pick one alias to delete
@@ -639,7 +639,7 @@ def test_DELETE_one_alias_invalid_GUID(client, user, guid, aliases):
 
 def test_DELETE_one_alias_GUID_does_not_have_alias(client, user, guid, aliases):
     """
-    expect to return 404 and have no effect if alias not associated 
+    expect to return 404 and have no effect if alias not associated
     with this GUID
     """
     # pick a nonexistant alias to delete on an existing guid

@@ -5,11 +5,11 @@
 ## Swagger Tools
 
 Use swagger's editor to update swagger.yaml and swagger.json using one of the following:
-* [online editor](https://editor.swagger.io/) 
+* [online editor](https://editor.swagger.io/)
 * [Docker image](https://hub.docker.com/r/swaggerapi/swagger-editor/) - `docker run -d -p 80:8080 swaggerapi/swagger-editor`
 * or pull the editor code from [github](https://github.com/swagger-api/swagger-editor), and `npm start` an editor locally.
 
-Publish API documentation with the [swagger-ui](https://github.com/swagger-api/swagger-ui) - also easily launched with docker: `docker run -p 80:8080 -e SWAGGER_JSON=/foo/swagger.json -v /bar:/foo swaggerapi/swagger-ui` 
+Publish API documentation with the [swagger-ui](https://github.com/swagger-api/swagger-ui) - also easily launched with docker: `docker run -p 80:8080 -e SWAGGER_JSON=/foo/swagger.json -v /bar:/foo swaggerapi/swagger-ui`
 
 ## OpenAPI Spec
 

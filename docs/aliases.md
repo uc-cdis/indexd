@@ -15,4 +15,4 @@ with a document's GUID. (In the indexd codebase, GUIDs are also referred to as `
 the old version. Aliases are associated with GUIDs, and the old version's aliases do not carry over to the new version's GUID. It is the client's responsibility to migrate aliases
 to new versions of a resource if this is the behavior they want.
 
-> NOTE: The current alias system is implemented in `indexd/index/blueprint.py` and uses the `index_record_alias` table. Confusingly, the current alias system is **not** implemented in `/indexd/alias` and does **not** use the `alias_record` table -- these are from the deprecated original alias system. 
+> NOTE: The current alias system is implemented in `indexd/index/blueprint.py` and uses the `index_record_alias` table. Confusingly, the current alias system is **not** implemented in `/indexd/alias` and does **not** use the `alias_record` table -- these are from the deprecated original alias system.

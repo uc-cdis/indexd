@@ -1,5 +1,5 @@
 # A dockerfile based on our .travis.yml
-# Useful for running the tests locally 
+# Useful for running the tests locally
 # in a self contained environment
 FROM python:2-slim
 
