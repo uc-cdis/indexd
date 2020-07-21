@@ -1,6 +1,7 @@
 Indexd
 ===
 ![version](https://img.shields.io/github/release/uc-cdis/indexd.svg) [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE) [![Travis](https://travis-ci.org/uc-cdis/indexd.svg?branch=master)](https://travis-ci.org/uc-cdis/indexd)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
 Indexd is a data indexing and tracking service. It is intended to be
 distributed, hash-based indexing service, designed to be accessed via a
@@ -16,6 +17,19 @@ In order to avoid update conflicts for frequently updated Digital IDs, Indexd us
 Digital IDs are intended to be publicly readable documents, and therefore contain no information other than resource locators. However, in order to prevent unauthorized editing of Digital IDs, each Digital ID keeps an ACL list. This ACL list contains the identities of users that have write permissions for the associated Digital ID. This is analogous to DNS in that anyone has permission to read a DNS record, but only the owner of the hostname is allowed to change the IP to which it points. While not part of the current architecture design, if restricted read access becomes a requirement, additional controls may be added to the Digital ID format.
 
 The second layer of user defined aliases are introduced to add flexibility of supporting human readable identifiers and allow referencing existing identifiers that are created in other systems.
+
+
+- [Indexd](#indexd)
+  - [Use Cases For Indexing Data](#use-cases-for-indexing-data)
+  - [Documentation](#documentation)
+  - [Installation](#installation)
+  - [Installation with Docker](#installation-with-docker)
+  - [Configuration](#configuration)
+  - [Index Records](#index-records)
+  - [Testing](#testing)
+  - [Testing with Docker](#testing-with-docker)
+  - [Setup pre-commit hook to check for secrets](#setup-pre-commit-hook-to-check-for-secrets)
+
 
 ## Use Cases For Indexing Data
 
@@ -35,7 +49,7 @@ For existing data in buckets, the SNS or PubSub notifications may be simulated s
 
 Indexd supports void or blank records that allows users to pre-register data files in indexd before actually registering them. The complete flow contains three main steps: pre-register, hash/size/url populating and data node registration:
 - Fence requests blank object from indexd. Indexd creates an object with no hash, size or urls, only the `uploader` and optionally `file_name` fields.
-- Indexd listener mornitors bucket update, update to indexd with url, hash, size.
+- Indexd listener monitors bucket update, update to indexd with url, hash, size.
 - The client application (windmill or gen3-data-client) lists records for data files which the user needs to submit to the graph. The user fills all empty fields and submit the request to indexd to update the `acl`.
 
 See docs on data upload flow for further details:
@@ -127,3 +141,27 @@ Doesn't work with all the DB tests yet, but you can adjust to run specific tests
 ```
 docker build -t indexd -f TestDockerfile .
 ```
+
+    
+## Setup pre-commit hook to check for secrets
+
+We use [pre-commit](https://pre-commit.com/) to setup pre-commit hooks for this repo.
+We use [detect-secrets](https://github.com/Yelp/detect-secrets) to search for secrets being committed into the repo. 
+
+To install the pre-commit hook, run
+```
+pre-commit install
+```
+
+To update the .secrets.baseline file run
+```
+detect-secrets scan --update .secrets.baseline
+```
+
+`.secrets.baseline` contains all the string that were caught by detect-secrets but are not stored in plain text. Audit the baseline to view the secrets . 
+
+```
+detect-secrets audit .secrets.baseline
+```
+
+
