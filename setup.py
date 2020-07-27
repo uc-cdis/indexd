@@ -9,6 +9,7 @@ setup(
             'schemas/*',
         ]
     },
+    scripts=["bin/index_admin.py", "bin/indexd", "bin/migrate_index.py"],
     install_requires=[
         'flask~=1.1',
         'jsonschema~=2.5',

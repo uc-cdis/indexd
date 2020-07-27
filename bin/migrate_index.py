@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 The index sqlalchemy driver __init__ function runs all the necessary migration
 functions. This will run every migration from the current version as noted in

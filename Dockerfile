@@ -29,4 +29,7 @@ COPY wsgi.py /var/www/indexd/
 COPY bin/indexd /var/www/indexd/ 
 COPY --from=build /usr/local/lib/python3.5/dist-packages /usr/local/lib/python3.5/dist-packages
 
+# Make indexd CLI utilities available for, e.g., DB schema migration.
+COPY --from=build /usr/local/bin/*index* /usr/local/bin/
+
 WORKDIR /var/www/indexd
