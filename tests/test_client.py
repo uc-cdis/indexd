@@ -883,7 +883,7 @@ def test_bad_hashes(client, user, typ, h):
     json_resp = resp.json
     assert 'error' in json_resp
     if typ not in ACCEPTABLE_HASHES:
-        assert 'is not valid' in json_resp['error']
+        assert 'Failed validating' in json_resp['error']
     else:
         assert 'does not match' in json_resp['error']
 

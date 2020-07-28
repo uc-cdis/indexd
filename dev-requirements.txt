@@ -7,42 +7,56 @@
 appdirs==1.4.4            # via virtualenv
 aspy.yaml==1.3.0          # via pre-commit
 atomicwrites==1.4.0       # via pytest
-attrs==19.3.0             # via pytest
+attrs==19.3.0             # via -c requirements.txt, jsonschema, pytest
 certifi==2020.6.20        # via -c requirements.txt, requests
 cfgv==2.0.1               # via -r dev-requirements.in, pre-commit
 chardet==3.0.4            # via -c requirements.txt, requests
 click==7.1.2              # via -c requirements.txt, flask
+configparser==4.0.2       # via -c requirements.txt, detect-secrets, importlib-metadata
+contextlib2==0.6.0.post1  # via -c requirements.txt, importlib-metadata, importlib-resources, zipp
 coverage==5.2             # via pytest-cov
 detect-secrets==0.13.0    # via -r dev-requirements.in
 distlib==0.3.1            # via virtualenv
+# manual edit to install only with py2
+enum34==1.1.10;python_version=="2.7"            # via detect-secrets
 filelock==3.0.12          # via virtualenv
 flask==1.1.2              # via -c requirements.txt, pytest-flask
+funcsigs==1.0.2           # via pytest
+# manual edit to install only with py2
+functools32==3.2.3.post2;python_version=="2.7"  # via -c requirements.txt, detect-secrets, jsonschema
+future==0.18.2            # via -c requirements.txt, detect-secrets
+# manual edit to install only with py2
+futures==3.3.0;python_version=="2.7"            # via pre-commit
 identify==1.4.24          # via pre-commit
 idna==2.10                # via -c requirements.txt, requests
-importlib-metadata==1.7.0  # via pluggy, pre-commit, virtualenv
+importlib-metadata==1.7.0  # via -c requirements.txt, jsonschema, pluggy, pre-commit, virtualenv
 importlib-resources==3.0.0  # via pre-commit, virtualenv
 itsdangerous==1.1.0       # via -c requirements.txt, flask
 jinja2==2.11.2            # via -c requirements.txt, flask
-jsonschema==2.6.0         # via -c requirements.txt, swagger-spec-validator
+jsonschema==3.2.0         # via -c requirements.txt, swagger-spec-validator
 markupsafe==1.1.1         # via -c requirements.txt, jinja2
 more-itertools==5.0.0     # via -r dev-requirements.in, pytest
 nodeenv==1.4.0            # via pre-commit
-pathlib2==2.3.5           # via pytest
+pathlib2==2.3.5           # via -c requirements.txt, importlib-metadata, importlib-resources, pytest, virtualenv
 pluggy==0.13.1            # via pytest
 pre-commit==1.21.0        # via -r dev-requirements.in
 py==1.9.0                 # via pytest
+pyrsistent==0.16.0        # via -c requirements.txt, jsonschema
 pytest-cov==2.9.0         # via -r dev-requirements.in
 pytest-flask==0.15.1      # via -r dev-requirements.in
 pytest==3.10.1            # via -r dev-requirements.in, pytest-cov, pytest-flask
 pyyaml==5.3.1             # via -r dev-requirements.in, aspy.yaml, detect-secrets, pre-commit, swagger-spec-validator
 requests==2.24.0          # via -c requirements.txt, detect-secrets
-six==1.15.0               # via -c requirements.txt, cfgv, more-itertools, pathlib2, pre-commit, pytest, swagger-spec-validator, virtualenv
+scandir==1.10.0           # via -c requirements.txt, pathlib2
+singledispatch==3.4.0.3   # via importlib-resources
+six==1.15.0               # via -c requirements.txt, cfgv, jsonschema, more-itertools, pathlib2, pre-commit, pyrsistent, pytest, singledispatch, swagger-spec-validator, virtualenv
 swagger-spec-validator==2.7.3  # via -r dev-requirements.in
 toml==0.10.1              # via pre-commit
+typing==3.7.4.3           # via importlib-resources
 urllib3==1.25.9           # via -c requirements.txt, requests
 virtualenv==20.0.27       # via pre-commit
 werkzeug==0.16.1          # via -c requirements.txt, flask, pytest-flask
-zipp==1.2.0               # via importlib-metadata, importlib-resources
+zipp==1.2.0               # via -c requirements.txt, importlib-metadata, importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

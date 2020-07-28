@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='indexd',
-    version='2.4.0',
+    version='2.5.0',
     packages=find_packages(),
     package_data={
         'index': [
@@ -12,7 +12,7 @@ setup(
     scripts=["bin/index_admin.py", "bin/indexd", "bin/migrate_index.py"],
     install_requires=[
         'flask~=1.1',
-        'jsonschema~=2.5',
+        'jsonschema>3,<4',
         'sqlalchemy~=1.3',
         # Support Python 2 until everything that uses indexd in its tests has been updated.
         'sqlalchemy-utils>=0.32,<0.36.4',
