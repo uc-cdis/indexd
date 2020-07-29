@@ -30,6 +30,7 @@ htmlcov/
 .tox/
 .coverage
 .cache
+.local/
 nosetests.xml
 coverage.xml
 swagger_client

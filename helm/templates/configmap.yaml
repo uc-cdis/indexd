@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: indexd-conf
+    labels:
+        app.kubernetes.io/name: {{ include "k8s-service.name" . }}
+        helm.sh/chart: {{ include "k8s-service.chart" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+{{ (tpl (.Files.Glob "files/indexd.conf").AsConfig .) | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: indexd-initialization
+    labels:
+        app.kubernetes.io/name: {{ include "k8s-service.name" . }}
+        helm.sh/chart: {{ include "k8s-service.chart" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+{{ (.Files.Glob "files/create_indexd_user").AsConfig | indent 4 }}
+{{ (.Files.Glob "files/index_table_migration").AsConfig | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: indexd-local-settings
+    labels:
+        app.kubernetes.io/name: {{ include "k8s-service.name" . }}
+        helm.sh/chart: {{ include "k8s-service.chart" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+{{ (.Files.Glob "files/local_settings.py").AsConfig | indent 4 }}
