@@ -1,6 +1,0 @@
-#!/bin/bash
-# these are set in supervisor's environment by upstart (presumably), but we don't want them so we unset them here
-unset http_proxy
-unset https_proxy
-
-exec /usr/bin/python /indexd/bin/index_admin.py create --username $INDEXD_USER --password $INDEXD_PASSWORD

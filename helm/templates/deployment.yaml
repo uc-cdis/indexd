@@ -107,7 +107,7 @@ spec:
       containers:
         - name: {{ .Values.applicationName }}
           {{- $repo := required "containerImage.repository is required" .Values.containerImage.repository }}
-          {{- $tag := required "containerImage.tag is required" .Values.containerImage.tag }}
+          {{- $tag :=  .Values.containerImage.tag | default .Chart.AppVersion }}
           image: "{{ $repo }}:{{ $tag }}"
           imagePullPolicy: {{ .Values.containerImage.pullPolicy | default "IfNotPresent" }}
           {{- if .Values.containerCommand }}

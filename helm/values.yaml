@@ -36,7 +36,8 @@
 applicationName: indexd
 containerImage:
   repository: docker.osdc.io/indexd
-  tag: 2.3.1
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
   pullPolicy: IfNotPresent
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -338,18 +339,9 @@ configMaps:
   logdir:
     as: none
     mountPath: "/var/log/apache2/"
-  apache-logs-conf:
-    as: volume
-    mountPath: /etc/apache2/sites-available
-    items:
-      logs.conf:
-        filePath: logs.conf
   indexd-conf:
     as: volume
     mountPath: /etc/apache2/sites-enabled/
-  indexd-initialization:
-    as: volume
-    mountPath: /indexd/
   indexd-local-settings:
     as: volume
     mountPath: /var/www/indexd/
