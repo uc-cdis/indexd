@@ -1,9 +1,34 @@
+# The apiVersion field should be v2 for Helm charts that require at least Helm 3.
 apiVersion: v2
 name: indexd
-description: A Helm chart to package your application container for Kubernetes
-# This will be updated with the release tag in the CI/CD pipeline before publishing. This has to be a valid semver for
-# the linter to accept.
-version: 0.0.1-replace
+description: A Helm chart for indexd
+
+# A chart can be either an 'application' or a 'library' chart.
+#
+# Application charts are a collection of templates that can be packaged into versioned archives
+# to be deployed.
+#
+# Library charts provide useful utilities or functions for the chart developer. They're included as
+# a dependency of application charts to inject those utilities and functions into the rendering
+# pipeline. Library charts do not define any templates and therefore cannot be deployed.
+type: application
+
+# This is the chart version. This version number should be incremented each time you make changes
+# to the chart and its templates, including the app version.
+# Versions are expected to follow Semantic Versioning (https://semver.org/)
+
+# This will be updated with the release tag in the CI/CD pipeline before publishing. 
+# This has to be a valid semver for the linter to accept.
+version: 0
+
+# This is the version number of the application being deployed. This version number should be
+# incremented each time you make changes to the application. Versions are not expected to
+# follow Semantic Versioning. They should reflect the version the application is using.
+
+# This will be updated with the release tag in the CI/CD pipeline before publishing. 
+# This has to be a valid semver for the linter to accept.
+# appVersion: ""
+
 home: https://github.com/NCI-GDC/indexd/
 maintainers:
   - name: Center for Translational Data Science

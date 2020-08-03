@@ -7,7 +7,7 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
       
   app:
-    image: quay.io/ncigdc/jenkins-agent:multipython
+    image: docker.osdc.io/ncigdc/jenkins-agent:1.0.1
     environment:
       SWAGGER_URL: "https://nexus.osdc.io/repository/maven-public/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar"
       SSH_AUTH_SOCK: $SSH_AUTH_SOCK
@@ -17,7 +17,7 @@ services:
     volumes:
     - .:/home/jenkins
     - $SSH_AUTH_SOCK:$SSH_AUTH_SOCK
-    command: bash -c "./wait-for-it.sh localhost:5432 -t 120 && tox --recreate"
+    command: bash -c "wait-for-it localhost:5432 -t 120 && tox --recreate"
     network_mode: "service:postgres"
     depends_on: # other containers it needs in order to run
       - postgres
