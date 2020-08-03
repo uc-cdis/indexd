@@ -32,8 +32,8 @@ COPY --from=build /usr/local/lib/python3.5/dist-packages /usr/local/lib/python3.
 # Make indexd CLI utilities available for, e.g., DB schema migration.
 COPY --from=build /usr/local/bin/*index* /usr/local/bin/
 
-RUN ln -sf /dev/stdout /logdir/access.log \
-  && ln -sf /dev/stdout /logdir/other_vhosts_access.log\
-  && ln -sf /dev/stderr /logdir/error.log
+RUN ln -sf /dev/stdout /var/log/apache2/access.log \
+  && ln -sf /dev/stdout /var/log/apache2/other_vhosts_access.log\
+  && ln -sf /dev/stderr /var/log/apache2/error.log
 
 WORKDIR /var/www/indexd
