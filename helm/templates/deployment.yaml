@@ -66,12 +66,12 @@ spec:
           {{- end }}
           {{- if or (gt (len .Values.envVars.configMaps) 0) }}
           {{- range $name, $value := .Values.envVars.configMaps }}
-            {{- range $secretKey, $keyEnvVarConfig := $value.items }}
-            - name: {{ required "envVarName is required on secrets items when using environment" $keyEnvVarConfig.envVarName | quote }}
+            {{- range $configMapKey, $keyEnvVarConfig := $value.items }}
+            - name: {{ required "envVarName is required on configMap items when using environment" $keyEnvVarConfig.envVarName | quote }}
               valueFrom:
                 configMapKeyRef:
                   name: {{ $name }}
-                  key: {{ $secretKey }}
+                  key: {{ $configMapKey }}
             {{- end }}
           {{- end }}
           {{- end }}
