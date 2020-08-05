@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "indexd.fullname" . }}
+  labels:
+    {{- include "indexd.labels" . | nindent 4 }}
+spec:
+{{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      {{- include "indexd.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "indexd.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "indexd.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if or (gt (len .Values.volumes.configMaps) 0) (gt (len .Values.volumes.secrets) 0)}}
+          volumeMounts:
+          {{- if or (gt (len .Values.envVars.secrets) 0) }}
+          {{- range $name, $value := .Values.volumes.secrets }}
+            - name: {{$name}}-volume
+              mountPath: {{ $value.mountPath }}
+          {{- end }}
+          {{- end }}
+          {{- if or (gt (len .Values.volumes.configMaps) 0) }}
+          {{- range $name, $value := .Values.volumes.configMaps }}
+            - name: {{$name}}-volume
+              mountPath: {{ $value.mountPath }}
+              {{- if $value.subPath }}
+              subPath: {{ $value.subPath }}
+              {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- if or (gt (len .Values.envVars.configMaps) 0) (gt (len .Values.envVars.secrets) 0)}}
+          env:
+          {{- if or (gt (len .Values.envVars.secrets) 0) }}
+          {{- range $name, $value := .Values.envVars.secrets }}
+            {{- range $secretKey, $keyEnvVarConfig := $value.items }}
+            - name: {{ required "envVarName is required on secrets items when using environment" $keyEnvVarConfig.envVarName | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $name }}
+                  key: {{ $secretKey }}
+            {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- if or (gt (len .Values.envVars.configMaps) 0) }}
+          {{- range $name, $value := .Values.envVars.configMaps }}
+            {{- range $configMapKey, $keyEnvVarConfig := $value.items }}
+            - name: {{ required "envVarName is required on configMap items when using environment" $keyEnvVarConfig.envVarName | quote }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: {{ $configMapKey }}
+            {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /_status
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if or (gt (len .Values.volumes.configMaps) 0) (gt (len .Values.volumes.secrets) 0)}}
+      volumes:
+      {{- range $name, $value := .Values.volumes.configMaps }}
+        - name: {{ $name }}-volume
+          configMap:
+            name: {{ $name }}
+      {{- end }}
+      {{- range $name, $value := .Values.volumes.secrets }}
+        - name: {{ $name }}-volume
+          secret:
+            secretName: {{ $name }}
+      {{- end }}
+      {{ end }}
