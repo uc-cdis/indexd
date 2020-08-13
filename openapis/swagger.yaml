@@ -984,7 +984,7 @@ paths:
       parameters:
         - name: form
           in: query
-          description: specify wheather you want to list bundle, objects or both. 
+          description: specify whether you want to list bundle, objects or both. 
           required: false
           type: "string"
           enum: ["bundle", "object", "all"]
@@ -1169,7 +1169,7 @@ paths:
       parameters:
         - name: form
           in: query
-          description: specify wheather you want to list bundle, objects or both. 
+          description: specify whether you want to list bundle, objects or both. 
           required: false
           type: "string"
           enum: ["bundle", "object", "all"]
