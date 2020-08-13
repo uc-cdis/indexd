@@ -141,7 +141,7 @@ paths:
       parameters:
         - name: form
           in: query
-          description: specify wheather you want to list bundle, objects or both. 
+          description: specify whether you want to list bundle, objects or both Defaults to object. 
           required: false
           type: "string"
           enum: ["bundle", "object", "all"]
@@ -1147,7 +1147,7 @@ paths:
       parameters:
         - in: body
           name: body
-          description: Body takes in GUID, bundle_name, checksum, list of bundles to bundle, and size. Only bundls bundles is required, rest will be created by indexd if not provided. 
+          description: Body takes in GUID, bundle_name, checksum, list of bundles/objects to bundle, and size. Only list of bundles/objects is required, rest will be created by indexd if not provided. 
           required: true
           schema:
             $ref: '#/definitions/InputBundle'

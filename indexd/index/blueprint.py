@@ -659,7 +659,7 @@ def post_bundle():
         raise UserError("Duplicate GUID in bundles.")
 
     if bundle_id in bundles:
-        raise UserError("Bundle referes to itself.")
+        raise UserError("Bundle refers to itself.")
 
     bundle_data = []
     checksums = []
