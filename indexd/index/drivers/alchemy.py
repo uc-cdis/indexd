@@ -1,7 +1,7 @@
 import datetime
 import uuid
+import json
 from contextlib import contextmanager
-
 from cdislogging import get_logger
 from sqlalchemy import (
     BigInteger,
@@ -12,6 +12,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    Text,
     and_,
     func,
     or_,
@@ -244,6 +245,49 @@ class IndexRecordHash(Base):
     )
 
 
+class DrsBundleRecord(Base):
+    """
+    DRS bundle record representaion. 
+    """
+
+    __tablename__ = "drs_bundle_record"
+
+    bundle_id = Column(String, primary_key=True)
+    name = Column(String)
+    created_time = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_time = Column(DateTime, default=datetime.datetime.utcnow)
+    checksum = Column(String)
+    size = Column(BigInteger)
+    bundle_data = Column(Text)
+    description = Column(Text)
+    version = Column(String)
+    aliases = Column(String)
+
+    def to_document_dict(self, expand=False):
+        """
+        Get the full bundle document
+        expand: True to include bundle_data
+        """
+        ret = {
+            "id": self.bundle_id,
+            "name": self.name,
+            "created_time": self.created_time.isoformat(),
+            "updated_time": self.updated_time.isoformat(),
+            "checksum": self.checksum,
+            "size": self.size,
+            "form": "bundle",
+            "version": self.version,
+            "description": self.description,
+            "aliases": self.aliases,
+        }
+
+        if expand:
+            bundle_data = json.loads(self.bundle_data)
+            ret["bundle_data"] = bundle_data
+
+        return ret
+
+
 def create_urls_metadata(urls_metadata, record, session):
     """
     create url metadata record in database
@@ -294,7 +338,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     def migrate_index_database(self):
         """
-        migrate alias database to match CURRENT_SCHEMA_VERSION
+        migrate index database to match CURRENT_SCHEMA_VERSION
         """
         migrate_database(
             driver=self,
@@ -751,6 +795,26 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
+    def add_blank_bundle(self):
+        """
+        Create a new blank record with only uploader and optionally
+        file_name fields filled
+        """
+        with self.session as session:
+            record = DrsBundleRecord()
+            base_version = BaseVersion()
+
+            bundle_id = str(uuid.uuid4())
+
+            record.bundle_id = bundle_id
+            base_version.baseid = bundle_id
+
+            session.add(base_version)
+            session.add(record)
+            session.commit()
+
+            return record.bundle_id
+
     def update_blank_record(self, did, rev, size, hashes, urls, authz=None):
         """
         Update a blank record with size, hashes, urls, authz and raise
@@ -1011,7 +1075,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             self.logger.info(f"Deleted alias {alias} for did {did}.")
 
-    def get(self, did):
+    def get(self, did, expand=True):
         """
         Gets a record given the record id or baseid.
         If the given id is a baseid, it will return the latest version
@@ -1024,7 +1088,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record = query.first()
             if record is None:
-                raise NoRecordFound("no record found")
+                record = self.get_bundle(bundle_id=did, expand=expand)
+                if record:
+                    return record
+                else:
+                    raise NoRecordFound("no record found")
+
             return record.to_document_dict()
 
     def update(self, did, rev, changing_fields):
@@ -1452,6 +1521,164 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 select([func.count()]).select_from(IndexRecord)
             ).scalar()
 
+    def add_bundle(
+        self,
+        bundle_id=None,
+        name=None,
+        checksum=None,
+        size=None,
+        bundle_data=None,
+        description=None,
+        version=None,
+        aliases=None,
+    ):
+        """
+        Add a bundle record 
+        """
+        with self.session as session:
+            record = DrsBundleRecord()
+            if not bundle_id:
+                bundle_id = str(uuid.uuid4())
+                if self.config.get("PREPEND_PREFIX"):
+                    bundle_id = self.config["DEFAULT_PREFIX"] + bundle_id
+            if not name:
+                name = bundle_id
+
+            record.bundle_id = bundle_id
+
+            record.name = name
+
+            record.checksum = checksum
+
+            record.size = size
+
+            record.bundle_data = bundle_data
+
+            record.description = description
+
+            record.version = version
+
+            record.aliases = aliases
+
+            try:
+                session.add(record)
+                session.commit()
+            except IntegrityError:
+                raise UserError(
+                    'bundle id "{bundle_id}" already exists'.format(
+                        bundle_id=record.bundle_id
+                    ),
+                    400,
+                )
+
+            return record.bundle_id, record.name, record.bundle_data
+
+    def get_bundle_list(self, start=None, limit=100, page=None):
+        """
+        Returns list of all bundles
+        """
+        with self.session as session:
+            query = session.query(DrsBundleRecord)
+            query = query.limit(limit)
+
+            if start is not None:
+                query = query.filter(DrsBundleRecord.bundle_id > start)
+
+            if page is not None:
+                query = query.offset(limit * page)
+
+            return [i.to_document_dict() for i in query]
+
+    def get_bundle(self, bundle_id, expand=False):
+        """
+        Gets a bundle record given the bundle_id.
+        """
+        with self.session as session:
+            query = session.query(DrsBundleRecord)
+
+            query = query.filter(or_(DrsBundleRecord.bundle_id == bundle_id)).order_by(
+                DrsBundleRecord.created_time.desc()
+            )
+
+            record = query.first()
+            if record is None:
+                raise NoRecordFound("No bundle found")
+
+            doc = record.to_document_dict(expand)
+
+            return doc
+
+    def get_bundle_and_object_list(
+        self,
+        limit=100,
+        page=None,
+        start=None,
+        size=None,
+        urls=None,
+        acl=None,
+        authz=None,
+        hashes=None,
+        file_name=None,
+        version=None,
+        uploader=None,
+        metadata=None,
+        ids=None,
+        urls_metadata=None,
+        negate_params=None,
+    ):
+        """
+        Gets bundles and objects and orders them by created time.
+        """
+        limit = int((limit / 2) + 1)
+        bundle = self.get_bundle_list(start=start, limit=limit, page=page)
+        objects = self.ids(
+            limit=limit,
+            page=page,
+            start=start,
+            size=size,
+            urls=urls,
+            acl=acl,
+            authz=authz,
+            hashes=hashes,
+            file_name=file_name,
+            version=version,
+            uploader=uploader,
+            metadata=metadata,
+            ids=ids,
+            urls_metadata=urls_metadata,
+            negate_params=negate_params,
+        )
+
+        ret = []
+        i = 0
+        j = 0
+
+        while i + j < len(bundle) + len(objects):
+            if i != len(bundle) and (
+                j == len(objects)
+                or bundle[i]["created_time"] > objects[j]["created_date"]
+            ):
+                ret.append(bundle[i])
+                i += 1
+            else:
+                ret.append(objects[j])
+                j += 1
+        return ret
+
+    def delete_bundle(self, bundle_id):
+        with self.session as session:
+            query = session.query(DrsBundleRecord)
+            query = query.filter(DrsBundleRecord.bundle_id == bundle_id)
+
+            try:
+                record = query.one()
+            except NoResultFound:
+                raise NoRecordFound("No bundle found")
+            except MultipleResultsFound:
+                raise MultipleRecordsFound("Multiple bundles found")
+
+            session.delete(record)
+
 
 def migrate_1(session, **kwargs):
     session.execute(
@@ -1524,7 +1751,7 @@ def migrate_3(session, **kwargs):
     )
 
     session.execute(
-        "CREATE INDEX {tb}__file_name_idx ON {tb} ( file_name )".format(
+        "x INDEX {tb}__file_name_idx ON {tb} ( file_name )".format(
             tb=IndexRecord.__tablename__
         )
     )

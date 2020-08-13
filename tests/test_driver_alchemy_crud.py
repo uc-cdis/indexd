@@ -110,6 +110,35 @@ def test_driver_add_object_record():
 
 
 @util.removes("index.sq3")
+def test_driver_add_bundle_record():
+    """
+    Tests creation of a record.
+    """
+    with sqlite3.connect("index.sq3") as conn:
+
+        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+
+        driver.add_blank_bundle()
+
+        count = conn.execute(
+            """
+            SELECT COUNT(*) FROM drs_bundle_record
+        """
+        ).fetchone()[0]
+
+        assert count == 1, "driver did not create record"
+
+        record = conn.execute(
+            """
+            SELECT * FROM drs_bundle_record
+        """
+        ).fetchone()
+
+        assert record != None
+        assert len(record) == 10
+
+
+@util.removes("index.sq3")
 def test_driver_add_container_record():
     """
     Tests creation of a record.
@@ -139,6 +168,37 @@ def test_driver_add_container_record():
         assert record[2], "record rev not populated"
         assert record[3] == "container", "record form is not container"
         assert record[4] == None, "record size non-null"
+
+
+@util.removes("index.sq3")
+def test_driver_add_bundles_record():
+    """
+    Tests creation of a record.
+    """
+    with sqlite3.connect("index.sq3") as conn:
+
+        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+
+        driver.add_bundle(name="bundle",)
+
+        count = conn.execute(
+            """
+            SELECT COUNT(*) FROM drs_bundle_record
+        """
+        ).fetchone()[0]
+
+        assert count == 1, "driver did not create record"
+
+        record = conn.execute(
+            """
+            SELECT * FROM drs_bundle_record
+        """
+        ).fetchone()
+        assert record[0], "record id not populated"
+        assert record[1], "record name not populated"
+        assert record[1] == "bundle", "record name is not bundle"
+        assert record[2], "record created date not populated"
+        assert record[3], "record updated date not populated"
 
 
 @util.removes("index.sq3")
@@ -860,3 +920,41 @@ def test_driver_delete_fails_with_invalid_rev():
 
         with pytest.raises(RevisionMismatch):
             driver.delete(did, "some_revision")
+
+
+@util.removes("index.sq3")
+def test_driver_get_bundle():
+    """
+    Tests retrieval of a record.
+    """
+    with sqlite3.connect("index.sq3") as conn:
+
+        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+
+        bundle_id = str(uuid.uuid4())
+        checksum = "iuhd91h9ufh928jidsoajh9du328"
+        size = 512
+        name = "object"
+        created_time = updated_time = datetime.now()
+        bundle_data = "{'bundle_data': [{'access_methods': [{'access_id': 's3', 'access_url': {'url': 's3://endpointurl/bucket/key'}, 'region': '', 'type': 's3'}], 'aliases': [], 'checksums': [{'checksum': '8b9942cf415384b27cadf1f4d2d682e5', 'type': 'md5'}], 'contents': [], 'created_time': '2020-04-23T21:42:36.506404', 'description': '', 'id': 'testprefix:7e677693-9da3-455a-b51c-03467d5498b0', 'mime_type': 'application/json', 'name': None, 'self_uri': 'drs://fictitious-commons.io/testprefix:7e677693-9da3-455a-b51c-03467d5498b0', 'size': 123, 'updated_time': '2020-04-23T21:42:36.506410', 'version': '3c995667'}], 'bundle_id': '1ff381ef-55c7-42b9-b33f-81ac0689d131', 'checksum': '65b464c1aea98176ef2fa38e8b6b9fc7', 'created_time': '2020-04-23T21:42:36.564808', 'name': 'test_bundle', 'size': 123, 'updated_time': '2020-04-23T21:42:36.564819'}"
+        conn.execute(
+            """
+            INSERT INTO drs_bundle_record(bundle_id, name, checksum, size, bundle_data, created_time, updated_time) VALUES (?,?,?,?,?,?,?)
+        """,
+            (bundle_id, name, checksum, size, bundle_data, created_time, updated_time),
+        )
+
+        conn.commit()
+
+        record = driver.get_bundle(bundle_id)
+
+        assert record["id"] == bundle_id, "record id does not match"
+        assert record["checksum"] == checksum, "record revision does not match"
+        assert record["size"] == size, "record size does not match"
+        assert record["name"] == name, "record name does not match"
+        assert (
+            record["created_time"] == created_time.isoformat()
+        ), "created date does not match"
+        assert (
+            record["updated_time"] == updated_time.isoformat()
+        ), "created date does not match"

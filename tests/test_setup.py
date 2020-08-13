@@ -35,6 +35,18 @@ INDEX_TABLES = {
         (1, "url", "VARCHAR", 1, None, 1 if OLD_SQLITE else 2),
     ],
     "index_schema_version": [(0, "version", "INTEGER", 1, None, 1)],
+    "drs_bundle_record": [
+        (0, "bundle_id", "VARCHAR", 1, None, 1),
+        (1, "name", "VARCHAR", 0, None, 0),
+        (2, "created_time", "DATETIME", 0, None, 0),
+        (3, "updated_time", "DATETIME", 0, None, 0),
+        (4, "checksum", "VARCHAR", 0, None, 0),
+        (5, "size", "BIGINT", 0, None, 0),
+        (6, "bundle_data", "TEXT", 0, None, 0),
+        (7, "description", "TEXT", 0, None, 0),
+        (8, "version", "VARCHAR", 0, None, 0),
+        (9, "aliases", "VARCHAR", 0, None, 0),
+    ],
 }
 
 ALIAS_TABLES = {

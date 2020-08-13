@@ -3,6 +3,7 @@ import tests.conftest
 import requests
 import responses
 from tests.default_test_settings import settings
+from tests.test_bundles import get_bundle_doc
 
 
 def generate_presigned_url_response(did, protocol="", status=200):
@@ -80,13 +81,27 @@ def test_drs_list(client, user):
     submitted_guids = []
     for _ in range(record_length):
         res_1 = client.post("/index/", json=data, headers=user)
-        submitted_guids.append(res_1.json["did"])
+        did = res_1.json["did"]
+        submitted_guids.append(did)
+        bundle_data = get_bundle_doc(bundles=[did])
+        res2 = client.post("/bundle/", json=bundle_data, headers=user)
         assert res_1.status_code == 200
+
     res_2 = client.get("/ga4gh/drs/v1/objects")
     assert res_2.status_code == 200
     rec_2 = res_2.json
-    assert len(rec_2["drs_objects"]) == record_length
+    assert len(rec_2["drs_objects"]) == 2 * record_length
     assert submitted_guids.sort() == [r["id"] for r in rec_2["drs_objects"]].sort()
+
+    res_3 = client.get("/ga4gh/drs/v1/objects/?form=bundle")
+    assert res_3.status_code == 200
+    rec_3 = res_3.json
+    assert len(rec_3["drs_objects"]) == record_length
+
+    res_4 = client.get("/ga4gh/drs/v1/objects/?form=object")
+    assert res_4.status_code == 200
+    rec_4 = res_4.json
+    assert len(rec_4["drs_objects"]) == record_length
 
 
 def test_get_drs_record_not_found(client, user):

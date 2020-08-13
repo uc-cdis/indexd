@@ -1,6 +1,7 @@
 import re
 import json
 import flask
+import hashlib
 import jsonschema
 import os.path
 import subprocess
@@ -14,6 +15,7 @@ from indexd.errors import UserError
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
 from .schema import RECORD_ALIAS_SCHEMA
+from .schema import BUNDLE_SCHEMA
 from .schema import UPDATE_ALL_VERSIONS_SCHEMA
 
 from .errors import NoRecordFound
@@ -22,6 +24,7 @@ from .errors import RevisionMismatch
 from .errors import UnhealthyCheck
 
 from cdislogging import get_logger
+from indexd.drs.blueprint import indexd_to_drs, get_drs_object, bundle_to_drs
 
 logger = get_logger("indexd/index blueprint", log_level="info")
 
@@ -52,7 +55,7 @@ def validate_hashes(**hashes):
 
 
 @blueprint.route("/index/", methods=["GET"])
-def get_index():
+def get_index(form=None):
     """
     Returns a list of records.
     """
@@ -128,23 +131,47 @@ def get_index():
         except ValueError:
             raise UserError("negate_params must be a valid json string")
 
-    records = blueprint.index_driver.ids(
-        start=start,
-        limit=limit,
-        page=page,
-        size=size,
-        file_name=file_name,
-        version=version,
-        urls=urls,
-        acl=acl,
-        authz=authz,
-        hashes=hashes,
-        uploader=uploader,
-        ids=ids,
-        metadata=metadata,
-        urls_metadata=urls_metadata,
-        negate_params=negate_params,
-    )
+    form = flask.request.args.get("form") if not form else form
+    if form == "bundle":
+        records = blueprint.index_driver.get_bundle_list(
+            start=start, limit=limit, page=page
+        )
+    elif form == "all":
+        records = blueprint.index_driver.get_bundle_and_object_list(
+            limit=limit,
+            page=page,
+            start=start,
+            size=size,
+            urls=urls,
+            acl=acl,
+            authz=authz,
+            hashes=hashes,
+            file_name=file_name,
+            version=version,
+            uploader=uploader,
+            metadata=metadata,
+            ids=ids,
+            urls_metadata=urls_metadata,
+            negate_params=negate_params,
+        )
+    else:
+        records = blueprint.index_driver.ids(
+            start=start,
+            limit=limit,
+            page=page,
+            size=size,
+            file_name=file_name,
+            version=version,
+            urls=urls,
+            acl=acl,
+            authz=authz,
+            hashes=hashes,
+            uploader=uploader,
+            ids=ids,
+            metadata=metadata,
+            urls_metadata=urls_metadata,
+            negate_params=negate_params,
+        )
 
     base = {
         "ids": ids,
@@ -568,6 +595,143 @@ def version():
     base = {"version": VERSION, "commit": COMMIT}
 
     return flask.jsonify(base), 200
+
+
+def compute_checksum(checksums):
+    """
+    Checksum created by sorting alphabetically then concatenating first layer of bundles/objects.
+
+    Args:
+        checksums (list): list of checksums from the first layer of bundles and objects
+    
+    Returns:
+        md5 checksum
+    """
+    checksums.sort()
+    checksum = "".join(checksums)
+    return hashlib.md5(checksum.encode("utf-8")).hexdigest()
+
+
+def get_checksum(data):
+    if "hashes" in data:
+        return data["hashes"][list(data["hashes"])[0]]
+    elif "checksums" in data:
+        return data["checksums"][0]["checksum"]
+    elif "checksum" in data:
+        return data["checksum"]
+
+
+@blueprint.route("/bundle/", methods=["POST"])
+def post_bundle():
+    """
+    Create a new bundle
+    """
+
+    try:
+        authorize("create", ["/services/indexd/bundles"])
+    except:
+        raise AuthError("Invalid Token.")
+    try:
+        jsonschema.validate(flask.request.json, BUNDLE_SCHEMA)
+    except jsonschema.ValidationError as err:
+        raise UserError(err)
+
+    name = flask.request.json.get("name")
+    bundles = flask.request.json.get("bundles")
+    bundle_id = flask.request.json.get("bundle_id")
+    size = flask.request.json.get("size") if flask.request.json.get("size") else 0
+    description = (
+        flask.request.json.get("description")
+        if flask.request.json.get("description")
+        else ""
+    )
+    version = (
+        flask.request.json.get("version") if flask.request.json.get("version") else ""
+    )
+    aliases = (
+        flask.request.json.get("aliases") if flask.request.json.get("aliases") else []
+    )
+
+    if len(bundles) == 0:
+        raise UserError("Bundle data required.")
+
+    if len(bundles) != len(set(bundles)):
+        raise UserError("Duplicate GUID in bundles.")
+
+    if bundle_id in bundles:
+        raise UserError("Bundle refers to itself.")
+
+    bundle_data = []
+    checksums = []
+
+    # get bundles/records that already exists and add it to bundle_data
+    for bundle in bundles:
+        data = get_index_record(bundle)[0]
+        data = data.json
+        size += data["size"] if not flask.request.json.get("size") else 0
+        checksums.append(get_checksum(data))
+        data = bundle_to_drs(data, expand=True, is_content=True)
+        bundle_data.append(data)
+    checksum = (
+        flask.request.json.get("checksum")
+        if flask.request.json.get("checksum")
+        else compute_checksum(checksums)
+    )
+
+    ret = blueprint.index_driver.add_bundle(
+        bundle_id=bundle_id,
+        name=name,
+        size=size,
+        bundle_data=json.dumps(bundle_data),
+        checksum=checksum,
+        description=description,
+        version=version,
+        aliases=json.dumps(aliases),
+    )
+
+    return flask.jsonify({"bundle_id": ret[0], "name": ret[1], "contents": ret[2]}), 200
+
+
+@blueprint.route("/bundle/", methods=["GET"])
+def get_bundle_record_list():
+    """
+    Returns a list of bundle records.
+    """
+
+    form = (
+        flask.request.args.get("form") if flask.request.args.get("form") else "bundle"
+    )
+
+    return get_index(form=form)
+
+
+@blueprint.route("/bundle/<path:bundle_id>", methods=["GET"])
+def get_bundle_record_with_id(bundle_id):
+    """
+    Returns a record given bundle_id
+    """
+
+    expand = True if flask.request.args.get("expand") == "true" else False
+
+    ret = blueprint.index_driver.get(bundle_id)
+
+    ret = bundle_to_drs(ret, expand=expand, is_content=False)
+
+    return flask.jsonify(ret), 200
+
+
+@blueprint.route("/bundle/<path:bundle_id>", methods=["DELETE"])
+def delete_bundle_record(bundle_id):
+    """
+    Delete bundle record given bundle_id
+    """
+    try:
+        authorize("delete", ["/services/indexd/bundles"])
+    except:
+        raise AuthError("Invalid Token.")
+    blueprint.index_driver.delete_bundle(bundle_id)
+
+    return "", 200
 
 
 @blueprint.errorhandler(NoRecordFound)

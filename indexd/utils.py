@@ -100,11 +100,15 @@ def create_tables(host, user, password, database):  # pragma: no cover
         FOREIGN KEY(did) REFERENCES index_record (did) )"
     create_index_schema_version_stm = "CREATE TABLE index_schema_version (\
         version INT)"
+    create_drs_bundle_record = "CREATE TABLE drs_bundle_record (\
+        bundle_id VARCHAR NOT NULL, name VARCHAR, created_time DATETIME, updated_time DATETIME,\
+        checksum VARCHAR, size BIGINT, bundle_data TEXT, description TEXT, version VARCHAR, aliases VARCHAR, PRIMARY KEY(bundle_id)"
     try:
         conn.execute(create_index_record_stm)
         conn.execute(create_record_hash_stm)
         conn.execute(create_record_url_stm)
         conn.execute(create_index_schema_version_stm)
+        conn.execute(create_drs_bundle_record)
     except Exception:
         logging.warn("Unable to create table")
     conn.close()
