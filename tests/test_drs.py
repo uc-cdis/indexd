@@ -19,7 +19,7 @@ def get_doc(has_version=True, urls=list(), drs_list=0):
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
-        "meta_data": {"drs_version": 1, "drs_description": "test drs description"},
+        "metadata": {"drs_version": 1, "drs_description": "test drs description"},
     }
     if has_version:
         doc["version"] = "1"

@@ -137,8 +137,8 @@ def indexd_to_drs(record, expand=False, list_drs=False):
         "form": form,
         "checksums": [],
         "description": description,
-        "drs_description": record.get("meta_data", {}).get("drs_description"),
-        "drs_version": record.get("meta_data", {}).get("drs_version"),
+        "drs_description": record.get("metadata", {}).get("drs_description"),
+        "drs_version": record.get("metadata", {}).get("drs_version"),
     }
 
     if expand and "bundle_data" in record:
