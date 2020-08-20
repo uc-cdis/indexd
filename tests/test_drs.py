@@ -1,8 +1,4 @@
-import json
-import tests.conftest
-import requests
 import responses
-from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
 
 
@@ -23,16 +19,12 @@ def get_doc(has_version=True, urls=list(), drs_list=0):
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "meta_data": {"drs_version": 1, "drs_description": "test drs description"},
     }
     if has_version:
         doc["version"] = "1"
     if urls:
         doc["urls"] = urls
-    # if drs_list > 0:
-    #     ret = {"drs_objects": []}
-    #     for _ in range(drs_list):
-    #         ret["drs_objects"].append(doc)
-    #     return ret
     return doc
 
 
@@ -51,6 +43,8 @@ def test_drs_get(client, user):
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
     assert rec_2["self_uri"] == "drs://fictitious-commons.io/" + rec_1["did"]
+    assert rec_2["drs_version"] == 1
+    assert rec_2["drs_description"] == "test drs description"
 
 
 def test_drs_multiple_endpointurl(client, user):
@@ -119,7 +113,7 @@ def test_get_presigned_url_unauthorized(client, user):
     rec_1 = res_1.json
     generate_presigned_url_response(rec_1["did"], "s3", status=401)
     res_2 = client.get(
-        "/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/s3", headers=user,
+        "/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/s3", headers=user
     )
     assert res_2.status_code == 401
 

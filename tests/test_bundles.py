@@ -8,10 +8,7 @@ from tests.default_test_settings import settings
 
 
 def get_bundle_doc(bundles, bundle_id=None):
-    doc = {
-        "name": "test_bundle",
-        "bundles": bundles,
-    }
+    doc = {"name": "test_bundle", "bundles": bundles}
 
     if not bundle_id:
         bundle_id = uuid.uuid4()
@@ -27,7 +24,9 @@ def get_index_doc(has_version=True, urls=list(), add_bundle=False):
         "form": "object",
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
-        "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "hashes": {
+            "md5": "8b9942cf415384b27cadf1f4d2d682e5"  # pragma: allowlist secret
+        },
     }
     if has_version:
         doc["version"] = "1"
@@ -65,9 +64,9 @@ def test_bundle_get_post_with_optional_fields(client, user):
         +-object1
 
     Bundel 2
-        +-Bundle 1 
-            +-object1 
-        +-object1 
+        +-Bundle 1
+            +-object1
+        +-object1
     """
     did_list, _ = create_index(client, user)
 
@@ -112,9 +111,9 @@ def test_bundle_get_post_with_optional_fields(client, user):
 def test_bundle_post_self_reference(client, user):
     """
     Make sure this doesnt exist
-    Bundle 1 
+    Bundle 1
         Object 1
-        Bundle 1 
+        Bundle 1
         .
         .
     """
@@ -134,7 +133,7 @@ def test_bundle_post_defined_size_checksum(client, user):
         "name": "test_bundle",
         "bundles": did_list,
         "bundle_id": bundle_id,
-        "checksum": "1bab24e003ac48840123e5bbe72a5ec9",
+        "checksum": "1bab24e003ac48840123e5bbe72a5ec9",  # pragma: allowlist secret
         "size": 12345,
     }
     res2 = client.post("/bundle/", json=data, headers=user)
@@ -148,7 +147,7 @@ def test_bundle_bundle_data_not_found(client, user):
         "name": "test_bundle",
         "bundles": ["1987hgd09183hd0981hjd0h08ashjd80"],
         "bundle_id": bundle_id,
-        "checksum": "1bab24e003ac48840123e5bbe72a5ec9",
+        "checksum": "1bab24e003ac48840123e5bbe72a5ec9",  # pragma: allowlist secret
         "size": 12345,
     }
     res2 = client.post("/bundle/", json=data, headers=user)
@@ -171,10 +170,7 @@ def test_bundle_post_invalid_input(client, user):
 
 
 def test_bundle_post_no_bundle_data(client, user):
-    data = {
-        "name": "test_bundle",
-        "bundles": [],
-    }
+    data = {"name": "test_bundle", "bundles": []}
     res2 = client.post("/bundle/", json=data, headers=user)
     assert res2.status_code == 400
     assert res2.json["error"] == "Bundle data required."

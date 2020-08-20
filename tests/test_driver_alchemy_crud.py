@@ -179,7 +179,7 @@ def test_driver_add_bundles_record():
 
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
-        driver.add_bundle(name="bundle",)
+        driver.add_bundle(name="bundle")
 
         count = conn.execute(
             """

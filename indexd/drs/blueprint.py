@@ -43,7 +43,7 @@ def list_drs_records():
     if page is not None:
         try:
             page = int(page)
-        except ValueError as err:
+        except ValueError:
             raise UserError("page must be an integer")
 
     if form == "bundle":
@@ -56,9 +56,7 @@ def list_drs_records():
         records = blueprint.index_driver.get_bundle_and_object_list(
             start=start, limit=limit, page=page
         )
-    ret = {
-        "drs_objects": [indexd_to_drs(record, True) for record in records],
-    }
+    ret = {"drs_objects": [indexd_to_drs(record, True) for record in records]}
 
     return flask.jsonify(ret), 200
 
@@ -84,8 +82,6 @@ def get_signed_url(object_id, access_id):
 
 
 def indexd_to_drs(record, expand=False, list_drs=False):
-
-    bearer_token = flask.request.headers.get("AUTHORIZATION")
 
     did = (
         record["id"]
@@ -129,7 +125,6 @@ def indexd_to_drs(record, expand=False, list_drs=False):
 
     drs_object = {
         "id": did,
-        "description": "",
         "mime_type": "application/json",
         "name": name,
         "created_time": created_time,
@@ -142,12 +137,11 @@ def indexd_to_drs(record, expand=False, list_drs=False):
         "form": form,
         "checksums": [],
         "description": description,
+        "drs_description": record.get("meta_data", {}).get("drs_description"),
+        "drs_version": record.get("meta_data", {}).get("drs_version"),
     }
 
-    if "description" in record:
-        drs_object["description"] = record["description"]
-
-    if expand == True and "bundle_data" in record:
+    if expand and "bundle_data" in record:
         bundle_data = record["bundle_data"]
         for bundle in bundle_data:
             drs_object["contents"].append(
@@ -192,14 +186,9 @@ def bundle_to_drs(record, expand=False, is_content=False):
 
     drs_uri = "drs://" + flask.current_app.hostname + "/" + did
 
-    name = record["file_name"] if "file_name" in record else record["name"]
+    name = record.get("file_name", record.get("name"))
 
-    drs_object = {
-        "id": did,
-        "name": name,
-        "drs_uri": drs_uri,
-        "contents": [],
-    }
+    drs_object = {"id": did, "name": name, "drs_uri": drs_uri, "contents": []}
 
     if expand:
         contents = (

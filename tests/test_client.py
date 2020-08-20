@@ -1098,9 +1098,7 @@ def test_update_blank_record_with_authz(client, user, use_mock_authz):
     # - user doesn't have update access on the resource
     # should fail to make a new blank version of the original record
     use_mock_authz([])
-    to_update = {
-        "authz": [new_authz],
-    }
+    to_update = {"authz": [new_authz]}
     res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
     assert res.status_code == 403, res.json
 
@@ -1123,9 +1121,7 @@ def test_update_blank_record_with_authz(client, user, use_mock_authz):
     #   fall back on `file_upload` on `/data_file` access
     # update the blank record
     use_mock_authz([("file_upload", "/data_file")])
-    to_update = {
-        "authz": [new_authz2],
-    }
+    to_update = {"authz": [new_authz2]}
     res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
     assert res.status_code == 200, res.json
     rec = res.json
@@ -1162,9 +1158,7 @@ def test_update_blank_record_with_authz_new(client, user, use_mock_authz):
     #   have update access on the old resource
     # should fail to make a new blank version of the original record
     use_mock_authz([("update", new_authz)])
-    to_update = {
-        "authz": [new_authz],
-    }
+    to_update = {"authz": [new_authz]}
     res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
     assert res.status_code == 403, res.json
 
@@ -1187,9 +1181,7 @@ def test_update_blank_record_with_authz_new(client, user, use_mock_authz):
     #   fall back on `file_upload` on `/data_file` access
     # update the blank record
     use_mock_authz([("file_upload", "/data_file")])
-    to_update = {
-        "authz": [new_authz2],
-    }
+    to_update = {"authz": [new_authz2]}
     res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
     assert res.status_code == 200, res.json
     rec = res.json
