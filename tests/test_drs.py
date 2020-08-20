@@ -43,7 +43,7 @@ def test_drs_get(client, user):
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
     assert rec_2["self_uri"] == "drs://fictitious-commons.io/" + rec_1["did"]
-    assert rec_2["drs_version"] == 1
+    assert rec_2["drs_version"] == "1"
     assert rec_2["drs_description"] == "test drs description"
 
 
