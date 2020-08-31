@@ -733,8 +733,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     self.add_prefix_alias(record, session)
                 session.commit()
             except IntegrityError:
-                raise UserError(
-                    'did "{did}" already exists'.format(did=record.did), 400
+                raise MultipleRecordsFound(
+                    'did "{did}" already exists'.format(did=record.did)
                 )
 
             return record.did, record.rev, record.baseid
@@ -746,7 +746,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         # if an authz is provided, ensure that user can actually create for that resource
         authorized = False
-        authz_err_msg = "Auth error when attempting to update a blank record. User must have '{}' access on '{}'."
+        authz_err_msg = "Auth error when attempting to update a blank record. User must have '{}' access on '{}' for service 'indexd'."
         if authz:
             try:
                 auth.authorize("create", authz)
@@ -847,7 +847,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
 
             authorized = False
-            authz_err_msg = "Auth error when attempting to update a blank record. User must have '{}' access on '{}'."
+            authz_err_msg = "Auth error when attempting to update a blank record. User must have '{}' access on '{}' for service 'indexd'."
             if authz:
                 # if an authz is provided, ensure that user can actually
                 # create/update for that resource (old authz and new authz)
@@ -960,7 +960,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     f"One or more aliases in request already associated with this or another GUID: {aliases}",
                     exc_info=True,
                 )
-                raise UserError(
+                raise MultipleRecordsFound(
                     f"One or more aliases in request already associated with this or another GUID: {aliases}"
                 )
 
@@ -1007,7 +1007,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 self.logger.warn(
                     f"One or more aliases in request already associated with another GUID: {aliases}"
                 )
-                raise UserError(
+                raise MultipleRecordsFound(
                     f"One or more aliases in request already associated with another GUID: {aliases}"
                 )
 
@@ -1100,7 +1100,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Updates an existing record with new values.
         """
-        authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}'."
+        authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}' for service 'indexd'."
 
         composite_fields = ["urls", "acl", "authz", "metadata", "urls_metadata"]
 
@@ -1285,7 +1285,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 create_urls_metadata(urls_metadata, record, session)
                 session.commit()
             except IntegrityError:
-                raise UserError("{did} already exists".format(did=did), 400)
+                raise MultipleRecordsFound("{did} already exists".format(did=did))
 
             return record.did, record.baseid, record.rev
 
@@ -1297,7 +1297,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         If authz is not specified, acl/authz fields carry over from previous version.
         """
         # if an authz is provided, ensure that user can actually create for that resource
-        authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}'."
+        authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}' for service 'indexd'."
         if authz:
             try:
                 auth.authorize("create", authz)
@@ -1325,7 +1325,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             # handle the edgecase where new_did matches the original doc's did to
             # prevent sqlalchemy FlushError
             if new_did == old_record.did:
-                raise UserError("{did} already exists".format(did=new_did), 400)
+                raise MultipleRecordsFound("{did} already exists".format(did=new_did))
 
             new_record = IndexRecord()
             did = new_did
@@ -1354,7 +1354,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 session.add(new_record)
                 session.commit()
             except IntegrityError:
-                raise UserError("{did} already exists".format(did=did), 400)
+                raise MultipleRecordsFound("{did} already exists".format(did=did))
 
             return new_record.did, new_record.baseid, new_record.rev
 
@@ -1564,11 +1564,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 session.add(record)
                 session.commit()
             except IntegrityError:
-                raise UserError(
+                raise MultipleRecordsFound(
                     'bundle id "{bundle_id}" already exists'.format(
                         bundle_id=record.bundle_id
-                    ),
-                    400,
+                    )
                 )
 
             return record.bundle_id, record.name, record.bundle_data
