@@ -247,7 +247,7 @@ class IndexRecordHash(Base):
 
 class DrsBundleRecord(Base):
     """
-    DRS bundle record representaion. 
+    DRS bundle record representation.
     """
 
     __tablename__ = "drs_bundle_record"
@@ -1533,7 +1533,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         aliases=None,
     ):
         """
-        Add a bundle record 
+        Add a bundle record
         """
         with self.session as session:
             record = DrsBundleRecord()
