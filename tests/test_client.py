@@ -923,7 +923,7 @@ def test_create_blank_version_specify_did(client, user):
 def test_create_blank_version_specify_guid_already_exists(client, user):
     """
     Test that if we try to specify the GUID of a new blank version, but the
-    new GUID we specified already exists in the index, the operation fails with 400.
+    new GUID we specified already exists in the index, the operation fails with 409.
     """
     # SETUP
     # ----------
@@ -958,25 +958,25 @@ def test_create_blank_version_specify_guid_already_exists(client, user):
     # -----------
 
     # Attempt to create new blank version of doc, specifying the new guid to be
-    # a guid that already exists in the index. Expect the operation to fail with 400.
+    # a guid that already exists in the index. Expect the operation to fail with 409.
     specified_guid = preexisting_guid
     doc = {"uploader": "uploader_123", "file_name": "test_file", "did": specified_guid}
     url = "/index/blank/{}".format(original_doc["did"])
     res = client.post(url, json=doc, headers=user)
     assert (
-        res.status_code == 400
-    ), "Request should have failed with 400 user error: {}".format(res.json)
+        res.status_code == 409
+    ), "Request should have failed with 409 user error: {}".format(res.json)
 
     # Attempt to create new blank version of doc, specifying the new guid to be
     # the guid of the original record we're making a new blank version of.
-    # Expect the operation to fail with 400.
+    # Expect the operation to fail with 409.
     specified_guid = original_doc_guid
     doc = {"uploader": "uploader_123", "file_name": "test_file", "did": specified_guid}
     url = "/index/blank/{}".format(original_doc["did"])
     res = client.post(url, json=doc, headers=user)
     assert (
-        res.status_code == 400
-    ), "Request should have failed with 400 user error: {}".format(res.json)
+        res.status_code == 409
+    ), "Request should have failed with 409 user error: {}".format(res.json)
 
 
 def test_create_blank_version_no_existing_record(client, user):
@@ -1792,7 +1792,7 @@ def test_index_create_with_duplicate_did(client, user):
     response = client.post("/index/", json=data, headers=user)
     assert response.status_code == 200
     response = client.post("/index/", json=data, headers=user)
-    assert response.status_code == 400
+    assert response.status_code == 409
 
 
 def test_index_create_with_file_name(client, user):

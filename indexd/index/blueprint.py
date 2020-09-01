@@ -307,9 +307,10 @@ def post_index_blank_record():
     Create a blank new record with only uploader and optionally
     file_name fields filled
     """
-    uploader = flask.request.get_json().get("uploader")
-    file_name = flask.request.get_json().get("file_name")
-    authz = flask.request.get_json().get("authz")
+    body = flask.request.get_json() or {}
+    uploader = body.get("uploader")
+    file_name = body.get("file_name")
+    authz = body.get("authz")
 
     # authorize done in add_blank_record
     did, rev, baseid = blueprint.index_driver.add_blank_record(
@@ -330,10 +331,11 @@ def add_index_blank_record_version(record):
     Returns the GUID of the new blank version and the baseid common to all versions
     of the record.
     """
-    new_did = flask.request.json.get("did")
-    uploader = flask.request.get_json().get("uploader")
-    file_name = flask.request.get_json().get("file_name")
-    authz = flask.request.get_json().get("authz")
+    body = flask.request.get_json() or {}
+    new_did = body.get("did")
+    uploader = body.get("uploader")
+    file_name = body.get("file_name")
+    authz = body.get("authz")
 
     # authorize done in add_blank_version for the existing record's authz
     did, baseid, rev = blueprint.index_driver.add_blank_version(
@@ -351,10 +353,12 @@ def put_index_blank_record(record):
     Update a blank record with size, hashes and url
     """
     rev = flask.request.args.get("rev")
-    size = flask.request.get_json().get("size")
-    hashes = flask.request.get_json().get("hashes")
-    urls = flask.request.get_json().get("urls")
-    authz = flask.request.get_json().get("authz")
+
+    body = flask.request.get_json() or {}
+    size = body.get("size")
+    hashes = body.get("hashes")
+    urls = body.get("urls")
+    authz = body.get("authz")
 
     # authorize done in update_blank_record
     did, rev, baseid = blueprint.index_driver.update_blank_record(
@@ -603,7 +607,7 @@ def compute_checksum(checksums):
 
     Args:
         checksums (list): list of checksums from the first layer of bundles and objects
-    
+
     Returns:
         md5 checksum
     """

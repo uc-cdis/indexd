@@ -8,7 +8,7 @@ import tests.util as util
 from indexd.index.errors import NoRecordFound
 from indexd.index.errors import RevisionMismatch
 
-from indexd.errors import UserError
+from indexd.index.errors import MultipleRecordsFound
 
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver, IndexRecord
 
@@ -179,7 +179,7 @@ def test_driver_add_bundles_record():
 
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
-        driver.add_bundle(name="bundle",)
+        driver.add_bundle(name="bundle")
 
         count = conn.execute(
             """
@@ -258,7 +258,7 @@ def test_driver_add_with_duplicate_did():
     did = "3d313755-cbb4-4b08-899d-7bbac1f6e67d"
     driver.add(form, did=did)
 
-    with pytest.raises(UserError):
+    with pytest.raises(MultipleRecordsFound):
         driver.add(form, did=did)
 
 
