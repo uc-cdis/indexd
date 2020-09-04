@@ -105,24 +105,24 @@ BUNDLE_SCHEMA = {
     "description": "Creates a new bundle",
     "required": ["bundles"],
     "properties": {
-        "bundle_id": {"type": "string",},
+        "bundle_id": {"type": "string"},
         "name": {
             "description": "Required bundle name created my author of the bundle",
             "type": "string",
         },
-        "bundles": {"description": "Expanded bundles and objects.", "type": "array",},
+        "bundles": {"description": "Expanded bundles and objects.", "type": "array"},
         "size": {
             "description": "Sum of size of objects inside bundles.",
             "type": "integer",
             "minimum": 0,
         },
-        "checksum": {"type": "string", "pattern": "^[0-9a-f]{32}$",},
+        "checksum": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
         "description": {"type": "string"},
         "version": {
             "description": "optional version string of the object",
             "type": "string",
         },
-        "aliases": {"description": "Optional", "type": "array",},
+        "aliases": {"description": "Optional", "type": "array"},
     },
 }
 
