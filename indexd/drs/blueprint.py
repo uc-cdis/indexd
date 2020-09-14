@@ -1,4 +1,5 @@
 import flask
+import re
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
@@ -17,7 +18,21 @@ def get_drs_object(object_id):
     """
     expand = True if flask.request.args.get("expand") == "true" else False
 
-    ret = blueprint.index_driver.get(object_id)
+    try:
+        # Try to resolve id as provided
+        ret = blueprint.index_driver.get(object_id)
+    except IndexNoRecordFound as e:
+        DEFAULT_PREFIX = blueprint.index_driver.config.get("DEFAULT_PREFIX")
+        match = re.match(r"(dg\.[0-9a-f]{4})\/(.+)", object_id)
+        if match and match.group(1) == DEFAULT_PREFIX:
+            # If prefix provided matches default, try resolving without
+            ret = blueprint.index_driver.get(match.group(2))
+        elif match is None:
+            # If no prefix provided, try resolving by prepending default
+            ret = blueprint.index_driver.get(DEFAULT_PREFIX + "/" + object_id)
+        else:
+            # If non-default prefix provided, raise original error
+            raise e
 
     data = indexd_to_drs(ret, expand=expand, list_drs=False)
 
