@@ -21,6 +21,16 @@ var/
 .installed.cfg
 *.egg
 
+
+# Jenkins 
+.local/
+.eggs/
+.ssh/
+*/_version.py
+calculateTags.sh
+wait-for-it.sh
+test-reports/
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
