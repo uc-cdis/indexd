@@ -22,6 +22,19 @@ blueprint.alias_driver = None
 blueprint.dist = []
 
 
+@blueprint.route("/mint/guid", methods=["GET"])
+def mint_guid():
+    """
+    Mint a GUID that is valid for this instance of indexd. The intention
+    of this endpoint is to allow pre-computing valid GUIDs to be indexed
+    WITHOUT actually creating a new record yet.
+    """
+    valid_guid = str(uuid.uuid4())
+    if flask.current_app.config.get("PREPEND_PREFIX"):
+        valid_guid = flask.current_app.config["DEFAULT_PREFIX"] + valid_guid
+    return valid_guid
+
+
 @blueprint.route("/alias/<path:alias>", methods=["GET"])
 def get_alias(alias):
     """
