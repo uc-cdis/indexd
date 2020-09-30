@@ -248,7 +248,7 @@ def get_index_record(record):
     Returns a record.
     """
 
-    ret = blueprint.index_driver.get(record)
+    ret = blueprint.index_driver.get_with_nonstrict_prefix(record)
 
     return flask.jsonify(ret), 200
 
