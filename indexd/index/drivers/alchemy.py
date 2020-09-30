@@ -1,6 +1,7 @@
 import datetime
 import uuid
 import json
+import re
 from contextlib import contextmanager
 from cdislogging import get_logger
 from sqlalchemy import (
@@ -1108,7 +1109,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record = self.get(did, expand=expand)
         except NoRecordFound as e:
             DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
-            match = re.match(r"(dg\.[0-9a-f]{4}\/)(.+)", object_id)
+            match = re.match(r"(dg\.[0-9a-f]{4}\/)(.+)", did)
             if match and match.group(1) == DEFAULT_PREFIX:
                 record = self.get(match.group(2), expand=expand)
             elif match is None:
@@ -1116,7 +1117,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             else:
                 raise e
 
-        return ret
+        return record
 
     def update(self, did, rev, changing_fields):
         """

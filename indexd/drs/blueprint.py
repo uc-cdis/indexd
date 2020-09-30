@@ -18,7 +18,7 @@ def get_drs_object(object_id):
     """
     expand = True if flask.request.args.get("expand") == "true" else False
 
-    blueprint.index_driver.get_with_nonstrict_prefix(object_id)
+    ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
 
     data = indexd_to_drs(ret, expand=expand, list_drs=False)
 
