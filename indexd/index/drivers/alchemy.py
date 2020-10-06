@@ -1,7 +1,6 @@
 import datetime
 import uuid
 import json
-import re
 from contextlib import contextmanager
 from cdislogging import get_logger
 from sqlalchemy import (
@@ -1105,17 +1104,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         If not found and id has no prefix, attempt with default prefix prepended.
         """
         try:
-            # Try to resolve id as provided
             record = self.get(did, expand=expand)
         except NoRecordFound as e:
             DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
-            match = re.match(r"(dg\.[0-9a-f]{4}\/)(.+)", did)
-            if match and match.group(1) == DEFAULT_PREFIX:
-                record = self.get(match.group(2), expand=expand)
-            elif match is None:
-                record = self.get(DEFAULT_PREFIX + did, expand=expand)
+            if "/" in did:
+                prefix, uuid = did.rsplit("/", 1)
+                if prefix + "/" == DEFAULT_PREFIX:
+                    record = self.get(uuid, expand=expand)
+                else:
+                    raise e
             else:
-                raise e
+                record = self.get(DEFAULT_PREFIX + did, expand=expand)
 
         return record
 
