@@ -495,6 +495,143 @@ def test_driver_get_fails_with_no_records():
 
 
 @util.removes("index.sq3")
+def test_driver_nonstrict_get_without_prefix():
+    """
+    Tests retrieval of a record when a default prefix is set, but no prefix is supplied by the request.
+    """
+    with sqlite3.connect("index.sq3") as conn:
+
+        driver = SQLAlchemyIndexDriver(
+            "sqlite:///index.sq3",
+            index_config={
+                "DEFAULT_PREFIX": "testprefix/",
+                "PREPEND_PREFIX": True,
+                "ADD_PREFIX_ALIAS": False,
+            },
+        )
+
+        did = str(uuid.uuid4())
+        baseid = str(uuid.uuid4())
+        rev = str(uuid.uuid4())[:8]
+        size = 512
+        form = "object"
+        baseid = str(uuid.uuid4())
+        created_date = datetime.now()
+        updated_date = datetime.now()
+
+        conn.execute(
+            """
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
+        """,
+            ("testprefix/" + did, baseid, rev, form, size, created_date, updated_date),
+        )
+
+        conn.commit()
+
+        record = driver.get_with_nonstrict_prefix(did)
+
+        assert record["did"] == "testprefix/" + did, "record id does not match"
+        assert record["baseid"] == baseid, "record id does not match"
+        assert record["rev"] == rev, "record revision does not match"
+        assert record["size"] == size, "record size does not match"
+        assert record["form"] == form, "record form does not match"
+        assert (
+            record["created_date"] == created_date.isoformat()
+        ), "created date does not match"
+        assert (
+            record["updated_date"] == updated_date.isoformat()
+        ), "updated date does not match"
+
+
+@util.removes("index.sq3")
+def test_driver_nonstrict_get_with_prefix():
+    """
+    Tests retrieval of a record when a default prefix is set and supplied by the request,
+    but records are stored without prefixes.
+    """
+    with sqlite3.connect("index.sq3") as conn:
+
+        driver = SQLAlchemyIndexDriver(
+            "sqlite:///index.sq3",
+            index_config={
+                "DEFAULT_PREFIX": "testprefix/",
+                "PREPEND_PREFIX": False,
+                "ADD_PREFIX_ALIAS": True,
+            },
+        )
+
+        did = str(uuid.uuid4())
+        baseid = str(uuid.uuid4())
+        rev = str(uuid.uuid4())[:8]
+        size = 512
+        form = "object"
+        baseid = str(uuid.uuid4())
+        created_date = datetime.now()
+        updated_date = datetime.now()
+
+        conn.execute(
+            """
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
+        """,
+            (did, baseid, rev, form, size, created_date, updated_date),
+        )
+
+        conn.commit()
+
+        record = driver.get_with_nonstrict_prefix("testprefix/" + did)
+
+        assert record["did"] == did, "record id does not match"
+        assert record["baseid"] == baseid, "record id does not match"
+        assert record["rev"] == rev, "record revision does not match"
+        assert record["size"] == size, "record size does not match"
+        assert record["form"] == form, "record form does not match"
+        assert (
+            record["created_date"] == created_date.isoformat()
+        ), "created date does not match"
+        assert (
+            record["updated_date"] == updated_date.isoformat()
+        ), "updated date does not match"
+
+
+@util.removes("index.sq3")
+def test_driver_nonstrict_get_with_incorrect_prefix():
+    """
+    Tests retrieval of a record fails if default prefix is set and request uses a different prefix with same uuid
+    """
+    with sqlite3.connect("index.sq3") as conn:
+
+        driver = SQLAlchemyIndexDriver(
+            "sqlite:///index.sq3",
+            index_config={
+                "DEFAULT_PREFIX": "testprefix/",
+                "PREPEND_PREFIX": True,
+                "ADD_PREFIX_ALIAS": False,
+            },
+        )
+
+        did = str(uuid.uuid4())
+        baseid = str(uuid.uuid4())
+        rev = str(uuid.uuid4())[:8]
+        size = 512
+        form = "object"
+        baseid = str(uuid.uuid4())
+        created_date = datetime.now()
+        updated_date = datetime.now()
+
+        conn.execute(
+            """
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
+        """,
+            ("testprefix/" + did, baseid, rev, form, size, created_date, updated_date),
+        )
+
+        conn.commit()
+
+        with pytest.raises(NoRecordFound):
+            driver.get_with_nonstrict_prefix("wrongprefix/" + did)
+
+
+@util.removes("index.sq3")
 def test_driver_get_latest_version():
     """
     Tests retrieval of the lattest record version
