@@ -632,6 +632,24 @@ def test_driver_nonstrict_get_with_incorrect_prefix():
 
 
 @util.removes("index.sq3")
+def test_driver_nonstrict_get_with_no_default_prefix():
+    """
+    Tests retrieval of a record fails as expected if no default prefix is set
+    """
+    driver = SQLAlchemyIndexDriver(
+        "sqlite:///index.sq3",
+        index_config={
+            "DEFAULT_PREFIX": None,
+            "PREPEND_PREFIX": False,
+            "ADD_PREFIX_ALIAS": False,
+        },
+    )
+
+    with pytest.raises(NoRecordFound):
+        driver.get_with_nonstrict_prefix("fake_id_without_prefix")
+
+
+@util.removes("index.sq3")
 def test_driver_get_latest_version():
     """
     Tests retrieval of the lattest record version

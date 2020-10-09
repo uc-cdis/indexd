@@ -1107,14 +1107,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record = self.get(did, expand=expand)
         except NoRecordFound as e:
             DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
-            if "/" in did:
-                prefix, uuid = did.rsplit("/", 1)
-                if prefix + "/" == DEFAULT_PREFIX:
-                    record = self.get(uuid, expand=expand)
+            if DEFAULT_PREFIX is not None:
+                if "/" in did:
+                    prefix, uuid = did.rsplit("/", 1)
+                    if prefix + "/" == DEFAULT_PREFIX:
+                        record = self.get(uuid, expand=expand)
+                    else:
+                        raise e
                 else:
-                    raise e
+                    record = self.get(DEFAULT_PREFIX + did, expand=expand)
             else:
-                record = self.get(DEFAULT_PREFIX + did, expand=expand)
+                raise e
 
         return record
 
