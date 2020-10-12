@@ -717,7 +717,7 @@ def get_bundle_record_with_id(bundle_id):
 
     expand = True if flask.request.args.get("expand") == "true" else False
 
-    ret = blueprint.index_driver.get(bundle_id)
+    ret = blueprint.index_driver.get_with_nonstrict_prefix(bundle_id)
 
     ret = bundle_to_drs(ret, expand=expand, is_content=False)
 
