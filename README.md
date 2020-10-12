@@ -289,6 +289,18 @@ In addition, one of our goals is to work with GA4GH to ensure Data GUIDs and Ind
 
 The implementation for Indexd utilizes the Flask web framework and (by default) a SQLite3 database. This provides a minimum list of requirements and allows for deployment on a wide range of systems with next to no configuration overhead. That said, it is highly recommended to use pip and a virtualenv to isolate the installation.
 
+Prior to installation, you will need to have postgresql installed.
+
+On Mac
+```bash
+brew install postgresql
+/usr/local/opt/postgres/bin/createuser -s postgres
+```
+On Linux
+```bash
+sudo apt-get install python-psycopg2
+```
+
 To install the implementation, simply run:
 
 ```bash
