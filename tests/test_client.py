@@ -2572,3 +2572,8 @@ def test_status_check(client):
 def test_version_check(client):
     res = client.get("/_version")
     assert res.status_code == 200
+
+
+def test_get_dist(client):
+    res = client.get("/_dist")
+    assert res.status_code == 200
