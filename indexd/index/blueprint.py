@@ -3,8 +3,6 @@ import json
 import flask
 import hashlib
 import jsonschema
-import os.path
-import subprocess
 from .version_data import VERSION, COMMIT
 
 from indexd.auth import authorize
@@ -24,7 +22,7 @@ from .errors import RevisionMismatch
 from .errors import UnhealthyCheck
 
 from cdislogging import get_logger
-from indexd.drs.blueprint import indexd_to_drs, get_drs_object, bundle_to_drs
+from indexd.drs.blueprint import bundle_to_drs
 
 logger = get_logger("indexd/index blueprint", log_level="info")
 
@@ -573,7 +571,7 @@ def get_dist_config():
     Returns the dist configuration
     """
     if not blueprint.dist:
-        return flask.jsonify(blueprint.dist), 400
+        raise NoRecordFound
 
     return flask.jsonify(blueprint.dist), 200
 

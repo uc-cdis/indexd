@@ -1,6 +1,4 @@
-from indexd.index.errors import NoRecordFound
 import json
-import base64
 
 import pytest
 
