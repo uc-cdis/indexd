@@ -861,7 +861,7 @@ paths:
                     description: "Commons name"
                   host:
                     type: string
-                    description: "Index URL"
+                    description: "Resolver URL"
                   hints:
                     type: array
                     items:
