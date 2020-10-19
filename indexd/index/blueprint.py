@@ -573,7 +573,7 @@ def get_dist_config():
     Returns the dist configuration
     """
     if not blueprint.dist:
-        raise Exception
+        return flask.jsonify(blueprint.dist), 400
 
     return flask.jsonify(blueprint.dist), 200
 

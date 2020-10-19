@@ -1,3 +1,4 @@
+from indexd.index.errors import NoRecordFound
 import json
 import base64
 
@@ -2576,4 +2577,6 @@ def test_version_check(client):
 
 def test_get_dist(client):
     res = client.get("/_dist")
+    if not res.json:
+        assert res.status_code == 404
     assert res.status_code == 200
