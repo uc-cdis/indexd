@@ -570,8 +570,6 @@ def get_dist_config():
     """
     Returns the dist configuration
     """
-    if not blueprint.dist:
-        raise NoRecordFound
 
     return flask.jsonify(blueprint.dist), 200
 

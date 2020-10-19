@@ -17,6 +17,14 @@ CONFIG["INDEX"] = {
         },
     )
 }
+CONFIG["DIST"] = [
+    {
+        "name": "testStage",
+        "host": "https://fictitious-commons.io/index/",
+        "hints": [".*dg\\.4503.*"],
+        "type": "indexd",
+    }
+]
 
 os.environ["PRESIGNED_FENCE_URL"] = "https://fictitious-commons.io/"
 os.environ["HOSTNAME"] = "fictitious-commons.io"
