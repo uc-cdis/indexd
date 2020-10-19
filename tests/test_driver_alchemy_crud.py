@@ -531,7 +531,7 @@ def test_driver_nonstrict_get_without_prefix():
         record = driver.get_with_nonstrict_prefix(did)
 
         assert record["did"] == "testprefix/" + did, "record id does not match"
-        assert record["baseid"] == baseid, "record id does not match"
+        assert record["baseid"] == baseid, "record baseid does not match"
         assert record["rev"] == rev, "record revision does not match"
         assert record["size"] == size, "record size does not match"
         assert record["form"] == form, "record form does not match"
@@ -581,7 +581,7 @@ def test_driver_nonstrict_get_with_prefix():
         record = driver.get_with_nonstrict_prefix("testprefix/" + did)
 
         assert record["did"] == did, "record id does not match"
-        assert record["baseid"] == baseid, "record id does not match"
+        assert record["baseid"] == baseid, "record baseid does not match"
         assert record["rev"] == rev, "record revision does not match"
         assert record["size"] == size, "record size does not match"
         assert record["form"] == form, "record form does not match"
