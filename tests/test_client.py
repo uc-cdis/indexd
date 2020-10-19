@@ -2576,4 +2576,11 @@ def test_version_check(client):
 
 def test_get_dist(client):
     res = client.get("/_dist")
-    assert res.status_code == 200
+    assert res.status_code == 200 and res.json == [
+        {
+            "name": "testStage",
+            "host": "https://fictitious-commons.io/index/",
+            "hints": [".*dg\\.4503.*"],
+            "type": "indexd",
+        }
+    ]
