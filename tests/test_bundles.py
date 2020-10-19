@@ -65,9 +65,9 @@ def test_bundle_get_post_with_optional_fields(client, user):
         +-object1
 
     Bundel 2
-        +-Bundle 1 
-            +-object1 
-        +-object1 
+        +-Bundle 1
+            +-object1
+        +-object1
     """
     did_list, _ = create_index(client, user)
 
@@ -112,9 +112,9 @@ def test_bundle_get_post_with_optional_fields(client, user):
 def test_bundle_post_self_reference(client, user):
     """
     Make sure this doesnt exist
-    Bundle 1 
+    Bundle 1
         Object 1
-        Bundle 1 
+        Bundle 1
         .
         .
     """

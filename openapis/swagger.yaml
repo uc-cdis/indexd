@@ -141,7 +141,7 @@ paths:
       parameters:
         - name: form
           in: query
-          description: specify whether you want to list bundle, objects or both Defaults to object. 
+          description: specify whether you want to list bundle, objects or both Defaults to object.
           required: false
           type: "string"
           enum: ["bundle", "object", "all"]
@@ -841,6 +841,35 @@ paths:
           description: Healthy
         default:
           description: Unhealthy
+  /_dist:
+    get:
+      tags:
+        - system
+      summary: Returns the IndexD dist configuration
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                  name:
+                    type: string
+                    description: "Commons name"
+                  host:
+                    type: string
+                    description: "Resolver URL"
+                  hints:
+                    type: array
+                    items:
+                      type: string
+                      description: "Regex for prefix matching"
+                  type:
+                    type: string
+                    description: "Type of resolver (one of [indexd, doi, dos, hs])"
   /_version:
     get:
       tags:
@@ -984,7 +1013,7 @@ paths:
       parameters:
         - name: form
           in: query
-          description: specify whether you want to list bundle, objects or both. 
+          description: specify whether you want to list bundle, objects or both.
           required: false
           type: "string"
           enum: ["bundle", "object", "all"]
@@ -1140,14 +1169,14 @@ paths:
         - bundle
       summary: Create a bundle.
       description: ''
-      consumes: 
+      consumes:
         - application/json
       produces:
         - application/json
       parameters:
         - in: body
           name: body
-          description: Body takes in GUID, bundle_name, checksum, list of bundles/objects to bundle, and size. Only list of bundles/objects is required, rest will be created by indexd if not provided. 
+          description: Body takes in GUID, bundle_name, checksum, list of bundles/objects to bundle, and size. Only list of bundles/objects is required, rest will be created by indexd if not provided.
           required: true
           schema:
             $ref: '#/definitions/InputBundle'
@@ -1163,13 +1192,13 @@ paths:
       security:
         - authToken: []
     get:
-      summary: List all Bundles. 
+      summary: List all Bundles.
       description: 'By default lists all the bundles'
       operationId: ListBundles
       parameters:
         - name: form
           in: query
-          description: specify whether you want to list bundle, objects or both. 
+          description: specify whether you want to list bundle, objects or both.
           required: false
           type: "string"
           enum: ["bundle", "object", "all"]
@@ -1203,7 +1232,7 @@ paths:
       tags:
         - bundle
       summary: Get bundle info for a given GUID
-      produces: 
+      produces:
         - application/json
       parameters:
         - name: GUID
@@ -1218,7 +1247,7 @@ paths:
       responses:
         '200':
           description: successful operation
-          schema: 
+          schema:
             $ref: '#/definitions/BundleGet'
         '404':
           description: bundle not found
@@ -1227,7 +1256,7 @@ paths:
         - bundle
       summary: delete bundle from bundle records
       description: ''
-      produces: 
+      produces:
         - application/json
       parameters:
         - name: GUID
@@ -1242,9 +1271,9 @@ paths:
           description: Bundle ID not found
       security:
         - authToken: []
-          
-      
-      
+
+
+
   '/bulk/documents':
     post:
       tags:
@@ -2217,7 +2246,7 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/BundleContent'
-          
+
   BundleContent:
     type: object
     properties:
@@ -2231,8 +2260,8 @@ definitions:
         type: array
         items:
           type: object
-    
-        
+
+
   ListBundles:
     type: object
     properties:
@@ -2275,7 +2304,7 @@ definitions:
       metadata:
         type: object
       version:
-        type: string          
+        type: string
   ListRecords:
     type: object
     properties:
@@ -2319,7 +2348,7 @@ definitions:
         type: object
       version:
         type: string
-        
+
   InputBundle:
     type: object
     required:
@@ -2340,7 +2369,7 @@ definitions:
         items:
           type: string
         description: list of guid to be in the bundle
-  
+
   BundleResponse:
     type: object
     properties:
@@ -2352,7 +2381,7 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/OutputBundle'
-  
+
 
   OutputBundle:
     type: object
@@ -2383,8 +2412,7 @@ definitions:
         type: string
         format: date-time
         description: time created
-      
+
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'
-  

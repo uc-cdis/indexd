@@ -3,8 +3,6 @@ import json
 import flask
 import hashlib
 import jsonschema
-import os.path
-import subprocess
 from .version_data import VERSION, COMMIT
 
 from indexd.auth import authorize
@@ -24,7 +22,7 @@ from .errors import RevisionMismatch
 from .errors import UnhealthyCheck
 
 from cdislogging import get_logger
-from indexd.drs.blueprint import indexd_to_drs, get_drs_object, bundle_to_drs
+from indexd.drs.blueprint import bundle_to_drs
 
 logger = get_logger("indexd/index blueprint", log_level="info")
 
@@ -32,6 +30,7 @@ blueprint = flask.Blueprint("index", __name__)
 
 blueprint.config = dict()
 blueprint.index_driver = None
+blueprint.dist = []
 
 ACCEPTABLE_HASHES = {
     "md5": re.compile(r"^[0-9a-f]{32}$").match,
@@ -566,6 +565,15 @@ def get_latest_index_record_versions(record):
     return flask.jsonify(ret), 200
 
 
+@blueprint.route("/_dist", methods=["GET"])
+def get_dist_config():
+    """
+    Returns the dist configuration
+    """
+
+    return flask.jsonify(blueprint.dist), 200
+
+
 @blueprint.route("/_status", methods=["GET"])
 def health_check():
     """
@@ -772,3 +780,5 @@ def handle_unhealthy_check(err):
 def get_config(setup_state):
     config = setup_state.app.config["INDEX"]
     blueprint.index_driver = config["driver"]
+    if "DIST" in setup_state.app.config:
+        blueprint.dist = setup_state.app.config["DIST"]
