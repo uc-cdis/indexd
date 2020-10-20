@@ -210,6 +210,8 @@ The prefix that a given Indexd instance uses is specified in the `DEFAULT_PREFIX
 
 The `ADD_PREFIX_ALIAS` configuration represents a different way of using the prefix: if set to `True`, instead of prepending the prefix to the GUID, indexd will create an alias of the form `<prefix><GUID>` for this record. Note that you should NOT set both `ADD_PREFIX_ALIAS` and `PREPEND_PREFIX` to `True`, or aliases will be created as `<prefix><prefix><GUID>`.
 
+If a `DEFAULT_PREFIX` is configured, certain endpoints may take extra steps to resolve a local GUID based on this. The GET `/{GUID}`, `/index/{GUID}`, and DRS endpoints will all accept either the prefixed or unprefixed version of the GUID, regardless of whether the `PREPEND_PREFIX` or `ADD_PREFIX_ALIAS` condiguration is being used. However, any other endpoint that takes a GUID will only accept the exact `did` as stored in the database, so it is best to use that field from the record for subsequent requests.
+
 ## Use Cases For Indexing Data
 
 Data may be loaded into Indexd through a few different means:

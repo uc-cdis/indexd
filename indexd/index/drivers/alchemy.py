@@ -1096,6 +1096,31 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.to_document_dict()
 
+    def get_with_nonstrict_prefix(self, did, expand=True):
+        """
+        Attempt to retrieve a record both with and without a prefix.
+        Proxies 'get' with provided id.
+        If not found but prefix matches default, attempt with prefix stripped.
+        If not found and id has no prefix, attempt with default prefix prepended.
+        """
+        try:
+            record = self.get(did, expand=expand)
+        except NoRecordFound as e:
+            DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
+            if not DEFAULT_PREFIX:
+                raise e
+
+            if "/" in did:
+                prefix, uuid = did.rsplit("/", 1)
+                if prefix + "/" == DEFAULT_PREFIX:
+                    record = self.get(uuid, expand=expand)
+                else:
+                    raise e
+            else:
+                record = self.get(DEFAULT_PREFIX + did, expand=expand)
+
+        return record
+
     def update(self, did, rev, changing_fields):
         """
         Updates an existing record with new values.
