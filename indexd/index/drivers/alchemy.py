@@ -878,6 +878,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record.rev = str(uuid.uuid4())[:8]
 
+            record.updated_date = datetime.datetime.utcnow()
+
             session.add(record)
             session.commit()
 
@@ -1206,6 +1208,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     setattr(record, key, value)
 
             record.rev = str(uuid.uuid4())[:8]
+
+            record.updated_date = datetime.datetime.utcnow()
 
             session.add(record)
 
