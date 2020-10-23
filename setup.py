@@ -2,7 +2,11 @@ from setuptools import setup, find_packages
 
 setup(
     name='indexd',
-    version='2.5.0',
+    use_scm_version={
+        'local_scheme': 'dirty-tag',
+        'write_to': 'indexd/_version.py',
+    },
+    setup_requires=['setuptools_scm'],
     packages=find_packages(),
     package_data={
         'index': [
