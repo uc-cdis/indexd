@@ -765,39 +765,42 @@ def test_create_blank_version(client, user):
         res.json
     )
     original_doc_guid = res.json["did"]
-    res = client.get("/index/{}".format(original_doc_guid))
-    assert res.status_code == 200, "Failed to find original doc in index: {}".format(
-        res.json
-    )
-    original_doc = res.json
-    assert original_doc["acl"] == mock_acl
-    assert original_doc["authz"] == mock_authz
-    assert original_doc["baseid"] == mock_baseid
+
+    def assert_acl_authz_and_baseid(acl, authz, baseid, guid):
+        """
+        Helper to GET record with specified guid and assert acl, authz, and
+        baseid.
+        """
+        res = client.get("/index/{}".format(guid))
+        assert (
+            res.status_code == 200
+        ), "Failed to find original doc in index: {}".format(res.json)
+        doc = res.json
+        assert doc["did"] == guid
+        assert doc["rev"]
+        assert sorted(doc["acl"]) == sorted(acl)
+        assert sorted(doc["authz"]) == sorted(authz)
+        assert doc["baseid"] == baseid
+        return doc
+
+    assert_acl_authz_and_baseid(mock_acl, mock_authz, mock_baseid, original_doc_guid)
 
     # Make a new blank version of the original record
     doc = {"uploader": "uploader_123", "file_name": "test_file"}
-    url = "/index/blank/{}".format(original_doc["did"])
+    url = "/index/blank/{}".format(original_doc_guid)
     res = client.post(url, json=doc, headers=user)
     assert res.status_code == 201, "Failed to make new blank version: {}".format(
         res.json
     )
-    blank_doc_guid = res.json["did"]
+
+    #  Confirm that there were no unexpected side effects or changes to the original record
+    assert_acl_authz_and_baseid(mock_acl, mock_authz, mock_baseid, original_doc_guid)
 
     # Confirm that the new blank record is in the index
-    res = client.get("/index/{}".format(blank_doc_guid))
-    assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
-    blank_doc = res.json
-    # -----------
-
-    # The new blank record should have a GUID and a rev
-    assert blank_doc["did"]
-    assert blank_doc["rev"]
-    # The new blank record should be a version of the original doc
-    # (i.e. both records should share a baseid)
-    assert blank_doc["baseid"] == original_doc["baseid"]
-    # The new blank record should retain the acl/authz of the original doc
-    assert blank_doc["acl"] == original_doc["acl"]
-    assert blank_doc["authz"] == original_doc["authz"]
+    new_blank_doc_guid = res.json["did"]
+    new_blank_doc = assert_acl_authz_and_baseid(
+        mock_acl, mock_authz, mock_baseid, new_blank_doc_guid
+    )
 
     # The new blank record should be blank (other metadata fields should not be filled)
     blank_fields = [
@@ -810,7 +813,7 @@ def test_create_blank_version(client, user):
         "form",
     ]
     for field in blank_fields:
-        assert not blank_doc[field]
+        assert not new_blank_doc[field]
 
 
 def test_create_blank_version_with_authz(client, user, use_mock_authz):

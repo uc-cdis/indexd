@@ -1369,15 +1369,16 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             new_record.file_name = file_name
             new_record.uploader = uploader
 
-            if authz:
-                new_record.acl = []
-                new_record.authz = [
-                    IndexRecordAuthz(did=did, resource=resource)
-                    for resource in set(authz)
+            new_record.acl = []
+            if not authz:
+                authz = old_authz
+                old_acl = [u.ace for u in old_record.acl]
+                new_record.acl = [
+                    IndexRecordACE(did=did, ace=ace) for ace in set(old_acl)
                 ]
-            else:
-                new_record.acl = old_record.acl
-                new_record.authz = old_record.authz
+            new_record.authz = [
+                IndexRecordAuthz(did=did, resource=resource) for resource in set(authz)
+            ]
 
             try:
                 session.add(new_record)
