@@ -132,7 +132,8 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             )
         if not resource:
             # if the `authz` is empty, admins should still be able to perform
-            # operations on the record. For now, admin = access to `/programs`
+            # operations on the record. For now, admin = access to `/programs`.
+            # TODO: Figure out how to handle Gen3 operational admins in a better way
             resource = ["/programs"]
         if not self.arborist.auth_request(get_jwt_token(), "indexd", method, resource):
             raise AuthError("Permission denied.")
