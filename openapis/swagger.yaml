@@ -1533,7 +1533,7 @@ definitions:
     properties:
       uploader:
         type: string
-        description: user who uploaded this file
+        description: optional; user who uploaded this file
       file_name:
         type: string
         description: name of the uploaded file
@@ -1550,7 +1550,7 @@ definitions:
         description: optional; specify the GUID of the new blank version that is created.
       uploader:
         type: string
-        description: user who uploaded this file
+        description: optional; user who uploaded this file
       file_name:
         type: string
         description: optional; name of the uploaded file
