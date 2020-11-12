@@ -155,6 +155,7 @@ def test_bundle_post_different_checksum_types(client, user):
     res2 = client.post("/bundle/", json=data, headers=user)
     assert res2.status_code == 200
 
+
 def test_bundle_post_multiple_checksum_types(client, user):
     did_list, _ = create_index(client, user)
     bundle_id = str(uuid.uuid4)
@@ -167,11 +168,10 @@ def test_bundle_post_multiple_checksum_types(client, user):
                 "checksum": "bc52d6bfe3ac965e069109dbd7d15e0ccaaa55678f6e2a6664bee2edf8ae1b2b",
                 "type": "sha256",
             },
-            {"checksum": "e93ccf5ffc90eefcc0bdb81f87d25d1a", "type": "md5"}
+            {"checksum": "e93ccf5ffc90eefcc0bdb81f87d25d1a", "type": "md5"},
         ],
     }
     res = client.post("/bundle/", json=data2, headers=user)
-    print(res.json)
     assert res.status_code == 200
 
     res = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
@@ -179,8 +179,6 @@ def test_bundle_post_multiple_checksum_types(client, user):
     checksums = rec["checksums"]
     for checksum in checksums:
         assert checksum["type"] in ["md5", "sha256"]
-    
-    
 
 
 def test_bundle_bundle_data_not_found(client, user):
@@ -193,7 +191,6 @@ def test_bundle_bundle_data_not_found(client, user):
         "size": 12345,
     }
     res2 = client.post("/bundle/", json=data, headers=user)
-    print(res2.json)
     assert res2.status_code == 404
 
 
@@ -267,8 +264,6 @@ def test_bundle_get_form_type(client, user):
     assert res2.status_code == 200
 
     rec2 = res2.json
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    print(rec2)
     assert rec2["form"] == "bundle"
 
 

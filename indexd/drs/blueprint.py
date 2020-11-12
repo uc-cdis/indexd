@@ -251,19 +251,14 @@ def parse_checksums(record, drs_object):
     if "hashes" in record:
         for k in record["hashes"]:
             ret_checksum.append({"checksum": record["hashes"][k], "type": k})
-    else:
-        if "checksum" in record:
-            if "type" in record["checksum"]:
-                checksums = json.loads(record["checksum"])
-                for checksum in checksums:
-                    ret_checksum.append(
-                        {"checksum": checksum["checksum"], "type": checksum["type"]}
-                    )
+    elif "checksum" in record:
+        checksums = json.loads(record["checksum"])
+        for checksum in checksums:
+            ret_checksum.append(
+                {"checksum": checksum["checksum"], "type": checksum["type"]}
+            )
+
     return ret_checksum
-    # else:
-    #     drs_object["checksums"].append(
-    #         {"checksum": record["checksum"], "type": "md5"}
-    #     )
 
 
 @blueprint.errorhandler(UserError)
