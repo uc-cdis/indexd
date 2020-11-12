@@ -2299,8 +2299,8 @@ definitions:
         type: array
         items:
           type: string
-      hashes:
-        $ref: '#/definitions/HashInfo'
+      checksums:
+        $ref: '#/definitions/Checksum'
       metadata:
         type: object
       version:
@@ -2362,8 +2362,11 @@ definitions:
         type: integer
         format: int64
         description: size in bytes
-      checksum:
-        type: string
+      checksums:
+        type: array
+        items:
+          $ref: '#/definitions/Checksum'
+
       bundles:
         type: array
         items:
@@ -2402,8 +2405,8 @@ definitions:
         description: size in bytes
       name:
         type: string
-      checksum:
-        type: string
+      checksums:
+        $ref: '#/definitions/Checksum'
       updated_time:
         type: string
         format: date-time
