@@ -119,7 +119,8 @@ def test_get_presigned_url_unauthorized(client, user):
     rec_1 = res_1.json
     generate_presigned_url_response(rec_1["did"], "s3", status=401)
     res_2 = client.get(
-        "/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/s3", headers=user,
+        "/ga4gh/drs/v1/objects/" + rec_1["did"] + "/access/s3",
+        headers=user,
     )
     assert res_2.status_code == 401
 
