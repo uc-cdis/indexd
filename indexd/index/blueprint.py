@@ -621,7 +621,10 @@ def compute_checksum(checksums):
     """
     checksums.sort()
     checksum = "".join(checksums)
-    return hashlib.md5(checksum.encode("utf-8")).hexdigest()
+    return {
+        "checksum": hashlib.md5(checksum.encode("utf-8")).hexdigest(),
+        "type": "md5",
+    }
 
 
 def get_checksum(data):
@@ -685,9 +688,9 @@ def post_bundle():
         data = bundle_to_drs(data, expand=True, is_content=True)
         bundle_data.append(data)
     checksum = (
-        flask.request.json.get("checksum")
-        if flask.request.json.get("checksum")
-        else compute_checksum(checksums)
+        flask.request.json.get("checksums")
+        if flask.request.json.get("checksums")
+        else [compute_checksum(checksums)]
     )
 
     ret = blueprint.index_driver.add_bundle(
@@ -695,7 +698,7 @@ def post_bundle():
         name=name,
         size=size,
         bundle_data=json.dumps(bundle_data),
-        checksum=checksum,
+        checksum=json.dumps(checksum),
         description=description,
         version=version,
         aliases=json.dumps(aliases),

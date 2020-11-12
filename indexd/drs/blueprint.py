@@ -1,4 +1,5 @@
 import flask
+import json
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
@@ -172,7 +173,7 @@ def indexd_to_drs(record, expand=False, list_drs=False):
             )
 
     # parse out checksums
-    parse_checksums(record, drs_object)
+    drs_object["checksums"] = parse_checksums(record, drs_object)
 
     return drs_object
 
@@ -222,8 +223,7 @@ def bundle_to_drs(record, expand=False, is_content=False):
             else []
         )
         version = record["version"] if "version" in record else ""
-        drs_object["checksums"] = []
-        parse_checksums(record, drs_object)
+        drs_object["checksums"] = parse_checksums(record, drs_object)
 
         created_time = (
             record["created_date"]
@@ -247,19 +247,23 @@ def bundle_to_drs(record, expand=False, is_content=False):
 
 
 def parse_checksums(record, drs_object):
+    ret_checksum = []
     if "hashes" in record:
         for k in record["hashes"]:
-            drs_object["checksums"].append({"checksum": record["hashes"][k], "type": k})
+            ret_checksum.append({"checksum": record["hashes"][k], "type": k})
     else:
-        if "checksums" in record:
-            for checksum in record["checksums"]:
-                drs_object["checksums"].append(
-                    {"checksum": checksum["checksum"], "type": checksum["type"]}
-                )
-        else:
-            drs_object["checksums"].append(
-                {"checksum": record["checksum"], "type": "md5"}
-            )
+        if "checksum" in record:
+            if "type" in record["checksum"]:
+                checksums = json.loads(record["checksum"])
+                for checksum in checksums:
+                    ret_checksum.append(
+                        {"checksum": checksum["checksum"], "type": checksum["type"]}
+                    )
+    return ret_checksum
+    # else:
+    #     drs_object["checksums"].append(
+    #         {"checksum": record["checksum"], "type": "md5"}
+    #     )
 
 
 @blueprint.errorhandler(UserError)

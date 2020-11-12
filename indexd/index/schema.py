@@ -116,7 +116,56 @@ BUNDLE_SCHEMA = {
             "type": "integer",
             "minimum": 0,
         },
-        "checksum": {"type": "string", "pattern": "^[0-9a-f]{32}$",},
+        "checksums": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": ["md5", "sha1", "sha256", "sha512", "crc", "etag"],
+                    },
+                    "if": {
+                        "properties": {"type": {"const": "md5"},},
+                        "then": {
+                            "properties": {"checksum": {"pattern": "^[0-9a-f]{32}$"}}
+                        },
+                    },
+                    "if": {
+                        "properties": {"type": {"const": "sha1"},},
+                        "then": {
+                            "properties": {"checksum": {"pattern": "^[0-9a-f]{40}$"}}
+                        },
+                    },
+                    "if": {
+                        "properties": {"type": {"const": "sha256"},},
+                        "then": {
+                            "properties": {"checksum": {"pattern": "^[0-9a-f]{64}$"}}
+                        },
+                    },
+                    "if": {
+                        "properties": {"type": {"const": "sha512"},},
+                        "then": {
+                            "properties": {"checksum": {"pattern": "^[0-9a-f]{128}$"}}
+                        },
+                    },
+                    "if": {
+                        "properties": {"type": {"const": "crc"},},
+                        "then": {
+                            "properties": {"checksum": {"pattern": "^[0-9a-f]{8}$"}}
+                        },
+                    },
+                    "if": {
+                        "properties": {"type": {"const": "etag"},},
+                        "then": {
+                            "properties": {
+                                "checksum": {"pattern": "^[0-9a-f]{32}(-\d+)?$"}
+                            }
+                        },
+                    },
+                },
+            },
+        },
         "description": {"type": "string"},
         "version": {
             "description": "optional version string of the object",
