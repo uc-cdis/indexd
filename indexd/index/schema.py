@@ -103,7 +103,7 @@ BUNDLE_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
     "description": "Creates a new bundle",
-    "required": ["bundles", "checksums"],  # TODO add other required fields
+    "required": ["bundles"],
     "properties": {
         "bundle_id": {
             "type": "string",
@@ -132,7 +132,7 @@ BUNDLE_SCHEMA = {
                     },
                     "checksum": {"type": "string"},
                 },
-                "allOf": [
+                "allOf": [  # TODO: update jsonschema>=3.0.0 to actually use this and remove manual validation
                     {
                         "if": {"properties": {"type": {"const": "md5"}}},
                         "then": {

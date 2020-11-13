@@ -7,7 +7,7 @@ setup(
     package_data={"index": ["schemas/*"]},
     install_requires=[
         "flask==1.1.1",
-        "jsonschema==3.2.0",
+        "jsonschema==2.5.1",
         "sqlalchemy==1.3.3",
         "sqlalchemy-utils>=0.33.11,<=0.36.6",
         "psycopg2>=2.7",
