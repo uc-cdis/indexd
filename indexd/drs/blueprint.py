@@ -251,19 +251,16 @@ def parse_checksums(record, drs_object):
     Create valid checksums format
     """
     ret_checksum = []
-    try:
-        if "hashes" in record:
-            for k in record["hashes"]:
-                ret_checksum.append({"checksum": record["hashes"][k], "type": k})
-        elif "checksum" in record:
-            checksums = json.loads(record["checksum"])
-            for checksum in checksums:
-                ret_checksum.append(
-                    {"checksum": checksum["checksum"], "type": checksum["type"]}
-                )
-        return ret_checksum
-    except KeyError:
-        raise UserError("Object does not contain checksum")
+    if "hashes" in record:
+        for k in record["hashes"]:
+            ret_checksum.append({"checksum": record["hashes"][k], "type": k})
+    elif "checksum" in record:
+        checksums = json.loads(record["checksum"])
+        for checksum in checksums:
+            ret_checksum.append(
+                {"checksum": checksum["checksum"], "type": checksum["type"]}
+            )
+    return ret_checksum
 
 
 @blueprint.errorhandler(UserError)
