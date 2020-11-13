@@ -684,9 +684,10 @@ def post_bundle():
 
     # TODO: Remove this after updating to jsonschema>=3.0.0
     if flask.request.json.get("checksums"):
-        hashes = {}
-        for checksum in flask.request.json.get("checksums"):
-            hashes[checksum["type"]] = checksum["checksum"]
+        hashes = {
+            checksum["type"]: checksum["checksum"]
+            for checksum in flask.request.json.get("checksums")
+        }
         validate_hashes(**hashes)
 
     # get bundles/records that already exists and add it to bundle_data
