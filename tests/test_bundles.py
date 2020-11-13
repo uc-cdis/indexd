@@ -198,21 +198,39 @@ def test_bundle_post_multiple_checksum_types(client, user):
 def test_bundle_post_checksum_with_incorrect_schema(client, user):
     did_list, _ = create_index(client, user)
     bundle_id = str(uuid.uuid4)
+
+    # no checksums
+    data = {
+        "name": "test_bundle",
+        "bundles": did_list,
+        "bundle_id": bundle_id,
+    }
+    res = client.post("/bundle/", json=data, headers=user)
+    assert res.status_code == 400
+
+    # unknown checksum type
     data = {
         "name": "test_bundle",
         "bundles": did_list,
         "bundle_id": bundle_id,
         "checksums": [
-            {"checksum": "a", "type": "md5"},
+            {"type": "md42", "checksum": "a"},
         ],
     }
     res = client.post("/bundle/", json=data, headers=user)
-    print(res.json)
-    assert res.status_code == 200
+    assert res.status_code == 400
+
+    # checksum value doesn't match checksum type
+    data = {
+        "checksums": [
+            {"type": "md5", "checksum": "a"},
+        ],
+    }
+    res = client.post("/bundle/", json=data, headers=user)
+    assert res.status_code == 400
 
     res = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
-    rec = res.json
-    print(rec)
+    assert res.status_code == 404
 
 
 def test_bundle_bundle_data_not_found(client, user):

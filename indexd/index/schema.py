@@ -103,7 +103,7 @@ BUNDLE_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
     "description": "Creates a new bundle",
-    "required": ["bundles"],
+    "required": ["bundles", "checksums"],  # TODO add other required fields
     "properties": {
         "bundle_id": {
             "type": "string",
@@ -134,61 +134,37 @@ BUNDLE_SCHEMA = {
                 },
                 "allOf": [
                     {
-                        "if": {
-                            "properties": {
-                                "type": {"const": "md5"}
-                            }
-                        },
+                        "if": {"properties": {"type": {"const": "md5"}}},
                         "then": {
                             "properties": {"checksum": {"pattern": "^[0-9a-f]{32}$"}}
                         },
                     },
                     {
-                        "if": {
-                            "properties": {
-                                "type": {"const": "sha1"}
-                            }
-                        },
+                        "if": {"properties": {"type": {"const": "sha1"}}},
                         "then": {
                             "properties": {"checksum": {"pattern": "^[0-9a-f]{40}$"}}
                         },
                     },
                     {
-                        "if": {
-                            "properties": {
-                                "type": {"const": "sha256"}
-                            }
-                        },
+                        "if": {"properties": {"type": {"const": "sha256"}}},
                         "then": {
                             "properties": {"checksum": {"pattern": "^[0-9a-f]{64}$"}}
                         },
                     },
                     {
-                        "if": {
-                            "properties": {
-                                "type": {"const": "sha512"}
-                            }
-                        },
+                        "if": {"properties": {"type": {"const": "sha512"}}},
                         "then": {
                             "properties": {"checksum": {"pattern": "^[0-9a-f]{128}$"}}
                         },
                     },
                     {
-                        "if": {
-                            "properties": {
-                                "type": {"const": "crc"}
-                            }
-                        },
+                        "if": {"properties": {"type": {"const": "crc"}}},
                         "then": {
                             "properties": {"checksum": {"pattern": "^[0-9a-f]{8}$"}}
                         },
                     },
                     {
-                        "if": {
-                            "properties": {
-                                "type": {"const": "etag"}
-                            }
-                        },
+                        "if": {"properties": {"type": {"const": "etag"}}},
                         "then": {
                             "properties": {
                                 "checksum": {"pattern": "^[0-9a-f]{32}(-\d+)?$"}
