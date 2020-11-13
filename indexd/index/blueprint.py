@@ -609,6 +609,18 @@ def version():
     return flask.jsonify(base), 200
 
 
+def get_checksum(data):
+    """
+    Collect checksums from bundles and objects in the bundle for compute_checksum
+    """
+    if "hashes" in data:
+        return data["hashes"][list(data["hashes"])[0]]
+    elif "checksums" in data:
+        return data["checksums"][0]["checksum"]
+    elif "checksum" in data:
+        return data["checksum"]
+
+
 def compute_checksum(checksums):
     """
     Checksum created by sorting alphabetically then concatenating first layer of bundles/objects.
@@ -625,15 +637,6 @@ def compute_checksum(checksums):
         "checksum": hashlib.md5(checksum.encode("utf-8")).hexdigest(),
         "type": "md5",
     }
-
-
-def get_checksum(data):
-    if "hashes" in data:
-        return data["hashes"][list(data["hashes"])[0]]
-    elif "checksums" in data:
-        return data["checksums"][0]["checksum"]
-    elif "checksum" in data:
-        return data["checksum"]
 
 
 @blueprint.route("/bundle/", methods=["POST"])

@@ -138,6 +138,7 @@ def test_bundle_post_defined_size_checksum(client, user):
         "size": 12345,
     }
     res2 = client.post("/bundle/", json=data, headers=user)
+    print(res2.json)
     assert res2.status_code == 200
 
 
@@ -178,6 +179,7 @@ def test_bundle_post_multiple_checksum_types(client, user):
         ],
     }
     res = client.post("/bundle/", json=data, headers=user)
+    print(res.json)
     assert res.status_code == 200
 
     res = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
@@ -191,6 +193,26 @@ def test_bundle_post_multiple_checksum_types(client, user):
             },
             {"checksum": "e93ccf5ffc90eefcc0bdb81f87d25d1a", "type": "md5"},
         ]
+
+
+def test_bundle_post_checksum_with_incorrect_schema(client, user):
+    did_list, _ = create_index(client, user)
+    bundle_id = str(uuid.uuid4)
+    data = {
+        "name": "test_bundle",
+        "bundles": did_list,
+        "bundle_id": bundle_id,
+        "checksums": [
+            {"checksum": "a", "type": "md5"},
+        ],
+    }
+    res = client.post("/bundle/", json=data, headers=user)
+    print(res.json)
+    assert res.status_code == 200
+
+    res = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
+    rec = res.json
+    print(rec)
 
 
 def test_bundle_bundle_data_not_found(client, user):

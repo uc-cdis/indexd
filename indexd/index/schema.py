@@ -125,18 +125,19 @@ BUNDLE_SCHEMA = {
             "type": "array",
             "items": {
                 "type": "object",
+                "required": ["type", "checksum"],
                 "properties": {
                     "type": {
-                        "type": "string",
                         "enum": ["md5", "sha1", "sha256", "sha512", "crc", "etag"],
                     },
+                    "checksum": {"type": "string"},
                 },
                 "allOf": [
                     {
                         "if": {
                             "properties": {
-                                "type": {"const": "md5"},
-                            },
+                                "type": {"const": "md5"}
+                            }
                         },
                         "then": {
                             "properties": {"checksum": {"pattern": "^[0-9a-f]{32}$"}}
@@ -145,8 +146,8 @@ BUNDLE_SCHEMA = {
                     {
                         "if": {
                             "properties": {
-                                "type": {"const": "sha1"},
-                            },
+                                "type": {"const": "sha1"}
+                            }
                         },
                         "then": {
                             "properties": {"checksum": {"pattern": "^[0-9a-f]{40}$"}}
@@ -155,8 +156,8 @@ BUNDLE_SCHEMA = {
                     {
                         "if": {
                             "properties": {
-                                "type": {"const": "sha256"},
-                            },
+                                "type": {"const": "sha256"}
+                            }
                         },
                         "then": {
                             "properties": {"checksum": {"pattern": "^[0-9a-f]{64}$"}}
@@ -165,8 +166,8 @@ BUNDLE_SCHEMA = {
                     {
                         "if": {
                             "properties": {
-                                "type": {"const": "sha512"},
-                            },
+                                "type": {"const": "sha512"}
+                            }
                         },
                         "then": {
                             "properties": {"checksum": {"pattern": "^[0-9a-f]{128}$"}}
@@ -175,8 +176,8 @@ BUNDLE_SCHEMA = {
                     {
                         "if": {
                             "properties": {
-                                "type": {"const": "crc"},
-                            },
+                                "type": {"const": "crc"}
+                            }
                         },
                         "then": {
                             "properties": {"checksum": {"pattern": "^[0-9a-f]{8}$"}}
@@ -185,8 +186,8 @@ BUNDLE_SCHEMA = {
                     {
                         "if": {
                             "properties": {
-                                "type": {"const": "etag"},
-                            },
+                                "type": {"const": "etag"}
+                            }
                         },
                         "then": {
                             "properties": {
