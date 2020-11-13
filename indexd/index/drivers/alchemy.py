@@ -256,7 +256,7 @@ class DrsBundleRecord(Base):
     name = Column(String)
     created_time = Column(DateTime, default=datetime.datetime.utcnow)
     updated_time = Column(DateTime, default=datetime.datetime.utcnow)
-    checksum = Column(String)  # db checksum => object checksums
+    checksum = Column(String)  # db `checksum` => object `checksums`
     size = Column(BigInteger)
     bundle_data = Column(Text)
     description = Column(Text)
