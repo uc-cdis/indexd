@@ -609,6 +609,18 @@ def version():
     return flask.jsonify(base), 200
 
 
+def get_checksum(data):
+    """
+    Collect checksums from bundles and objects in the bundle for compute_checksum
+    """
+    if "hashes" in data:
+        return data["hashes"][list(data["hashes"])[0]]
+    elif "checksums" in data:
+        return data["checksums"][0]["checksum"]
+    elif "checksum" in data:
+        return data["checksum"]
+
+
 def compute_checksum(checksums):
     """
     Checksum created by sorting alphabetically then concatenating first layer of bundles/objects.
@@ -621,16 +633,10 @@ def compute_checksum(checksums):
     """
     checksums.sort()
     checksum = "".join(checksums)
-    return hashlib.md5(checksum.encode("utf-8")).hexdigest()
-
-
-def get_checksum(data):
-    if "hashes" in data:
-        return data["hashes"][list(data["hashes"])[0]]
-    elif "checksums" in data:
-        return data["checksums"][0]["checksum"]
-    elif "checksum" in data:
-        return data["checksum"]
+    return {
+        "checksum": hashlib.md5(checksum.encode("utf-8")).hexdigest(),
+        "type": "md5",
+    }
 
 
 @blueprint.route("/bundle/", methods=["POST"])
@@ -676,6 +682,14 @@ def post_bundle():
     bundle_data = []
     checksums = []
 
+    # TODO: Remove this after updating to jsonschema>=3.0.0
+    if flask.request.json.get("checksums"):
+        hashes = {
+            checksum["type"]: checksum["checksum"]
+            for checksum in flask.request.json.get("checksums")
+        }
+        validate_hashes(**hashes)
+
     # get bundles/records that already exists and add it to bundle_data
     for bundle in bundles:
         data = get_index_record(bundle)[0]
@@ -685,9 +699,9 @@ def post_bundle():
         data = bundle_to_drs(data, expand=True, is_content=True)
         bundle_data.append(data)
     checksum = (
-        flask.request.json.get("checksum")
-        if flask.request.json.get("checksum")
-        else compute_checksum(checksums)
+        flask.request.json.get("checksums")
+        if flask.request.json.get("checksums")
+        else [compute_checksum(checksums)]
     )
 
     ret = blueprint.index_driver.add_bundle(
@@ -695,7 +709,7 @@ def post_bundle():
         name=name,
         size=size,
         bundle_data=json.dumps(bundle_data),
-        checksum=checksum,
+        checksum=json.dumps(checksum),
         description=description,
         version=version,
         aliases=json.dumps(aliases),
