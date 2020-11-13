@@ -248,7 +248,8 @@ def bundle_to_drs(record, expand=False, is_content=False):
 
 def parse_checksums(record, drs_object):
     """
-    Create valid checksums format
+    Create valid checksums format from a DB object -
+    either a record ("hashes") or a bundle ("checksum")
     """
     ret_checksum = []
     if "hashes" in record:
