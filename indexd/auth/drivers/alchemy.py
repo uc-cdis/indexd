@@ -1,5 +1,3 @@
-import json
-import uuid
 import hashlib
 
 from contextlib import contextmanager
@@ -11,8 +9,6 @@ from sqlalchemy import Column
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.ext.declarative import declarative_base
-
-from indexd import auth
 
 from indexd.auth.driver import AuthDriverABC
 

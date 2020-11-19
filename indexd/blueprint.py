@@ -1,6 +1,4 @@
-import re
 import flask
-import jsonschema
 
 from indexclient.client import IndexClient
 from doiclient.client import DOIClient

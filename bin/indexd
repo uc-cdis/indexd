@@ -4,8 +4,6 @@ import sys
 import logging
 import argparse
 
-import flask
-
 from indexd import get_app
 
 
