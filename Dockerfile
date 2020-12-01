@@ -1,4 +1,4 @@
-ARG base_version=1.0.1
+ARG base_version=1.2.0
 ARG registry=quay.io
 
 FROM ${registry}/ncigdc/python35-builder:${base_version} as build
