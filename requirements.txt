@@ -5,7 +5,7 @@
 #    pip-compile setup.py
 #
 attrs==19.3.0             # via jsonschema
-git+https://github.com/uc-cdis/cdislogging.git@0.0.2#egg=cdislogging  # via indexd (setup.py)
+cdislogging==1.0.0        # via indexd (setup.py)
 certifi==2020.6.20        # via requests
 chardet==3.0.4            # via requests
 click==7.1.2              # via flask
