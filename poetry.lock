@@ -677,7 +677,7 @@ testing = ["fields", "hunter", "process-tests (==2.0.2)", "six", "pytest-xdist",
 
 [[package]]
 name = "pytest-flask"
-version = "0.8.1"
+version = "0.11.0"
 description = "A set of py.test fixtures to test Flask applications."
 category = "dev"
 optional = false
@@ -685,7 +685,7 @@ python-versions = "*"
 
 [package.dependencies]
 Flask = "*"
-pytest = ">=2.4"
+pytest = "*"
 Werkzeug = ">=0.7"
 
 [package.extras]
@@ -914,7 +914,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "3.6.*"
-content-hash = "4257788f7b3fd98cdbb30b733ac91a9c42f0b13ff7acdcbfd13f46ce9520d380"
+content-hash = "ed31dd1db00a33f2a74aa4a78aa3f8152b4a53310283413cb7b47ba2b39bdf57"
 
 [metadata.files]
 addict = [
@@ -1281,8 +1281,8 @@ pytest-cov = [
     {file = "pytest_cov-2.9.0-py2.py3-none-any.whl", hash = "sha256:c87dfd8465d865655a8213859f1b4749b43448b5fae465cb981e16d52a811424"},
 ]
 pytest-flask = [
-    {file = "pytest-flask-0.8.1.tar.gz", hash = "sha256:cb921f19d403ae6bf2eca2017fd901f85fb66f5c179690c0268812a0fa5c15eb"},
-    {file = "pytest_flask-0.8.1-py2.py3-none-any.whl", hash = "sha256:143fe1704a991a611e1a6ff48fb3911129b8fa59cd04a0bfb5a9b1153c697d36"},
+    {file = "pytest-flask-0.11.0.tar.gz", hash = "sha256:b0014dbc87c9877effbc632dcbdab5228bc939bf8974ead8b083eb784461d69c"},
+    {file = "pytest_flask-0.11.0-py2.py3-none-any.whl", hash = "sha256:fbf77a4ff2efdaa15d895af00625d8242f4bbdf10aceaefc9deb170bb7a45767"},
 ]
 python-keystoneclient = [
     {file = "python-keystoneclient-1.8.1.tar.gz", hash = "sha256:4429b973fc45636d1f7117791d930391a432b4d0db76eafb75f918a8e6d68cf0"},
