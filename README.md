@@ -306,7 +306,7 @@ sudo apt-get install python-psycopg2
 To install the implementation, simply run:
 
 ```bash
-python setup.py install
+poetry install
 ```
 
 To see how the automated tests (run in Travis CI) install Indexd, check out the `.travis.yml` file in the root directory of this repository.
