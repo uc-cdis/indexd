@@ -18,7 +18,7 @@ WORKDIR /$appname
 
 RUN python -m pip install --upgrade pip \
     && python -m pip install --upgrade setuptools \
-    && pip install -r requirements.txt
+    && pip install -r requirements.txt --use-deprecated=legacy-resolver
 
 RUN mkdir -p /var/www/$appname \
     && mkdir -p /var/www/.cache/Python-Eggs/ \
