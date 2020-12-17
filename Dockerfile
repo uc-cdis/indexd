@@ -12,6 +12,7 @@ RUN apk update \
     && apk add curl bash git vim
 
 
+
 RUN mkdir -p /var/www/$appname \
     && mkdir -p /var/www/.cache/Python-Eggs/ \
     && mkdir /run/nginx/ \
