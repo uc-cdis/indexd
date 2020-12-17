@@ -314,17 +314,17 @@ To see how the automated tests (run in Travis CI) install Indexd, check out the 
 ## Installation with Docker
 
 ```bash
-docker build --build-arg https_proxy=http://cloud-proxy:3128 --build-arg http_proxy=http://cloud-proxy:3128 -t Indexd .
+docker build --build-arg https_proxy=http://cloud-proxy:3128 --build-arg http_proxy=http://cloud-proxy:3128 -t indexd .
 
-docker run -d --name=Indexd -p 80:80 Indexd
-docker exec Indexd python /Indexd/bin/index_admin.py create --username $username --password $password
-docker exec Indexd python /Indexd/bin/index_admin.py delete --username $username
+docker run -d --name=indexd -p 80:80 Indexd
+docker exec indexd python /indexd/bin/index_admin.py create --username $username --password $password
+docker exec indexd python /indexd/bin/index_admin.py delete --username $username
 ```
 
 To run docker with an alternative settings file:
 
 ```
-docker run -d -v local_settings.py:/var/www/Indexd/local_settings.py --name=Indexd -p 80:80 Indexd
+docker run -d -v local_settings.py:/var/www/indexd/local_settings.py --name=Indexd -p 80:80 indexd
 ```
 
 ## Configuration
