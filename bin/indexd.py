@@ -16,15 +16,7 @@ def setup_logging(log_levels, log_stream, **kwargs):
     )
 
 
-def main(host, port, debug_flask=False, **kwargs):
-    app = get_app()
-    app.run(
-        host=host, port=port, debug=debug_flask, threaded=True,
-    )
-
-
-if __name__ == "__main__":
-
+def parse_arguments():
     parser = argparse.ArgumentParser()
 
     parser.set_defaults(log_levels=[logging.ERROR])
@@ -71,9 +63,17 @@ if __name__ == "__main__":
     setup_logging(**args.__dict__)
 
     logging.debug(args)
+    return args
 
-    try:
-        main(**args.__dict__)
-    except Exception as err:
-        logging.exception(err)
-        raise
+
+def main():
+    args = parse_arguments()
+
+    app = get_app()
+    app.run(
+        host=args.host, port=args.port, debug=args.debug_flask, threaded=True,
+    )
+
+
+if __name__ == "__main__":
+    main()
