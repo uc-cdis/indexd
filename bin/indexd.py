@@ -12,7 +12,8 @@ def setup_logging(log_levels, log_stream, **kwargs):
     Sets up basic logging.
     """
     logging.basicConfig(
-        level=min(log_levels), stream=log_stream,
+        level=min(log_levels),
+        stream=log_stream,
     )
 
 
@@ -47,21 +48,27 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--debug-flask", action="store_true", help="enable flask debugging",
+        "--debug-flask",
+        action="store_true",
+        help="enable flask debugging",
     )
 
     parser.add_argument(
-        "--host", default="localhost", help="host to server on [localhost]",
+        "--host",
+        default="localhost",
+        help="host to server on [localhost]",
     )
 
     parser.add_argument(
-        "--port", default=8080, type=int, help="port to server on [8080]",
+        "--port",
+        default=8080,
+        type=int,
+        help="port to server on [8080]",
     )
 
     args = parser.parse_args()
 
     setup_logging(**args.__dict__)
-
     logging.debug(args)
     return args
 
@@ -71,7 +78,10 @@ def main():
 
     app = get_app()
     app.run(
-        host=args.host, port=args.port, debug=args.debug_flask, threaded=True,
+        host=args.host,
+        port=args.port,
+        debug=args.debug_flask,
+        threaded=True,
     )
 
 
