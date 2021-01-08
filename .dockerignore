@@ -1,4 +1,14 @@
-.git
 .tox
 swagger-codegen*
 venv*
+
+# Unit test / coverage reports
+htmlcov/
+test-reports/
+.tox/
+.coverage
+.cache
+.local/
+nosetests.xml
+coverage.xml
+swagger_client
