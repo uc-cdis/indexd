@@ -73,17 +73,16 @@ def parse_arguments():
     return args
 
 
-def main():
-    args = parse_arguments()
-
-    app = get_app()
-    app.run(
-        host=args.host,
-        port=args.port,
-        debug=args.debug_flask,
-        threaded=True,
-    )
-
-
 if __name__ == "__main__":
-    main()
+    args = parse_arguments()
+    try:
+        app = get_app()
+        app.run(
+            host=args.host,
+            port=args.port,
+            debug=args.debug_flask,
+            threaded=True,
+        )
+    except Exception as err:
+        logging.exception(err)
+        raise
