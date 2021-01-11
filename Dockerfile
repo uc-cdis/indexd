@@ -14,6 +14,7 @@ RUN apk update \
 COPY . /$appname
 COPY ./deployment/uwsgi/uwsgi.ini /etc/uwsgi/uwsgi.ini
 COPY ./deployment/uwsgi/wsgi.py /$appname/wsgi.py
+COPY clear_prometheus_multiproc /$appname/clear_prometheus_multiproc
 WORKDIR /$appname
 
 RUN python -m pip install --upgrade pip \
