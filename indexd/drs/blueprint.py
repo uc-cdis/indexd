@@ -202,15 +202,20 @@ def bundle_to_drs(record, expand=False, is_content=False):
         "contents": [],
     }
 
-    if expand:
-        contents = (
-            record["contents"]
-            if "contents" in record
-            else record["bundle_data"]
-            if "bundle_data" in record
-            else []
-        )
-        drs_object["contents"] = contents
+    contents = (
+        record["contents"]
+        if "contents" in record
+        else record["bundle_data"]
+        if "bundle_data" in record
+        else []
+    )
+
+    if not expand and isinstance(contents, list):
+        for content in contents:
+            if isinstance(content, dict):
+                content.pop("contents", None)
+
+    drs_object["contents"] = contents
 
     if not is_content:
         # Show these only if its the leading bundle
@@ -256,7 +261,12 @@ def parse_checksums(record, drs_object):
         for k in record["hashes"]:
             ret_checksum.append({"checksum": record["hashes"][k], "type": k})
     elif "checksum" in record:
-        checksums = json.loads(record["checksum"])
+        try:
+            checksums = json.loads(record["checksum"])
+        except json.decoder.JSONDecodeError:
+            # TODO: is it expected that the record["checksum"] is json format?
+            # it seems that it is string
+            checksums = [checksums]
         for checksum in checksums:
             ret_checksum.append(
                 {"checksum": checksum["checksum"], "type": checksum["type"]}
