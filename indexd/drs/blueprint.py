@@ -148,12 +148,11 @@ def indexd_to_drs(record, expand=False, list_drs=False):
     if "description" in record:
         drs_object["description"] = record["description"]
 
-    if expand == True and "bundle_data" in record:
-        bundle_data = record["bundle_data"]
-        for bundle in bundle_data:
-            drs_object["contents"].append(
-                bundle_to_drs(bundle, expand=expand, is_content=True)
-            )
+    for bundle in record.get("bundle_data", []):
+        bundle_object = bundle_to_drs(bundle, expand=expand, is_content=True)
+        if not expand:
+            bundle_object.pop("contents", None)
+        drs_object["contents"].append(bundle_object)
 
     # access_methods mapping
     if "urls" in record:
@@ -266,8 +265,7 @@ def parse_checksums(record, drs_object):
         try:
             checksums = json.loads(record["checksum"])
         except json.decoder.JSONDecodeError:
-            # TODO: is it expected that the record["checksum"] is json format?
-            # it seems that it is string
+            # TODO: Remove the code after fixing the record["checksum"] format
             checksums = [{"checksum": record["checksum"], "type": "md5"}]
         for checksum in checksums:
             ret_checksum.append(
