@@ -202,18 +202,14 @@ def test_bundle_post_checksum_with_incorrect_schema(client, user):
         "name": "test_bundle",
         "bundles": did_list,
         "bundle_id": bundle_id,
-        "checksums": [
-            {"type": "md42", "checksum": "a"},
-        ],
+        "checksums": [{"type": "md42", "checksum": "a"},],
     }
     res = client.post("/bundle/", json=data, headers=user)
     assert res.status_code == 400
 
     # checksum value doesn't match checksum type
     data = {
-        "checksums": [
-            {"type": "md5", "checksum": "a"},
-        ],
+        "checksums": [{"type": "md5", "checksum": "a"},],
     }
     res = client.post("/bundle/", json=data, headers=user)
     assert res.status_code == 400
@@ -644,7 +640,7 @@ def test_get_drs_expand_contents_default(client, user):
     rec2 = res2.json
 
     contents = rec2["contents"]
-    assert len(contents) == 0
+    assert len(contents) == 3
 
 
 def test_get_drs_expand_contents_false(client, user):
@@ -657,7 +653,7 @@ def test_get_drs_expand_contents_false(client, user):
     assert res2.status_code == 200
     rec2 = res2.json
 
-    contents = rec2["contents"]
+    contents = rec2["contents"][0].get("contents", [])
     assert len(contents) == 0
 
 
