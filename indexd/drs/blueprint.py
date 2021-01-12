@@ -147,13 +147,17 @@ def indexd_to_drs(record, expand=False, list_drs=False):
 
     if "description" in record:
         drs_object["description"] = record["description"]
-
-    if expand == True and "bundle_data" in record:
+    if "bundle_data" in record:
         bundle_data = record["bundle_data"]
         for bundle in bundle_data:
-            drs_object["contents"].append(
-                bundle_to_drs(bundle, expand=expand, is_content=True)
-            )
+            if expand:
+                drs_object["contents"].append(
+                    bundle_to_drs(bundle, expand=True, is_content=True)
+                )
+            else:
+                drs_object["contents"].append(
+                    bundle_to_drs(bundle, expand=False, is_content=True)
+                )
 
     # access_methods mapping
     if "urls" in record:
@@ -233,16 +237,18 @@ def bundle_to_drs(record, expand=False, is_content=False):
         created_time = (
             record["created_date"]
             if "created_date" in record
-            else record["created_time"]
+            else record.get("created_time")
         )
 
         updated_time = (
             record["updated_date"]
             if "updated_date" in record
-            else record["updated_time"]
+            else record.get("updated_time")
         )
-        drs_object["created_time"] = created_time
-        drs_object["updated_time"] = updated_time
+        if created_time:
+            drs_object["created_time"] = created_time
+        if updated_time:
+            drs_object["updated_time"] = updated_time
         drs_object["size"] = record["size"]
         drs_object["aliases"] = aliases
         drs_object["description"] = description
