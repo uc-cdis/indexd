@@ -266,7 +266,7 @@ def parse_checksums(record, drs_object):
         except json.decoder.JSONDecodeError:
             # TODO: is it expected that the record["checksum"] is json format?
             # it seems that it is string
-            checksums = [record["checksum"]]
+            checksums = [{"checksum": record["checksum"], "type": "md5"}]
         for checksum in checksums:
             ret_checksum.append(
                 {"checksum": checksum["checksum"], "type": checksum["type"]}
