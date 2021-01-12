@@ -202,14 +202,18 @@ def test_bundle_post_checksum_with_incorrect_schema(client, user):
         "name": "test_bundle",
         "bundles": did_list,
         "bundle_id": bundle_id,
-        "checksums": [{"type": "md42", "checksum": "a"},],
+        "checksums": [
+            {"type": "md42", "checksum": "a"},
+        ],
     }
     res = client.post("/bundle/", json=data, headers=user)
     assert res.status_code == 400
 
     # checksum value doesn't match checksum type
     data = {
-        "checksums": [{"type": "md5", "checksum": "a"},],
+        "checksums": [
+            {"type": "md5", "checksum": "a"},
+        ],
     }
     res = client.post("/bundle/", json=data, headers=user)
     assert res.status_code == 400
