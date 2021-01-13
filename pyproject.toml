@@ -14,7 +14,7 @@ python = "3.6.*"
 authutils = "^4.0.0"
 
 cdislogging = "^1.0.0"
-cdiserrors = "<2.0.0"
+cdiserrors = {git = "https://github.com/uc-cdis/cdiserrors", rev = "0.1.2"}
 doiclient = {git = "https://github.com/uc-cdis/doiclient", rev = "1.0.0"}
 dosclient = {git = "https://github.com/uc-cdis/dosclient", rev = "1.1.0"}
 gen3authz = "^0.4.0"
