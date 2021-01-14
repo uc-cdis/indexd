@@ -20,7 +20,7 @@ def get_drs_object(object_id):
 
     ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
 
-    data = indexd_to_drs(ret, expand=expand, list_drs=False)
+    data = indexd_to_drs(ret, expand=expand)
 
     return flask.jsonify(data), 200
 
@@ -84,9 +84,14 @@ def get_signed_url(object_id, access_id):
     return res, 200
 
 
-def indexd_to_drs(record, expand=False, list_drs=False):
+def indexd_to_drs(record, expand=False):
+    """
+    Convert record to ga4gh-compilant format
 
-    bearer_token = flask.request.headers.get("AUTHORIZATION")
+    Args:
+        record(dict): json object record
+        expand(bool): show contents of the descendants
+    """
 
     did = (
         record["id"]
@@ -179,6 +184,8 @@ def indexd_to_drs(record, expand=False, list_drs=False):
 
 def bundle_to_drs(record, expand=False, is_content=False):
     """
+    record(dict): json object record
+    expand(bool): show contents of the descendants
     is_content: is an expanded content in a bundle
     """
 
