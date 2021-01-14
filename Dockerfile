@@ -1,7 +1,7 @@
 # To run: docker run -v /path/to/wsgi.py:/var/www/indexd/wsgi.py --name=indexd -p 81:80 indexd
 # To check running container: docker exec -it indexd /bin/bash
 
-FROM quay.io/cdis/python-nginx:pybase3-1.4.1
+FROM quay.io/cdis/python-nginx:pybase3-1.4.2
 
 
 ENV appname=indexd
@@ -9,11 +9,12 @@ ENV appname=indexd
 RUN apk update \
     && apk add postgresql-libs postgresql-dev libffi-dev libressl-dev \
     && apk add linux-headers musl-dev gcc \
-    && apk add curl bash git vim
+    && apk add curl bash git vim logrotate
 
 COPY . /$appname
 COPY ./deployment/uwsgi/uwsgi.ini /etc/uwsgi/uwsgi.ini
 COPY ./deployment/uwsgi/wsgi.py /$appname/wsgi.py
+COPY clear_prometheus_multiproc /$appname/clear_prometheus_multiproc
 WORKDIR /$appname
 
 RUN python -m pip install --upgrade pip \
