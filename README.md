@@ -342,15 +342,6 @@ There is specific information about some configuration options in the [distribut
 poetry run pytest tests/
 ```
 
-## Testing with Docker
-
-Doesn't work with all the DB tests yet, but you can adjust to run specific tests as necessary.
-
-```
-docker build -t Indexd -f TestDockerfile .
-```
-
-You should be able to use the test dockerfile to run some tests.
 
 <div align="center">
 <img src="./docs/gen3_large.png" alt="Gen3 Logo" height="425

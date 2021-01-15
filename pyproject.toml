@@ -12,19 +12,18 @@ include = [
 [tool.poetry.dependencies]
 python = "3.6.*"
 authutils = "^4.0.0"
-
 cdislogging = "^1.0.0"
-cdiserrors =  "~0.1.2"
+cdiserrors =  "^0.1.2"
 doiclient = {git = "https://github.com/uc-cdis/doiclient", rev = "1.0.0"}
 dosclient = {git = "https://github.com/uc-cdis/dosclient", rev = "1.1.0"}
 gen3authz = "^0.4.0"
 hsclient = {git = "https://github.com/uc-cdis/hsclient", rev = "1.0.0"}
-indexclient = {git = "https://github.com/uc-cdis/indexclient", rev = "1.6.0"}
+indexclient = "^2.1.0"
 jsonschema = "^2.5.1"
 flask = "^1.1.1"
 psycopg2 = "^2.7"
 sqlalchemy = "^1.3.3"
-sqlalchemy-utils = "~0.33"
+sqlalchemy-utils = "^0.33"
 
 
 [tool.poetry.dev-dependencies]
@@ -34,9 +33,9 @@ mock = "^4.0.2"
 pytest = "^3.0.6"
 pytest-cov = "^2.5.1"
 pytest-flask = "^0.11"
-PyYAML = "5.1"
+PyYAML = "^5.1"
 responses = "^0.12.0"
-swagger_spec_validator = "2.6.0"
+swagger_spec_validator = "^2.6.0"
 
 
 [build-system]
