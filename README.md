@@ -303,7 +303,7 @@ On Linux
 sudo apt-get install python-psycopg2
 ```
 
-To install the implementation, simply run:
+To install the implementation, assure you have poetry installed and simply run:
 
 ```bash
 poetry install
@@ -339,8 +339,7 @@ There is specific information about some configuration options in the [distribut
 - Follow [installation](#installation)
 - Run:
 ```
-pip install -r test-requirements.txt
-py.test -v tests/
+poetry run pytest tests/
 ```
 
 ## Testing with Docker

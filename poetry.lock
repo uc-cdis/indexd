@@ -38,7 +38,7 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "authlib"
-version = "0.15.2"
+version = "0.15.3"
 description = "The ultimate Python library in building OAuth and OpenID Connect servers."
 category = "main"
 optional = false
@@ -282,7 +282,7 @@ resolved_reference = "38c0f1ab42edf3efb1ad6348d7dbdff81b131360"
 
 [[package]]
 name = "flask"
-version = "1.1.1"
+version = "1.1.2"
 description = "A simple framework for building complex web applications."
 category = "main"
 optional = false
@@ -419,7 +419,7 @@ i18n = ["Babel (>=0.8)"]
 
 [[package]]
 name = "jsonschema"
-version = "2.5.1"
+version = "2.6.0"
 description = "An implementation of JSON Schema validation for Python"
 category = "main"
 optional = false
@@ -917,7 +917,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "3.6.*"
-content-hash = "b4eac8d6579830d08560678a1cef2ee2276847d57dd8cb990900eeb6bb1e1b14"
+content-hash = "ba5fa82a0649b382192b7767108f2a9da6b76d208750e09f6f0c45b31ca24ae3"
 
 [metadata.files]
 addict = [
@@ -937,8 +937,8 @@ attrs = [
     {file = "attrs-20.3.0.tar.gz", hash = "sha256:832aa3cde19744e49938b91fea06d69ecb9e649c93ba974535d08ad92164f700"},
 ]
 authlib = [
-    {file = "Authlib-0.15.2-py2.py3-none-any.whl", hash = "sha256:078b900fa9fbebf9f8dae1d5dc1ca857b6a742493093ef9b0b36ad926f36e41f"},
-    {file = "Authlib-0.15.2.tar.gz", hash = "sha256:21b34625c83ca48150684bbeca8f7c884cd281913c72d146dbf0e9d2fbfdec4e"},
+    {file = "Authlib-0.15.3-py2.py3-none-any.whl", hash = "sha256:0f6af3a38d37dd77361808dd3f2e258b647668dac6d2cefcefc4c4ebc3c7d2b2"},
+    {file = "Authlib-0.15.3.tar.gz", hash = "sha256:7dde11ba45db51e97169c261362fab3193073100b7387e60c159db1eec470bbc"},
 ]
 authutils = [
     {file = "authutils-4.0.0.tar.gz", hash = "sha256:d67cd5025d8584a23a3ba583719e6116807f13450b611d1d82b112cdb13a1631"},
@@ -1097,8 +1097,8 @@ docopt = [
 doiclient = []
 dosclient = []
 flask = [
-    {file = "Flask-1.1.1-py2.py3-none-any.whl", hash = "sha256:45eb5a6fd193d6cf7e0cf5d8a5b31f83d5faae0293695626f539a823e93b13f6"},
-    {file = "Flask-1.1.1.tar.gz", hash = "sha256:13f9f196f330c7c2c5d7a5cf91af894110ca0215ac051b5844701f2bfd934d52"},
+    {file = "Flask-1.1.2-py2.py3-none-any.whl", hash = "sha256:8a4fdd8936eba2512e9c85df320a37e694c93945b33ef33c89946a340a238557"},
+    {file = "Flask-1.1.2.tar.gz", hash = "sha256:4efa1ae2d7c9865af48986de8aeb8504bf32c7f3d6fdc9353d34b21f4b127060"},
 ]
 gen3authz = [
     {file = "gen3authz-0.4.0.tar.gz", hash = "sha256:5a74ce9f5ab875fe936557ed77b6d09e80ad6eccafd24cbea3b588304449279f"},
@@ -1131,9 +1131,8 @@ jinja2 = [
     {file = "Jinja2-2.11.2.tar.gz", hash = "sha256:89aab215427ef59c34ad58735269eb58b1a5808103067f7bb9d5836c651b3bb0"},
 ]
 jsonschema = [
-    {file = "jsonschema-2.5.1-py2.py3-none-any.whl", hash = "sha256:71e7b3bcf9fca408bcb65bb60892f375d3abdd2e4f296eeeb8fe0bbbfcde598e"},
-    {file = "jsonschema-2.5.1.tar.gz", hash = "sha256:36673ac378feed3daa5956276a829699056523d7961027911f064b52255ead41"},
-    {file = "jsonschema-2.5.1.zip", hash = "sha256:9088494da4c74497a7a27842ae4ca9c3355b5f7754121edc440463eaf020f079"},
+    {file = "jsonschema-2.6.0-py2.py3-none-any.whl", hash = "sha256:000e68abd33c972a5248544925a0cae7d1125f9bf6c58280d37546b946769a08"},
+    {file = "jsonschema-2.6.0.tar.gz", hash = "sha256:6ff5f3180870836cae40f06fa10419f557208175f13ad7bc26caa77beb1f6e02"},
 ]
 markupsafe = [
     {file = "MarkupSafe-1.1.1-cp27-cp27m-macosx_10_6_intel.whl", hash = "sha256:09027a7803a62ca78792ad89403b1b7a73a01c8cb65909cd876f7fcebd79b161"},
