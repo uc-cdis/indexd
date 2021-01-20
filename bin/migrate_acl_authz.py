@@ -23,7 +23,6 @@ persistent whereas the path could change if resources are renamed.
 
 import argparse
 import os
-import re
 import sys
 
 from cdislogging import get_logger
