@@ -470,7 +470,7 @@ def append_aliases(record):
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
     except jsonschema.ValidationError as err:
-        logger.warn(f"Bad request body:\n{err}")
+        logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
 
     aliases = [record["value"] for record in aliases_json["aliases"]]
@@ -494,7 +494,7 @@ def replace_aliases(record):
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
     except jsonschema.ValidationError as err:
-        logger.warn(f"Bad request body:\n{err}")
+        logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
 
     aliases = [record["value"] for record in aliases_json["aliases"]]
@@ -543,7 +543,7 @@ def update_all_index_record_versions(record):
     try:
         jsonschema.validate(request_json, UPDATE_ALL_VERSIONS_SCHEMA)
     except jsonschema.ValidationError as err:
-        logger.warn(f"Bad request body:\n{err}")
+        logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
 
     acl = request_json.get("acl")

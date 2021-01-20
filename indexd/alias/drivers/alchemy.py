@@ -1,4 +1,3 @@
-import json
 import uuid
 
 from cdislogging import get_logger
@@ -17,7 +16,6 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 
-from indexd import alias
 from indexd.alias.driver import AliasDriverABC
 
 from indexd.alias.errors import NoRecordFound
