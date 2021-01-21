@@ -20,7 +20,7 @@ def get_drs_object(object_id):
 
     ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
 
-    data = indexd_to_drs(ret, expand=expand, list_drs=False)
+    data = indexd_to_drs(ret, expand=expand)
 
     return flask.jsonify(data), 200
 
@@ -84,9 +84,14 @@ def get_signed_url(object_id, access_id):
     return res, 200
 
 
-def indexd_to_drs(record, expand=False, list_drs=False):
+def indexd_to_drs(record, expand=False):
+    """
+    Convert record to ga4gh-compilant format
 
-    bearer_token = flask.request.headers.get("AUTHORIZATION")
+    Args:
+        record(dict): json object record
+        expand(bool): show contents of the descendants
+    """
 
     did = (
         record["id"]
@@ -148,12 +153,11 @@ def indexd_to_drs(record, expand=False, list_drs=False):
     if "description" in record:
         drs_object["description"] = record["description"]
 
-    if expand == True and "bundle_data" in record:
-        bundle_data = record["bundle_data"]
-        for bundle in bundle_data:
-            drs_object["contents"].append(
-                bundle_to_drs(bundle, expand=expand, is_content=True)
-            )
+    for bundle in record.get("bundle_data", []):
+        bundle_object = bundle_to_drs(bundle, expand=expand, is_content=True)
+        if not expand:
+            bundle_object.pop("contents", None)
+        drs_object["contents"].append(bundle_object)
 
     # access_methods mapping
     if "urls" in record:
@@ -180,6 +184,8 @@ def indexd_to_drs(record, expand=False, list_drs=False):
 
 def bundle_to_drs(record, expand=False, is_content=False):
     """
+    record(dict): json object record
+    expand(bool): show contents of the descendants
     is_content: is an expanded content in a bundle
     """
 
@@ -202,15 +208,20 @@ def bundle_to_drs(record, expand=False, is_content=False):
         "contents": [],
     }
 
-    if expand:
-        contents = (
-            record["contents"]
-            if "contents" in record
-            else record["bundle_data"]
-            if "bundle_data" in record
-            else []
-        )
-        drs_object["contents"] = contents
+    contents = (
+        record["contents"]
+        if "contents" in record
+        else record["bundle_data"]
+        if "bundle_data" in record
+        else []
+    )
+
+    if not expand and isinstance(contents, list):
+        for content in contents:
+            if isinstance(content, dict):
+                content.pop("contents", None)
+
+    drs_object["contents"] = contents
 
     if not is_content:
         # Show these only if its the leading bundle
@@ -228,16 +239,18 @@ def bundle_to_drs(record, expand=False, is_content=False):
         created_time = (
             record["created_date"]
             if "created_date" in record
-            else record["created_time"]
+            else record.get("created_time")
         )
 
         updated_time = (
             record["updated_date"]
             if "updated_date" in record
-            else record["updated_time"]
+            else record.get("updated_time")
         )
-        drs_object["created_time"] = created_time
-        drs_object["updated_time"] = updated_time
+        if created_time:
+            drs_object["created_time"] = created_time
+        if updated_time:
+            drs_object["updated_time"] = updated_time
         drs_object["size"] = record["size"]
         drs_object["aliases"] = aliases
         drs_object["description"] = description
@@ -256,7 +269,11 @@ def parse_checksums(record, drs_object):
         for k in record["hashes"]:
             ret_checksum.append({"checksum": record["hashes"][k], "type": k})
     elif "checksum" in record:
-        checksums = json.loads(record["checksum"])
+        try:
+            checksums = json.loads(record["checksum"])
+        except json.decoder.JSONDecodeError:
+            # TODO: Remove the code after fixing the record["checksum"] format
+            checksums = [{"checksum": record["checksum"], "type": "md5"}]
         for checksum in checksums:
             ret_checksum.append(
                 {"checksum": checksum["checksum"], "type": checksum["type"]}
