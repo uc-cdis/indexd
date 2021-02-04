@@ -26,6 +26,10 @@ class FenceClient(object):
             raise AuthError("Not Authorized. Access Token Required.")
         if access_id:
             url += "?protocol=" + access_id
+            if flask.request.query_string:
+                url = f"{url}&{flask.request.query_string.decode()}"
+        elif flask.request.query_string:
+            url = f"{url}?{flask.request.query_string.decode()}"
         try:
             req = requests.get(url, headers=headers)
         except Exception as e:
