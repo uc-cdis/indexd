@@ -6,10 +6,23 @@ from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
 
 
-def generate_presigned_url_response(did, protocol="", status=200):
-    full_url = (
-        "https://fictitious-commons.io/data/download/" + did + "?protocol=" + protocol
-    )
+def generate_presigned_url_response(did, protocol="", query_string="", status=200):
+    if query_string:
+        full_url = (
+            "https://fictitious-commons.io/data/download/"
+            + did
+            + "?protocol="
+            + protocol
+            + "&"
+            + query_string
+        )
+    else:
+        full_url = (
+            "https://fictitious-commons.io/data/download/"
+            + did
+            + "?protocol="
+            + protocol
+        )
     presigned_url = {
         "url": "https://storage.googleapis.com/nih-mock-project-released-phs123-c2/RootStudyConsentSet_phs000007.Whatever.v666.p1.c2.FBI-BMW-CIA.tar.gz?GoogleAccessId=internal-someuser-1399@dcpstage-210518.iam.gserviceaccount.com&Expires=1582215120&Signature=hUsgjkegdsfkjbsajkafnsdjksdnfjknbdsajkfbsdkjfbjdfbkjdasfbnjsdnfjsnd2FTr%2FKs2kGKs0fJ8v5elFk5NQAYdrGcU3kROrzJuHUbI%2BMZ839SAbAz2rbMBuC9e46%2BdB91%2FA==&userProject=dcf-mock-project"
     }
@@ -211,6 +224,26 @@ def test_get_presigned_url_with_encoded_slash(client, user):
         presigned = generate_presigned_url_response(rec_1["did"], access_id)
         res_2 = client.get(
             "/ga4gh/drs/v1/objects/" + did + "/access/" + access_id,
+            headers={"AUTHORIZATION": "12345"},
+        )
+        assert res_2.status_code == 200
+        assert res_2.json == presigned
+
+
+@responses.activate
+def test_get_presigned_url_with_query_params(client, user):
+    data = get_doc()
+    data["did"] = "dg.TEST/ed8f4658-6acd-4f96-9dd8-3709890c959e"
+    did = "dg.TEST%2Fed8f4658-6acd-4f96-9dd8-3709890c959e"
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+
+    rec_1 = res_1.json
+    access_id_list = ["s3", "gs", "ftp"]
+    for access_id in access_id_list:
+        presigned = generate_presigned_url_response(rec_1["did"], access_id, "k=v")
+        res_2 = client.get(
+            "/ga4gh/drs/v1/objects/" + did + "/access/" + access_id + "?k=v",
             headers={"AUTHORIZATION": "12345"},
         )
         assert res_2.status_code == 200
