@@ -241,9 +241,15 @@ def test_get_presigned_url_with_query_params(client, user):
     rec_1 = res_1.json
     access_id_list = ["s3", "gs", "ftp"]
     for access_id in access_id_list:
-        presigned = generate_presigned_url_response(rec_1["did"], access_id, "k=v")
+        presigned = generate_presigned_url_response(
+            rec_1["did"], access_id, "userProject=someproject&optional=val"
+        )
         res_2 = client.get(
-            "/ga4gh/drs/v1/objects/" + did + "/access/" + access_id + "?k=v",
+            "/ga4gh/drs/v1/objects/"
+            + did
+            + "/access/"
+            + access_id
+            + "?userProject=someproject&optional=val",
             headers={"AUTHORIZATION": "12345"},
         )
         assert res_2.status_code == 200
