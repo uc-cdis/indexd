@@ -1,6 +1,4 @@
-import re
 import flask
-import jsonschema
 
 from indexclient.client import IndexClient
 from doiclient.client import DOIClient
@@ -51,7 +49,7 @@ def get_record(record):
     """
 
     try:
-        ret = blueprint.index_driver.get(record)
+        ret = blueprint.index_driver.get_with_nonstrict_prefix(record)
     except IndexNoRecordFound:
         try:
             ret = blueprint.index_driver.get_by_alias(record)

@@ -3,8 +3,6 @@ import json
 import flask
 import hashlib
 import jsonschema
-import os.path
-import subprocess
 from .version_data import VERSION, COMMIT
 
 from indexd.auth import authorize
@@ -24,7 +22,7 @@ from .errors import RevisionMismatch
 from .errors import UnhealthyCheck
 
 from cdislogging import get_logger
-from indexd.drs.blueprint import indexd_to_drs, get_drs_object, bundle_to_drs
+from indexd.drs.blueprint import bundle_to_drs
 
 logger = get_logger("indexd/index blueprint", log_level="info")
 
@@ -32,6 +30,7 @@ blueprint = flask.Blueprint("index", __name__)
 
 blueprint.config = dict()
 blueprint.index_driver = None
+blueprint.dist = []
 
 ACCEPTABLE_HASHES = {
     "md5": re.compile(r"^[0-9a-f]{32}$").match,
@@ -248,7 +247,7 @@ def get_index_record(record):
     Returns a record.
     """
 
-    ret = blueprint.index_driver.get(record)
+    ret = blueprint.index_driver.get_with_nonstrict_prefix(record)
 
     return flask.jsonify(ret), 200
 
@@ -471,7 +470,7 @@ def append_aliases(record):
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
     except jsonschema.ValidationError as err:
-        logger.warn(f"Bad request body:\n{err}")
+        logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
 
     aliases = [record["value"] for record in aliases_json["aliases"]]
@@ -495,7 +494,7 @@ def replace_aliases(record):
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
     except jsonschema.ValidationError as err:
-        logger.warn(f"Bad request body:\n{err}")
+        logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
 
     aliases = [record["value"] for record in aliases_json["aliases"]]
@@ -544,7 +543,7 @@ def update_all_index_record_versions(record):
     try:
         jsonschema.validate(request_json, UPDATE_ALL_VERSIONS_SCHEMA)
     except jsonschema.ValidationError as err:
-        logger.warn(f"Bad request body:\n{err}")
+        logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
 
     acl = request_json.get("acl")
@@ -564,6 +563,15 @@ def get_latest_index_record_versions(record):
     ret = blueprint.index_driver.get_latest_version(record, has_version=has_version)
 
     return flask.jsonify(ret), 200
+
+
+@blueprint.route("/_dist", methods=["GET"])
+def get_dist_config():
+    """
+    Returns the dist configuration
+    """
+
+    return flask.jsonify(blueprint.dist), 200
 
 
 @blueprint.route("/_status", methods=["GET"])
@@ -601,6 +609,18 @@ def version():
     return flask.jsonify(base), 200
 
 
+def get_checksum(data):
+    """
+    Collect checksums from bundles and objects in the bundle for compute_checksum
+    """
+    if "hashes" in data:
+        return data["hashes"][list(data["hashes"])[0]]
+    elif "checksums" in data:
+        return data["checksums"][0]["checksum"]
+    elif "checksum" in data:
+        return data["checksum"]
+
+
 def compute_checksum(checksums):
     """
     Checksum created by sorting alphabetically then concatenating first layer of bundles/objects.
@@ -613,16 +633,10 @@ def compute_checksum(checksums):
     """
     checksums.sort()
     checksum = "".join(checksums)
-    return hashlib.md5(checksum.encode("utf-8")).hexdigest()
-
-
-def get_checksum(data):
-    if "hashes" in data:
-        return data["hashes"][list(data["hashes"])[0]]
-    elif "checksums" in data:
-        return data["checksums"][0]["checksum"]
-    elif "checksum" in data:
-        return data["checksum"]
+    return {
+        "checksum": hashlib.md5(checksum.encode("utf-8")).hexdigest(),
+        "type": "md5",
+    }
 
 
 @blueprint.route("/bundle/", methods=["POST"])
@@ -668,6 +682,14 @@ def post_bundle():
     bundle_data = []
     checksums = []
 
+    # TODO: Remove this after updating to jsonschema>=3.0.0
+    if flask.request.json.get("checksums"):
+        hashes = {
+            checksum["type"]: checksum["checksum"]
+            for checksum in flask.request.json.get("checksums")
+        }
+        validate_hashes(**hashes)
+
     # get bundles/records that already exists and add it to bundle_data
     for bundle in bundles:
         data = get_index_record(bundle)[0]
@@ -677,9 +699,9 @@ def post_bundle():
         data = bundle_to_drs(data, expand=True, is_content=True)
         bundle_data.append(data)
     checksum = (
-        flask.request.json.get("checksum")
-        if flask.request.json.get("checksum")
-        else compute_checksum(checksums)
+        flask.request.json.get("checksums")
+        if flask.request.json.get("checksums")
+        else [compute_checksum(checksums)]
     )
 
     ret = blueprint.index_driver.add_bundle(
@@ -687,7 +709,7 @@ def post_bundle():
         name=name,
         size=size,
         bundle_data=json.dumps(bundle_data),
-        checksum=checksum,
+        checksum=json.dumps(checksum),
         description=description,
         version=version,
         aliases=json.dumps(aliases),
@@ -717,7 +739,7 @@ def get_bundle_record_with_id(bundle_id):
 
     expand = True if flask.request.args.get("expand") == "true" else False
 
-    ret = blueprint.index_driver.get(bundle_id)
+    ret = blueprint.index_driver.get_with_nonstrict_prefix(bundle_id)
 
     ret = bundle_to_drs(ret, expand=expand, is_content=False)
 
@@ -772,3 +794,5 @@ def handle_unhealthy_check(err):
 def get_config(setup_state):
     config = setup_state.app.config["INDEX"]
     blueprint.index_driver = config["driver"]
+    if "DIST" in setup_state.app.config:
+        blueprint.dist = setup_state.app.config["DIST"]

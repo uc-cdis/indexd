@@ -12,7 +12,7 @@ blueprint = Blueprint("urls", __name__)
 
 @blueprint.route("/q", methods=["GET"])
 def query():
-    """ Queries indexes based on URLs
+    """Queries indexes based on URLs
     Params:
         exclude (str): only include documents (did) with urls that does not match this pattern
         include (str): only include documents (did) with a url matching this pattern
@@ -40,7 +40,7 @@ def query():
 
 @blueprint.route("/metadata/q")
 def query_metadata():
-    """ Queries indexes by URLs metadata key and value
+    """Queries indexes by URLs metadata key and value
     Params:
         key (str): metadata key
         value (str): metadata value for key

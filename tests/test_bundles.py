@@ -65,9 +65,9 @@ def test_bundle_get_post_with_optional_fields(client, user):
         +-object1
 
     Bundel 2
-        +-Bundle 1 
-            +-object1 
-        +-object1 
+        +-Bundle 1
+            +-object1
+        +-object1
     """
     did_list, _ = create_index(client, user)
 
@@ -112,9 +112,9 @@ def test_bundle_get_post_with_optional_fields(client, user):
 def test_bundle_post_self_reference(client, user):
     """
     Make sure this doesnt exist
-    Bundle 1 
+    Bundle 1
         Object 1
-        Bundle 1 
+        Bundle 1
         .
         .
     """
@@ -134,12 +134,92 @@ def test_bundle_post_defined_size_checksum(client, user):
         "name": "test_bundle",
         "bundles": did_list,
         "bundle_id": bundle_id,
-        "checksum": "1bab24e003ac48840123e5bbe72a5ec9",
+        "checksums": [{"checksum": "1bab24e003ac48840123e5bbe72a5ec9", "type": "md5"}],
         "size": 12345,
     }
     res2 = client.post("/bundle/", json=data, headers=user)
-    print(res2.json)
     assert res2.status_code == 200
+
+
+def test_bundle_post_different_checksum_types(client, user):
+    did_list, _ = create_index(client, user)
+    bundle_id = str(uuid.uuid4)
+    data = {
+        "name": "test_bundle",
+        "bundles": did_list,
+        "bundle_id": bundle_id,
+        "checksums": [
+            {"checksum": "85136c79cbf9fe36bb9d05d0639c70c265c18d37", "type": "sha1"}
+        ],
+    }
+    res = client.post("/bundle/", json=data, headers=user)
+    assert res.status_code == 200
+    res1 = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
+    rec1 = res1.json
+    assert rec1["checksums"][0] == {
+        "checksum": "85136c79cbf9fe36bb9d05d0639c70c265c18d37",
+        "type": "sha1",
+    }
+
+
+def test_bundle_post_multiple_checksum_types(client, user):
+    did_list, _ = create_index(client, user)
+    bundle_id = str(uuid.uuid4)
+    data = {
+        "name": "test_bundle",
+        "bundles": did_list,
+        "bundle_id": bundle_id,
+        "checksums": [
+            {
+                "checksum": "bc52d6bfe3ac965e069109dbd7d15e0ccaaa55678f6e2a6664bee2edf8ae1b2b",
+                "type": "sha256",
+            },
+            {"checksum": "e93ccf5ffc90eefcc0bdb81f87d25d1a", "type": "md5"},
+        ],
+    }
+    res = client.post("/bundle/", json=data, headers=user)
+    assert res.status_code == 200
+
+    res = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
+    rec = res.json
+    checksums = rec["checksums"]
+    for checksum in checksums:
+        assert checksum in [
+            {
+                "checksum": "bc52d6bfe3ac965e069109dbd7d15e0ccaaa55678f6e2a6664bee2edf8ae1b2b",
+                "type": "sha256",
+            },
+            {"checksum": "e93ccf5ffc90eefcc0bdb81f87d25d1a", "type": "md5"},
+        ]
+
+
+def test_bundle_post_checksum_with_incorrect_schema(client, user):
+    did_list, _ = create_index(client, user)
+    bundle_id = str(uuid.uuid4)
+
+    # unknown checksum type
+    data = {
+        "name": "test_bundle",
+        "bundles": did_list,
+        "bundle_id": bundle_id,
+        "checksums": [
+            {"type": "md42", "checksum": "a"},
+        ],
+    }
+    res = client.post("/bundle/", json=data, headers=user)
+    assert res.status_code == 400
+
+    # checksum value doesn't match checksum type
+    data = {
+        "checksums": [
+            {"type": "md5", "checksum": "a"},
+        ],
+    }
+    res = client.post("/bundle/", json=data, headers=user)
+    assert res.status_code == 400
+
+    res = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
+    assert res.status_code == 404
 
 
 def test_bundle_bundle_data_not_found(client, user):
@@ -148,11 +228,10 @@ def test_bundle_bundle_data_not_found(client, user):
         "name": "test_bundle",
         "bundles": ["1987hgd09183hd0981hjd0h08ashjd80"],
         "bundle_id": bundle_id,
-        "checksum": "1bab24e003ac48840123e5bbe72a5ec9",
+        "checksums": [{"checksum": "1bab24e003ac48840123e5bbe72a5ec9", "type": "md5"}],
         "size": 12345,
     }
     res2 = client.post("/bundle/", json=data, headers=user)
-    print(res2.json)
     assert res2.status_code == 404
 
 
@@ -226,8 +305,6 @@ def test_bundle_get_form_type(client, user):
     assert res2.status_code == 200
 
     rec2 = res2.json
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    print(rec2)
     assert rec2["form"] == "bundle"
 
 
@@ -567,7 +644,7 @@ def test_get_drs_expand_contents_default(client, user):
     rec2 = res2.json
 
     contents = rec2["contents"]
-    assert len(contents) == 0
+    assert len(contents) == 3
 
 
 def test_get_drs_expand_contents_false(client, user):
@@ -580,7 +657,7 @@ def test_get_drs_expand_contents_false(client, user):
     assert res2.status_code == 200
     rec2 = res2.json
 
-    contents = rec2["contents"]
+    contents = rec2["contents"][0].get("contents", [])
     assert len(contents) == 0
 
 

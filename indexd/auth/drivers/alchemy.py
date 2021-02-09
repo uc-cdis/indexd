@@ -1,5 +1,3 @@
-import json
-import uuid
 import hashlib
 
 from contextlib import contextmanager
@@ -11,8 +9,6 @@ from sqlalchemy import Column
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.ext.declarative import declarative_base
-
-from indexd import auth
 
 from indexd.auth.driver import AuthDriverABC
 
@@ -131,8 +127,9 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                 "Arborist is not configured; cannot perform authorization check"
             )
         if not resource:
-            # TODO: fix this. Setting authz to [] throws this error but
-            # admins should be able to do it
-            raise AuthError("Permission denied.")
+            # if the `authz` is empty, admins should still be able to perform
+            # operations on the record. For now, admin = access to `/programs`.
+            # TODO: Figure out how to handle Gen3 operational admins in a better way
+            resource = ["/programs"]
         if not self.arborist.auth_request(get_jwt_token(), "indexd", method, resource):
             raise AuthError("Permission denied.")

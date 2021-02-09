@@ -13,10 +13,12 @@ jdk:
     - oraclejdk8
 
 install:
-    - "python setup.py install --force"
-    - "pip install -r test-requirements.txt"
+    - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+    - source $HOME/.poetry/env
+    - poetry install -vv
 
-script: "py.test -vv --cov=indexd --cov-report xml tests"
+
+script: pytest -vv --cov=indexd --cov-report xml tests
 
 after_script:
   - COVERALLS_REPO_TOKEN=$COVERALLS_TOKEN coveralls

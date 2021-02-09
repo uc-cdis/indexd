@@ -1,18 +1,18 @@
 # Data Repository Service
 
 Data Repository Service (DRS) API provides a generic interface to data repositories so that data can be accessed in a single, standardized way regardless of where it's stored  and how it's managed. DRS v1 supports two data types, *blob* and *bundles*. Detailed information on DRS [here](https://github.com/ga4gh/data-repository-service-schemas).
-* *Blob* is like a file, a single blob of bytes, without `contents_array`. 
+* *Blob* is like a file, a single blob of bytes, without `contents_array`.
 * *Bundle* is like a folder structure that can contain `DrsObject` (either blobs or bundle) insisde `contents_array`.
 
 NOTE: Indexd records automatically exists as a `DrsObject`
 
-# Fetching DRS Objects with Indexd 
+# Fetching DRS Objects with Indexd
 **Quick Links:**
 * [View DRS API Documentation](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/uc-cdis/Indexd/master/openapis/swagger.yaml#/DRS)
 * [GA4GH DRS API Documentation](https://ga4gh.github.io/data-repository-service-schemas/swagger-ui/#/DataRepositoryService/)
 * [Definitions and details for field names](https://ga4gh.github.io/data-repository-service-schemas/docs/#_drsobject).
 
-The DRS API supports a variety of different content acccess policies, depending on what `AccessMethod` records they return. 
+The DRS API supports a variety of different content acccess policies, depending on what `AccessMethod` records they return.
 
 1. public content:
     - server provides an `access_url` with a url and no headers

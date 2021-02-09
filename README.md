@@ -210,6 +210,8 @@ The prefix that a given Indexd instance uses is specified in the `DEFAULT_PREFIX
 
 The `ADD_PREFIX_ALIAS` configuration represents a different way of using the prefix: if set to `True`, instead of prepending the prefix to the GUID, indexd will create an alias of the form `<prefix><GUID>` for this record. Note that you should NOT set both `ADD_PREFIX_ALIAS` and `PREPEND_PREFIX` to `True`, or aliases will be created as `<prefix><prefix><GUID>`.
 
+If a `DEFAULT_PREFIX` is configured, certain endpoints may take extra steps to resolve a local GUID based on this. The GET `/{GUID}`, `/index/{GUID}`, and DRS endpoints will all accept either the prefixed or unprefixed version of the GUID, regardless of whether the `PREPEND_PREFIX` or `ADD_PREFIX_ALIAS` condiguration is being used. However, any other endpoint that takes a GUID will only accept the exact `did` as stored in the database, so it is best to use that field from the record for subsequent requests.
+
 ## Use Cases For Indexing Data
 
 Data may be loaded into Indexd through a few different means:
@@ -289,10 +291,22 @@ In addition, one of our goals is to work with GA4GH to ensure Data GUIDs and Ind
 
 The implementation for Indexd utilizes the Flask web framework and (by default) a SQLite3 database. This provides a minimum list of requirements and allows for deployment on a wide range of systems with next to no configuration overhead. That said, it is highly recommended to use pip and a virtualenv to isolate the installation.
 
-To install the implementation, simply run:
+Prior to installation, you will need to have postgresql installed.
+
+On Mac
+```bash
+brew install postgresql
+/usr/local/opt/postgres/bin/createuser -s postgres
+```
+On Linux
+```bash
+sudo apt-get install python-psycopg2
+```
+
+To install the implementation, assure you have poetry installed and simply run:
 
 ```bash
-python setup.py install
+poetry install
 ```
 
 To see how the automated tests (run in Travis CI) install Indexd, check out the `.travis.yml` file in the root directory of this repository.
@@ -300,17 +314,17 @@ To see how the automated tests (run in Travis CI) install Indexd, check out the 
 ## Installation with Docker
 
 ```bash
-docker build --build-arg https_proxy=http://cloud-proxy:3128 --build-arg http_proxy=http://cloud-proxy:3128 -t Indexd .
+docker build --build-arg https_proxy=http://cloud-proxy:3128 --build-arg http_proxy=http://cloud-proxy:3128 -t indexd .
 
-docker run -d --name=Indexd -p 80:80 Indexd
-docker exec Indexd python /Indexd/bin/index_admin.py create --username $username --password $password
-docker exec Indexd python /Indexd/bin/index_admin.py delete --username $username
+docker run -d --name=indexd -p 80:80 Indexd
+docker exec indexd python /indexd/bin/index_admin.py create --username $username --password $password
+docker exec indexd python /indexd/bin/index_admin.py delete --username $username
 ```
 
 To run docker with an alternative settings file:
 
 ```
-docker run -d -v local_settings.py:/var/www/Indexd/local_settings.py --name=Indexd -p 80:80 Indexd
+docker run -d -v local_settings.py:/var/www/indexd/local_settings.py --name=Indexd -p 80:80 indexd
 ```
 
 ## Configuration
@@ -325,19 +339,9 @@ There is specific information about some configuration options in the [distribut
 - Follow [installation](#installation)
 - Run:
 ```
-pip install -r test-requirements.txt
-py.test -v tests/
+poetry run pytest tests/
 ```
 
-## Testing with Docker
-
-Doesn't work with all the DB tests yet, but you can adjust to run specific tests as necessary.
-
-```
-docker build -t Indexd -f TestDockerfile .
-```
-
-You should be able to use the test dockerfile to run some tests.
 
 <div align="center">
 <img src="./docs/gen3_large.png" alt="Gen3 Logo" height="425

@@ -19,7 +19,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
     """SQLAlchemy based impl"""
 
     def __init__(self, alchemy_driver):
-        """ Queries index records based on URL
+        """Queries index records based on URL
         Args:
             alchemy_driver (indexd.index.drivers.alchemy.SQLAlchemyIndexDriver):
         """
@@ -143,7 +143,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
 
     @staticmethod
     def _format_response(requested_fields, record_list):
-        """ loops through the query result and removes undesired columns and converts result of urls string_agg to list
+        """loops through the query result and removes undesired columns and converts result of urls string_agg to list
         Args:
             requested_fields (str): comma separated list of fields to return, if not specified return all fields
             record_list (list(tuple]): must be of the form [(did, urls, rev)], rev is not required for urls query

@@ -256,7 +256,7 @@ class DrsBundleRecord(Base):
     name = Column(String)
     created_time = Column(DateTime, default=datetime.datetime.utcnow)
     updated_time = Column(DateTime, default=datetime.datetime.utcnow)
-    checksum = Column(String)
+    checksum = Column(String)  # db `checksum` => object `checksums`
     size = Column(BigInteger)
     bundle_data = Column(Text)
     description = Column(Text)
@@ -878,6 +878,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record.rev = str(uuid.uuid4())[:8]
 
+            record.updated_date = datetime.datetime.utcnow()
+
             session.add(record)
             session.commit()
 
@@ -917,7 +919,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             index_record = get_record_if_exists(did, session)
             if index_record is None:
-                self.logger.warn(f"No record found for did {did}")
+                self.logger.warning(f"No record found for did {did}")
                 raise NoRecordFound(did)
 
             query = session.query(IndexRecordAlias).filter(IndexRecordAlias.did == did)
@@ -934,7 +936,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             index_record = get_record_if_exists(did, session)
             if index_record is None:
-                self.logger.warn(f"No record found for did {did}")
+                self.logger.warning(f"No record found for did {did}")
                 raise NoRecordFound(did)
 
             # authorization
@@ -942,7 +944,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 resources = [u.resource for u in index_record.authz]
                 auth.authorize("update", resources)
             except AuthError as err:
-                self.logger.warn(
+                self.logger.warning(
                     f"Auth error while appending aliases to did {did}: User not authorized to update one or more of these resources: {resources}"
                 )
                 raise err
@@ -956,7 +958,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 session.commit()
             except IntegrityError as err:
                 # One or more aliases in request were non-unique
-                self.logger.warn(
+                self.logger.warning(
                     f"One or more aliases in request already associated with this or another GUID: {aliases}",
                     exc_info=True,
                 )
@@ -975,7 +977,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             index_record = get_record_if_exists(did, session)
             if index_record is None:
-                self.logger.warn(f"No record found for did {did}")
+                self.logger.warning(f"No record found for did {did}")
                 raise NoRecordFound(did)
 
             # authorization
@@ -983,7 +985,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 resources = [u.resource for u in index_record.authz]
                 auth.authorize("update", resources)
             except AuthError as err:
-                self.logger.warn(
+                self.logger.warning(
                     f"Auth error while replacing aliases for did {did}: User not authorized to update one or more of these resources: {resources}"
                 )
                 raise err
@@ -1004,7 +1006,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 )
             except IntegrityError:
                 # One or more aliases in request were non-unique
-                self.logger.warn(
+                self.logger.warning(
                     f"One or more aliases in request already associated with another GUID: {aliases}"
                 )
                 raise MultipleRecordsFound(
@@ -1020,7 +1022,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             index_record = get_record_if_exists(did, session)
             if index_record is None:
-                self.logger.warn(f"No record found for did {did}")
+                self.logger.warning(f"No record found for did {did}")
                 raise NoRecordFound(did)
 
             # authorization
@@ -1028,7 +1030,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 resources = [u.resource for u in index_record.authz]
                 auth.authorize("delete", resources)
             except AuthError as err:
-                self.logger.warn(
+                self.logger.warning(
                     f"Auth error while deleting all aliases for did {did}: User not authorized to delete one or more of these resources: {resources}"
                 )
                 raise err
@@ -1049,7 +1051,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             index_record = get_record_if_exists(did, session)
             if index_record is None:
-                self.logger.warn(f"No record found for did {did}")
+                self.logger.warning(f"No record found for did {did}")
                 raise NoRecordFound(did)
 
             # authorization
@@ -1057,7 +1059,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 resources = [u.resource for u in index_record.authz]
                 auth.authorize("delete", resources)
             except AuthError as err:
-                self.logger.warn(
+                self.logger.warning(
                     f"Auth error deleting alias {alias} for did {did}: User not authorized to delete one or more of these resources: {resources}"
                 )
                 raise err
@@ -1070,7 +1072,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             )
 
             if num_rows_deleted == 0:
-                self.logger.warn(f"No alias {alias} found for did {did}")
+                self.logger.warning(f"No alias {alias} found for did {did}")
                 raise NoRecordFound(alias)
 
             self.logger.info(f"Deleted alias {alias} for did {did}.")
@@ -1095,6 +1097,31 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     raise NoRecordFound("no record found")
 
             return record.to_document_dict()
+
+    def get_with_nonstrict_prefix(self, did, expand=True):
+        """
+        Attempt to retrieve a record both with and without a prefix.
+        Proxies 'get' with provided id.
+        If not found but prefix matches default, attempt with prefix stripped.
+        If not found and id has no prefix, attempt with default prefix prepended.
+        """
+        try:
+            record = self.get(did, expand=expand)
+        except NoRecordFound as e:
+            DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
+            if not DEFAULT_PREFIX:
+                raise e
+
+            if "/" in did:
+                prefix, uuid = did.rsplit("/", 1)
+                if prefix + "/" == DEFAULT_PREFIX:
+                    record = self.get(uuid, expand=expand)
+                else:
+                    raise e
+            else:
+                record = self.get(DEFAULT_PREFIX + did, expand=expand)
+
+        return record
 
     def update(self, did, rev, changing_fields):
         """
@@ -1181,6 +1208,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     setattr(record, key, value)
 
             record.rev = str(uuid.uuid4())[:8]
+
+            record.updated_date = datetime.datetime.utcnow()
 
             session.add(record)
 
@@ -1340,15 +1369,16 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             new_record.file_name = file_name
             new_record.uploader = uploader
 
-            if authz:
-                new_record.acl = []
-                new_record.authz = [
-                    IndexRecordAuthz(did=did, resource=resource)
-                    for resource in set(authz)
+            new_record.acl = []
+            if not authz:
+                authz = old_authz
+                old_acl = [u.ace for u in old_record.acl]
+                new_record.acl = [
+                    IndexRecordACE(did=did, ace=ace) for ace in set(old_acl)
                 ]
-            else:
-                new_record.acl = old_record.acl
-                new_record.authz = old_record.authz
+            new_record.authz = [
+                IndexRecordAuthz(did=did, resource=resource) for resource in set(authz)
+            ]
 
             try:
                 session.add(new_record)
