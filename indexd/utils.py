@@ -28,7 +28,7 @@ def try_drop_test_data(
         create_stmt = 'DROP DATABASE "{database}"'.format(database=database)
         conn.execute(create_stmt)
     except Exception:
-        logging.warn("Unable to drop test data:")
+        logging.warning("Unable to drop test data:")
 
     conn.close()
 
@@ -59,7 +59,7 @@ def setup_database(
     try:
         conn.execute(create_stmt)
     except Exception:
-        logging.warn("Unable to create database")
+        logging.warning("Unable to create database")
 
     if not no_user:
         try:
@@ -75,7 +75,7 @@ def setup_database(
             conn.execute(perm_stmt)
             conn.execute("commit")
         except Exception:
-            logging.warn("Unable to add user:")
+            logging.warning("Unable to add user:")
     conn.close()
 
 
@@ -110,7 +110,7 @@ def create_tables(host, user, password, database):  # pragma: no cover
         conn.execute(create_index_schema_version_stm)
         conn.execute(create_drs_bundle_record)
     except Exception:
-        logging.warn("Unable to create table")
+        logging.warning("Unable to create table")
     conn.close()
 
 

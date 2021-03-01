@@ -1,6 +1,5 @@
 bin/*
 indexd/*
-requirements.txt
-setup.py
-test-requirements.txt
+poetry.lock
+pyproject.toml
 wsgi.py

@@ -303,10 +303,10 @@ On Linux
 sudo apt-get install python-psycopg2
 ```
 
-To install the implementation, simply run:
+To install the implementation, assure you have poetry installed and simply run:
 
 ```bash
-python setup.py install
+poetry install
 ```
 
 To see how the automated tests (run in Travis CI) install Indexd, check out the `.travis.yml` file in the root directory of this repository.
@@ -314,17 +314,17 @@ To see how the automated tests (run in Travis CI) install Indexd, check out the 
 ## Installation with Docker
 
 ```bash
-docker build --build-arg https_proxy=http://cloud-proxy:3128 --build-arg http_proxy=http://cloud-proxy:3128 -t Indexd .
+docker build --build-arg https_proxy=http://cloud-proxy:3128 --build-arg http_proxy=http://cloud-proxy:3128 -t indexd .
 
-docker run -d --name=Indexd -p 80:80 Indexd
-docker exec Indexd python /Indexd/bin/index_admin.py create --username $username --password $password
-docker exec Indexd python /Indexd/bin/index_admin.py delete --username $username
+docker run -d --name=indexd -p 80:80 Indexd
+docker exec indexd python /indexd/bin/index_admin.py create --username $username --password $password
+docker exec indexd python /indexd/bin/index_admin.py delete --username $username
 ```
 
 To run docker with an alternative settings file:
 
 ```
-docker run -d -v local_settings.py:/var/www/Indexd/local_settings.py --name=Indexd -p 80:80 Indexd
+docker run -d -v local_settings.py:/var/www/indexd/local_settings.py --name=Indexd -p 80:80 indexd
 ```
 
 ## Configuration
@@ -339,19 +339,9 @@ There is specific information about some configuration options in the [distribut
 - Follow [installation](#installation)
 - Run:
 ```
-pip install -r test-requirements.txt
-py.test -v tests/
+poetry run pytest tests/
 ```
 
-## Testing with Docker
-
-Doesn't work with all the DB tests yet, but you can adjust to run specific tests as necessary.
-
-```
-docker build -t Indexd -f TestDockerfile .
-```
-
-You should be able to use the test dockerfile to run some tests.
 
 <div align="center">
 <img src="./docs/gen3_large.png" alt="Gen3 Logo" height="425
