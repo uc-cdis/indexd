@@ -263,6 +263,8 @@ def post_index_record():
         raise UserError(err)
 
     authz = flask.request.json.get("authz", [])
+    print("AUTHZ")
+    print(authz)
     authorize("create", authz)
 
     did = flask.request.json.get("did")
@@ -296,6 +298,8 @@ def post_index_record():
     )
 
     ret = {"did": did, "rev": rev, "baseid": baseid}
+    print("RETURN OBJ")
+    print(ret)
 
     return flask.jsonify(ret), 200
 
