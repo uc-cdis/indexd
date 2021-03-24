@@ -132,4 +132,6 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             # TODO: Figure out how to handle Gen3 operational admins in a better way
             resource = ["/programs"]
         if not self.arborist.auth_request(get_jwt_token(), "indexd", method, resource):
+            print("AUTHZ PERMISSION DENIED")
+            print(self.arborist)
             raise AuthError("Permission denied.")
