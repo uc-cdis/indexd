@@ -34,6 +34,18 @@ WORKDIR /$appname
 # cache so that poetry install will run if these files change
 COPY poetry.lock pyproject.toml /$appname/
 
+# Run gen3authz from new branch
+RUN git clone -q https://github.com/uc-cdis/gen3authz.git \
+	&& cd gen3authz/ \
+	&& git checkout feat/fix/arborist_authrequest\
+	&& cd python/ \
+	&& source $HOME/.poetry/env \
+	&& poetry config virtualenvs.create false \
+	&& poetry install -vv --no-dev --no-interaction \
+	&& poetry show -v
+
+RUN pip install ./gen3authz/python
+
 # install Indexd and dependencies via poetry
 RUN source $HOME/.poetry/env \
     && poetry config virtualenvs.create false \
