@@ -1,15 +1,25 @@
 # To run: docker run -v /path/to/wsgi.py:/var/www/indexd/wsgi.py --name=indexd -p 81:80 indexd
 # To check running container: docker exec -it indexd /bin/bash
 
-FROM quay.io/cdis/python-nginx:pybase3-1.4.2
+FROM quay.io/cdis/python-nginx:chore_rust_install
+# FROM quay.io/cdis/python-nginx:pybase3-1.4.2
 
 
 ENV appname=indexd
 
-RUN apk update \
-    && apk add postgresql-libs postgresql-dev libffi-dev libressl-dev \
-    && apk add linux-headers musl-dev gcc \
-    && apk add curl bash git vim logrotate
+RUN pip install --upgrade pip
+
+RUN apk add --update \
+    postgresql-libs postgresql-dev libffi-dev libressl-dev \
+    linux-headers musl-dev gcc \
+    curl bash git vim logrotate
+
+# RUN rustc --version
+
+# RUN apk update \
+#     && apk add postgresql-libs postgresql-dev libffi-dev libressl-dev \
+#     && apk add linux-headers musl-dev gcc \
+#     && apk add curl bash git vim logrotate
 
 
 RUN mkdir -p /var/www/$appname \
@@ -37,7 +47,7 @@ COPY poetry.lock pyproject.toml /$appname/
 # Run gen3authz from new branch
 RUN git clone -q https://github.com/uc-cdis/gen3authz.git \
 	&& cd gen3authz/ \
-	&& git checkout feat/fix/arborist_authrequest\
+	&& git checkout fix/arborist_authrequest\
 	&& cd python/ \
 	&& source $HOME/.poetry/env \
 	&& poetry config virtualenvs.create false \
