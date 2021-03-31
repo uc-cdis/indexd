@@ -11,7 +11,7 @@ RUN pip install --upgrade pip
 
 RUN apk add --update \
     postgresql-libs postgresql-dev libffi-dev libressl-dev \
-    linux-headers musl-dev gcc \
+    linux-headers musl-dev gcc g++ \
     curl bash git vim logrotate
 
 # RUN rustc --version
