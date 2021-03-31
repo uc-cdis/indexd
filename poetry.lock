@@ -311,24 +311,6 @@ docs = ["sphinx", "pallets-sphinx-themes", "sphinxcontrib-log-cabinet", "sphinx-
 dotenv = ["python-dotenv"]
 
 [[package]]
-name = "gen3authz"
-version = "1.0.4"
-description = "Gen3 authz client"
-category = "main"
-optional = false
-python-versions = ">=3.6,<4.0"
-
-[package.dependencies]
-backoff = ">=1.6,<2.0"
-cdiserrors = "<2.0.0"
-contextvars = {version = ">=2.4,<3.0", markers = "python_version < \"3.7\""}
-httpx = ">=0.12.1,<1.0.0"
-
-[package.source]
-type = "file"
-url = "pkg/gen3authz-1.0.4.tar.gz"
-
-[[package]]
 name = "greenlet"
 version = "1.0.0"
 description = "Lightweight in-process concurrent programming"
@@ -1201,9 +1183,6 @@ dosclient = []
 flask = [
     {file = "Flask-1.1.2-py2.py3-none-any.whl", hash = "sha256:8a4fdd8936eba2512e9c85df320a37e694c93945b33ef33c89946a340a238557"},
     {file = "Flask-1.1.2.tar.gz", hash = "sha256:4efa1ae2d7c9865af48986de8aeb8504bf32c7f3d6fdc9353d34b21f4b127060"},
-]
-gen3authz = [
-    {file = "gen3authz-1.0.4.tar.gz", hash = "sha256:d8d90e6b62628030c5654f5613417d9e8c02607ab1c9667f01cf8706cbdc00d0"},
 ]
 greenlet = [
     {file = "greenlet-1.0.0-cp27-cp27m-macosx_10_14_x86_64.whl", hash = "sha256:1d1d4473ecb1c1d31ce8fd8d91e4da1b1f64d425c1dc965edc4ed2a63cfa67b2"},

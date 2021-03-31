@@ -12,8 +12,7 @@ RUN pip install --upgrade pip
 RUN apk add --update \
     postgresql-libs postgresql-dev libffi-dev libressl-dev \
     linux-headers musl-dev gcc \
-    curl bash git vim logrotate \
-    g++
+    curl bash git vim logrotate
 
 # RUN rustc --version
 
@@ -53,9 +52,10 @@ RUN git clone -q https://github.com/uc-cdis/gen3authz.git \
 	&& source $HOME/.poetry/env \
 	&& poetry config virtualenvs.create false \
 	&& poetry install -vv --no-dev --no-interaction \
-	&& poetry show -v
+	&& poetry show -v \
+    && cd ../..
 
-ENV CRYPTOGRAPHY_DONT_BUILD_RUST=1
+# ENV CRYPTOGRAPHY_DONT_BUILD_RUST=1
 
 RUN pip install ./gen3authz/python
 
