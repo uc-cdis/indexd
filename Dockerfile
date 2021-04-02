@@ -14,14 +14,6 @@ RUN apk add --update \
     linux-headers musl-dev gcc g++ \
     curl bash git vim logrotate
 
-# RUN rustc --version
-
-# RUN apk update \
-#     && apk add postgresql-libs postgresql-dev libffi-dev libressl-dev \
-#     && apk add linux-headers musl-dev gcc \
-#     && apk add curl bash git vim logrotate
-
-
 RUN mkdir -p /var/www/$appname \
     && mkdir -p /var/www/.cache/Python-Eggs/ \
     && mkdir /run/nginx/ \
@@ -55,11 +47,9 @@ RUN git clone -q https://github.com/uc-cdis/gen3authz.git \
 	&& poetry show -v \
     && cd ../..
 
-# ENV CRYPTOGRAPHY_DONT_BUILD_RUST=1
-
 RUN pip install ./gen3authz/python
 
-# install Indexd and dependencies via poetry
+# Install indexd and dependencies via poetry
 RUN source $HOME/.poetry/env \
     && poetry config virtualenvs.create false \
     && poetry install -vv --no-dev --no-interaction \
