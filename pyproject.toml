@@ -22,7 +22,7 @@ indexclient = "^2.1.0"
 jsonschema = "^2.5.1"
 flask = "^1.1.1"
 psycopg2 = "^2.7"
-sqlalchemy = "^1.3.3"
+sqlalchemy = "~1.3.3"
 sqlalchemy-utils = "^0.33"
 
 
