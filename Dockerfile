@@ -1,8 +1,7 @@
 # To run: docker run -v /path/to/wsgi.py:/var/www/indexd/wsgi.py --name=indexd -p 81:80 indexd
 # To check running container: docker exec -it indexd /bin/bash
 
-FROM quay.io/cdis/python-nginx:chore_rust_install
-# FROM quay.io/cdis/python-nginx:pybase3-1.4.2
+FROM quay.io/cdis/python-nginx:pybase3-1.4.2
 
 
 ENV appname=indexd
@@ -35,19 +34,6 @@ WORKDIR /$appname
 
 # cache so that poetry install will run if these files change
 COPY poetry.lock pyproject.toml /$appname/
-
-# Run gen3authz from new branch
-RUN git clone -q https://github.com/uc-cdis/gen3authz.git \
-	&& cd gen3authz/ \
-	&& git checkout fix/arborist_authrequest\
-	&& cd python/ \
-	&& source $HOME/.poetry/env \
-	&& poetry config virtualenvs.create false \
-	&& poetry install -vv --no-dev --no-interaction \
-	&& poetry show -v \
-    && cd ../..
-
-RUN pip install ./gen3authz/python
 
 # Install indexd and dependencies via poetry
 RUN source $HOME/.poetry/env \
