@@ -137,6 +137,6 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                 get_jwt_token(), "indexd", method, resource
             ):
                 raise AuthError("Permission denied.")
-        except Exception as err:
-            print(err)
-            raise AuthError(err)
+        except Exception as e:
+            print(e["error"])
+            raise AuthError(e["error"])
