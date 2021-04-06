@@ -138,5 +138,4 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             ):
                 raise AuthError("Permission denied.")
         except Exception as e:
-            print(e["error"])
-            raise AuthError(e["error"])
+            raise AuthError(e)
