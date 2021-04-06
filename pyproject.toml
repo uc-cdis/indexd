@@ -16,7 +16,7 @@ cdislogging = "^1.0.0"
 cdiserrors =  "^0.1.2"
 doiclient = {git = "https://github.com/uc-cdis/doiclient", rev = "1.0.0"}
 dosclient = {git = "https://github.com/uc-cdis/dosclient", rev = "1.1.0"}
-gen3authz = "^0.4.0"
+gen3authz = "^1.0.4"
 hsclient = {git = "https://github.com/uc-cdis/hsclient", rev = "1.0.0"}
 indexclient = "^2.1.0"
 jsonschema = "^2.5.1"

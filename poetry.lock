@@ -312,7 +312,7 @@ dotenv = ["python-dotenv"]
 
 [[package]]
 name = "gen3authz"
-version = "1.0.6"
+version = "1.0.5"
 description = "Gen3 authz client"
 category = "main"
 optional = false
@@ -323,10 +323,6 @@ backoff = ">=1.6,<2.0"
 cdiserrors = "<2.0.0"
 contextvars = {version = ">=2.4,<3.0", markers = "python_version < \"3.7\""}
 httpx = ">=0.12.1,<1.0.0"
-
-[package.source]
-type = "file"
-url = "pkg/gen3authz-1.0.6.tar.gz"
 
 [[package]]
 name = "h11"
@@ -991,7 +987,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "3.6.*"
-content-hash = "b061e0a5ed1dd6c5fd04bb7a210ee0145375b2d832258639e09d7cd3f14ad692"
+content-hash = "77ca3b429f234fffc7bac03a28ef705e8cb9d190825639b5264d51320108b710"
 
 [metadata.files]
 addict = [
@@ -1180,7 +1176,8 @@ flask = [
     {file = "Flask-1.1.2.tar.gz", hash = "sha256:4efa1ae2d7c9865af48986de8aeb8504bf32c7f3d6fdc9353d34b21f4b127060"},
 ]
 gen3authz = [
-    {file = "gen3authz-1.0.6.tar.gz", hash = "sha256:6fe41cec5a5478355d6dafb2499319c11fc7d96306a888c76ae0cbe830543284"},
+    {file = "gen3authz-1.0.5-py3-none-any.whl", hash = "sha256:f610bfd1166361dc2d5bd41035cbb6e9997b064c0885cf43e05232366d4a0866"},
+    {file = "gen3authz-1.0.5.tar.gz", hash = "sha256:ff160385114e008484f468bf053bb0f3898441e610ec0f37dbbec63e419dcae2"},
 ]
 h11 = [
     {file = "h11-0.12.0-py3-none-any.whl", hash = "sha256:36a3cb8c0a032f56e2da7084577878a035d3b61d104230d4bd49c0c6b555a9c6"},
