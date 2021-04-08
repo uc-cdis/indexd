@@ -501,9 +501,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
                 # do the checking for nonstrict here?????
 
-                print(ids)
-                print(query)
-                print(IndexRecord.did.in_(ids))
                 # go through ids (arr?) and check for prefix
 
                 # DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
@@ -529,6 +526,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if page is not None:
                 query = query.offset(limit * page)
 
+            print(ids)
+            print("------------ITERABLE-------------")
+            for i in query:
+                print(i)
             return [i.to_document_dict() for i in query]
 
     @staticmethod
