@@ -55,7 +55,6 @@ def validate_hashes(**hashes):
 
 @blueprint.route("/index/", methods=["GET"])
 def get_index(form=None):
-    print("----------GET INDEX-------------")
     """
     Returns a list of records.
     """
@@ -64,6 +63,7 @@ def get_index(form=None):
     page = flask.request.args.get("page")
 
     ids = flask.request.args.get("ids")
+    print("------------IDS-------------")
     print(ids)
     if ids:
         ids = ids.split(",")
@@ -133,12 +133,10 @@ def get_index(form=None):
             raise UserError("negate_params must be a valid json string")
 
     form = flask.request.args.get("form") if not form else form
-    print(form)
     if form == "bundle":
         records = blueprint.index_driver.get_bundle_list(
             start=start, limit=limit, page=page
         )
-    # check if goes through form
     elif form == "all":
         records = blueprint.index_driver.get_bundle_and_object_list(
             limit=limit,

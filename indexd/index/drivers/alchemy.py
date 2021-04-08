@@ -502,7 +502,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 # do the checking for nonstrict here?????
 
                 print(ids)
-                print(IndexRecord.did)
+                print(query)
+                print(IndexRecord.did.in_(ids))
                 # go through ids (arr?) and check for prefix
 
                 # DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
