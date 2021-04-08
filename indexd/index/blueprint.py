@@ -55,6 +55,7 @@ def validate_hashes(**hashes):
 
 @blueprint.route("/index/", methods=["GET"])
 def get_index(form=None):
+    print("----------GET INDEX-------------")
     """
     Returns a list of records.
     """
@@ -63,6 +64,7 @@ def get_index(form=None):
     page = flask.request.args.get("page")
 
     ids = flask.request.args.get("ids")
+    print(ids)
     if ids:
         ids = ids.split(",")
         if start is not None or limit is not None or page is not None:
