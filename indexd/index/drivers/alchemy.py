@@ -498,6 +498,28 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.order_by(IndexRecord.did)
 
             if ids:
+
+                # do the checking for nonstrict here?????
+
+                print(ids)
+                print(IndexRecord.did)
+                # go through ids (arr?) and check for prefix
+
+                # DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
+                # if not DEFAULT_PREFIX:
+                #     raise e
+
+                # if "/" in did:
+                #     prefix, uuid = did.rsplit("/", 1)
+                #     if prefix + "/" == DEFAULT_PREFIX:
+                #         record = self.get(uuid, expand=expand)
+                #     else:
+                #         raise e
+                # else:
+                #     record = self.get(DEFAULT_PREFIX + did, expand=expand)
+
+                # return record
+
                 query = query.filter(IndexRecord.did.in_(ids))
             else:
                 # only apply limit when ids is not provided
