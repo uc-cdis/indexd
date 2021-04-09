@@ -498,25 +498,19 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.order_by(IndexRecord.did)
 
             if ids:
+                #     print(ids)
+                #     try:
+                #         DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
+                #         if not DEFAULT_PREFIX:
+                #             print("NO DEFAULT???")
+                #             # raise e
+                #         for i in ids:
+                #             print(i)
+                #             if "/" not in i:
+                #                 # replace id in arr ???
+                #                 newid = DEFAULT_PREFIX + i
 
-                # do the checking for nonstrict here?????
-
-                # go through ids (arr?) and check for prefix
-
-                # DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
-                # if not DEFAULT_PREFIX:
-                #     raise e
-
-                # if "/" in did:
-                #     prefix, uuid = did.rsplit("/", 1)
-                #     if prefix + "/" == DEFAULT_PREFIX:
-                #         record = self.get(uuid, expand=expand)
-                #     else:
-                #         raise e
-                # else:
-                #     record = self.get(DEFAULT_PREFIX + did, expand=expand)
-
-                # return record
+                #     except NoRecordFound as e:
 
                 query = query.filter(IndexRecord.did.in_(ids))
             else:
@@ -526,10 +520,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if page is not None:
                 query = query.offset(limit * page)
 
-            print(ids)
-            print("------------ITERABLE-------------")
-            for i in query:
-                print(i)
             return [i.to_document_dict() for i in query]
 
     @staticmethod
