@@ -1,4 +1,4 @@
-from .auth.errors import AuthError, AuthzError
+from .auth.errors import ArboristError, AuthError, AuthzError
 
 
 class UserError(Exception):
