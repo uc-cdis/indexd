@@ -13,7 +13,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from indexd.auth.driver import AuthDriverABC
 
 from indexd.auth.errors import AuthError, AuthzError
-from indexd.errors import IndexdUnexpectedError
 
 from cdislogging import get_logger
 
