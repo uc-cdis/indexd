@@ -7,7 +7,7 @@ from .version_data import VERSION, COMMIT
 
 from indexd.auth import authorize
 
-from indexd.errors import AuthError
+from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 
 from .schema import PUT_RECORD_SCHEMA
@@ -263,7 +263,10 @@ def post_index_record():
         raise UserError(err)
 
     authz = flask.request.json.get("authz", [])
-    authorize("create", authz)
+    try:
+        authorize("create", authz)
+    except AuthzError as e:
+        raise AuthzError(e)
 
     did = flask.request.json.get("did")
     form = flask.request.json["form"]

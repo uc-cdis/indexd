@@ -12,7 +12,8 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from indexd.auth.driver import AuthDriverABC
 
-from indexd.auth.errors import ArboristError, AuthError
+from indexd.auth.errors import AuthError, AuthzError
+from indexd.errors import IndexdUnexpectedError
 
 
 Base = declarative_base()
@@ -137,6 +138,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                 get_jwt_token(), "indexd", method, resource
             ):
                 raise AuthError("Permission denied.")
-        except ArboristError as err:
+        except Exception as err:
             print(err.json)
             print(err.code)
+            raise AuthzError(err)

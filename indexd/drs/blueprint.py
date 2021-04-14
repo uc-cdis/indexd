@@ -1,6 +1,6 @@
 import flask
 import json
-from indexd.errors import ArboristError, AuthError, AuthzError
+from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
@@ -285,12 +285,6 @@ def parse_checksums(record, drs_object):
 def handle_user_error(err):
     ret = {"msg": str(err), "status_code": 400}
     return flask.jsonify(ret), 400
-
-
-@blueprint.errorhandler(ArboristError)
-def handle_arborist_error(err):
-    ret = {"msg": err.message, "status_code": err.code}
-    return flask.jsonify(ret), err.code
 
 
 @blueprint.errorhandler(AuthzError)

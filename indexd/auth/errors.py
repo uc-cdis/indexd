@@ -1,9 +1,3 @@
-class ArboristError(Exception):
-    """
-    Base arborist error.
-    """
-
-
 class AuthError(Exception):
     """
     Base auth error.
