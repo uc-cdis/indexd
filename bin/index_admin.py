@@ -2,7 +2,7 @@ import argparse
 import sys
 from cdislogging import get_logger
 
-logger = get_logger("index_admin")
+logger = get_logger(__name__)
 
 
 def main(path, action=None, username=None, password=None):

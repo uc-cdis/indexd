@@ -263,12 +263,7 @@ def post_index_record():
         raise UserError(err)
 
     authz = flask.request.json.get("authz", [])
-    try:
-        authorize("create", authz)
-    except Exception as err:
-        print("-------BLUEPRINT ERROR-------")
-        print(type(err).__name__)
-        raise AuthzError(err)
+    authorize("create", authz)
 
     did = flask.request.json.get("did")
     form = flask.request.json["form"]
@@ -783,6 +778,11 @@ def handle_user_error(err):
 @blueprint.errorhandler(AuthError)
 def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
+
+
+@blueprint.errorhandler(AuthzError)
+def handle_authz_error(err):
+    return flask.jsonify(error=str(err)), 401
 
 
 @blueprint.errorhandler(RevisionMismatch)

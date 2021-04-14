@@ -4,6 +4,7 @@ from contextlib import contextmanager
 
 from authutils.token import get_jwt_token
 from gen3authz.client.arborist.client import ArboristClient
+from gen3authz.client.arborist.errors import ArboristError
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy.orm import sessionmaker
@@ -14,6 +15,10 @@ from indexd.auth.driver import AuthDriverABC
 
 from indexd.auth.errors import AuthError, AuthzError
 from indexd.errors import IndexdUnexpectedError
+
+from cdislogging import get_logger
+
+logger = get_logger(__name__)
 
 
 Base = declarative_base()
@@ -134,11 +139,11 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             resource = ["/programs"]
 
         try:
+            # true/false ... lalala
             if not self.arborist.auth_request(
                 get_jwt_token(), "indexd", method, resource
             ):
                 raise AuthError("Permission denied.")
-        except Exception as err:
-            print("-------AUTHZ ERROR-------")
-            print(type(err).__name__)
+        except ArboristClient as err:
+            logger.error(err)
             raise AuthzError(err)
