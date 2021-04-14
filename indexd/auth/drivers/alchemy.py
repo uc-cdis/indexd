@@ -4,7 +4,6 @@ from contextlib import contextmanager
 
 from authutils.token import get_jwt_token
 from gen3authz.client.arborist.client import ArboristClient
-from gen3authz.client.arborist.errors import ArboristError
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy.orm import sessionmaker
@@ -139,11 +138,11 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             resource = ["/programs"]
 
         try:
-            # true/false ... lalala
+            # A successful call from arborist returns a bool, else returns ArboristError
             if not self.arborist.auth_request(
                 get_jwt_token(), "indexd", method, resource
             ):
                 raise AuthError("Permission denied.")
-        except ArboristClient as err:
+        except Exception as err:
             logger.error(err)
             raise AuthzError(err)
