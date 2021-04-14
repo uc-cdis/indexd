@@ -3,7 +3,7 @@ from functools import wraps
 from flask import current_app
 from flask import request
 
-from .errors import AuthError
+from .errors import AuthError, AuthzError
 
 
 def authorize(*p):
@@ -38,4 +38,9 @@ def authorize(*p):
         else:
             if not isinstance(resources, list):
                 raise UserError(f"'authz' must be a list, received '{resources}'.")
-            current_app.auth.authz(method, list(set(resources)))
+            try:
+                current_app.auth.authz(method, list(set(resources)))
+            except Exception as err:
+                print("-------AUTHORIZE ERROR-------")
+                print(type(err).__name__)
+                raise AuthzError(err)

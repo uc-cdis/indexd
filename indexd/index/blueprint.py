@@ -265,8 +265,10 @@ def post_index_record():
     authz = flask.request.json.get("authz", [])
     try:
         authorize("create", authz)
-    except AuthzError as e:
-        raise AuthzError(e)
+    except Exception as err:
+        print("-------BLUEPRINT ERROR-------")
+        print(type(err).__name__)
+        raise AuthzError(err)
 
     did = flask.request.json.get("did")
     form = flask.request.json["form"]
