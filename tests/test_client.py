@@ -240,7 +240,7 @@ def test_fill_size_n_hash_for_blank_record(swg_index_client):
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
     }
 
-    r = swg_index_client.update_blank_entry(did, rev=rev, body=updated)
+    r = swg_index_client.update_blank_entry(guid=did, rev=rev, body=updated)
     assert r.did == did
     assert r.rev != rev
 
@@ -283,8 +283,8 @@ def test_get_empty_acl_record_after_fill_size_n_hash(swg_index_client):
         'hashes': {'md5': '8b9942cf415384b27cadf1f4d2d981f5'},
     }
     did1 = r1.did
-    r1 = swg_index_client.update_blank_entry(r1.did, rev=r1.rev, body=updated)
-    r1 = swg_index_client.update_entry(r1.did, rev=r1.rev, body={'acl': ['read']})
+    r1 = swg_index_client.update_blank_entry(guid=r1.did, rev=r1.rev, body=updated)
+    r1 = swg_index_client.update_entry(guid=r1.did, rev=r1.rev, body={'acl': ['read']})
     r1 = swg_index_client.get_entry(r1.did)
     assert r1.acl == ['read']
     assert r1.did == did1
@@ -309,7 +309,7 @@ def test_get_empty_acl_record_after_fill_size_n_hash(swg_index_client):
         'urls': ['s3://example/2'],
         'urls_metadata': {'s3://example/2': {}},
     }
-    swg_index_client.update_blank_entry(r3.did, rev=r3.rev, body=updated)
+    swg_index_client.update_blank_entry(guid=r3.did, rev=r3.rev, body=updated)
 
     r = swg_index_client.list_entries(uploader='uploader_123')
     assert len(r.records) == 3
@@ -334,7 +334,7 @@ def test_urls_metadata(swg_index_client):
     assert doc.urls_metadata == data['urls_metadata']
 
     updated = {'urls_metadata': {data['urls'][0]: {'test': 'b'}}}
-    swg_index_client.update_entry(doc.did, rev=doc.rev, body=updated)
+    swg_index_client.update_entry(guid=doc.did, rev=doc.rev, body=updated)
 
     doc = swg_index_client.get_entry(result.did)
     assert doc.urls_metadata == updated['urls_metadata']
@@ -631,7 +631,7 @@ def test_index_update(swg_index_client):
     dataNew['metadata'] = {'test': 'abcd'}
     dataNew['version'] = 'ver123'
     dataNew['acl'] = ['a', 'b']
-    r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
+    r2 = swg_index_client.update_entry(guid=r.did, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
     result = swg_index_client.get_entry(r.did)
     assert result.metadata == dataNew['metadata']
@@ -649,7 +649,7 @@ def test_index_update(swg_index_client):
         'file_name': 'test',
         'version': 'ver123',
         }
-    r2 = swg_index_client.update_entry(r.did, rev=r.rev, body=dataNew)
+    r2 = swg_index_client.update_entry(guid=r.did, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
 
 
@@ -664,13 +664,13 @@ def test_update_uploader_field(swg_index_client):
     assert r.uploader == 'uploader_123'
 
     updated = {'uploader': 'new_uploader'}
-    swg_index_client.update_entry(r.did, rev=r.rev, body=updated)
+    swg_index_client.update_entry(guid=r.did, rev=r.rev, body=updated)
 
     r = swg_index_client.get_entry(r.did)
     assert r.uploader == 'new_uploader'
 
     updated = {'uploader': None}
-    swg_index_client.update_entry(r.did, rev=r.rev, body=updated)
+    swg_index_client.update_entry(guid=r.did, rev=r.rev, body=updated)
 
     r = swg_index_client.get_entry(r.did)
     assert r.uploader is None
@@ -713,7 +713,7 @@ def test_create_index_version(swg_index_client):
         },
     }
 
-    r2 = swg_index_client.add_new_version(r.did, body=dataNew)
+    r2 = swg_index_client.add_new_version(guid=r.did, body=dataNew)
     assert r2.baseid == r.baseid
     assert r2.did == dataNew['did']
 
@@ -724,7 +724,7 @@ def test_get_latest_version(swg_index_client):
     assert r.did
 
     data = get_doc(has_metadata=False)
-    r2 = swg_index_client.add_new_version(r.did, body=data)
+    r2 = swg_index_client.add_new_version(guid=r.did, body=data)
     r3 = swg_index_client.get_latest_version(r.did)
     assert r3.did == r2.did
 
@@ -739,7 +739,7 @@ def test_get_all_versions(swg_index_client):
     data = get_doc(has_metadata=False)
     r = swg_index_client.add_entry(data)
     assert r.did
-    swg_index_client.add_new_version(r.did, body=data)
+    swg_index_client.add_new_version(guid=r.did, body=data)
     r3 = swg_index_client.get_all_versions(r.did)
     assert len(r3) == 2
     r4 = swg_index_client.get_all_versions(r.baseid)
@@ -758,7 +758,7 @@ def test_alias_create(swg_alias_client):
         'keeper_authority': 'CRI', 'host_authorities': ['PDC'],
     }
     ark = 'ark:/31807/TEST-abc'
-    r = swg_alias_client.upsert_entry(ark, body=data)
+    r = swg_alias_client.upsert_entry(aliasstring=ark, body=data)
     assert r.name == ark
 
     assert len(swg_alias_client.list_entries().aliases) == 1
@@ -774,7 +774,7 @@ def test_alias_get_global_endpoint(swg_alias_client, swg_global_client):
     }
     ark = 'ark:/31807/TEST-abc'
 
-    swg_alias_client.upsert_entry(ark, body=data)
+    swg_alias_client.upsert_entry(aliasstring=ark, body=data)
 
     assert swg_global_client.get_entry(ark).size == 123
 
@@ -788,7 +788,7 @@ def test_alias_update(swg_alias_client):
     }
     ark = 'ark:/31807/TEST-abc'
 
-    r = swg_alias_client.upsert_entry(ark, body=data)
+    r = swg_alias_client.upsert_entry(aliasstring=ark, body=data)
     assert r.rev
 
     dataNew = {
@@ -797,7 +797,7 @@ def test_alias_update(swg_alias_client):
         'release': 'private',
         'keeper_authority': 'CRI', 'host_authorities': ['PDC'],
     }
-    r2 = swg_alias_client.upsert_entry(ark, rev=r.rev, body=dataNew)
+    r2 = swg_alias_client.upsert_entry(aliasstring=ark, rev=r.rev, body=dataNew)
     assert r2.rev != r.rev
 
 
@@ -810,7 +810,7 @@ def test_alias_delete(swg_alias_client):
     }
     ark = 'ark:/31807/TEST-abc'
 
-    r = swg_alias_client.upsert_entry(ark, body=data)
+    r = swg_alias_client.upsert_entry(aliasstring=ark, body=data)
     assert r.rev
 
     swg_alias_client.delete_entry(ark, rev=r.rev)
@@ -928,7 +928,7 @@ def test_update_without_changing_fields(swg_index_client):
 
     # update
     updated = {'version': 'at least 2'}
-    swg_index_client.update_entry(first_doc.did, rev=first_doc.rev, body=updated)
+    swg_index_client.update_entry(guid=first_doc.did, rev=first_doc.rev, body=updated)
 
     # Check if update successful.
     second_doc = swg_index_client.get_entry(first_doc.did)
@@ -944,7 +944,7 @@ def test_update_without_changing_fields(swg_index_client):
     # Change `version` to null.
     # update
     updated = {'version': None}
-    swg_index_client.update_entry(second_doc.did, rev=second_doc.rev, body=updated)
+    swg_index_client.update_entry(guid=second_doc.did, rev=second_doc.rev, body=updated)
 
     # check if update successful
     third_doc = swg_index_client.get_entry(result.did)
@@ -999,7 +999,7 @@ def test_bulk_get_latest_version(swg_index_client, swg_bulk_client, add_null, sk
     latest_dids_excluding_null = []
     for did in dids:
         if did in chosen_new_version_dids:
-            latest_dids_excluding_null.append(swg_index_client.add_new_version(did, body=get_doc(version="2")).did)
+            latest_dids_excluding_null.append(swg_index_client.add_new_version(guid=did, body=get_doc(version="2")).did)
         else:
             latest_dids_excluding_null.append(did)
     assert len(latest_dids_excluding_null) == len(dids)
@@ -1010,7 +1010,7 @@ def test_bulk_get_latest_version(swg_index_client, swg_bulk_client, add_null, sk
         chosen_null_version_dids = random.sample(latest_dids_excluding_null, k=total_files//3)
         for did in latest_dids_excluding_null:
             if did in chosen_null_version_dids:
-                latest_dids.append(swg_index_client.add_new_version(did, body=get_doc()).did)
+                latest_dids.append(swg_index_client.add_new_version(guid=did, body=get_doc()).did)
             else:
                 latest_dids.append(did)
         assert len(latest_dids) == len(dids)
@@ -1058,7 +1058,7 @@ def test_special_case_metadata_get_latest(swg_index_client):
     did = swg_index_client.add_entry(blob).did
     blob['did'] = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
     blob['metadata'] = {'release_number': '13.0'}
-    new_did = swg_index_client.add_new_version(did, body=blob).did
+    new_did = swg_index_client.add_new_version(guid=did, body=blob).did
 
     doc = swg_index_client.get_latest_version(new_did).to_dict()
     assert 'release_number' in doc['metadata']
@@ -1070,7 +1070,7 @@ def test_special_case_metadata_get_latest(swg_index_client):
     did = swg_index_client.add_entry(blob).did
     blob['did'] = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
     blob['metadata']['release_number'] = '13.0'
-    new_did = swg_index_client.add_new_version(did, body=blob).did
+    new_did = swg_index_client.add_new_version(guid=did, body=blob).did
 
     doc = swg_index_client.get_latest_version(new_did).to_dict()
     assert 'release_number' in doc['metadata']

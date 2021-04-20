@@ -3,13 +3,13 @@ services:
 
   postgres:
     image: postgres:9.4
-    environment: 
+    environment:
       POSTGRES_HOST_AUTH_METHOD: trust
-      
+
   app:
     image: docker.osdc.io/ncigdc/jenkins-agent:1.0.1
     environment:
-      SWAGGER_URL: "https://nexus.osdc.io/repository/maven-public/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar"
+      SWAGGER_URL: "https://nexus.osdc.io/repository/maven-public/io/swagger/codegen/v3/swagger-codegen-cli/3.0.25/swagger-codegen-cli-3.0.25.jar"
       SSH_AUTH_SOCK: $SSH_AUTH_SOCK
       HTTPS_PROXY: http://cloud-proxy:3128
       HTTP_PROXY: http://cloud-proxy:3128

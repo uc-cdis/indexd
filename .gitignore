@@ -22,7 +22,7 @@ var/
 *.egg
 
 
-# Jenkins 
+# Jenkins
 .local/
 .eggs/
 .ssh/
@@ -80,7 +80,7 @@ settings.yaml
 *.sq3
 
 # swagger
-swagger-codegen-cli-2.3.1.jar
+swagger-codegen-cli.jar
 
 # IDE
 .vscode

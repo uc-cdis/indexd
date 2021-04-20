@@ -2,8 +2,7 @@ language: python
 
 python:
   - "2.7"
-  - "3.5"
-  - "3.6"
+  - "3.8"
 
 addons:
   postgresql: "13"
@@ -27,8 +26,10 @@ jdk:
 
 sudo: false
 
+# Pin a specific version of pytest outside of the tox virtualenvs so it has
+# required dependencies in order for tox to start for Python 2.
 install:
-    - "pip install tox-travis"
+    - "pip install tox-travis tox==3.23.0 pytest==3.10.1"
 
 script: "tox"
 
