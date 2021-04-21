@@ -322,6 +322,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         super().__init__(conn, **config)
         self.logger = logger or get_logger("SQLAlchemyIndexDriver")
         self.config = index_config or {}
+        print(index_config)
 
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
@@ -498,20 +499,28 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.order_by(IndexRecord.did)
 
             if ids:
-                #     print(ids)
-                #     try:
-                #         DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
-                #         if not DEFAULT_PREFIX:
-                #             print("NO DEFAULT???")
-                #             # raise e
-                #         for i in ids:
-                #             print(i)
-                #             if "/" not in i:
-                #                 # replace id in arr ???
-                #                 newid = DEFAULT_PREFIX + i
+                print("-------IDS--------")
+                print(ids)
 
-                #     except NoRecordFound as e:
+                DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
+                if not DEFAULT_PREFIX:
+                    print("NO DEFAULT")
+                    raise NoRecordFound("No Default Prefix")
 
+                for idx, i in enumerate(ids):
+                    print(i)
+                    if "/" in i:
+                        print("HAS PREFIX")
+                        print(i.rsplit("/", 1))
+                        prefix, uuid = i.rsplit("/", 1)
+                        # if prefix + "/" == DEFAULT_PREFIX:
+                        ids[idx] = uuid
+                        # else:
+                        #     raise exception
+                    # else:
+                    #   ids[idx] = DEFAULT_PREFIX + i
+
+                print(ids)
                 query = query.filter(IndexRecord.did.in_(ids))
             else:
                 # only apply limit when ids is not provided
