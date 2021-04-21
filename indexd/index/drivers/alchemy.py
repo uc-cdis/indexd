@@ -322,7 +322,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         super().__init__(conn, **config)
         self.logger = logger or get_logger("SQLAlchemyIndexDriver")
         self.config = index_config or {}
-        print(index_config)
 
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
@@ -1130,8 +1129,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         try:
             record = self.get(did, expand=expand)
+            print("---GET REC WO PREFIX WORK---")
         except NoRecordFound as e:
             DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
+            print("------PREFIX CONFIG-----")
+            print(self.config)
+            print(DEFAULT_PREFIX)
             if not DEFAULT_PREFIX:
                 raise e
 
