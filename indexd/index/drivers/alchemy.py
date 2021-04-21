@@ -501,10 +501,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 print("-------IDS--------")
                 print(ids)
 
-                DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
-                if not DEFAULT_PREFIX:
-                    print("NO DEFAULT")
-                    raise NoRecordFound("No Default Prefix")
+                # DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
+                # if not DEFAULT_PREFIX:
+                #     print("NO DEFAULT")
+                #     raise NoRecordFound("No Default Prefix")
 
                 for idx, i in enumerate(ids):
                     print(i)
@@ -519,7 +519,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     # else:
                     #   ids[idx] = DEFAULT_PREFIX + i
 
-                print(ids)
+                print(IndexRecord.did.in_(ids))
                 query = query.filter(IndexRecord.did.in_(ids))
             else:
                 # only apply limit when ids is not provided
@@ -1129,7 +1129,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         try:
             record = self.get(did, expand=expand)
-            print("---GET REC WO PREFIX WORK---")
         except NoRecordFound as e:
             DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
             print("------PREFIX CONFIG-----")
