@@ -501,25 +501,19 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 print("-------IDS--------")
                 print(ids)
 
-                # DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
-                # if not DEFAULT_PREFIX:
-                #     print("NO DEFAULT")
-                #     raise NoRecordFound("No Default Prefix")
+                DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
+                print("-------DEFAULT PREFIX--------")
+                print(DEFAULT_PREFIX)
 
-                for idx, i in enumerate(ids):
-                    print(i)
-                    if "/" in i:
-                        print("HAS PREFIX")
-                        print(i.rsplit("/", 1))
-                        prefix, uuid = i.rsplit("/", 1)
-                        # if prefix + "/" == DEFAULT_PREFIX:
-                        ids[idx] = uuid
-                        # else:
-                        #     raise exception
-                    # else:
-                    #   ids[idx] = DEFAULT_PREFIX + i
+                if not DEFAULT_PREFIX:
+                    print("NO DEFAULT PREFIX")
+                else:
+                    for i in enumerate(ids):
+                        print(i)
+                        if "/" not in i:
+                            print("NO PREFIX")
+                            ids.append(DEFAULT_PREFIX + i)
 
-                print(IndexRecord.did.in_(ids))
                 query = query.filter(IndexRecord.did.in_(ids))
             else:
                 # only apply limit when ids is not provided
@@ -1131,9 +1125,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record = self.get(did, expand=expand)
         except NoRecordFound as e:
             DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
-            print("------PREFIX CONFIG-----")
-            print(self.config)
-            print(DEFAULT_PREFIX)
             if not DEFAULT_PREFIX:
                 raise e
 
