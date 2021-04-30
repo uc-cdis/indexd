@@ -498,22 +498,21 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.order_by(IndexRecord.did)
 
             if ids:
-                print("-------IDS--------")
-                print(ids)
-
                 DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
-                print("-------DEFAULT PREFIX--------")
-                print(DEFAULT_PREFIX)
+                newids = []
 
                 if not DEFAULT_PREFIX:
                     print("NO DEFAULT PREFIX")
                 else:
-                    for i in enumerate(ids):
-                        print(i)
-                        if "/" not in i:
-                            print("NO PREFIX")
-                            ids.append(DEFAULT_PREFIX + i)
+                    for i in ids:
+                        if not i.startswith(DEFAULT_PREFIX):
+                            newids.append(DEFAULT_PREFIX + i)
+                        else:
+                            # should we also strip the default id here too? like on ln 1136?
+                            stripped = i.split(DEFAULT_PREFIX, 1)[1]
+                            newids.append(stripped)
 
+                ids = ids + newids
                 query = query.filter(IndexRecord.did.in_(ids))
             else:
                 # only apply limit when ids is not provided
@@ -1128,14 +1127,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if not DEFAULT_PREFIX:
                 raise e
 
-            if "/" in did:
-                prefix, uuid = did.rsplit("/", 1)
-                if prefix + "/" == DEFAULT_PREFIX:
-                    record = self.get(uuid, expand=expand)
-                else:
-                    raise e
-            else:
+            if not did.startswith(DEFAULT_PREFIX):
                 record = self.get(DEFAULT_PREFIX + did, expand=expand)
+            else:
+                stripped = did.split(DEFAULT_PREFIX, 1)[1]
+                record = self.get(stripped, expand=expand)
 
         return record
 
