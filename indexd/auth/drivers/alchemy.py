@@ -12,7 +12,11 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from indexd.auth.driver import AuthDriverABC
 
-from indexd.auth.errors import AuthError
+from indexd.auth.errors import AuthError, AuthzError
+
+from cdislogging import get_logger
+
+logger = get_logger(__name__)
 
 
 Base = declarative_base()
@@ -131,5 +135,13 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             # operations on the record. For now, admin = access to `/programs`.
             # TODO: Figure out how to handle Gen3 operational admins in a better way
             resource = ["/programs"]
-        if not self.arborist.auth_request(get_jwt_token(), "indexd", method, resource):
-            raise AuthError("Permission denied.")
+
+        try:
+            # A successful call from arborist returns a bool, else returns ArboristError
+            if not self.arborist.auth_request(
+                get_jwt_token(), "indexd", method, resource
+            ):
+                raise AuthError("Permission denied.")
+        except Exception as err:
+            logger.error(err)
+            raise AuthzError(err)
