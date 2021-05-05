@@ -7,7 +7,7 @@ from .version_data import VERSION, COMMIT
 
 from indexd.auth import authorize
 
-from indexd.errors import AuthError
+from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 
 from .schema import PUT_RECORD_SCHEMA
@@ -778,6 +778,11 @@ def handle_user_error(err):
 @blueprint.errorhandler(AuthError)
 def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
+
+
+@blueprint.errorhandler(AuthzError)
+def handle_authz_error(err):
+    return flask.jsonify(error=str(err)), 401
 
 
 @blueprint.errorhandler(RevisionMismatch)
