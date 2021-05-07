@@ -130,17 +130,17 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             raise AuthError(
                 "Arborist is not configured; cannot perform authorization check"
             )
-        if not resource:
-            # if the `authz` is empty, admins should still be able to perform
-            # operations on the record. For now, admin = access to `/programs`.
-            # TODO: Figure out how to handle Gen3 operational admins in a better way
-            resource = ["/programs"]
 
         try:
             # A successful call from arborist returns a bool, else returns ArboristError
-            if not self.arborist.auth_request(
+            authorized = self.arborist.auth_request(
                 get_jwt_token(), "indexd", method, resource
-            ):
+            )
+            # admins can perform all operations
+            is_admin = self.arborist.auth_request(
+                get_jwt_token(), "indexd", "*", ["/services/indexd/admin"]
+            )
+            if not authorized and not is_admin:
                 raise AuthError("Permission denied.")
         except Exception as err:
             logger.error(err)
