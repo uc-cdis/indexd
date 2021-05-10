@@ -2584,7 +2584,7 @@ def test_indexd_admin_authz(client, mock_arborist_requests, authz):
 
     # user has admin access => authorized
     mock_arborist_requests(
-        resource_method_to_authorized={"/services/indexd/admin": {"*": True}}
+        resource_method_to_authorized={"/services/indexd/admin": {"create": True}}
     )
     res = client.post("/index/", json=data)
     assert res.status_code == 200  # authorized

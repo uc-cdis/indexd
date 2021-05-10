@@ -138,7 +138,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             )
             # admins can perform all operations
             is_admin = self.arborist.auth_request(
-                get_jwt_token(), "indexd", "*", ["/services/indexd/admin"]
+                get_jwt_token(), "indexd", method, ["/services/indexd/admin"]
             )
             if not authorized and not is_admin:
                 raise AuthError("Permission denied.")
