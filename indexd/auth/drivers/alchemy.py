@@ -133,15 +133,21 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
 
         try:
             # A successful call from arborist returns a bool, else returns ArboristError
-            authorized = self.arborist.auth_request(
+            if not self.arborist.auth_request(
                 get_jwt_token(), "indexd", method, resource
-            )
-            # admins can perform all operations
-            is_admin = self.arborist.auth_request(
-                get_jwt_token(), "indexd", method, ["/services/indexd/admin"]
-            )
-            if not authorized and not is_admin:
-                raise AuthError("Permission denied.")
+            ):
+                # admins can perform all operations
+                is_admin = self.arborist.auth_request(
+                    get_jwt_token(), "indexd", method, ["/services/indexd/admin"]
+                )
+                if not is_admin and not resource:
+                    # if `authz` is empty (no `resource`), admin == access to
+                    # `/programs` (deprecated - for backwards compatibility).
+                    is_admin = self.arborist.auth_request(
+                        get_jwt_token(), "indexd", method, ["/programs"]
+                    )
+                if not is_admin:
+                    raise AuthError("Permission denied.")
         except Exception as err:
             logger.error(err)
             raise AuthzError(err)
