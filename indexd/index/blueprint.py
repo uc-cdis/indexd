@@ -476,7 +476,7 @@ def health_check():
     '''
 
     blueprint.index_driver.health_check()
-    flask.current_app.config['INDEX']['driver'].health_check()
+    flask.current_app.config['ALIAS']['driver'].health_check()
     flask.current_app.auth.health_check()
 
     return 'Healthy', 200
