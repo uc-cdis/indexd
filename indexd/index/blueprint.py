@@ -16,6 +16,8 @@ from .errors import (
 )
 from .schema import POST_RECORD_SCHEMA, PUT_RECORD_SCHEMA
 from .version_data import COMMIT, VERSION
+from indexd.alias.blueprint import blueprint as indexd_alias_blueprint
+# from indexd.auth.blueprint import blueprint as indexd_auth_blueprint
 
 blueprint = flask.Blueprint('index', __name__)
 
@@ -474,7 +476,10 @@ def health_check():
     '''
     Health Check.
     '''
+
     blueprint.index_driver.health_check()
+    flask.current_app.config['INDEX']['driver'].health_check()
+    flask.current_app.auth.health_check()
 
     return 'Healthy', 200
 

@@ -20,6 +20,7 @@ from indexd.utils import (
     is_empty_database,
     migrate_database,
 )
+from indexd.index.errors import UnhealthyCheck
 
 Base = declarative_base()
 
@@ -109,6 +110,18 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             driver=self, migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
             current_schema_version=CURRENT_SCHEMA_VERSION,
             model=AliasSchemaVersion)
+
+    def health_check(self):
+        """
+        Does a health check of the backend.
+        """
+        with self.session as session:
+            try:
+                session.execute('SELECT 1')
+            except Exception:
+                raise UnhealthyCheck()
+
+            return True
 
     @property
     @contextmanager
