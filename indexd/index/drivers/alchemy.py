@@ -1642,15 +1642,22 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 DrsBundleRecord.created_time.desc()
             )
 
-            try:
-                record = query.first()
-                if record is None:
-                    raise NoRecordFound("No bundle found")
+            record = query.first()
+            print(record)
+            if record is None:
+                raise NoRecordFound("No bundle found")
 
-                doc = record.to_document_dict(expand)
-            except Exception as err:
-                print(err)
-                # raise BaseIndexError()
+            doc = record.to_document_dict(expand)
+
+            # try:
+            #     record = query.first()
+            #     if record is None:
+            #         raise NoRecordFound("No bundle found")
+
+            #     doc = record.to_document_dict(expand)
+            # except Exception as err:
+            #     print(err)
+            #     # raise BaseIndexError()
 
             return doc
 
