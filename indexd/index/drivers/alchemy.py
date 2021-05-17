@@ -28,6 +28,7 @@ from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import (
     MultipleRecordsFound,
+    BaseIndexError,
     NoRecordFound,
     RevisionMismatch,
     UnhealthyCheck,
@@ -1641,11 +1642,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 DrsBundleRecord.created_time.desc()
             )
 
-            record = query.first()
-            if record is None:
-                raise NoRecordFound("No bundle found")
+            try:
+                record = query.first()
+                if record is None:
+                    raise NoRecordFound("No bundle found")
 
-            doc = record.to_document_dict(expand)
+                doc = record.to_document_dict(expand)
+            except Exception as err:
+                print(err)
+                # raise BaseIndexError()
 
             return doc
 
