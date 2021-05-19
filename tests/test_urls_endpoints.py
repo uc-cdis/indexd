@@ -88,3 +88,8 @@ def test_query_urls_metadata(swg_index_client, swg_query_client, test_data):
     # test unknown state
     urls_list = swg_query_client.query_urls_metadata(key="state", value="uploadedx", url="awesome-x")
     assert len(urls_list) == 0
+
+def test_status(client):
+    resp = client.get("/_status")
+    assert resp.status_code == 200
+    assert resp.data == b"Healthy"

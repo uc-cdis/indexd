@@ -8,6 +8,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from indexd.auth.driver import AuthDriverABC
 from indexd.auth.errors import AuthError
+from indexd.index.errors import UnhealthyCheck
 
 Base = declarative_base()
 
@@ -78,6 +79,18 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             if not user:
                 raise AuthError("User {} doesn't exist".format(username))
             session.delete(user)
+
+    def health_check(self):
+        """
+        Does a health check of the backend.
+        """
+        with self.session as session:
+            try:
+                session.execute('SELECT 1')
+            except Exception:
+                raise UnhealthyCheck()
+
+            return True
 
     def auth(self, username, password):
         """
