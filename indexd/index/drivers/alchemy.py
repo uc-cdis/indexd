@@ -504,15 +504,19 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 if not DEFAULT_PREFIX:
                     print("NO DEFAULT PREFIX")
                 else:
-                    for i in ids:
-                        if not i.startswith(DEFAULT_PREFIX):
-                            newids.append(DEFAULT_PREFIX + i)
-                        else:
-                            # should we also strip the default id here too? like on ln 1136?
-                            stripped = i.split(DEFAULT_PREFIX, 1)[1]
-                            newids.append(stripped)
+                    print(
+                        "-----------------------------------------------HERE----------------------------------------------"
+                    )
+                    print(IndexRecord.did.in_(ids))
+                    subquery = query.filter(IndexRecord.did.in_(ids))
+                    print(subquery)
+                    # for i in difference:
+                    # if not i.startswith(DEFAULT_PREFIX):
+                    #     newids.append(DEFAULT_PREFIX + i)
+                    # else:
+                    #     stripped = i.split(DEFAULT_PREFIX, 1)[1]
+                    #     newids.append(stripped)
 
-                ids = ids + newids
                 query = query.filter(IndexRecord.did.in_(ids))
             else:
                 # only apply limit when ids is not provided
