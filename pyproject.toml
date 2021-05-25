@@ -36,6 +36,7 @@ pytest-flask = "^1.2.0"
 PyYAML = "^5.1"
 responses = "^0.13.0"
 swagger_spec_validator = "^2.6.0"
+Cython = "^0.29.23"
 
 
 [build-system]
