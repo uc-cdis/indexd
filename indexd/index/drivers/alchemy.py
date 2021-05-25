@@ -506,14 +506,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     print("NO DEFAULT PREFIX")
                 else:
                     subquery = query.filter(IndexRecord.did.in_(ids))
-                    subquery_res = [i.to_document_dict() for i in subquery]
-                    for res in subquery_res:
-                        found_ids.append(res["did"])
-
-                    print(
-                        "----------------------------------PRINTING FOUND IDS---------------------------------------"
-                    )
-                    print(found_ids)
+                    found_ids = [i.did for i in subquery]
 
                     for i in ids:
                         if i not in found_ids:
@@ -523,17 +516,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                                 stripped = i.split(DEFAULT_PREFIX, 1)[1]
                                 new_ids.append(stripped)
 
-                    print(
-                        "----------------------------------PRINTING NEW IDS---------------------------------------"
-                    )
-                    print(new_ids)
-
-                print(
-                    "----------------------------------PRINTING COMBINED IDS---------------------------------------"
-                )
-                combined = found_ids + new_ids
-                print(combined)
-                query = query.filter(IndexRecord.did.in_(combined))
+                query = query.filter(IndexRecord.did.in_(found_ids + new_ids))
             else:
                 # only apply limit when ids is not provided
                 query = query.limit(limit)

@@ -65,8 +65,8 @@ def test_index_list_with_params(client, user):
         "s3://anotherurl/bucket_2/key_2",
     ]
     data3["urls_metadata"] = {
-        "s3://endpointurl/bucket_2/key_2": {"state": "error", "other": "xxx"},
-        "s3://anotherurl/bucket_2/key_2": {"state": "error", "other": "xxx"},
+        "s3://endpointurl/bucket_2/key_2": {"state": "test", "other": "xxx"},
+        "s3://anotherurl/bucket_2/key_2": {"state": "test", "other": "xxx"},
     }
     res_3 = client.post("/index/", json=data3, headers=user)
     assert res_3.status_code == 200
@@ -93,20 +93,12 @@ def test_index_list_with_params(client, user):
 
     # with nonstrict prefix
     stripped = rec_1["did"].split("testprefix:", 1)[1]
-    print("_______STRIPPED________")
-    print(stripped)
     with_prefix = rec_3["did"]
-    print("_______WITH PREFIX________")
-    print(with_prefix)
     data_by_ids = client.get("/index/?ids={},{}".format(stripped, with_prefix))
     assert data_by_ids.status_code == 200
     data_list_all = data_by_ids.json
 
-    print("_______ALL REC________")
-    print(data_list_all)
     ids = [record["did"] for record in data_list_all["records"]]
-    print("_______IDS________")
-    print(ids)
     assert rec_1["did"] in ids
     assert not rec_2["did"] in ids
     assert rec_3["did"] in ids
