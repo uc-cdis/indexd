@@ -133,6 +133,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
 
         try:
             # A successful call from arborist returns a bool, else returns ArboristError
+
             try:
                 authorized = self.arborist.auth_request(
                     get_jwt_token(), "indexd", method, resource
