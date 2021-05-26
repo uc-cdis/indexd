@@ -148,6 +148,8 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                 is_admin = self.arborist.auth_request(
                     get_jwt_token(), "indexd", method, ["/services/indexd/admin"]
                 )
+                print("-------------ADMIN-----------------")
+                print(is_admin)
                 if not is_admin and not resource:
                     # if `authz` is empty (no `resource`), admin == access to
                     # `/programs` (deprecated - for backwards compatibility).

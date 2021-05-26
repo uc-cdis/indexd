@@ -647,8 +647,9 @@ def post_bundle():
 
     try:
         authorize("create", ["/services/indexd/bundles"])
-    except:
-        raise AuthError("Invalid Token.")
+    except Exception as e:
+        logger.error(f"Exception occurred during request to Arborist; details:\n{e}")
+        raise AuthzError(e)
     try:
         jsonschema.validate(flask.request.json, BUNDLE_SCHEMA)
     except jsonschema.ValidationError as err:
