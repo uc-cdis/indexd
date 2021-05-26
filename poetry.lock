@@ -1193,7 +1193,7 @@ flask = [
     {file = "Flask-1.1.4.tar.gz", hash = "sha256:0fbeb6180d383a9186d0d6ed954e0042ad9f18e0e8de088b2b419d526927d196"},
 ]
 gen3authz = [
-    {file = "gen3authz-1.0.5.tar.gz", hash = "sha256:31b304ae6579ff737d4996e1383a9b2e9d961fa1f9840d6d0a6ae15aa97c3360"},
+    {file = "gen3authz-1.0.5.tar.gz", hash = "sha256:fce3a9878e64f7eb8654a1a7c6a8a248b28bc8ea0bc87959d4d4deee3471fc3a"},
 ]
 h11 = [
     {file = "h11-0.12.0-py3-none-any.whl", hash = "sha256:36a3cb8c0a032f56e2da7084577878a035d3b61d104230d4bd49c0c6b555a9c6"},
