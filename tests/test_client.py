@@ -1,12 +1,11 @@
-import json
 import base64
-
+import json
 import pytest
+import uuid
 
 from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 from tests.test_bundles import create_index, get_bundle_doc
-import uuid
 
 
 def get_doc(
@@ -2565,6 +2564,38 @@ def test_bulk_get_documents(client, user):
     # compare that they are the same by did
     for doc in docs:
         assert doc["did"] in dids
+
+
+@pytest.mark.parametrize("authz", [["/some/path"], []])
+def test_indexd_admin_authz(client, mock_arborist_requests, authz):
+    """
+    Test that admin users can perform an operation even if they don't
+    have explicit access to do it.
+    Test edge case `authz = []`: if the `authz` is empty, admins should
+    still be able to perform operations on the record.
+    """
+    data = get_doc()
+    data["authz"] = authz
+
+    # user has no access => unauthorized
+    mock_arborist_requests()
+    res = client.post("/index/", json=data)
+    assert res.status_code == 401  # unauthorized
+
+    # user has admin access => authorized
+    mock_arborist_requests(
+        resource_method_to_authorized={"/services/indexd/admin": {"create": True}}
+    )
+    res = client.post("/index/", json=data)
+    assert res.status_code == 200  # authorized
+
+    # user has old admin access => authorized (backwards compatibility test)
+    if not authz:
+        mock_arborist_requests(
+            resource_method_to_authorized={"/programs": {"create": True}}
+        )
+        res = client.post("/index/", json=data)
+        assert res.status_code == 200  # authorized
 
 
 def test_status_check(client):
