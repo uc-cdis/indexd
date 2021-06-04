@@ -133,9 +133,16 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
 
         try:
             # A successful call from arborist returns a bool, else returns ArboristError
-            if not self.arborist.auth_request(
-                get_jwt_token(), "indexd", method, resource
-            ):
+            try:
+                authorized = self.arborist.auth_request(
+                    get_jwt_token(), "indexd", method, resource
+                )
+            except Exception as e:
+                logger.error(
+                    f"Request to Arborist failed; now checking admin access. Details:\n{e}"
+                )
+                authorized = False
+            if not authorized:
                 # admins can perform all operations
                 is_admin = self.arborist.auth_request(
                     get_jwt_token(), "indexd", method, ["/services/indexd/admin"]
