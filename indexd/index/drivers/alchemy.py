@@ -509,7 +509,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                         if not i.startswith(DEFAULT_PREFIX):
                             newids.append(DEFAULT_PREFIX + i)
                         else:
-                            # should we also strip the default id here too? like on ln 1136?
                             stripped = i.split(DEFAULT_PREFIX, 1)[1]
                             newids.append(stripped)
 
