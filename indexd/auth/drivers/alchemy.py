@@ -61,7 +61,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         try:
             yield session
             session.commit()
-        except:
+        except Exception:
             session.rollback()
             raise
         finally:
@@ -156,6 +156,10 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                     is_admin = self.arborist.auth_request(
                         get_jwt_token(), "indexd", method, ["/programs"]
                     )
+                    if is_admin:
+                        logger.warning(
+                            "The indexd admin '/programs' logic is deprecated. Please update your policy to '/services/indexd/admin'"
+                        )
                 if not is_admin:
                     raise AuthError("Permission denied.")
         except Exception as err:

@@ -5,7 +5,7 @@ import hashlib
 import jsonschema
 from .version_data import VERSION, COMMIT
 
-from indexd.auth import authorize
+from indexd import auth
 
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
@@ -263,7 +263,7 @@ def post_index_record():
         raise UserError(err)
 
     authz = flask.request.json.get("authz", [])
-    authorize("create", authz)
+    auth.authorize("create", authz)
 
     did = flask.request.json.get("did")
     form = flask.request.json["form"]
@@ -644,12 +644,7 @@ def post_bundle():
     """
     Create a new bundle
     """
-
-    try:
-        authorize("create", ["/services/indexd/bundles"])
-    except Exception as e:
-        logger.error(f"Exception occurred during request to Arborist; details:\n{e}")
-        raise AuthzError(e)
+    auth.authorize("create", ["/services/indexd/bundles"])
     try:
         jsonschema.validate(flask.request.json, BUNDLE_SCHEMA)
     except jsonschema.ValidationError as err:
@@ -752,10 +747,7 @@ def delete_bundle_record(bundle_id):
     """
     Delete bundle record given bundle_id
     """
-    try:
-        authorize("delete", ["/services/indexd/bundles"])
-    except:
-        raise AuthError("Invalid Token.")
+    auth.authorize("delete", ["/services/indexd/bundles"])
     blueprint.index_driver.delete_bundle(bundle_id)
 
     return "", 200
