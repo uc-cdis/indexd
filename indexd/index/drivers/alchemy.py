@@ -503,7 +503,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 new_ids = []
 
                 if not DEFAULT_PREFIX:
-                    print("NO DEFAULT_PREFIX")
+                    self.logger.info("NO DEFAULT_PREFIX")
                 else:
                     subquery = query.filter(IndexRecord.did.in_(ids))
                     found_ids = [i.did for i in subquery]
