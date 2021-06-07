@@ -10,7 +10,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "3.6.*"
+python = "^3.6.1"
 authutils = "^6.0.0"
 cdislogging = "^1.0.0"
 cdiserrors =  "^1.0.0"
@@ -21,6 +21,7 @@ hsclient = "^0.1.0"
 indexclient = "^2.1.0"
 jsonschema = "3.2"
 flask = "^2.0.1"
+pandas= "^1.0"
 psycopg2 = "^2.7"
 sqlalchemy = "~1.4.15"
 sqlalchemy-utils = "^0.37.3"
@@ -36,7 +37,6 @@ pytest-flask = "^1.2.0"
 PyYAML = "^5.1"
 responses = "^0.13.0"
 swagger_spec_validator = "^2.6.0"
-Cython = "^0.29.23"
 
 
 [build-system]
