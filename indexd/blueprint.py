@@ -87,7 +87,7 @@ def dist_get_record(record):
             else:
                 fetcher_client = IndexClient(baseurl=indexd["host"])
                 res = fetcher_client.global_get(record, no_dist=True)
-        except:
+        except Exception:
             # a lot of things can go wrong with the get, but in general we don't care here.
             continue
 
