@@ -28,8 +28,7 @@ def app():
     yield get_app(default_test_settings.settings)
     try:
         clear_database()
-
-    except:
+    except Exception:
         pass
 
 
