@@ -59,6 +59,19 @@ def test_index_list_with_params(client, user):
     assert res_2.status_code == 200
     rec_2 = res_2.json
 
+    data3 = get_doc()
+    data3["urls"] = [
+        "s3://endpointurl/bucket_2/key_2",
+        "s3://anotherurl/bucket_2/key_2",
+    ]
+    data3["urls_metadata"] = {
+        "s3://endpointurl/bucket_2/key_2": {"state": "test", "other": "xxx"},
+        "s3://anotherurl/bucket_2/key_2": {"state": "test", "other": "xxx"},
+    }
+    res_3 = client.post("/index/", json=data3, headers=user)
+    assert res_3.status_code == 200
+    rec_3 = res_3.json
+
     data1_by_md = client.get("/index/?metadata=project_id:bpa-UChicago")
     assert data1_by_md.status_code == 200
     data1_list = data1_by_md.json
@@ -78,7 +91,10 @@ def test_index_list_with_params(client, user):
     assert rec_1["did"] in ids
     assert rec_2["did"] in ids
 
-    data_by_ids = client.get("/index/?ids={}".format(rec_1["did"]))
+    # with nonstrict prefix
+    stripped = rec_1["did"].split("testprefix:", 1)[1]
+    with_prefix = rec_3["did"]
+    data_by_ids = client.get("/index/?ids={},{}".format(stripped, with_prefix))
     assert data_by_ids.status_code == 200
     data_list_all = data_by_ids.json
 
@@ -91,6 +107,7 @@ def test_index_list_with_params(client, user):
     ids = [record["did"] for record in data_list_all["records"]]
     assert rec_1["did"] in ids
     assert not rec_2["did"] in ids
+    assert rec_3["did"] in ids
 
     data_with_limit = client.get("/index/?limit=1")
     assert data_with_limit.status_code == 200

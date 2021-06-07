@@ -500,20 +500,24 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             if ids:
                 DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
-                newids = []
+                found_ids = []
+                new_ids = []
 
                 if not DEFAULT_PREFIX:
-                    print("NO DEFAULT PREFIX")
+                    self.logger.info("NO DEFAULT_PREFIX")
                 else:
-                    for i in ids:
-                        if not i.startswith(DEFAULT_PREFIX):
-                            newids.append(DEFAULT_PREFIX + i)
-                        else:
-                            stripped = i.split(DEFAULT_PREFIX, 1)[1]
-                            newids.append(stripped)
+                    subquery = query.filter(IndexRecord.did.in_(ids))
+                    found_ids = [i.did for i in subquery]
 
-                ids = ids + newids
-                query = query.filter(IndexRecord.did.in_(ids))
+                    for i in ids:
+                        if i not in found_ids:
+                            if not i.startswith(DEFAULT_PREFIX):
+                                new_ids.append(DEFAULT_PREFIX + i)
+                            else:
+                                stripped = i.split(DEFAULT_PREFIX, 1)[1]
+                                new_ids.append(stripped)
+
+                query = query.filter(IndexRecord.did.in_(found_ids + new_ids))
             else:
                 # only apply limit when ids is not provided
                 query = query.limit(limit)
