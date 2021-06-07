@@ -498,7 +498,25 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.order_by(IndexRecord.did)
 
             if ids:
-                query = query.filter(IndexRecord.did.in_(ids))
+                DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
+                found_ids = []
+                new_ids = []
+
+                if not DEFAULT_PREFIX:
+                    self.logger.info("NO DEFAULT_PREFIX")
+                else:
+                    subquery = query.filter(IndexRecord.did.in_(ids))
+                    found_ids = [i.did for i in subquery]
+
+                    for i in ids:
+                        if i not in found_ids:
+                            if not i.startswith(DEFAULT_PREFIX):
+                                new_ids.append(DEFAULT_PREFIX + i)
+                            else:
+                                stripped = i.split(DEFAULT_PREFIX, 1)[1]
+                                new_ids.append(stripped)
+
+                query = query.filter(IndexRecord.did.in_(found_ids + new_ids))
             else:
                 # only apply limit when ids is not provided
                 query = query.limit(limit)
@@ -1112,14 +1130,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if not DEFAULT_PREFIX:
                 raise e
 
-            if "/" in did:
-                prefix, uuid = did.rsplit("/", 1)
-                if prefix + "/" == DEFAULT_PREFIX:
-                    record = self.get(uuid, expand=expand)
-                else:
-                    raise e
-            else:
+            if not did.startswith(DEFAULT_PREFIX):
                 record = self.get(DEFAULT_PREFIX + did, expand=expand)
+            else:
+                stripped = did.split(DEFAULT_PREFIX, 1)[1]
+                record = self.get(stripped, expand=expand)
 
         return record
 
