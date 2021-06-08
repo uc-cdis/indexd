@@ -98,12 +98,6 @@ def test_index_list_with_params(client, user):
     assert data_by_ids.status_code == 200
     data_list_all = data_by_ids.json
 
-    # with nonstrict prefix
-    stripped = rec_1["did"].split("testprefix:", 1)[1]
-    data_by_ids = client.get("/index/?ids={}".format(stripped))
-    assert data_by_ids.status_code == 200
-    data_list_all = data_by_ids.json
-
     ids = [record["did"] for record in data_list_all["records"]]
     assert rec_1["did"] in ids
     assert not rec_2["did"] in ids

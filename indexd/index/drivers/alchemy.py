@@ -28,7 +28,6 @@ from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import (
     MultipleRecordsFound,
-    BaseIndexError,
     NoRecordFound,
     RevisionMismatch,
     UnhealthyCheck,
@@ -1109,35 +1108,43 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record = query.first()
             if record is None:
-                record = self.get_bundle(bundle_id=did, expand=expand)
-                if record:
-                    return record
-                else:
-                    raise NoRecordFound("no record found")
+                self.logger.info("No record found, querying bundles")
+                doc = self.get_bundle(bundle_id=did, expand=expand)
+            else:
+                doc = record.to_document_dict()
 
-            return record.to_document_dict()
+            return doc
 
     def get_with_nonstrict_prefix(self, did, expand=True):
         """
-        Attempt to retrieve a record both with and without a prefix.
+        Attempt to retrieve a record document both with and without a prefix.
         Proxies 'get' with provided id.
         If not found but prefix matches default, attempt with prefix stripped.
         If not found and id has no prefix, attempt with default prefix prepended.
         """
         try:
-            record = self.get(did, expand=expand)
-        except NoRecordFound as e:
-            DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
-            if not DEFAULT_PREFIX:
+            doc = self.get(did, expand=expand)
+        except Exception as e:
+            print(
+                "================================================================== EXCEPTION IN NONSTRICT_PREFIX ==================================================================",
+                e,
+            )
+            print(e.__class__)
+            if e.__class__ != NoRecordFound:
                 raise e
-
-            if not did.startswith(DEFAULT_PREFIX):
-                record = self.get(DEFAULT_PREFIX + did, expand=expand)
             else:
-                stripped = did.split(DEFAULT_PREFIX, 1)[1]
-                record = self.get(stripped, expand=expand)
+                DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
+                if not DEFAULT_PREFIX:
+                    self.logger.error("No DEFAULT_PREFIX")
+                    raise e
 
-        return record
+                if not did.startswith(DEFAULT_PREFIX):
+                    doc = self.get(DEFAULT_PREFIX + did, expand=expand)
+                else:
+                    stripped = did.split(DEFAULT_PREFIX, 1)[1]
+                    doc = self.get(stripped, expand=expand)
+
+        return doc
 
     def update(self, did, rev, changing_fields):
         """
@@ -1640,29 +1647,19 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             query = session.query(DrsBundleRecord)
-
             query = query.filter(or_(DrsBundleRecord.bundle_id == bundle_id)).order_by(
                 DrsBundleRecord.created_time.desc()
             )
 
             record = query.first()
-            print(record)
+            print(
+                "================================================================== RECORD FROM GET_BUNDLE ==================================================================",
+                record,
+            )
             if record is None:
                 raise NoRecordFound("No bundle found")
 
-            doc = record.to_document_dict(expand)
-
-            # try:
-            #     record = query.first()
-            #     if record is None:
-            #         raise NoRecordFound("No bundle found")
-
-            #     doc = record.to_document_dict(expand)
-            # except Exception as err:
-            #     print(err)
-            #     # raise BaseIndexError()
-
-            return doc
+            return record.to_document_dict(expand)
 
     def get_bundle_and_object_list(
         self,
