@@ -686,6 +686,8 @@ def post_bundle():
         }
         validate_hashes(**hashes)
 
+    print(len(bundles))
+    collected_bundles = 0
     # get bundles/records that already exists and add it to bundle_data
     for bundle in bundles:
         data = get_index_record(bundle)[0]
@@ -694,6 +696,7 @@ def post_bundle():
         checksums.append(get_checksum(data))
         data = bundle_to_drs(data, expand=True, is_content=True)
         bundle_data.append(data)
+        collected_bundles += 1
     checksum = (
         flask.request.json.get("checksums")
         if flask.request.json.get("checksums")
@@ -711,6 +714,8 @@ def post_bundle():
         aliases=json.dumps(aliases),
     )
 
+    if collected_bundles != len(bundles):
+        return flask.jsonify({"error": "this is temp!"}), 500
     return flask.jsonify({"bundle_id": ret[0], "name": ret[1], "contents": ret[2]}), 200
 
 
