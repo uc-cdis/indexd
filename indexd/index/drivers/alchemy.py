@@ -1651,15 +1651,18 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 DrsBundleRecord.created_time.desc()
             )
 
-            record = query.first()
-            print(
-                "================================================================== RECORD FROM GET_BUNDLE ==================================================================",
-                record,
-            )
-            if record is None:
-                raise NoRecordFound("No bundle found")
+            try:
+                record = query.first()
+                print(
+                    "================================================================== RECORD FROM GET_BUNDLE ==================================================================",
+                    record,
+                )
+                if record is None:
+                    raise NoRecordFound("No bundle found")
 
-            return record.to_document_dict(expand)
+                return record.to_document_dict(expand)
+            except Exception as e:
+                print(e)
 
     def get_bundle_and_object_list(
         self,
