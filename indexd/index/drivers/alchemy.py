@@ -29,6 +29,7 @@ from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import (
     MultipleRecordsFound,
     NoRecordFound,
+    Unprocessable,
     RevisionMismatch,
     UnhealthyCheck,
 )
@@ -1125,11 +1126,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         try:
             doc = self.get(did, expand=expand)
         except Exception as e:
-            print(
-                "================================================================== EXCEPTION IN NONSTRICT_PREFIX ==================================================================",
-                e,
-            )
-            print(e.__class__)
             if e.__class__ != NoRecordFound:
                 raise e
             else:
@@ -1653,16 +1649,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 record = query.first()
-                print(
-                    "================================================================== RECORD FROM GET_BUNDLE ==================================================================",
-                    record,
-                )
                 if record is None:
                     raise NoRecordFound("No bundle found")
 
                 return record.to_document_dict(expand)
             except Exception as e:
-                print(e)
+                raise Unprocessable(e)
 
     def get_bundle_and_object_list(
         self,

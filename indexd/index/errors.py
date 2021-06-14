@@ -10,6 +10,12 @@ class NoRecordFound(BaseIndexError):
     """
 
 
+class Unprocessable(BaseIndexError):
+    """
+    Unprocessable error.
+    """
+
+
 class MultipleRecordsFound(BaseIndexError):
     """
     Multiple recordss error.
