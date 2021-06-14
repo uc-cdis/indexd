@@ -1649,12 +1649,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 record = query.first()
-                if record is None:
-                    raise NoRecordFound("No bundle found")
-
-                return record.to_document_dict(expand)
             except Exception as e:
                 raise Unprocessable(e)
+
+            if record is None:
+                raise NoRecordFound("No bundle found")
+
+            return record.to_document_dict(expand)
 
     def get_bundle_and_object_list(
         self,
