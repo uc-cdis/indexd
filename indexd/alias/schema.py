@@ -1,5 +1,5 @@
 PUT_RECORD_SCHEMA = {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema",
     "type": "object",
     "additionalProperties": False,
     "description": "Update or create an alias",
@@ -32,7 +32,7 @@ PUT_RECORD_SCHEMA = {
                 "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
                 "sha512": {"type": "string", "pattern": "^[0-9a-f]{128}$"},
                 "crc": {"type": "string", "pattern": "^[0-9a-f]{8}$"},
-                "etag": {"type": "string", "pattern": "^[0-9a-f]{32}(-\d+)?$"},
+                "etag": {"type": "string", "pattern": "^[0-9a-f]{32}(-\\d+)?$"},
             },
             "anyOf": [
                 {"required": ["md5"]},
