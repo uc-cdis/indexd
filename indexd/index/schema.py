@@ -54,7 +54,7 @@ POST_RECORD_SCHEMA = {
                 "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
                 "sha512": {"type": "string", "pattern": "^[0-9a-f]{128}$"},
                 "crc": {"type": "string", "pattern": "^[0-9a-f]{8}$"},
-                "etag": {"type": "string", "pattern": "^[0-9a-f]{32}(-\\d+)?$"},
+                "etag": {"type": "string", "pattern": "^[0-9a-f]{32}(-\d+)?$"},
             },
             "anyOf": [
                 {"required": ["md5"]},
@@ -167,7 +167,7 @@ BUNDLE_SCHEMA = {
                         "if": {"properties": {"type": {"const": "etag"}}},
                         "then": {
                             "properties": {
-                                "checksum": {"pattern": "^[0-9a-f]{32}(-\\d+)?$"}
+                                "checksum": {"pattern": "^[0-9a-f]{32}(-\d+)?$"}
                             }
                         },
                     },
