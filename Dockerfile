@@ -3,7 +3,6 @@
 
 FROM quay.io/cdis/python-nginx:pybase3-1.6.1
 
-
 ENV appname=indexd
 
 RUN pip install --upgrade pip
