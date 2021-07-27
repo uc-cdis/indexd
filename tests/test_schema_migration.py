@@ -20,7 +20,7 @@ from tests.util import make_sql_statement
 
 Base = declarative_base()
 
-TEST_DB = 'postgres://postgres@localhost/test_migration_db'
+TEST_DB = 'postgresql://postgres@localhost/test_migration_db'
 
 INDEX_TABLES = {
     'index_record': [
