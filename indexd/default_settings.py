@@ -11,7 +11,7 @@ AUTO_MIGRATE = True
 SQLALCHEMY_VERBOSE = (
     os.getenv('INDEXD_VERBOSE', '').lower() in ['1', 'yes', 'true']
 )
-PG_URL = 'postgres://test:test@localhost/indexd_test'
+PG_URL = 'postgresql://test:test@localhost/indexd_test'
 
 CONFIG['INDEX'] = {
     'driver': SQLAlchemyIndexDriver(

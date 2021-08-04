@@ -28,7 +28,7 @@ from indexd_test_utils import (
     setup_indexd_test_database,
 )
 
-PG_URL = 'postgres://test:test@localhost/indexd_test'
+PG_URL = 'postgresql://test:test@localhost/indexd_test'
 
 
 @pytest.fixture

@@ -18,7 +18,7 @@ from indexd.index.drivers.alchemy import (
 )
 from indexd.utils import setup_database, try_drop_test_data
 
-PG_URL = 'postgres://test:test@localhost/indexd_test'
+PG_URL = 'postgresql://test:test@localhost/indexd_test'
 
 
 @pytest.fixture(scope='session', autouse=True)
