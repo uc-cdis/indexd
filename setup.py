@@ -22,7 +22,6 @@ setup(
         "sqlalchemy-utils>=0.32,<0.36.4",
         "psycopg2~=2.7",
         "cdislogging~=1.0",
-        "indexclient @ git+https://github.com/NCI-GDC/indexclient.git@2.0.0#egg=indexclient",
         "doiclient @ git+https://github.com/uc-cdis/doiclient.git@1.0.0#egg=doiclient",
         "dosclient @ git+https://github.com/uc-cdis/dosclient.git@1.0.0#egg=dosclient",
         "future~=0.18",

@@ -9,7 +9,17 @@ import sqlalchemy_utils
 
 logger = logging.getLogger(__name__)
 
+def handle_error(resp):
+    if 400 <= resp.status_code < 600:
+        try:
+            json = resp.json()
+            resp.reason = json.get("error")
+        except KeyError:
+            pass
+        finally:
+            resp.raise_for_status()
 
+            
 def hint_match(record, hints):
     for hint in hints:
         if re.match(hint, record):
