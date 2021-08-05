@@ -1,10 +1,10 @@
 import hashlib
 import random
 import uuid
-from multiprocessing import Process
-
+import threading
 import pytest
 import requests
+
 from indexclient.client import Document, IndexClient
 from indexd import get_app
 from indexd.alias.drivers.alchemy import (
@@ -149,18 +149,12 @@ def indexd_server():
     hostname = 'localhost'
     port = 8001
     debug = False
-
-    indexd = Process(
-        target=app.run,
-        args=(hostname, port),
-        kwargs={'debug': debug},
-    )
-    indexd.start()
+    t = threading.Thread(target=app.run, kwargs={'host': hostname, 'port': port, 'debug': debug})
+    t.setDaemon(True)
+    t.start()
     wait_for_indexd_alive(port)
 
     yield MockServer(port=port)
-    indexd.terminate()
-    wait_for_indexd_not_alive(port)
 
 
 def wait_for_indexd_alive(port):
