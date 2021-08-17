@@ -101,7 +101,7 @@ def indexd_to_drs(record, expand=False):
         else record["bundle_id"]
     )
 
-    print(json.dumps(flask.current_app))
+    print(json.dumps(flask.current_app._get_current_object()))
     self_uri = "drs://" + flask.current_app.hostname + "/" + did
 
     name = record["file_name"] if "file_name" in record else record["name"]
