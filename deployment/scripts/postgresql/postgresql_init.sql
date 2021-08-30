@@ -1,7 +1,7 @@
 /* Entrypoint script to set up postgresql databases and users
 based on a script from: https://github.com/uc-cdis/compose-services/blob/master/scripts/postgres_init.sql
 
-See example usage in ADO pipeline.yaml (under ../../../azure-pipeline.yaml)
+See example usage in ADO pipeline.yaml (under ../../../azure-devops-pipeline.yaml)
 
 This can also be used as part of a helm chart to setup the postgresql database (e.g. you can call this in from a shell script in a helm chart)
 */
