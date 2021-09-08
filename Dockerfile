@@ -32,7 +32,7 @@ WORKDIR /$appname
 COPY poetry.lock pyproject.toml /$appname/
 RUN source $HOME/.poetry/env \
     && poetry config virtualenvs.create false \
-    && poetry install -vv --no-dev --no-interaction \
+    && poetry install -vv --no-root --no-dev --no-interaction \
     && poetry show -v
 
 # copy source code ONLY after installing dependencies
@@ -40,6 +40,11 @@ COPY . /$appname
 COPY ./deployment/uwsgi/uwsgi.ini /etc/uwsgi/uwsgi.ini
 COPY ./deployment/uwsgi/wsgi.py /$appname/wsgi.py
 COPY clear_prometheus_multiproc /$appname/clear_prometheus_multiproc
+
+RUN source $HOME/.poetry/env \
+    && poetry config virtualenvs.create false \
+    && poetry install -vv --no-dev --no-interaction \
+    && poetry show -v
 
 RUN COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >$appname/index/version_data.py \
     && VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >>$appname/index/version_data.py
