@@ -101,8 +101,17 @@ def indexd_to_drs(record, expand=False):
         else record["bundle_id"]
     )
 
-    print(json.dumps(record))
-    self_uri = "drs://" + flask.current_app.hostname + "/" + did
+    print(blueprint.index_driver)
+    defaultPrefix = "test"
+    # defaultPrefix = blueprint.index_driver.get("DEFAULT_PREFIX")
+    accession = did
+    if "/" in did:
+        namespace = did.split("/")[0]
+        accession = did.split("/")[1]
+    else:
+        namespace = defaultPrefix
+
+    self_uri = "drs://" + namespace + ":" + accession
 
     name = record["file_name"] if "file_name" in record else record["name"]
 
