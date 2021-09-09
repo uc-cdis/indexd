@@ -5,9 +5,9 @@ import hashlib
 import jsonschema
 from .version_data import VERSION, COMMIT
 
-from indexd.auth import authorize
+from indexd import auth
 
-from indexd.errors import AuthError
+from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 
 from .schema import PUT_RECORD_SCHEMA
@@ -263,7 +263,7 @@ def post_index_record():
         raise UserError(err)
 
     authz = flask.request.json.get("authz", [])
-    authorize("create", authz)
+    auth.authorize("create", authz)
 
     did = flask.request.json.get("did")
     form = flask.request.json["form"]
@@ -644,11 +644,7 @@ def post_bundle():
     """
     Create a new bundle
     """
-
-    try:
-        authorize("create", ["/services/indexd/bundles"])
-    except:
-        raise AuthError("Invalid Token.")
+    auth.authorize("create", ["/services/indexd/bundles"])
     try:
         jsonschema.validate(flask.request.json, BUNDLE_SCHEMA)
     except jsonschema.ValidationError as err:
@@ -751,10 +747,7 @@ def delete_bundle_record(bundle_id):
     """
     Delete bundle record given bundle_id
     """
-    try:
-        authorize("delete", ["/services/indexd/bundles"])
-    except:
-        raise AuthError("Invalid Token.")
+    auth.authorize("delete", ["/services/indexd/bundles"])
     blueprint.index_driver.delete_bundle(bundle_id)
 
     return "", 200
@@ -778,6 +771,11 @@ def handle_user_error(err):
 @blueprint.errorhandler(AuthError)
 def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
+
+
+@blueprint.errorhandler(AuthzError)
+def handle_authz_error(err):
+    return flask.jsonify(error=str(err)), 401
 
 
 @blueprint.errorhandler(RevisionMismatch)

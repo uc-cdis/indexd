@@ -1,5 +1,5 @@
 PUT_RECORD_SCHEMA = {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema",
     "type": "object",
     "additionalProperties": False,
     "description": "Update or create an alias",

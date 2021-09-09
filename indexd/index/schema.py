@@ -1,5 +1,5 @@
 POST_RECORD_SCHEMA = {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema",
     "type": "object",
     "additionalProperties": False,
     "description": "Create a new index from hash & size",
@@ -69,7 +69,7 @@ POST_RECORD_SCHEMA = {
 }
 
 PUT_RECORD_SCHEMA = {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema",
     "type": "object",
     "additionalProperties": False,
     "description": "Update an index",
@@ -86,7 +86,7 @@ PUT_RECORD_SCHEMA = {
 }
 
 RECORD_ALIAS_SCHEMA = {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema",
     "type": "object",
     "additionalProperties": False,
     "description": "Aliases that can be used in place of an Index record's DID",
@@ -99,7 +99,7 @@ RECORD_ALIAS_SCHEMA = {
 }
 
 BUNDLE_SCHEMA = {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema",
     "type": "object",
     "additionalProperties": False,
     "description": "Creates a new bundle",
@@ -187,7 +187,7 @@ BUNDLE_SCHEMA = {
 }
 
 UPDATE_ALL_VERSIONS_SCHEMA = {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema",
     "type": "object",
     "additionalProperties": False,
     "description": "The metadata to update for all versions of the record. Only some fields can be updated in this way.",

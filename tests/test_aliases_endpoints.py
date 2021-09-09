@@ -78,7 +78,7 @@ def aliases(client, user, guid):
     return aliases
 
 
-@pytest.yield_fixture(scope="function")
+@pytest.fixture(scope="function")
 def unused_aliases():
     """
     Returns a pool of unused aliases, ie aliases that are guaranteed to not

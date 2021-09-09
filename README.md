@@ -289,59 +289,19 @@ In addition, one of our goals is to work with GA4GH to ensure Data GUIDs and Ind
 
 ## Installation
 
-The implementation for Indexd utilizes the Flask web framework and (by default) a SQLite3 database. This provides a minimum list of requirements and allows for deployment on a wide range of systems with next to no configuration overhead. That said, it is highly recommended to use pip and a virtualenv to isolate the installation.
-
-Prior to installation, you will need to have postgresql installed.
-
-On Mac
-```bash
-brew install postgresql
-/usr/local/opt/postgres/bin/createuser -s postgres
-```
-On Linux
-```bash
-sudo apt-get install python-psycopg2
-```
-
-To install the implementation, assure you have poetry installed and simply run:
-
-```bash
-poetry install
-```
-
-To see how the automated tests (run in Travis CI) install Indexd, check out the `.travis.yml` file in the root directory of this repository.
-
-## Installation with Docker
-
-```bash
-docker build --build-arg https_proxy=http://cloud-proxy:3128 --build-arg http_proxy=http://cloud-proxy:3128 -t indexd .
-
-docker run -d --name=indexd -p 80:80 Indexd
-docker exec indexd python /indexd/bin/index_admin.py create --username $username --password $password
-docker exec indexd python /indexd/bin/index_admin.py delete --username $username
-```
-
-To run docker with an alternative settings file:
-
-```
-docker run -d -v local_settings.py:/var/www/indexd/local_settings.py --name=Indexd -p 80:80 indexd
-```
+Please see how you can set up a [local development environment](docs/local_dev_environment.md), which includes setting up a [virtual environment](docs/local_dev_environment.md#Set-up-a-Virtual Environment) and setting up a [local postgresql db for testing](docs/local_dev_environment.md#Set-up-local-Postgresql-DB-for-testing).
 
 ## Configuration
 
-There is a `/indexd/default_settings.py` file which houses, you guessed it, default configuration settings. If you want to provide an alternative configuration to override these, you must supply a `local_settings.py` in the same directory as the default settings. It must contain all the same configurations from the `default_settings.py`, though may have different values.
-
-This works because on app startup, Indexd will attempt to include a `local_settings` python module (the attempted import happens in the `/indexd/app.py` file). If a local settings file is not found, Indexd falls back on the default settings.
-
-There is specific information about some configuration options in the [distributed resolution](#distributed-resolution-utilizing-prefixes-in-guids) section of this document.
+As part of setting up your [local development environment](docs/local_dev_environment.md), you will also need to [configure settings](docs/local_dev_environment.md#Configuration) too.
 
 ## Testing
-- Follow [installation](#installation)
-- Run:
-```
-poetry run pytest tests/
-```
 
+- Follow [installation]([local development environment](docs/local_dev_environment.md#installation)
+- Check the [testing notes](docs/local_dev_environment.md#Testing) and run:
+```console
+python3 -m pytest -vv --cov=indexd --cov-report xml --junitxml="test-results.xml" tests
+```
 
 <div align="center">
 <img src="./docs/gen3_large.png" alt="Gen3 Logo" height="425

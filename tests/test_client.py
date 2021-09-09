@@ -1,12 +1,11 @@
-import json
 import base64
-
+import json
 import pytest
+import uuid
 
 from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 from tests.test_bundles import create_index, get_bundle_doc
-import uuid
 
 
 def get_doc(
@@ -60,6 +59,19 @@ def test_index_list_with_params(client, user):
     assert res_2.status_code == 200
     rec_2 = res_2.json
 
+    data3 = get_doc()
+    data3["urls"] = [
+        "s3://endpointurl/bucket_2/key_2",
+        "s3://anotherurl/bucket_2/key_2",
+    ]
+    data3["urls_metadata"] = {
+        "s3://endpointurl/bucket_2/key_2": {"state": "test", "other": "xxx"},
+        "s3://anotherurl/bucket_2/key_2": {"state": "test", "other": "xxx"},
+    }
+    res_3 = client.post("/index/", json=data3, headers=user)
+    assert res_3.status_code == 200
+    rec_3 = res_3.json
+
     data1_by_md = client.get("/index/?metadata=project_id:bpa-UChicago")
     assert data1_by_md.status_code == 200
     data1_list = data1_by_md.json
@@ -79,13 +91,17 @@ def test_index_list_with_params(client, user):
     assert rec_1["did"] in ids
     assert rec_2["did"] in ids
 
-    data_by_ids = client.get("/index/?ids={}".format(rec_1["did"]))
+    # with nonstrict prefix
+    stripped = rec_1["did"].split("testprefix:", 1)[1]
+    with_prefix = rec_3["did"]
+    data_by_ids = client.get("/index/?ids={},{}".format(stripped, with_prefix))
     assert data_by_ids.status_code == 200
     data_list_all = data_by_ids.json
 
     ids = [record["did"] for record in data_list_all["records"]]
     assert rec_1["did"] in ids
     assert not rec_2["did"] in ids
+    assert rec_3["did"] in ids
 
     data_with_limit = client.get("/index/?limit=1")
     assert data_with_limit.status_code == 200
@@ -2439,7 +2455,7 @@ def test_bad_hashes(client, user, typ, h):
     json_resp = resp.json
     assert "error" in json_resp
     if typ not in ACCEPTABLE_HASHES:
-        assert "is not valid" in json_resp["error"]
+        assert "Failed validating" in json_resp["error"]
     else:
         assert "does not match" in json_resp["error"]
 
@@ -2565,6 +2581,38 @@ def test_bulk_get_documents(client, user):
     # compare that they are the same by did
     for doc in docs:
         assert doc["did"] in dids
+
+
+@pytest.mark.parametrize("authz", [["/some/path"], []])
+def test_indexd_admin_authz(client, mock_arborist_requests, authz):
+    """
+    Test that admin users can perform an operation even if they don't
+    have explicit access to do it.
+    Test edge case `authz = []`: if the `authz` is empty, admins should
+    still be able to perform operations on the record.
+    """
+    data = get_doc()
+    data["authz"] = authz
+
+    # user has no access => unauthorized
+    mock_arborist_requests()
+    res = client.post("/index/", json=data)
+    assert res.status_code == 401  # unauthorized
+
+    # user has admin access => authorized
+    mock_arborist_requests(
+        resource_method_to_authorized={"/services/indexd/admin": {"create": True}}
+    )
+    res = client.post("/index/", json=data)
+    assert res.status_code == 200  # authorized
+
+    # user has old admin access => authorized (backwards compatibility test)
+    if not authz:
+        mock_arborist_requests(
+            resource_method_to_authorized={"/programs": {"create": True}}
+        )
+        res = client.post("/index/", json=data)
+        assert res.status_code == 200  # authorized
 
 
 def test_status_check(client):
