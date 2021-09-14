@@ -101,7 +101,7 @@ def indexd_to_drs(record, expand=False):
         else record["bundle_id"]
     )
 
-    print(blueprint.index_driver)
+    print(blueprint.index_driver.get("DEFAULT_PREFIX"))
     defaultPrefix = "test"
     # defaultPrefix = blueprint.index_driver.get("DEFAULT_PREFIX")
     accession = did
