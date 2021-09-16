@@ -56,7 +56,7 @@ def test_drs_get(client, user):
         assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
-    assert rec_2["self_uri"] == "drs://fictitious-commons.io/" + rec_1["did"]
+    assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
 
 
 def test_drs_multiple_endpointurl(client, user):
@@ -201,7 +201,7 @@ def test_get_drs_with_encoded_slash(client, user):
         assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
-    assert rec_2["self_uri"] == "drs://fictitious-commons.io/" + rec_1["did"]
+    assert rec_2["self_uri"] == "drs://dg.TEST:" + rec_1["did"].split("/")[1]
 
 
 @responses.activate

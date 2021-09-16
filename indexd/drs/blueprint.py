@@ -103,11 +103,16 @@ def indexd_to_drs(record, expand=False):
 
     defaultPrefix = blueprint.index_driver.config.get("DEFAULT_PREFIX")
     accession = did
-    if "/" in did or ":" in did:
+    if "/" in did:
         namespace = did.split("/")[0]
         accession = did.split("/")[1]
+    elif ":" in did:
+        namespace = did.split(":")[0]
+        accession = did.split(":")[1]
     else:
-        namespace = defaultPrefix
+        namespace = "NO_DEFAULT" if not defaultPrefix else defaultPrefix
+
+    print(namespace)
 
     self_uri = "drs://" + namespace + ":" + accession
 
