@@ -99,7 +99,9 @@ def create_drs_uri(did):
         accession = did
         self_uri = "drs://" + accession
     else:
-        accession = did.replace(default_prefix, "", 1)[1:]
+        accession = (
+            did.replace(default_prefix, "", 1).replace("/", "", 1).replace(":", "", 1)
+        )
         self_uri = "drs://" + default_prefix + ":" + accession
 
     return self_uri
