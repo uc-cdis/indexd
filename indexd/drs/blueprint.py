@@ -101,20 +101,14 @@ def indexd_to_drs(record, expand=False):
         else record["bundle_id"]
     )
 
-    defaultPrefix = blueprint.index_driver.config.get("DEFAULT_PREFIX")
-    accession = did
-    if "/" in did:
-        namespace = did.split("/")[0]
-        accession = did.split("/")[1]
-    elif ":" in did:
-        namespace = did.split(":")[0]
-        accession = did.split(":")[1]
+    default_prefix = blueprint.index_driver.config.get("DEFAULT_PREFIX")
+
+    if not default_prefix:
+        accession = did
+        self_uri = "drs://" + accession
     else:
-        namespace = "NO_DEFAULT" if not defaultPrefix else defaultPrefix
-
-    print(namespace)
-
-    self_uri = "drs://" + namespace + ":" + accession
+        accession = did.replace(default_prefix, "", 1)[1:]
+        self_uri = "drs://" + default_prefix + ":" + accession
 
     name = record["file_name"] if "file_name" in record else record["name"]
 
