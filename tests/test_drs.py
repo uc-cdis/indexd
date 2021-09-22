@@ -56,9 +56,6 @@ def test_drs_get(client, user):
         assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
-    print("CHECKING HERE FOR DIFF==================================")
-    print(rec_2["self_uri"])
-    print(rec_1["did"])
     assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
 
 
