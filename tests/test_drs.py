@@ -56,6 +56,9 @@ def test_drs_get(client, user):
         assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
+    print("CHECKING HERE FOR DIFF==================================")
+    print(rec_2["self_uri"])
+    print(rec_1["did"])
     assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
 
 
@@ -187,11 +190,11 @@ def test_get_presigned_url_wrong_access_id(client, user):
 
 def test_get_drs_with_encoded_slash(client, user):
     data = get_doc()
-    data["did"] = "dg.TEST/ed8f4658-6acd-4f96-9dd8-3709890c959e"
+    data["did"] = "testprefix:ed8f4658-6acd-4f96-9dd8-3709890c959e"
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    did = "dg.TEST%2Fed8f4658-6acd-4f96-9dd8-3709890c959e"
+    did = "testprefix%3aed8f4658-6acd-4f96-9dd8-3709890c959e"
     res_2 = client.get("/ga4gh/drs/v1/objects/" + did)
     assert res_2.status_code == 200
     rec_2 = res_2.json
@@ -201,7 +204,7 @@ def test_get_drs_with_encoded_slash(client, user):
         assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
-    assert rec_2["self_uri"] == "drs://dg.TEST:" + rec_1["did"].split("/")[1]
+    assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
 
 
 @responses.activate
