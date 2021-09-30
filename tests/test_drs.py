@@ -61,10 +61,9 @@ def test_drs_get(client, user):
 
 
 def test_drs_get_no_default(client, user):
-    driver = SQLAlchemyIndexDriver(
-        "sqlite:///index.sq3",
-        index_config={"DEFAULT_PREFIX": None},
-    )
+    # Change default index driver settings to use no prefix
+    settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = None
+    settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = False
 
     data = get_doc()
     did = "ad8f4658-6acd-4f96-0dd8-3709890c959f"
@@ -74,10 +73,10 @@ def test_drs_get_no_default(client, user):
     res_2 = client.get("/ga4gh/drs/v1/objects/" + did)
     assert res_2.status_code == 200
     rec_2 = res_2.json
-    print(driver.config)
-    print("####################################################")
-    print(json.dumps(rec_2))
     assert rec_2["self_uri"] == "drs://" + did
+
+    settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = "testprefix:"
+    settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
 
 
 def test_drs_multiple_endpointurl(client, user):

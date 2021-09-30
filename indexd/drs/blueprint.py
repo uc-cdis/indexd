@@ -97,17 +97,14 @@ def create_drs_uri(did):
     if not default_prefix:
         # For env without DEFAULT_PREFIX, uri will not be drs compliant
         accession = did
-        self_uri = "drs://" + accession
+        self_uri = "drs://{}".format(accession)
     else:
         accession = (
             did.replace(default_prefix, "", 1).replace("/", "", 1).replace(":", "", 1)
         )
 
-        self_uri = (
-            "drs://"
-            + default_prefix.replace("/", "", 1).replace(":", "", 1)
-            + ":"
-            + accession
+        self_uri = "drs://{}:{}".format(
+            default_prefix.replace("/", "", 1).replace(":", "", 1), accession
         )
 
     return self_uri
