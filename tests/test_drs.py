@@ -4,7 +4,6 @@ import requests
 import responses
 from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
-from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
 
 def generate_presigned_url_response(did, status=200, **query_params):
