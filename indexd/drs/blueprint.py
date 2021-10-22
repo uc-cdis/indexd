@@ -84,6 +84,32 @@ def get_signed_url(object_id, access_id):
     return res, 200
 
 
+def create_drs_uri(did):
+    """
+    Return ga4gh-compilant drs format uri
+
+    Args:
+        did(str): did of drs object
+    """
+
+    default_prefix = blueprint.index_driver.config.get("DEFAULT_PREFIX")
+
+    if not default_prefix:
+        # For env without DEFAULT_PREFIX, uri will not be drs compliant
+        accession = did
+        self_uri = "drs://{}".format(accession)
+    else:
+        accession = (
+            did.replace(default_prefix, "", 1).replace("/", "", 1).replace(":", "", 1)
+        )
+
+        self_uri = "drs://{}:{}".format(
+            default_prefix.replace("/", "", 1).replace(":", "", 1), accession
+        )
+
+    return self_uri
+
+
 def indexd_to_drs(record, expand=False):
     """
     Convert record to ga4gh-compilant format
@@ -101,7 +127,7 @@ def indexd_to_drs(record, expand=False):
         else record["bundle_id"]
     )
 
-    self_uri = "drs://" + flask.current_app.hostname + "/" + did
+    self_uri = create_drs_uri(did)
 
     name = record["file_name"] if "file_name" in record else record["name"]
 
@@ -197,7 +223,7 @@ def bundle_to_drs(record, expand=False, is_content=False):
         else record["bundle_id"]
     )
 
-    drs_uri = "drs://" + flask.current_app.hostname + "/" + did
+    drs_uri = create_drs_uri(did)
 
     name = record["file_name"] if "file_name" in record else record["name"]
 
