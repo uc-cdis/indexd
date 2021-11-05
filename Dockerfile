@@ -1,7 +1,7 @@
 # To run: docker run -v /path/to/wsgi.py:/var/www/indexd/wsgi.py --name=indexd -p 81:80 indexd
 # To check running container: docker exec -it indexd /bin/bash
 
-FROM quay.io/cdis/python-nginx:pybase3-1.6.2
+FROM quay.io/cdis/python:pybase3-2.0.0
 
 ENV appname=indexd
 
