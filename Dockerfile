@@ -7,6 +7,9 @@ ENV appname=indexd
 
 RUN pip install --upgrade pip
 RUN pip install --upgrade poetry
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libffi-dev musl-dev gcc libxml2-dev libxslt-dev \
+    curl bash git vim
 
 RUN mkdir -p /var/www/$appname \
     && mkdir -p /var/www/.cache/Python-Eggs/ \
@@ -23,7 +26,6 @@ WORKDIR /$appname
 # copy ONLY poetry artifact and install
 # this will make sure than the dependencies is cached
 COPY poetry.lock pyproject.toml /$appname/
-
 RUN poetry config virtualenvs.create false \
     && poetry install -vv --no-root --no-dev --no-interaction \
     && poetry show -v
