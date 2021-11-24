@@ -1,12 +1,11 @@
 # To run: docker run -v /path/to/wsgi.py:/var/www/indexd/wsgi.py --name=indexd -p 81:80 indexd
 # To check running container: docker exec -it indexd /bin/bash
 
-FROM quay.io/cdis/python:pybase3-2.0.1
+FROM quay.io/cdis/python:python3.6-buster-pybase3-3.0.2
 
 ENV appname=indexd
 
-RUN pip install --upgrade pip
-RUN pip install --upgrade poetry
+RUN pip install --upgrade pip poetry
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libffi-dev musl-dev gcc libxml2-dev libxslt-dev \
     curl bash git vim
