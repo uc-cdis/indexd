@@ -56,7 +56,26 @@ def test_drs_get(client, user):
         assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
-    assert rec_2["self_uri"] == "drs://fictitious-commons.io/" + rec_1["did"]
+    assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
+
+
+def test_drs_get_no_default(client, user):
+    # Change default index driver settings to use no prefix
+    settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = None
+    settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = False
+
+    data = get_doc()
+    did = "ad8f4658-6acd-4f96-0dd8-3709890c959f"
+    data["did"] = did
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + did)
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["self_uri"] == "drs://" + did
+
+    settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = "testprefix:"
+    settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
 
 
 def test_drs_multiple_endpointurl(client, user):
@@ -187,11 +206,11 @@ def test_get_presigned_url_wrong_access_id(client, user):
 
 def test_get_drs_with_encoded_slash(client, user):
     data = get_doc()
-    data["did"] = "dg.TEST/ed8f4658-6acd-4f96-9dd8-3709890c959e"
+    data["did"] = "testprefix:ed8f4658-6acd-4f96-9dd8-3709890c959e"
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    did = "dg.TEST%2Fed8f4658-6acd-4f96-9dd8-3709890c959e"
+    did = "testprefix%3aed8f4658-6acd-4f96-9dd8-3709890c959e"
     res_2 = client.get("/ga4gh/drs/v1/objects/" + did)
     assert res_2.status_code == 200
     rec_2 = res_2.json
@@ -201,7 +220,7 @@ def test_get_drs_with_encoded_slash(client, user):
         assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
-    assert rec_2["self_uri"] == "drs://fictitious-commons.io/" + rec_1["did"]
+    assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
 
 
 @responses.activate
