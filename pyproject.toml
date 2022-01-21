@@ -10,7 +10,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.6.1"
+python = "^3.10.0"
 authutils = "^6.0.0"
 cdislogging = "^1.0.0"
 cdiserrors =  "^1.0.0"
