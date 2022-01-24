@@ -57,6 +57,8 @@ def test_drs_get(client, user):
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
     assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
+    # according to ga4gh DRS blobs objects are NOT supposed to have contents. Only DRS Bundle objects should include the contetnts field
+    assert "contents" not in rec_2
 
 
 def test_drs_get_no_default(client, user):
