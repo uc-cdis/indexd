@@ -180,7 +180,7 @@ def indexd_to_drs(record, expand=False):
 
     if "bundle_data" in record:
         drs_object["contents"] = []
-        for bundle in record.get("bundle_data", []):
+        for bundle in record["bundle_data"]:
             bundle_object = bundle_to_drs(bundle, expand=expand, is_content=True)
             if not expand:
                 bundle_object.pop("contents", None)
