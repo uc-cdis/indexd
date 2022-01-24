@@ -168,7 +168,6 @@ def indexd_to_drs(record, expand=False):
         "updated_time": updated_date,
         "size": record["size"],
         "aliases": alias,
-        "contents": [],
         "self_uri": self_uri,
         "version": version,
         "form": form,
@@ -179,11 +178,13 @@ def indexd_to_drs(record, expand=False):
     if "description" in record:
         drs_object["description"] = record["description"]
 
-    for bundle in record.get("bundle_data", []):
-        bundle_object = bundle_to_drs(bundle, expand=expand, is_content=True)
-        if not expand:
-            bundle_object.pop("contents", None)
-        drs_object["contents"].append(bundle_object)
+    if "bundle_data" in record:
+        drs_object["contents"] = []
+        for bundle in record.get("bundle_data", []):
+            bundle_object = bundle_to_drs(bundle, expand=expand, is_content=True)
+            if not expand:
+                bundle_object.pop("contents", None)
+            drs_object["contents"].append(bundle_object)
 
     # access_methods mapping
     if "urls" in record:
