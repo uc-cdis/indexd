@@ -972,9 +972,14 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.baseid, record.rev
 
-    def get_all_versions(self, did):
+    def get_all_versions(self, did, not_deleted=True):
         """
         Get all record versions given did
+        Args:
+            did (str): document id (UUID) of existing record
+            not_deleted (bool): if True, exclude records marked as deleted in index_metadata
+        Returns:
+            dict: record versions
         """
         ret = dict()
         with self.session as session:
@@ -987,24 +992,33 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except NoResultFound:
                 record = session.query(IndexRecord).filter_by(baseid=did).first()
                 if not record:
-                    raise NoRecordFound('no record found')
+                    raise NoRecordFound("no record found")
                 else:
                     baseid = record.baseid
             except MultipleResultsFound:
-                raise MultipleRecordsFound('multiple records found')
+                raise MultipleRecordsFound("multiple records found")
 
             query = session.query(IndexRecord)
-            records = query.filter(IndexRecord.baseid == baseid).all()
+            query = query.filter(IndexRecord.baseid == baseid)
+            if not_deleted:
+                query = query.filter((func.lower(IndexRecord.index_metadata["deleted"].astext) == "true").isnot(True))
+
+            records = query.all()
 
             for idx, record in enumerate(records):
-
                 ret[idx] = record.to_document_dict()
 
         return ret
 
-    def get_latest_version(self, did, has_version=None):
+    def get_latest_version(self, did, has_version=None, not_deleted=True):
         """
-        Get the lattest record version given did
+        Get the latest record version given did
+        Args:
+            did (str): document id (UUID) of existing record
+            has_version (bool): if True, exclude records without a version
+            not_deleted (bool): if True, exclude records marked as deleted in index_metadata
+        Returns:
+            dict: latest record
         """
         with self.session as session:
             query = session.query(IndexRecord)
@@ -1016,34 +1030,44 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except NoResultFound:
                 baseid = did
             except MultipleResultsFound:
-                raise MultipleRecordsFound('multiple records found')
+                raise MultipleRecordsFound("multiple records found")
 
             query = session.query(IndexRecord)
-            query = query.filter(IndexRecord.baseid == baseid) \
-                .order_by(IndexRecord.created_date.desc())
+            query = query.filter(IndexRecord.baseid == baseid).order_by(IndexRecord.created_date.desc())
             if has_version:
                 query = query.filter(IndexRecord.version.isnot(None))
+            if not_deleted:
+                query = query.filter((func.lower(IndexRecord.index_metadata["deleted"].astext) == "true").isnot(True))
             record = query.first()
-            if (not record):
-                raise NoRecordFound('no record found')
+            if not record:
+                raise NoRecordFound("no record found")
 
             return record.to_document_dict()
 
-    def bulk_get_latest_versions(self, dids, skip_null=False):
+    def bulk_get_latest_versions(self, dids, skip_null=False, skip_deleted=True):
         """
-        Get latest version given list of did
+        Get latest version given list of dids
+        Args:
+            dids (list): document ids (UUID) of existing records
+            skip_null (bool): if True, exclude records without a version
+            skip_deleted (bool): if True, exclude records marked as deleted in index_metadata
+        Returns:
+            list: record versions
         """
         with self.session as session:
             # get the baseid from given dids to filter the maxdate subquery
             subq = session.query(IndexRecord.baseid).filter(IndexRecord.did.in_(dids))
 
             # get max date for each baseid
-            max_date_subq = session.query(IndexRecord.baseid, func.max(IndexRecord.created_date).label('max_date')) \
+            max_date_subq = session.query(IndexRecord.baseid, func.max(IndexRecord.created_date).label("max_date")) \
                 .filter(IndexRecord.baseid.in_(subq)) \
                 .group_by(IndexRecord.baseid)
 
             if skip_null:
                 max_date_subq = max_date_subq.filter(IndexRecord.version.isnot(None))
+            if skip_deleted:
+                max_date_subq = max_date_subq.filter(
+                    (func.lower(IndexRecord.index_metadata["deleted"].astext) == "true").isnot(True))
 
             max_date_subq = max_date_subq.subquery()
 

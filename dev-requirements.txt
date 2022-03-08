@@ -58,7 +58,7 @@ flask==1.1.2
     #   pytest-flask
 funcsigs==1.0.2
     # via pytest
-functools32==3.2.3.post2;python_version=="2.7"
+functools32==3.2.3.post2 ; python_version == "2.7"
     # via
     #   -c requirements.txt
     #   detect-secrets
@@ -67,7 +67,7 @@ future==0.18.2
     # via
     #   -c requirements.txt
     #   detect-secrets
-futures==3.3.0;python_version=="2.7"
+futures==3.3.0 ; python_version == "2.7"
     # via pre-commit
 identify==1.4.24
     # via pre-commit
@@ -86,6 +86,8 @@ importlib-resources==3.3.1
     # via
     #   pre-commit
     #   virtualenv
+isodate==0.6.1
+    # via openapi-schema-validator
 itsdangerous==1.1.0
     # via
     #   -c requirements.txt
@@ -97,7 +99,8 @@ jinja2==2.11.2
 jsonschema==3.2.0
     # via
     #   -c requirements.txt
-    #   swagger-spec-validator
+    #   openapi-schema-validator
+    #   openapi-spec-validator
 markupsafe==1.1.1
     # via
     #   -c requirements.txt
@@ -108,11 +111,16 @@ more-itertools==5.0.0
     #   pytest
 nodeenv==1.4.0
     # via pre-commit
+openapi-schema-validator==0.1.6
+    # via openapi-spec-validator
+openapi-spec-validator==0.3.3
+    # via -r dev-requirements.in
 pathlib2==2.3.5
     # via
     #   -c requirements.txt
     #   importlib-metadata
     #   importlib-resources
+    #   openapi-spec-validator
     #   pytest
     #   virtualenv
 pluggy==0.13.1
@@ -125,6 +133,7 @@ pyrsistent==0.16.0
     # via
     #   -c requirements.txt
     #   jsonschema
+    #   openapi-spec-validator
 pytest-cov==2.9.0
     # via -r dev-requirements.in
 pytest-flask==0.15.1
@@ -139,8 +148,8 @@ pyyaml==5.3.1
     #   -r dev-requirements.in
     #   aspy.yaml
     #   detect-secrets
+    #   openapi-spec-validator
     #   pre-commit
-    #   swagger-spec-validator
 requests==2.24.0
     # via
     #   -c requirements.txt
@@ -155,17 +164,17 @@ six==1.15.0
     # via
     #   -c requirements.txt
     #   cfgv
+    #   isodate
     #   jsonschema
     #   more-itertools
+    #   openapi-schema-validator
+    #   openapi-spec-validator
     #   pathlib2
     #   pre-commit
     #   pyrsistent
     #   pytest
     #   singledispatch
-    #   swagger-spec-validator
     #   virtualenv
-swagger-spec-validator==2.7.3
-    # via -r dev-requirements.in
 toml==0.10.1
     # via pre-commit
 typing==3.7.4.3

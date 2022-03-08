@@ -20,7 +20,7 @@ def test_data(swg_index_client):
             doc["urls"].append(url_x)
             doc["urls_metadata"][url_x] = {"state": "uploaded"}
             url_x_type -= 1
-        swg_index_client.add_entry(doc)
+        swg_index_client.add_index_entry(doc)
 
     url_x_type = url_x_count
     unversioned_count = system_random.randint(6, 10)
@@ -30,7 +30,7 @@ def test_data(swg_index_client):
             doc["urls"].append(url_x)
             doc["urls_metadata"][url_x] = {"state": "uploaded"}
             url_x_type -= 1
-        swg_index_client.add_entry(doc)
+        swg_index_client.add_index_entry(doc)
     return url_x_count, versioned_count, unversioned_count
 
 

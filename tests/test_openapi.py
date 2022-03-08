@@ -1,21 +1,20 @@
 import json
 import pkg_resources
 
-import swagger_spec_validator.util
-import yaml
-from swagger_spec_validator.common import SwaggerValidationError
+import openapi_spec_validator
+from openapi_spec_validator import exceptions as specs_exceptions
+from openapi_spec_validator import readers as specs_readers
 
 import openapis
 
 
 def test_valid_openapi():
-    filename = 'swagger.yaml'
-    with pkg_resources.resource_stream(openapis.__name__, filename) as f:
-        url = 'file:/' + f.name + '#'
-        spec = yaml.safe_load(f)
-        if not isinstance(spec, dict):
-            raise SwaggerValidationError('root node is not a mapping')
-        # ensure the spec is valid JSON
-        spec = json.loads(json.dumps(spec))
-        validator = swagger_spec_validator.util.get_validator(spec, url)
-        validator.validate_spec(spec, url)
+    filename = pkg_resources.resource_filename(openapis.__name__, "swagger.yaml")
+    spec, url = specs_readers.read_from_filename(filename)
+
+    if not isinstance(spec, dict):
+        raise specs_exceptions.OpenAPIValidationError("root node is not a mapping")
+    # ensure the spec is valid JSON
+    spec = json.loads(json.dumps(spec))
+
+    openapi_spec_validator.validate_spec(spec, url)
