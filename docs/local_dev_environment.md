@@ -126,7 +126,7 @@ ALTER USER indexduser WITH PASSWORD 'indexdpassword';
 \du
 ```
 
-You can also view the local [PostgreSQL init.sql](./deployment/scripts/postgresql/postgresql_init.sql) and run these inside the local PostgreSQL server.
+You can also view the local [PostgreSQL init.sql](../deployment/scripts/postgresql/postgresql_init.sql) and run these inside the local PostgreSQL server.
 
 ## Installation
 
