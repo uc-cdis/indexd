@@ -10,6 +10,4 @@ pytest-cov>=2.8,<2.10
 pytest-flask~=0.15
 PyYAML~=5.3
 openapi-spec-validator~=0.3.3
-pre-commit==1.21.0
-detect-secrets==0.13.0
 cfgv==2.0.1
