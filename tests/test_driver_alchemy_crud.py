@@ -399,7 +399,7 @@ def test_driver_get_latest_version_with_no_record(index_driver, database_conn):
         index_driver.get_latest_version('some base version')
 
 
-def test_driver_get_latest_version_not_deleted(index_driver, database_conn):
+def test_driver_get_latest_version_exclude_deleted(index_driver, database_conn):
     """
     Tests retrieval of the latest record version not flagged as deleted in index_metadata
     """
@@ -427,7 +427,7 @@ def test_driver_get_latest_version_not_deleted(index_driver, database_conn):
             VALUES (?,?,?,?,?,?,?,?)
         """, (did, baseid, rev, form, size, created_date, updated_date, index_metadata)))
 
-    record = index_driver.get_latest_version(did)
+    record = index_driver.get_latest_version(did, exclude_deleted=True)
 
     assert record["baseid"] == baseid, "record baseid does not match"
     assert record["did"] != did, "record did matches deleted record"
@@ -500,7 +500,7 @@ def test_driver_get_all_version_with_no_record(index_driver, database_conn):
         index_driver.get_all_versions('some baseid')
 
 
-def test_driver_get_all_version_not_deleted(index_driver, database_conn):
+def test_driver_get_all_version_exclude_deleted(index_driver, database_conn):
     """
     Tests retrieval of all versions of a document not flagged as deleted
     """
@@ -530,7 +530,7 @@ def test_driver_get_all_version_not_deleted(index_driver, database_conn):
             VALUES (?,?,?,?,?,?,?,?)
         """, (did, baseid, rev, form, size, created_date, updated_date, index_metadata)))
 
-    records = index_driver.get_all_versions(did)
+    records = index_driver.get_all_versions(did, exclude_deleted=True)
     assert len(records) == len(non_deleted_dids), "the number of records does not match"
     assert all([doc["baseid"] == baseid for doc in records.values()]), "record baseid does not match"
     assert set(doc["did"] for doc in records.values()) == set(non_deleted_dids), "record did does not match"
@@ -797,7 +797,7 @@ def test_driver_delete_fails_with_invalid_rev(index_driver, database_conn):
         index_driver.delete(did, 'some_revision')
 
 
-def test_driver_bulk_get_latest_versions_not_deleted(index_driver, database_conn):
+def test_driver_bulk_get_latest_versions_exclude_deleted(index_driver, database_conn):
     """
     Tests bulk retrieval of the latest record version not flagged as deleted for each document in a list of dids
     """
@@ -835,7 +835,7 @@ def test_driver_bulk_get_latest_versions_not_deleted(index_driver, database_conn
     deleted_dids = [baseids[baseid]["deleted_did"] for baseid in baseids.keys()]
 
     # get latest non-deleted records from the list of deleted dids
-    records = index_driver.bulk_get_latest_versions(deleted_dids)
+    records = index_driver.bulk_get_latest_versions(deleted_dids, exclude_deleted=True)
     assert len(records) == len(non_deleted_dids), "the number of records does not match"
     assert set(record["baseid"] for record in records) == set(baseids.keys()), "one ore more baseid does not match"
     assert set(record["did"] for record in records) == set(non_deleted_dids), "one or more non-deleted record missing"

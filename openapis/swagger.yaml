@@ -419,7 +419,7 @@ paths:
         description: filter by latest doc that has version value populated
         schema:
           type: boolean
-      - name: not_deleted
+      - name: exclude_deleted
         in: query
         description: filter by latest doc not marked as deleted
         schema:
@@ -448,7 +448,7 @@ paths:
         required: true
         schema:
           type: string
-      - name: not_deleted
+      - name: exclude_deleted
         in: query
         description: filter by docs not marked as deleted
         schema:
@@ -812,7 +812,7 @@ paths:
         description: filter by latest doc that has version value populated
         schema:
           type: boolean
-      - name: skip_deleted
+      - name: exclude_deleted
         in: query
         description: filter by latest doc not marked as deleted
         schema:
@@ -854,8 +854,15 @@ paths:
           type: string
       - name: versioned
         in: query
-        description: if true search for documents with a version set, else search
-          documents without version
+        description: if true search for documents with a version set, if false search
+          documents without version, else search both versioned and unversioned 
+          documents
+        schema:
+          type: boolean
+      - name: exclude_deleted
+        in: query
+        description: if true search documents not flagged as deleted, else search all
+          documents regardless of deleted status
         schema:
           type: boolean
           default: false
@@ -907,8 +914,15 @@ paths:
           type: string
       - name: versioned
         in: query
-        description: if true search for documents with a version set, else search
-          documents without version
+        description: if true search for documents with a version set, if false search
+          documents without version, else search both versioned and unversioned 
+          documents
+        schema:
+          type: boolean
+      - name: exclude_deleted
+        in: query
+        description: if true search documents not flagged as deleted, else search all
+          documents regardless of deleted status
         schema:
           type: boolean
           default: false

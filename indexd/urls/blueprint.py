@@ -1,13 +1,12 @@
 import json
 
-from flask import Blueprint, Response, request
-from flask.json import jsonify
+import flask
 
 from indexd.errors import UserError
 from indexd.index.drivers.query.urls import AlchemyURLsQueryDriver
 
 
-blueprint = Blueprint("urls", __name__)
+blueprint = flask.Blueprint("urls", __name__)
 
 
 @blueprint.route("/q", methods=["GET"])
@@ -16,7 +15,8 @@ def query():
     Params:
         exclude (str): only include documents (did) with urls that does not match this pattern
         include (str): only include documents (did) with a url matching this pattern
-        version (str): return only records with version number
+        versioned (str): return only records with version number
+        exclude_deleted (str): return only records not marked as deleted
         fields (str): comma separated list of fields to return, if not specified return all fields
         limit (str): max results to return
         offset (str): where to start the next query from
@@ -29,9 +29,14 @@ def query():
                 ]
             `
     """
+    args_dict = flask.request.args.to_dict()
+    if "versioned" in args_dict.keys():
+        args_dict["versioned"] = args_dict["versioned"].lower() in ["true", "t", "yes", "y"]
+    if "exclude_deleted" in args_dict.keys():
+        args_dict["exclude_deleted"] = args_dict["exclude_deleted"].lower() in ["true", "t", "yes", "y"]
 
-    record_list = blueprint.driver.query_urls(**request.args.to_dict())
-    return Response(json.dumps(record_list, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
+    record_list = blueprint.driver.query_urls(**args_dict)
+    return flask.Response(json.dumps(record_list, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
 
 
 @blueprint.route("/metadata/q")
@@ -42,7 +47,8 @@ def query_metadata():
         value (str): metadata value for key
         url (str): full url or pattern for limit to
         fields (str): comma separated list of fields to return, if not specified return all fields
-        version (str): filter only records with a version number
+        versioned (str): filter only records with a version number
+        exclude_deleted (str): return only records not marked as deleted
         limit (str): max results to return
         offset (str): where to start the next query from
     Returns:
@@ -54,9 +60,14 @@ def query_metadata():
                 ]
             `
     """
+    args_dict = flask.request.args.to_dict()
+    if "versioned" in args_dict.keys():
+        args_dict["versioned"] = args_dict["versioned"].lower() in ["true", "t", "yes", "y"]
+    if "exclude_deleted" in args_dict.keys():
+        args_dict["exclude_deleted"] = args_dict["exclude_deleted"].lower() in ["true", "t", "yes", "y"]
 
-    record_list = blueprint.driver.query_metadata_by_key(**request.args.to_dict())
-    return Response(json.dumps(record_list, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
+    record_list = blueprint.driver.query_metadata_by_key(**args_dict)
+    return flask.Response(json.dumps(record_list, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
 
 
 @blueprint.record
@@ -68,4 +79,4 @@ def pre_config(state):
 
 @blueprint.errorhandler(UserError)
 def handle_user_error(err):
-    return jsonify(error=str(err)), 400
+    return flask.jsonify(error=str(err)), 400

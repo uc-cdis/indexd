@@ -736,13 +736,13 @@ def test_get_latest_version(swg_index_client):
     r5 = swg_index_client.get_index_latest_version(r.baseid, has_version=True)
     assert r5.did == r.did
 
-    # deleted documents are filtered out by default, but they can be included if not_deleted flag is set to false
+    # deleted documents are included by default, but they can be excluded if exclude_deleted flag is set to true
     data = get_doc(has_metadata=False)
     data["metadata"] = {"deleted": "True"}
     r6 = swg_index_client.add_index_new_version(guid=r.did, body=data)
-    r7 = swg_index_client.get_index_latest_version(r.baseid)
+    r7 = swg_index_client.get_index_latest_version(r.baseid, exclude_deleted=True)
     assert r7.did == r2.did
-    r8 = swg_index_client.get_index_latest_version(r.baseid, not_deleted=False)
+    r8 = swg_index_client.get_index_latest_version(r.baseid)
     assert r8.did == r6.did
 
 
@@ -756,13 +756,13 @@ def test_get_all_versions(swg_index_client):
     r4 = swg_index_client.get_index_all_versions(r.baseid)
     assert len(r4) == 2
 
-    # deleted documents are filtered out by default, but they can be included if not_deleted flag is set to false
+    # deleted documents are included by default, but they can be excluded if exclude_deleted flag is set to true
     data = get_doc(has_metadata=False)
     data["metadata"] = {"deleted": "True"}
     swg_index_client.add_index_new_version(guid=r.did, body=data)
-    r5 = swg_index_client.get_index_all_versions(r.did)
+    r5 = swg_index_client.get_index_all_versions(r.did, exclude_deleted=True)
     assert len(r5) == 2
-    r6 = swg_index_client.get_index_all_versions(r.did, not_deleted=False)
+    r6 = swg_index_client.get_index_all_versions(r.did)
     assert len(r6) == 3
 
 
@@ -1007,36 +1007,39 @@ def test_bulk_get_documents(swg_index_client, swg_bulk_client):
         assert doc["did"] in dids
 
 
-@pytest.mark.parametrize("target_null_flag", [True, False])
-@pytest.mark.parametrize("add_target", [True, False])
-@pytest.mark.parametrize("skip_target", [True, False])
+@pytest.mark.parametrize("target_flag", ["skip_null", "exclude_deleted"])
+@pytest.mark.parametrize("add_target_criteria", [True, False])
+@pytest.mark.parametrize("target_flag_value", [True, False])
 def test_bulk_get_latest_version(
-    swg_index_client, swg_bulk_client, target_null_flag, add_target, skip_target
+    swg_index_client, swg_bulk_client, target_flag, add_target_criteria, target_flag_value
 ):
     """
-    Tests the bulk_get_latest_version targeting either the skip_null or skip_deleted flag
+    Tests the bulk_get_latest_version targeting either the skip_null or exclude_deleted flag
     Args:
-        target_null_flag (boolean): targets skip_null flag if True, otherwise targets skip_deleted flag
-        add_target (boolean): add target version
-        skip_target (boolean): skip target when retrieving the latest version
+        target_flag (str): defines which flag to target for testing, skip_null or exclude_deleted
+        add_target_criteria (boolean): add documentation details that will be ignored if target flag is set to true
+        target_flag_value (boolean): set target flag value to True if True, False otherwise
 
     Setup:
     1. Create N docs in indexd that has version 1.
     2. Choose random N/3 docs, add version 2.
-    3. If add_target: choose random N/3 docs and add version with target flag
+    3. If add_target_criteria: choose random N/3 docs and add version with target criteria
 
     NOTE: target version will always be the latest version.
 
-    If target_null_flag is True and add_target is True:
+    If target_flag is skip_null and add_target_criteria is True:
     1. N/3 to 2N/3 docs have version [1]
     2. 0 to N/3 docs have version [1,2]
     3. N/3 docs have version [1,2,None] or [1, None]
 
-    If target_null_flag is False and add_target is True:
+    If target_flag is exclude_deleted and add_target_criteria is True:
     1. N/3 to 2N/3 docs have version [1]
     2. 0 to N/3 docs have version [1,2]
     3. N/3 docs have version [1,2,X] or [1,X] and be flagged as deleted
     """
+
+    assert target_flag in ["skip_null", "exclude_deleted"]
+
     total_files = 15
     # just make a bunch of entries in indexd
     dids = [
@@ -1062,17 +1065,17 @@ def test_bulk_get_latest_version(
 
     # create new target version for random 1/3 dids
     latest_dids = []
-    if add_target:
+    if add_target_criteria:
         chosen = random.sample(dids, k=total_files // 3)
         for did in latest_dids_excluding_target:
             if did in chosen:
-                if target_null_flag:
+                if target_flag == "skip_null":
                     latest_dids.append(
                         swg_index_client.add_index_new_version(
                             guid=did, body=get_doc()
                         ).did
                     )
-                else:
+                elif target_flag == "exclude_deleted":
                     data = get_doc(version="X", has_metadata=False)
                     data["metadata"] = {"deleted": "True"}
                     new_doc = swg_index_client.add_index_new_version(
@@ -1084,12 +1087,12 @@ def test_bulk_get_latest_version(
         assert len(latest_dids) == len(dids)
 
     # do a bulk query to get all latest version
-    if target_null_flag:
-        docs = swg_bulk_client.get_bulk_latest(dids, skip_null=skip_target)
-    else:
-        docs = swg_bulk_client.get_bulk_latest(dids, skip_deleted=skip_target)
+    if target_flag == "skip_null":
+        docs = swg_bulk_client.get_bulk_latest(dids, skip_null=target_flag_value)
+    elif target_flag == "exclude_deleted":
+        docs = swg_bulk_client.get_bulk_latest(dids, exclude_deleted=target_flag_value)
 
-    if add_target and not skip_target:
+    if add_target_criteria and not target_flag_value:
         assert set(latest_dids) == {doc["did"] for doc in docs}
     else:
         assert set(latest_dids_excluding_target) == {doc["did"] for doc in docs}

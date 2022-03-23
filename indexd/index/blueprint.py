@@ -452,8 +452,8 @@ def get_all_index_record_versions(record):
     """
     Get all record versions
     """
-    not_deleted = flask.request.args.get("not_deleted", "true").lower() == "true"
-    ret = blueprint.index_driver.get_all_versions(record, not_deleted=not_deleted)
+    exclude_deleted = flask.request.args.get("exclude_deleted", "false").lower() == "true"
+    ret = blueprint.index_driver.get_all_versions(record, exclude_deleted=exclude_deleted)
 
     return flask.jsonify(ret), 200
 
@@ -464,9 +464,9 @@ def get_latest_index_record_versions(record):
     Get the latest record version
     """
     has_version = flask.request.args.get("has_version", "").lower() == "true"
-    not_deleted = flask.request.args.get("not_deleted", "true").lower() == "true"
+    exclude_deleted = flask.request.args.get("exclude_deleted", "false").lower() == "true"
     ret = blueprint.index_driver.get_latest_version(
-        record, has_version=has_version, not_deleted=not_deleted)
+        record, has_version=has_version, exclude_deleted=exclude_deleted)
 
     return flask.jsonify(ret), 200
 
