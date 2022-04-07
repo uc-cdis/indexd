@@ -878,6 +878,12 @@ paths:
         schema:
           type: integer
           default: 0
+      - name: fields
+        in: query
+        description: Comma separated list (defaults to did,urls) of fields to return. Valid fields are did and urls.
+        schema:
+          type: string
+          default: urls,did
       responses:
         200:
           description: successful
@@ -938,13 +944,19 @@ paths:
         schema:
           type: integer
           default: 0
+      - name: fields
+        in: query
+        description: Comma separated list (defaults to did,urls,rev) of fields to return. Valid fields are did, urls and rev.
+        schema:
+          type: string
+          default: urls,did,rev
       responses:
         200:
           description: successful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/URLsOutput'
+                $ref: '#/components/schemas/URLsMetadataOutput'
         400:
           description: invalid request parameters
           content: {}
@@ -1432,6 +1444,15 @@ components:
             type: array
             items:
               type: string
+    URLsMetadataOutput:
+        allOf:
+         - $ref: '#/components/schemas/URLsOutput'
+         - type: array
+         - items:
+            type: object
+            properties:
+             rev:
+                type: string
     SystemMetadata:
       type: object
       description: |-
