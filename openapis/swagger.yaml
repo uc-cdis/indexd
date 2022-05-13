@@ -41,6 +41,8 @@ tags:
     description: 'Data Repository Service Retrieval Endpoints'
   - name: bundle
     description: 'Bundle endpoints.'
+  - name: GUID
+    description: Endpoints for generation of Gen3 GUIDs
   - name: system
     description: System endpoints
 schemes:
@@ -1391,6 +1393,38 @@ paths:
            $ref: '#/definitions/URLsOutput'
        400:
          description: invalid request parameters
+  '/guid/mint':
+    get:
+      tags:
+        - GUID
+      summary: search index records by urls metadata key and value
+      operationId: getGUIDs
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: count
+          type: string
+          description: Number of GUIDs to return, default is 1 (note that there is a max)
+          required: false
+      responses:
+       200:
+         description: successful
+         schema:
+           $ref: '#/definitions/GetGUIDsOutput'
+  '/guid/prefix':
+    get:
+      tags:
+        - GUID
+      summary: Provide prefix used for this instance (if any)
+      operationId: getPrefix
+      produces:
+        - application/json
+      responses:
+       200:
+         description: successful
+         schema:
+           $ref: '#/definitions/GetPrefixOutput'
 
 securityDefinitions:
   basic_auth:
@@ -1404,6 +1438,20 @@ securityDefinitions:
     name: Authorization
     in: header
 definitions:
+  GetGUIDsOutput:
+    type: object
+    properties:
+      guids:
+        type: array
+        items:
+          type: string
+          description: GUIDs
+  GetPrefixOutput:
+    type: object
+    properties:
+      prefix:
+        type: string
+        description: Prefix
   AliasInfo:
       type: object
       properties:
