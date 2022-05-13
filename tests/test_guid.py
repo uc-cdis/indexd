@@ -6,7 +6,7 @@ GUID_REGEX = re.compile(
 )
 
 
-def test_single_guid(client, user):
+def test_single_guid(app, client, user):
     """
     Test that generating a single GUID works
     """
@@ -21,7 +21,7 @@ def test_single_guid(client, user):
         assert reg.findall(guid)
 
 
-def test_guids(client, user):
+def test_guids(app, client, user):
     """
     Test that generating many GUIDs works
     """
@@ -38,3 +38,20 @@ def test_guids(client, user):
         print(guid)
         assert reg.findall(guid)
     assert count == 20
+
+
+def test_get_prefix(app, client, user):
+    """
+    Test that generating a prefix works
+    """
+    response = client.get("/guid/prefix")
+    assert response.status_code == 200
+    response_json = response.json
+    prefix = response_json["prefix"]
+    if (
+        app.config["INDEX"]["driver"].config["PREPEND_PREFIX"]
+        and not app.config["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"]
+    ):
+        assert prefix == app.config["INDEX"]["driver"].config["DEFAULT_PREFIX"]
+    else:
+        assert prefix == ""

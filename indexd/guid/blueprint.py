@@ -29,9 +29,7 @@ def mint_guid():
 
     guids = []
     for _ in range(count):
-        valid_guid = str(uuid.uuid4())
-        if flask.current_app.config.get("PREPEND_PREFIX"):
-            valid_guid = flask.current_app.config["DEFAULT_PREFIX"] + valid_guid
+        valid_guid = _get_prefix() + str(uuid.uuid4())
         guids.append(valid_guid)
 
     return flask.jsonify({"guids": guids}), 200
@@ -42,8 +40,21 @@ def get_prefix():
     """
     Get the prefix for this instance of indexd.
     """
-    prefix = ""
-    if flask.current_app.config.get("PREPEND_PREFIX"):
-        prefix = flask.current_app.config["DEFAULT_PREFIX"]
+    return flask.jsonify({"prefix": _get_prefix()}), 200
 
-    return prefix, 200
+
+def _get_prefix():
+    """
+    Return prefix if it's configured to be prepended to all GUIDs and NOT
+    set as an alias
+    """
+    prefix = ""
+
+    if flask.current_app.config["INDEX"]["driver"].config.get(
+        "PREPEND_PREFIX"
+    ) and not flask.current_app.config["INDEX"]["driver"].config.get(
+        "ADD_PREFIX_ALIAS"
+    ):
+        prefix = flask.current_app.config["INDEX"]["driver"].config["DEFAULT_PREFIX"]
+
+    return prefix
