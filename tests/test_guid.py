@@ -40,7 +40,7 @@ def test_guids(app, client, user):
     assert count == 20
 
 
-def test_get_prefix(app, client, user):
+def test_get_prefix(app, client, user, monkeypatch):
     """
     Test that generating a prefix works
     """
@@ -48,10 +48,20 @@ def test_get_prefix(app, client, user):
     assert response.status_code == 200
     response_json = response.json
     prefix = response_json["prefix"]
-    if (
-        app.config["INDEX"]["driver"].config["PREPEND_PREFIX"]
-        and not app.config["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"]
-    ):
-        assert prefix == app.config["INDEX"]["driver"].config["DEFAULT_PREFIX"]
-    else:
-        assert prefix == ""
+
+    assert prefix == app.config["INDEX"]["driver"].config["DEFAULT_PREFIX"]
+
+
+def test_get_prefix_when_none(app, client, user, monkeypatch):
+    """
+    Test that generating a prefix works even when there isn't a prefix
+    """
+    app.config["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
+    response = client.get("/guid/prefix")
+    app.config["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = False
+
+    assert response.status_code == 200
+    response_json = response.json
+    prefix = response_json["prefix"]
+
+    assert prefix == ""
