@@ -1,3 +1,4 @@
+import copy
 import json
 import re
 
@@ -44,21 +45,27 @@ def test_get_prefix(app, client, user, monkeypatch):
     """
     Test that generating a prefix works
     """
+    original_config = copy.deepcopy(app.config["INDEX"]["driver"].config)
+    app.config["INDEX"]["driver"].config["DEFAULT_PREFIX"] = "foobar:"
+    app.config["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = False
     response = client.get("/guid/prefix")
+    app.config["INDEX"]["driver"].config = original_config
+
     assert response.status_code == 200
     response_json = response.json
     prefix = response_json["prefix"]
 
-    assert prefix == app.config["INDEX"]["driver"].config["DEFAULT_PREFIX"]
+    assert prefix == "foobar:"
 
 
 def test_get_prefix_when_none(app, client, user, monkeypatch):
     """
     Test that generating a prefix works even when there isn't a prefix
     """
+    original_config = copy.deepcopy(app.config["INDEX"]["driver"].config)
     app.config["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
     response = client.get("/guid/prefix")
-    app.config["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = False
+    app.config["INDEX"]["driver"].config = original_config
 
     assert response.status_code == 200
     response_json = response.json
