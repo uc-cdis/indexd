@@ -1,4 +1,5 @@
 import flask
+import uuid
 
 blueprint = flask.Blueprint("guid", __name__)
 
