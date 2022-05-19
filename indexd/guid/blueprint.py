@@ -9,7 +9,7 @@ def mint_guid():
     """
     Mint a GUID that is valid for this instance of indexd. The intention
     of this endpoint is to allow generating valid GUIDs to be indexed
-    WITHOUT actually creating a new record yet
+    WITHOUT actually creating a new record yet.
 
     Allows for a `count` query parameter to get bulk GUIDs up to some limit
     """
