@@ -1,6 +1,0 @@
-mock
-pytest~=3.10.1
-pytest-flask~=0.15.0
-pytest-cov
-PyYAML
-openapi-spec-validator
