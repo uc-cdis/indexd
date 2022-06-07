@@ -21,11 +21,11 @@ def mint_guid():
     except Exception:
         return f"Count {count} is not a valid integer", 400
 
-    # clip value on 0, max_count
+    # error on < 0, > max_count
     if count < 0:
-        count = 0
+        return "You cannot provide a count less than 0", 400
     elif count > max_count:
-        count = max_count
+        return f"You cannot provide a count greater than {max_count}", 400
 
     guids = []
     for _ in range(count):

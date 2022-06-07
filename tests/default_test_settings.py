@@ -3,18 +3,6 @@ import os
 from indexd.default_settings import *
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
-CONFIG["INDEX"] = {
-    "driver": SQLAlchemyIndexDriver(
-        "sqlite:///index.sq3",
-        auto_migrate=True,
-        echo=True,
-        index_config={
-            "DEFAULT_PREFIX": "testprefix:",
-            "PREPEND_PREFIX": True,
-            "ADD_PREFIX_ALIAS": False,
-        },
-    )
-}
 CONFIG["DIST"] = [
     {
         "name": "testStage",

@@ -1397,7 +1397,7 @@ paths:
     get:
       tags:
         - GUID
-      summary: search index records by urls metadata key and value
+      summary: Get a list of valid GUIDs without actually indexing records
       operationId: getGUIDs
       produces:
         - application/json
@@ -1405,7 +1405,7 @@ paths:
         - in: query
           name: count
           type: string
-          description: Number of GUIDs to return, default is 1 (note that there is a max)
+          description: Number of GUIDs to return, default is 1 (note that there is a max of 10k)
           required: false
       responses:
        200:

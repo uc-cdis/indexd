@@ -6,6 +6,7 @@ import uuid
 from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 from tests.test_bundles import create_index, get_bundle_doc
+from tests.default_test_settings import settings
 
 
 def get_doc(
@@ -1890,6 +1891,12 @@ def test_index_add_prefix_alias(client, user):
         "ADD_PREFIX_ALIAS": True
     }
     """
+    # ensure ADD_PREFIX_ALIAS is True
+    previous_add_alias_cfg = settings["config"]["INDEX"]["driver"].config[
+        "ADD_PREFIX_ALIAS"
+    ]
+    settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
+
     data = get_doc()
 
     res = client.post("/index/", json=data, headers=user)
@@ -1900,6 +1907,10 @@ def test_index_add_prefix_alias(client, user):
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["did"] == rec["did"]
+
+    settings["config"]["INDEX"]["driver"].config[
+        "ADD_PREFIX_ALIAS"
+    ] = previous_add_alias_cfg
 
 
 def test_index_update(client, user):

@@ -22,25 +22,27 @@ def test_single_guid(app, client, user):
         assert reg.findall(guid)
 
 
-@pytest.mark.parametrize("count", [-10, -1, 0, 1, 10])
+@pytest.mark.parametrize("count", [-10, -1, 0, 1, 10, 10000000])
 def test_guids(app, client, user, count):
     """
     Test that generating GUIDs works when provided various counts
     """
     response = client.get(f"/guid/mint?count={count}")
-    assert response.status_code == 200
-    response_json = response.json
-    guid_list = response_json["guids"]
 
-    # make sure result is >=0 and contains valid guids
-    reg = re.compile(GUID_REGEX)
-    result_count = 0
-    for guid in guid_list:
-        result_count += 1
-        assert reg.findall(guid)
-    # fancy way to make sure the negative counts result in 0 results and positive counts
-    # result in that many results
-    assert result_count == max(0, count)
+    if count in [0, 1, 10]:
+        assert response.status_code == 200
+        response_json = response.json
+        guid_list = response_json["guids"]
+
+        # make sure result is >=0 and contains valid guids
+        reg = re.compile(GUID_REGEX)
+        result_count = 0
+        for guid in guid_list:
+            result_count += 1
+            assert reg.findall(guid)
+        assert result_count == count
+    else:
+        assert response.status_code == 400
 
 
 def test_guids_invalid_count(app, client, user):
@@ -48,7 +50,7 @@ def test_guids_invalid_count(app, client, user):
     Test that generating GUIDs doesn't work when provided invalid count
     """
     response = client.get(f"/guid/mint?count=foobar")
-    assert response.status_code != 200
+    assert response.status_code == 400
 
 
 def test_get_prefix(app, client, user, monkeypatch):
