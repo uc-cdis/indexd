@@ -1891,26 +1891,27 @@ def test_index_add_prefix_alias(client, user):
         "ADD_PREFIX_ALIAS": True
     }
     """
-    # ensure ADD_PREFIX_ALIAS is True
-    previous_add_alias_cfg = settings["config"]["INDEX"]["driver"].config[
-        "ADD_PREFIX_ALIAS"
-    ]
-    settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
+    try:
+        # ensure ADD_PREFIX_ALIAS is True
+        previous_add_alias_cfg = settings["config"]["INDEX"]["driver"].config[
+            "ADD_PREFIX_ALIAS"
+        ]
+        settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
 
-    data = get_doc()
+        data = get_doc()
 
-    res = client.post("/index/", json=data, headers=user)
-    assert res.status_code == 200
-    rec = res.json
+        res = client.post("/index/", json=data, headers=user)
+        assert res.status_code == 200
+        rec = res.json
 
-    res_2 = client.get("/testprefix:" + rec["did"])
-    assert res_2.status_code == 200
-    rec_2 = res_2.json
-    assert rec_2["did"] == rec["did"]
-
-    settings["config"]["INDEX"]["driver"].config[
-        "ADD_PREFIX_ALIAS"
-    ] = previous_add_alias_cfg
+        res_2 = client.get("/testprefix:" + rec["did"])
+        assert res_2.status_code == 200
+        rec_2 = res_2.json
+        assert rec_2["did"] == rec["did"]
+    finally:
+        settings["config"]["INDEX"]["driver"].config[
+            "ADD_PREFIX_ALIAS"
+        ] = previous_add_alias_cfg
 
 
 def test_index_update(client, user):
