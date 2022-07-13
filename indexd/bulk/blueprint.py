@@ -54,13 +54,14 @@ def bulk_get_latest_documents():
 
     ids = flask.request.json
     if not ids:
-        raise UserError('No ids provided')
+        raise UserError("No ids provided")
     if not isinstance(ids, list):
-        raise UserError('ids is not a list')
+        raise UserError("ids is not a list")
 
-    skip_null = flask.request.args.get('skip_null', "false").lower() in ["true", "t"]
+    skip_null = flask.request.args.get("skip_null", "false").lower() in ["true", "t"]
+    exclude_deleted = flask.request.args.get("exclude_deleted", "false").lower() in ["true", "t"]
 
-    docs = blueprint.index_driver.bulk_get_latest_versions(ids, skip_null=skip_null)
+    docs = blueprint.index_driver.bulk_get_latest_versions(ids, skip_null=skip_null, exclude_deleted=exclude_deleted)
     return json.dumps(docs), 200
 
 

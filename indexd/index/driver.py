@@ -79,18 +79,18 @@ class IndexDriverABC(SQLAlchemyDriverBase):
         raise NotImplementedError('TODO')
 
     @abc.abstractmethod
-    def get_all_versions(self, did):
-        '''
+    def get_all_versions(self, did, exclude_deleted=False):
+        """
         Get all record versions given did
-        '''
-        raise NotImplementedError('TODO')
+        """
+        raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def get_latest_version(self, did, has_version=None):
-        '''
-        Get the lattest record version given did
-        '''
-        raise NotImplementedError('TODO')
+    def get_latest_version(self, did, has_version=None, exclude_deleted=False):
+        """
+        Get the latest record version given did
+        """
+        raise NotImplementedError("TODO")
 
     @abc.abstractmethod
     def health_check(self):

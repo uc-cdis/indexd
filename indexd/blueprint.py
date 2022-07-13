@@ -1,13 +1,12 @@
 import re
 import flask
 import jsonschema
+import requests
 
-from indexclient.client import IndexClient
 from doiclient.client import DOIClient
 from dosclient.client import DOSClient
 
-from indexd.utils import hint_match
-
+from indexd.utils import hint_match, handle_error
 from indexd.errors import AuthError
 from indexd.errors import UserError
 from indexd.alias.errors import NoRecordFound as AliasNoRecordFound
@@ -86,8 +85,8 @@ def dist_get_record(record):
                 fetcher_client = DOSClient(baseurl=indexd['host'])
                 res = fetcher_client.get(record)
             else:
-                fetcher_client = IndexClient(baseurl=indexd['host'])
-                res = fetcher_client.global_get(record, no_dist=True)
+                res = requests.get(indexd['host'] + '/' + record, params={'no_dist':''})
+                handle_error(res)
         except:
             # a lot of things can go wrong with the get, but in general we don't care here.
             continue

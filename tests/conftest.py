@@ -1,4 +1,6 @@
 import base64
+import requests
+import threading
 
 import flask
 import pytest
@@ -15,20 +17,155 @@ from indexd.index.drivers.alchemy import (
     Base as index_base,
     SQLAlchemyIndexDriver,
 )
-from indexd_test_utils import (
-    alias_driver,
-    alias_driver_no_migrate,
-    auth_driver,
-    create_indexd_tables,
-    create_indexd_tables_no_migrate,
-    index_driver,
-    index_driver_no_migrate,
-    indexd_admin_user,
-    indexd_server,
-    setup_indexd_test_database,
-)
+from indexd.utils import setup_database, try_drop_test_data
 
-PG_URL = 'postgres://test:test@localhost/indexd_test'
+
+PG_URL = 'postgresql://test:test@localhost/indexd_test'
+
+
+@pytest.fixture(scope='session', autouse=True)
+def setup_indexd_test_database(request):
+    """Set up the database to be used for the tests.
+
+    autouse: every test runs this fixture, without calling it directly
+    session scope: all tests share the same fixture
+
+    Basically this only runs once at the beginning of the full test run. This
+    sets up the test database and test user to use for the rest of the tests.
+    """
+
+    # try_drop_test_data() is run before the tests starts and after the tests
+    # complete. This ensures a clean database on start and end of the tests.
+    setup_database()
+    request.addfinalizer(try_drop_test_data)
+
+
+def truncate_tables(driver, base):
+    """Drop all the tables in this application's scope.
+
+    This has the same effect as deleting the sqlite file. Your test will have a
+    fresh database for it's run.
+    """
+
+    # Drop tables in reverse order to avoid cascade drop errors.
+    # metadata is a sqlalchemy property.
+    # sorted_tables is a list of tables sorted by their dependencies.
+    with driver.engine.begin() as txn:
+        for table in reversed(base.metadata.sorted_tables):
+            # do not clear schema versions so each test does not re-trigger migration.
+            if table.name not in ["index_schema_version", "alias_schema_version"]:
+                txn.execute("TRUNCATE {} CASCADE;".format(table.name))
+
+
+@pytest.fixture
+def index_driver():
+    driver = SQLAlchemyIndexDriver(PG_URL, auto_migrate=False)
+    yield driver
+    truncate_tables(driver, index_base)
+    driver.dispose()
+
+
+@pytest.fixture
+def alias_driver():
+    driver = SQLAlchemyAliasDriver(PG_URL, auto_migrate=False)
+    yield driver
+    truncate_tables(driver, alias_base)
+    driver.dispose()
+
+
+@pytest.fixture(scope="session")
+def auth_driver():
+    driver = SQLAlchemyAuthDriver(PG_URL)
+    yield driver
+    driver.dispose()
+
+
+@pytest.fixture
+def indexd_admin_user(auth_driver):
+    username = password = "admin"
+    auth_driver.add(username, password)
+    yield username, password
+    auth_driver.delete("admin")
+
+
+@pytest.fixture
+def index_driver_no_migrate():
+    """
+    This fixture is designed for testing migration scripts and can be used for
+    any other situation where a migration is not desired on instantiation.
+    """
+    driver = SQLAlchemyIndexDriver(PG_URL, auto_migrate=False)
+    yield driver
+    truncate_tables(driver, index_base)
+    driver.dispose()
+
+
+@pytest.fixture
+def alias_driver_no_migrate():
+    """
+    This fixture is designed for testing migration scripts and can be used for
+    any other situation where a migration is not desired on instantiation.
+    """
+    driver = SQLAlchemyAliasDriver(PG_URL, auto_migrate=False)
+    yield driver
+    truncate_tables(driver, alias_base)
+    driver.dispose()
+
+
+@pytest.fixture
+def create_indexd_tables(index_driver, alias_driver, auth_driver):
+    """Make sure the tables are created but don't operate on them directly.
+    Also set up the password to be accessed by the client tests.
+    Migration not required as tables will be created with most recent models
+    """
+    pass
+
+
+@pytest.fixture
+def create_indexd_tables_no_migrate(
+        index_driver_no_migrate, alias_driver_no_migrate, auth_driver):
+    """Make sure the tables are created but don't operate on them directly.
+
+    There is no migration required for the SQLAlchemyAuthDriver.
+    Also set up the password to be accessed by the client tests.
+    """
+    pass
+
+
+@pytest.fixture(scope='session')
+def indexd_server():
+    """
+    Starts the indexd server, and cleans up its mess.
+    Most tests will use the client which stems from this
+    server fixture.
+
+    Runs once per test session.
+    """
+    app = get_app()
+    hostname = 'localhost'
+    port = 8001
+    debug = False
+    t = threading.Thread(target=app.run, kwargs={'host': hostname, 'port': port, 'debug': debug})
+    t.setDaemon(True)
+    t.start()
+    wait_for_indexd_alive(port)
+    yield MockServer(port=port)
+
+
+def wait_for_indexd_alive(port):
+    url = 'http://localhost:{}'.format(port)
+    try:
+        requests.get(url)
+    except requests.ConnectionError:
+        return wait_for_indexd_alive(port)
+    else:
+        return
+
+
+class MockServer(object):
+    def __init__(self, port):
+        self.port = port
+        self.baseurl = 'http://localhost:{}'.format(port)
 
 
 @pytest.fixture

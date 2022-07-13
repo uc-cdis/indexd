@@ -1,6 +1,6 @@
 #!groovy
 
-library identifier: "jenkins-lib@develop"
+library identifier: "jenkins-lib@master"
 dockerPipeline{
     // testBranches = '(develop|master|release.*)'
 }

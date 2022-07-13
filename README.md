@@ -132,6 +132,14 @@ pip install -r dev-requirements.txt -r requirements.txt
 swagger-codegen generate -i openapis/swagger.yaml -l python -o swagger_client
 cd swagger_client; python setup.py develop; cd -
 py.test -v tests/
+
+```
+### MacOS
+If building psycopg2 fails during install, try the following:
+```bash
+brew install openssl
+export LDFLAGS="-L/usr/local/opt/openssl/lib"
+export CPPFLAGS="-I/usr/local/opt/openssl/include"
 ```
 
 ## Testing with Docker

@@ -1,5 +1,5 @@
 # A dockerfile based on our .travis.yml
-# Useful for running the tests locally 
+# Useful for running the tests locally
 # in a self contained environment
 FROM python:2-slim
 
@@ -26,10 +26,10 @@ RUN apt-get install -y --no-install-recommends build-essential python-dev libpq-
 
 RUN wget https://oss.sonatype.org/content/repositories/releases/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar
 
-COPY test-requirements.txt /indexd/test-requirements.txt
+COPY dev-requirements.txt /indexd/dev-requirements.txt
 COPY requirements.txt /indexd/requirements.txt
 WORKDIR /indexd
-RUN pip install -r test-requirements.txt && pip install -r requirements.txt
+RUN pip install -r dev-requirements.txt && pip install -r requirements.txt
 
 COPY . /indexd
 
