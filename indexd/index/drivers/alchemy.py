@@ -1108,10 +1108,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record = query.first()
             if record is None:
-                record = self.get_bundle(bundle_id=did, expand=expand)
-                if record:
+                try:
+                    record = self.get_bundle(bundle_id=did, expand=expand)
                     return record
-                else:
+                except NoRecordFound:
+                    # overwrite the "no bundle found" message
                     raise NoRecordFound("no record found")
 
             return record.to_document_dict()
@@ -1196,7 +1197,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             # authorization check: `update` access on old AND new resources
             try:
                 auth.authorize("update", all_authz)
-            except AuthError as err:
+            except AuthError:
                 self.logger.error(authz_err_msg.format("update", all_authz))
                 raise
 
