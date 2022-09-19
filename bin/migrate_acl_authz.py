@@ -34,6 +34,7 @@ from sqlalchemy.exc import OperationalError
 
 from indexd.index.drivers.alchemy import IndexRecord, IndexRecordAuthz
 
+from yaml import safe_load as yaml_load
 
 logger = get_logger("migrate_acl_authz")
 
@@ -49,7 +50,10 @@ def main():
     driver = settings["config"]["INDEX"]["driver"]
     try:
         acl_converter = ACLConverter(
-            args.arborist, getattr(args, "sheepdog"), getattr(args, "use_tags")
+            args.arborist,
+            getattr(args, "sheepdog"),
+            getattr(args, "use_tags"),
+            getattr(args, "fence_config_path"),
         )
     except EnvironmentError:
         logger.error("can't continue without database connection")
@@ -119,11 +123,18 @@ def parse_args():
         dest="start_did",
         help="did to start at (records processed in lexographical order)",
     )
+    parser.add_argument(
+        "--fence-config-path",
+        dest="fence_config_path",
+        help="path to fence microservice configuration for pulling authz mapping",
+    )
     return parser.parse_args()
 
 
 class ACLConverter(object):
-    def __init__(self, arborist_url, sheepdog_db=None, use_tags=False):
+    def __init__(
+        self, arborist_url, sheepdog_db=None, use_tags=False, fence_config_path=None
+    ):
         self.arborist_url = arborist_url.rstrip("/")
         self.programs = set()
         self.projects = dict()
@@ -134,6 +145,21 @@ class ACLConverter(object):
         else:
             logger.info("not using any auth namespace")
         self.use_sheepdog_db = bool(sheepdog_db)
+        self.mapping = {}
+
+        if fence_config_path:
+            with open(fence_config_path, "r") as f:
+                fence_config = safe_load(f)
+                fence_config_authz = fence_config.get("authz", dict())
+                if not fence_config_authz:
+                    fence_config_authz = fence_config.get("rbac", dict())
+
+                project_to_resource = fence_config_authz.get(
+                    "user_project_to_resource", dict()
+                )
+                self.mapping = project_to_resource
+
+        logger.info(f"got mapping: {self.mapping}")
 
         # if "use_tags" is True, map resource paths to tags in arborist so
         # we can save http calls
@@ -194,6 +220,10 @@ class ACLConverter(object):
             if not acl_item:
                 # ignore empty string
                 continue
+            # prefer fence configuration authz mapping if provided
+            elif acl_item in self.mapping:
+                path = self.mapping[acl_item]
+                projects_found += 1
             elif acl_item == "*":
                 # if there's a * it should just be open. return early
                 path = "/open"
