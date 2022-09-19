@@ -36,7 +36,7 @@ from indexd.index.drivers.alchemy import IndexRecord, IndexRecordAuthz
 
 from yaml import safe_load
 
-logger = get_logger("migrate_acl_authz")
+logger = get_logger("migrate_acl_authz", log_level="debug")
 
 
 def main():
