@@ -34,7 +34,7 @@ from sqlalchemy.exc import OperationalError
 
 from indexd.index.drivers.alchemy import IndexRecord, IndexRecordAuthz
 
-from yaml import safe_load as yaml_load
+from yaml import safe_load
 
 logger = get_logger("migrate_acl_authz")
 
