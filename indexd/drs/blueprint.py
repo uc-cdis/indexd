@@ -64,6 +64,26 @@ def list_drs_records():
     return flask.jsonify(ret), 200
 
 
+@blueprint.route(
+    "/ga4gh/drs/v1/objects/<path:object_id>/access",
+    defaults={"access_id": None},
+    methods=["GET"],
+)
+@blueprint.route(
+    "/ga4gh/drs/v1/objects/<path:object_id>/access/<path:access_id>", methods=["GET"]
+)
+def get_signed_url(object_id, access_id):
+    if not access_id:
+        raise (UserError("Access ID/Protocol is required."))
+    res = flask.current_app.fence_client.get_signed_url_for_object(
+        object_id=object_id, access_id=access_id
+    )
+    if not res:
+        raise IndexNoRecordFound("No signed url found")
+
+    return res, 200
+
+
 def create_drs_uri(did):
     """
     Return ga4gh-compilant drs format uri
