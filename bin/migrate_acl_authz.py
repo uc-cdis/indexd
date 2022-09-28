@@ -224,6 +224,7 @@ class ACLConverter(object):
             elif acl_item in self.mapping:
                 path = self.mapping[acl_item]
                 projects_found += 1
+                break
             elif acl_item == "*":
                 # if there's a * it should just be open. return early
                 path = "/open"
@@ -241,8 +242,9 @@ class ACLConverter(object):
                     self.projects[acl_item], acl_item
                 )
                 projects_found += 1
+                break
             else:
-                # nothing worked, raise exception
+                # nothing worked for any of the acls, raise exception
                 raise EnvironmentError(
                     "program or project {} does not exist".format(acl_item)
                 )
