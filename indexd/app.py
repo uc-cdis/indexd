@@ -7,7 +7,6 @@ from .drs.blueprint import blueprint as indexd_guid_blueprint
 from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
 
-from indexd.fence_client import FenceClient
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
 import os
@@ -22,10 +21,6 @@ def app_init(app, settings=None):
         from .default_settings import settings
     app.config.update(settings["config"])
     app.auth = settings["auth"]
-    app.fence_client = FenceClient(
-        url=os.environ.get("PRESIGNED_FENCE_URL")
-        or "http://presigned-url-fence-service"
-    )
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
     app.register_blueprint(indexd_bulk_blueprint)
     app.register_blueprint(indexd_index_blueprint)
