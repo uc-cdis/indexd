@@ -243,11 +243,6 @@ class ACLConverter(object):
                 )
                 projects_found += 1
                 break
-            else:
-                # nothing worked for any of the acls, raise exception
-                raise EnvironmentError(
-                    "program or project {} does not exist".format(acl_item)
-                )
 
         if not path:
             logger.error(
