@@ -220,7 +220,7 @@ class ACLConverter(object):
             if not acl_item:
                 # ignore empty string
                 continue
-            # prefer user.yaml authz mapping if provided
+            # prefer user.yaml authz mapping (if provided)
             elif acl_item in self.mapping:
                 path = self.mapping[acl_item]
                 projects_found += 1
