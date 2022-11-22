@@ -15,7 +15,7 @@ the record previously had both a program and a project, since the authz field re
 access to all the listed items, only the project should end up in `authz` (since
 requiring the program would omit access to users who can access only the project).
 
-Furthermore, there are two ways to represent the arborist resources that go into
+Furthermore, there are two ways to represent the Arborist resources that go into
 `authz`: the path (human-readable string) and the tag (random string, pseudo-UUID). The
 tags are what we want to ultimately put into the `authz` field, since these are
 persistent whereas the path could change if resources are renamed.
