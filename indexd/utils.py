@@ -47,7 +47,7 @@ def setup_database(
     """Setup the user and database"""
 
     if not no_drop:
-        try_drop_test_data(database)
+        try_drop_test_data(database=database, root_user=root_user, host=host)
 
     # Create an engine connecting to the `postgres` database allows us to
     # create a new database from there.

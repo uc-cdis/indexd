@@ -69,6 +69,8 @@ docs/_build/
 #*#
 
 #venv
+.python-version
+venv
 .venv*/
 venv/
 
