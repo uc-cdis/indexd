@@ -62,7 +62,7 @@ PUT_RECORD_SCHEMA = {
         },
         "etag": {
           "type": "string",
-          "pattern": "^[0-9a-f]{32}(-\d+)?$"
+          "pattern": r"^[0-9a-f]{32}(-\d+)?$"
         }
       },
       "anyOf": [

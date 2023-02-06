@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
 
-class URLsQueryDriver(object):
+class URLsQueryDriver:
     """Relatively abstract class for URLs querying, useful when support for other drivers is added"""
 
     __metaclass__ = ABCMeta

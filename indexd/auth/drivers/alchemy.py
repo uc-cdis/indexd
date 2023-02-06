@@ -31,7 +31,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         """
         Initialize the SQLAlchemy database driver.
         """
-        super(SQLAlchemyAuthDriver, self).__init__(conn, **config)
+        super().__init__(conn, **config)
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
         self.Session = sessionmaker(bind=self.engine)
@@ -66,7 +66,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             if (session.query(AuthRecord)
                 .filter(AuthRecord.username == username)
                 .first()):
-                raise AuthError('User {} already exists'.format(username))
+                raise AuthError(f'User {username} already exists')
 
             new_record = AuthRecord(
                 username=username, password=password)
@@ -77,7 +77,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             user = session.query(AuthRecord).filter(
                 AuthRecord.username == username).first()
             if not user:
-                raise AuthError("User {} doesn't exist".format(username))
+                raise AuthError(f"User {username} doesn't exist")
             session.delete(user)
 
     def health_check(self):

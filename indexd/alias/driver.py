@@ -9,7 +9,7 @@ class AliasDriverABC(SQLAlchemyDriverBase):
     Driver interface for interacting with alias backends.
     '''
     def __init__(self, conn, **config):
-        super(AliasDriverABC, self).__init__(conn, **config)
+        super().__init__(conn, **config)
 
     __metaclass__ = abc.ABCMeta
 

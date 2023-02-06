@@ -4,7 +4,7 @@ from sqlalchemy_utils import database_exists, create_database
 
 Base = declarative_base()
 
-class SQLAlchemyDriverBase(object):
+class SQLAlchemyDriverBase:
     '''
     SQLAlchemy implementation of index driver.
     '''

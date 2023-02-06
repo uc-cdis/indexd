@@ -302,7 +302,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Initialize the SQLAlchemy database driver.
         """
-        super(SQLAlchemyIndexDriver, self).__init__(conn, **config)
+        super().__init__(conn, **config)
         self.logger = logger or get_logger(__name__ + "." + self.__class__.__name__)
         self.config = index_config or {}
 
@@ -691,7 +691,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     self.add_prefix_alias(record, session)
                 session.commit()
             except IntegrityError:
-                raise UserError('did "{did}" already exists'.format(did=record.did), 400)
+                raise UserError(f'did "{record.did}" already exists', 400)
 
             return record.did, record.rev, record.baseid
 
@@ -968,7 +968,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 session.add(record)
                 session.commit()
             except IntegrityError:
-                raise UserError('{did} already exists'.format(did=did), 400)
+                raise UserError(f'{did} already exists', 400)
 
             return record.did, record.baseid, record.rev
 
@@ -1187,7 +1187,7 @@ def migrate_2(session, **kwargs):
             "UPDATE index_record SET baseid = '{}'\
              WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {})".format(baseid, loop + 1))
         session.execute(
-            "INSERT INTO base_version(baseid) VALUES('{}')".format(baseid))
+            f"INSERT INTO base_version(baseid) VALUES('{baseid}')")
 
     session.execute(
         "ALTER TABLE index_record \

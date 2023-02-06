@@ -63,7 +63,7 @@ class SQLAlchemyIndexTestDriver(SQLAlchemyDriverBase):
     '''
 
     def __init__(self, conn, logger=None, **config):
-        super(SQLAlchemyIndexTestDriver, self).__init__(conn, **config)
+        super().__init__(conn, **config)
         self.logger = logger or get_logger('SQLAlchemyIndexTestDriver')
 
         Base.metadata.bind = self.engine

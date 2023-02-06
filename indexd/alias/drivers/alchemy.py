@@ -89,8 +89,8 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         '''
         Initialize the SQLAlchemy database driver.
         '''
-        super(SQLAlchemyAliasDriver, self).__init__(conn, **config)
-        self.logger = logger or get_logger("{}.{}".format(__name__, self.__class__.__name__))
+        super().__init__(conn, **config)
+        self.logger = logger or get_logger(f"{__name__}.{self.__class__.__name__}")
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
 

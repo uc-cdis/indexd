@@ -1,61 +1,61 @@
 # column name, data type, nullable, default value, primary key
 INDEX_TABLES = {
     'index_record': [
-        (u'did', u'character varying', u'NO', None, u'PRIMARY KEY'),
-        (u'baseid', u'character varying', u'YES', None, None),
-        (u'rev', u'character varying', u'YES', None, None),
-        (u'form', u'character varying', u'YES', None, None),
-        (u'size', u'bigint',  u'YES', None, None),
-        (u'release_number', u'character varying', u'YES', None, None),
-        (u'created_date', u'timestamp without time zone', u'YES', None, None),
-        (u'updated_date', u'timestamp without time zone', u'YES', None, None),
-        (u'file_name', u'character varying', u'YES', None, None),
-        (u'version', u'character varying', u'YES', None, None),
-        (u'uploader', u'character varying', u'YES', None, None),
-        (u'index_metadata', u'jsonb', u'YES', None, None),
+        ('did', 'character varying', 'NO', None, 'PRIMARY KEY'),
+        ('baseid', 'character varying', 'YES', None, None),
+        ('rev', 'character varying', 'YES', None, None),
+        ('form', 'character varying', 'YES', None, None),
+        ('size', 'bigint',  'YES', None, None),
+        ('release_number', 'character varying', 'YES', None, None),
+        ('created_date', 'timestamp without time zone', 'YES', None, None),
+        ('updated_date', 'timestamp without time zone', 'YES', None, None),
+        ('file_name', 'character varying', 'YES', None, None),
+        ('version', 'character varying', 'YES', None, None),
+        ('uploader', 'character varying', 'YES', None, None),
+        ('index_metadata', 'jsonb', 'YES', None, None),
     ],
     'index_record_ace': [
-        (u'did', u'character varying', 'NO', None, u'PRIMARY KEY'),
-        (u'ace', u'character varying', 'NO', None, u'PRIMARY KEY'),
+        ('did', 'character varying', 'NO', None, 'PRIMARY KEY'),
+        ('ace', 'character varying', 'NO', None, 'PRIMARY KEY'),
     ],
     'index_record_hash': [
-        (u'did', u'character varying', 'NO', None, u'PRIMARY KEY'),
-        (u'hash_type', u'character varying', 'NO', None, u'PRIMARY KEY'),
-        (u'hash_value', u'character varying', 'YES', None, None),
+        ('did', 'character varying', 'NO', None, 'PRIMARY KEY'),
+        ('hash_type', 'character varying', 'NO', None, 'PRIMARY KEY'),
+        ('hash_value', 'character varying', 'YES', None, None),
     ],
     'index_record_url_metadata_jsonb': [
-        (u'did', u'character varying', u'NO', None, u'PRIMARY KEY'),
-        (u'url', u'character varying', u'NO', None, u'PRIMARY KEY'),
-        (u'type', u'character varying', u'YES', None, None),
-        (u'state', u'character varying', u'YES', None, None),
-        (u'urls_metadata', u'jsonb', u'YES', None, None),
+        ('did', 'character varying', 'NO', None, 'PRIMARY KEY'),
+        ('url', 'character varying', 'NO', None, 'PRIMARY KEY'),
+        ('type', 'character varying', 'YES', None, None),
+        ('state', 'character varying', 'YES', None, None),
+        ('urls_metadata', 'jsonb', 'YES', None, None),
     ],
     'index_schema_version': [
-        (u'version', u'integer', 'NO', None, 'PRIMARY KEY'),
+        ('version', 'integer', 'NO', None, 'PRIMARY KEY'),
     ],
 }
 
 # column name, data type, nullable, default value, primary key
 ALIAS_TABLES = {
     'alias_record': [
-        (u'name', u'character varying', u'NO', None, u'PRIMARY KEY'),
-        (u'rev', u'character varying', u'YES', None, None),
-        (u'size', u'bigint',  u'YES', None, None),
-        (u'release', u'character varying', u'YES', None, None),
-        (u'metastring', u'character varying', u'YES', None, None),
-        (u'keeper_authority', u'character varying', u'YES', None, None),
+        ('name', 'character varying', 'NO', None, 'PRIMARY KEY'),
+        ('rev', 'character varying', 'YES', None, None),
+        ('size', 'bigint',  'YES', None, None),
+        ('release', 'character varying', 'YES', None, None),
+        ('metastring', 'character varying', 'YES', None, None),
+        ('keeper_authority', 'character varying', 'YES', None, None),
     ],
     'alias_record_hash': [
-        (u'name', u'character varying', u'NO', None, u'PRIMARY KEY'),
-        (u'hash_type', u'character varying', u'NO', None, u'PRIMARY KEY'),
-        (u'hash_value', u'character varying', u'YES', None, None)
+        ('name', 'character varying', 'NO', None, 'PRIMARY KEY'),
+        ('hash_type', 'character varying', 'NO', None, 'PRIMARY KEY'),
+        ('hash_value', 'character varying', 'YES', None, None)
     ],
     'alias_record_host_authority': [
-        (u'name', u'character varying', u'NO', None, u'PRIMARY KEY'),
-        (u'host', u'character varying', u'NO', None, u'PRIMARY KEY'),
+        ('name', 'character varying', 'NO', None, 'PRIMARY KEY'),
+        ('host', 'character varying', 'NO', None, 'PRIMARY KEY'),
     ],
     'alias_schema_version': [
-        (u'version', u'integer', u'NO', u"nextval('alias_schema_version_version_seq'::regclass)", u'PRIMARY KEY'),
+        ('version', 'integer', 'NO', "nextval('alias_schema_version_version_seq'::regclass)", 'PRIMARY KEY'),
     ],
 }
 
@@ -76,7 +76,7 @@ def test_postgres_index_setup_tables(index_driver, database_conn):
     tables = [i[0] for i in c]
 
     for table in INDEX_TABLES:
-        assert table in tables, '{table} not created'.format(table=table)
+        assert table in tables, f'{table} not created'
 
     for table, schema in INDEX_TABLES.items():
         # Index, column name, data type, nullable, default value, primary key
@@ -113,7 +113,7 @@ def test_postgres_alias_setup_tables(alias_driver, database_conn):
     tables = [i[0] for i in c]
 
     for table in ALIAS_TABLES:
-        assert table in tables, '{table} not created'.format(table=table)
+        assert table in tables, f'{table} not created'
 
     for table, schema in ALIAS_TABLES.items():
         # Index, column name, data type, nullable, default value, primary key

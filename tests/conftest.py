@@ -54,7 +54,7 @@ def truncate_tables(driver, base):
         for table in reversed(base.metadata.sorted_tables):
             # do not clear schema versions so each test does not re-trigger migration.
             if table.name not in ["index_schema_version", "alias_schema_version"]:
-                txn.execute("TRUNCATE {} CASCADE;".format(table.name))
+                txn.execute(f"TRUNCATE {table.name} CASCADE;")
 
 
 @pytest.fixture
@@ -153,7 +153,7 @@ def indexd_server():
 
 
 def wait_for_indexd_alive(port):
-    url = 'http://localhost:{}'.format(port)
+    url = f'http://localhost:{port}'
     try:
         requests.get(url)
     except requests.ConnectionError:
@@ -162,10 +162,10 @@ def wait_for_indexd_alive(port):
         return
 
 
-class MockServer(object):
+class MockServer:
     def __init__(self, port):
         self.port = port
-        self.baseurl = 'http://localhost:{}'.format(port)
+        self.baseurl = f'http://localhost:{port}'
 
 
 @pytest.fixture

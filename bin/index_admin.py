@@ -20,14 +20,14 @@ def main(path, action=None, username=None, password=None):
     if action == 'create':
         try:
             driver.add(username, password)
-            logger.info('User {} created'.format(username))
+            logger.info(f'User {username} created')
         except Exception as e:
             logger.error(e)
 
     elif action == 'delete':
         try:
             driver.delete(username)
-            logger.info('User {} deleted'.format(username))
+            logger.info(f'User {username} deleted')
         except Exception as e:
             logger.error(e)
 

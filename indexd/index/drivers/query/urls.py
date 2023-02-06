@@ -41,7 +41,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             list (dict): matching documents with specified return fields
         """
         if kwargs:
-            raise UserError("Unexpected query parameter(s) {}".format(kwargs.keys()))
+            raise UserError(f"Unexpected query parameter(s) {kwargs.keys()}")
 
         with self.driver.session as session:
             # special database specific functions dependent of the selected dialect
@@ -88,7 +88,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             list (dict): matching documents with specified return fields
         """
         if kwargs:
-            raise UserError("Unexpected query parameter(s) {}".format(kwargs.keys()))
+            raise UserError(f"Unexpected query parameter(s) {kwargs.keys()}")
 
         with self.driver.session as session:
             query = session.query(IndexRecordUrlMetadataJsonb.did,
@@ -112,7 +112,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
 
             # add url filter
             if url:
-                query = query.filter(IndexRecordUrlMetadataJsonb.url.like("%{}%".format(url)))
+                query = query.filter(IndexRecordUrlMetadataJsonb.url.like(f"%{url}%"))
 
             # [('did', 'url', 'rev')]
             record_list = query.order_by(IndexRecordUrlMetadataJsonb.did.asc()).offset(offset).limit(limit).all()

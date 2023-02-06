@@ -3,7 +3,7 @@ import os
 import shutil
 
 
-class removes(object):
+class removes:
     """
     Decorator to remove a path after function call.
     """
@@ -59,11 +59,11 @@ def make_sql_statement(statement, args):
 
     for arg in args:
         if isinstance(arg, str):
-            arg = "'{}'".format(arg)
+            arg = f"'{arg}'"
         elif arg is None:
             arg = 'null'
         elif isinstance(arg, datetime.datetime):
-            arg = "'{}'".format(arg.isoformat())
+            arg = f"'{arg.isoformat()}'"
         else:
             arg = str(arg)
 
