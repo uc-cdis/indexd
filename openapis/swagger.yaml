@@ -1449,6 +1449,8 @@ definitions:
         type: object
       version:
         type: string
+      description:
+        type: string
       urls:
         type: array
         items:
@@ -2350,7 +2352,11 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Checksum'
-
+      description:
+        type: string
+      version:
+        type: string
+        description: optional version string of the object
       bundles:
         type: array
         items:
