@@ -855,7 +855,7 @@ paths:
       - name: versioned
         in: query
         description: if true search for documents with a version set, if false search
-          documents without version, else search both versioned and unversioned 
+          documents without version, else search both versioned and unversioned
           documents
         schema:
           type: boolean
@@ -921,7 +921,7 @@ paths:
       - name: versioned
         in: query
         description: if true search for documents with a version set, if false search
-          documents without version, else search both versioned and unversioned 
+          documents without version, else search both versioned and unversioned
           documents
         schema:
           type: boolean

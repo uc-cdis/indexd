@@ -423,7 +423,7 @@ def test_driver_get_latest_version_exclude_deleted(index_driver, database_conn):
             index_metadata = json.dumps({"deleted": "true"})
 
         database_conn.execute(make_sql_statement("""
-            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, index_metadata) 
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, index_metadata)
             VALUES (?,?,?,?,?,?,?,?)
         """, (did, baseid, rev, form, size, created_date, updated_date, index_metadata)))
 
@@ -827,7 +827,7 @@ def test_driver_bulk_get_latest_versions_exclude_deleted(index_driver, database_
                 baseids[baseid]["deleted_did"] = did
 
             database_conn.execute(make_sql_statement("""
-                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, index_metadata) 
+                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, index_metadata)
                 VALUES (?,?,?,?,?,?,?,?)
             """, (did, baseid, rev, form, size, created_date, updated_date, index_metadata)))
 

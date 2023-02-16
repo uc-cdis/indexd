@@ -12,7 +12,7 @@ update-ca-certificates
 #
 if [[ -f ./wsgi.py && "$GEN3_DEBUG" == "True" ]]; then
   echo -e "\napplication.debug=True\n" >> ./wsgi.py
-fi  
+fi
 
 sudo -u www-data python3 wsgi.py
 /usr/sbin/apache2ctl -D FOREGROUND

@@ -19,7 +19,7 @@ def handle_error(resp):
         finally:
             resp.raise_for_status()
 
-            
+
 def hint_match(record, hints):
     for hint in hints:
         if re.match(hint, record):

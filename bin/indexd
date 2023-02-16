@@ -75,7 +75,7 @@ if __name__ == '__main__':
     setup_logging(**args.__dict__)
 
     logging.debug(args)
-    
+
     try: main(**args.__dict__)
     except Exception as err:
         logging.exception(err)

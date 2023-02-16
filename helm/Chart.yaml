@@ -17,7 +17,7 @@ type: application
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
 
-# This will be updated with the release tag in the CI/CD pipeline before publishing. 
+# This will be updated with the release tag in the CI/CD pipeline before publishing.
 # This has to be a valid semver for the linter to accept.
 version: 0
 
@@ -25,7 +25,7 @@ version: 0
 # incremented each time you make changes to the application. Versions are not expected to
 # follow Semantic Versioning. They should reflect the version the application is using.
 
-# This will be updated with the release tag in the CI/CD pipeline before publishing. 
+# This will be updated with the release tag in the CI/CD pipeline before publishing.
 # This has to be a valid semver for the linter to accept.
 # appVersion: ""
 
