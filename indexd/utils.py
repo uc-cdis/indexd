@@ -9,6 +9,7 @@ import sqlalchemy_utils
 
 logger = logging.getLogger(__name__)
 
+
 def handle_error(resp):
     if 400 <= resp.status_code < 600:
         try:
@@ -27,13 +28,15 @@ def hint_match(record, hints):
     return False
 
 
-def try_drop_test_data(
-        database='indexd_test', root_user='postgres', host='localhost'):
+def try_drop_test_data(database="indexd_test", root_user="postgres", host="localhost"):
 
     # Using an engine that connects to the `postgres` database allows us to
     # create a new database.
-    engine = create_engine("postgresql://{user}@{host}/{name}".format(
-        user=root_user, host=host, name=database))
+    engine = create_engine(
+        "postgresql://{user}@{host}/{name}".format(
+            user=root_user, host=host, name=database
+        )
+    )
 
     if sqlalchemy_utils.database_exists(engine.url):
         sqlalchemy_utils.drop_database(engine.url)
@@ -42,8 +45,14 @@ def try_drop_test_data(
 
 
 def setup_database(
-        user='test', password='test', database='indexd_test',
-        root_user='postgres', host='localhost', no_drop=False, no_user=False):
+    user="test",
+    password="test",
+    database="indexd_test",
+    root_user="postgres",
+    host="localhost",
+    no_drop=False,
+    no_user=False,
+):
     """Setup the user and database"""
 
     if not no_drop:
@@ -51,8 +60,11 @@ def setup_database(
 
     # Create an engine connecting to the `postgres` database allows us to
     # create a new database from there.
-    engine = create_engine("postgresql://{user}@{host}/{name}".format(
-        user=root_user, host=host, name=database))
+    engine = create_engine(
+        "postgresql://{user}@{host}/{name}".format(
+            user=root_user, host=host, name=database
+        )
+    )
     if not sqlalchemy_utils.database_exists(engine.url):
         sqlalchemy_utils.create_database(engine.url)
 
@@ -61,11 +73,14 @@ def setup_database(
     if not no_user:
         try:
             user_stmt = "CREATE USER {user} WITH PASSWORD '{password}'".format(
-                user=user, password=password)
+                user=user, password=password
+            )
             conn.execute(user_stmt)
 
-            perm_stmt = 'GRANT ALL PRIVILEGES ON DATABASE {database} to {password}'\
-                        ''.format(database=database, password=password)
+            perm_stmt = (
+                "GRANT ALL PRIVILEGES ON DATABASE {database} to {password}"
+                "".format(database=database, password=password)
+            )
             conn.execute(perm_stmt)
             conn.execute("commit")
         except Exception as e:
@@ -127,22 +142,26 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
 
     if not check_engine_for_migrate(driver.engine) and need_migrate:
         logger.error(
-            'Engine {} does not support alter, skip migration'.format(
-                driver.engine.dialect.name))
+            "Engine {} does not support alter, skip migration".format(
+                driver.engine.dialect.name
+            )
+        )
         return
-    for f in migrate_functions[
-            db_schema_version:current_schema_version]:
+    for f in migrate_functions[db_schema_version:current_schema_version]:
         with driver.session as s:
             schema_version = s.query(model).first()
             schema_version.version += 1
-            logger.debug('migrating {} schema to {}'.format(
-                driver.__class__.__name__,
-                schema_version.version))
+            logger.debug(
+                "migrating {} schema to {}".format(
+                    driver.__class__.__name__, schema_version.version
+                )
+            )
 
             f(engine=driver.engine, session=s)
             s.merge(schema_version)
-            logger.debug('finished migration for version {}'.format(
-                schema_version.version))
+            logger.debug(
+                "finished migration for version {}".format(schema_version.version)
+            )
 
 
 def is_empty_database(driver):

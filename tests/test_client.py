@@ -525,9 +525,7 @@ def test_index_create_with_acl(swg_index_client):
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
-        "urls_metadata": {
-            "s3://endpointurl/bucket/key": {"state": "uploaded"},
-        },
+        "urls_metadata": {"s3://endpointurl/bucket/key": {"state": "uploaded"},},
     }
 
     r = swg_index_client.add_index_entry(data)
@@ -710,9 +708,7 @@ def test_create_index_version(swg_index_client):
         "urls": ["s3://endpointurl/bucket2/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"},
         "acl": ["a"],
-        "urls_metadata": {
-            "s3://endpointurl/bucket2/key": {"state": "uploaded"},
-        },
+        "urls_metadata": {"s3://endpointurl/bucket2/key": {"state": "uploaded"},},
     }
 
     r2 = swg_index_client.add_index_new_version(guid=r.did, body=dataNew)
@@ -872,9 +868,7 @@ def test_good_hashes(client, user, typ, h):
         "file_name": "abc",
         "version": "ver_123",
         "hashes": {typ: h},
-        "urls_metadata": {
-            "s3://endpointurl/bucket/key": {"state": "uploaded"},
-        },
+        "urls_metadata": {"s3://endpointurl/bucket/key": {"state": "uploaded"},},
     }
 
     resp = client.post("/index/", data=json.dumps(data), headers=user)
@@ -908,9 +902,7 @@ def test_bad_hashes(client, user, typ, h):
         "file_name": "abc",
         "version": "ver_123",
         "hashes": {typ: h},
-        "urls_metadata": {
-            "s3://endpointurl/bucket/key": {"state": "uploaded"},
-        },
+        "urls_metadata": {"s3://endpointurl/bucket/key": {"state": "uploaded"},},
     }
 
     resp = client.post("/index/", data=json.dumps(data), headers=user)
@@ -1011,7 +1003,11 @@ def test_bulk_get_documents(swg_index_client, swg_bulk_client):
 @pytest.mark.parametrize("add_target_criteria", [True, False])
 @pytest.mark.parametrize("target_flag_value", [True, False])
 def test_bulk_get_latest_version(
-    swg_index_client, swg_bulk_client, target_flag, add_target_criteria, target_flag_value
+    swg_index_client,
+    swg_bulk_client,
+    target_flag,
+    add_target_criteria,
+    target_flag_value,
 ):
     """
     Tests the bulk_get_latest_version targeting either the skip_null or exclude_deleted flag

@@ -74,7 +74,10 @@ def test_query_urls(swg_index_client, swg_query_client, test_data):
 
     # test exclude url
     urls_list = swg_query_client.query_urls(exclude="awesome-x")
-    assert len(urls_list) == versioned_count + unversioned_count + deleted_count - 3 * url_x_count
+    assert (
+        len(urls_list)
+        == versioned_count + unversioned_count + deleted_count - 3 * url_x_count
+    )
 
     # test include
     urls_list = swg_query_client.query_urls(include="awesome-x")
@@ -92,9 +95,13 @@ def test_query_urls_metadata(swg_index_client, swg_query_client, test_data):
     url_x_count, versioned_count, unversioned_count, deleted_count = test_data
 
     # test get all
-    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploaded", url="endpointurl")
+    urls_list = swg_query_client.query_urls_metadata(
+        key="state", value="uploaded", url="endpointurl"
+    )
     assert len(urls_list) == versioned_count + unversioned_count + deleted_count
-    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploaded", url="awesome-x")
+    urls_list = swg_query_client.query_urls_metadata(
+        key="state", value="uploaded", url="awesome-x"
+    )
     assert len(urls_list) == 3 * url_x_count
 
     # test exclude deleted with url known to exist in all documents
@@ -111,26 +118,48 @@ def test_query_urls_metadata(swg_index_client, swg_query_client, test_data):
 
     # test un-versioned with url known to exist in all documents
     urls_list = swg_query_client.query_urls_metadata(
-        key="state", value="uploaded", url="endpointurl", versioned=False, exclude_deleted=True)
+        key="state",
+        value="uploaded",
+        url="endpointurl",
+        versioned=False,
+        exclude_deleted=True,
+    )
     assert len(urls_list) == unversioned_count
 
     # test un-versioned with url known to exist only in a subset of documents
     urls_list = swg_query_client.query_urls_metadata(
-        key="state", value="uploaded", url="awesome-x", versioned=False, exclude_deleted=True)
+        key="state",
+        value="uploaded",
+        url="awesome-x",
+        versioned=False,
+        exclude_deleted=True,
+    )
     assert len(urls_list) == url_x_count
 
     # test versioned with url known to exist in all documents
     urls_list = swg_query_client.query_urls_metadata(
-        key="state", value="uploaded", url="endpointurl", versioned=True, exclude_deleted=True)
+        key="state",
+        value="uploaded",
+        url="endpointurl",
+        versioned=True,
+        exclude_deleted=True,
+    )
     assert len(urls_list) == versioned_count
 
     # test versioned with url known to exist only in a subset of documents
     urls_list = swg_query_client.query_urls_metadata(
-        key="state", value="uploaded", url="awesome-x", versioned=True, exclude_deleted=True)
+        key="state",
+        value="uploaded",
+        url="awesome-x",
+        versioned=True,
+        exclude_deleted=True,
+    )
     assert len(urls_list) == url_x_count
 
     # test unknown state
-    urls_list = swg_query_client.query_urls_metadata(key="state", value="uploadedx", url="awesome-x")
+    urls_list = swg_query_client.query_urls_metadata(
+        key="state", value="uploadedx", url="awesome-x"
+    )
     assert len(urls_list) == 0
 
 

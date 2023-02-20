@@ -9,7 +9,7 @@ from indexd.index.drivers.query import URLsQueryDriver
 
 driver_query_map = {
     "sqlite": dict(array_agg=func.group_concat, string_agg=func.group_concat),
-    "postgresql": dict(array_agg=func.array_agg, string_agg=func.string_agg)
+    "postgresql": dict(array_agg=func.array_agg, string_agg=func.string_agg),
 }
 
 
@@ -23,8 +23,17 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         """
         self.driver = alchemy_driver
 
-    def query_urls(self, exclude=None, include=None, versioned=None, exclude_deleted=False, offset=0, limit=1000,
-                   fields="did,urls", **kwargs):
+    def query_urls(
+        self,
+        exclude=None,
+        include=None,
+        versioned=None,
+        exclude_deleted=False,
+        offset=0,
+        limit=1000,
+        fields="did,urls",
+        **kwargs,
+    ):
         """
         Get a list of document fields matching the search parameters
         Args:
@@ -59,18 +68,49 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
 
             # add url filters
             if include and exclude:
-                query = query.having(and_(~q_func["string_agg"](IndexRecordUrlMetadataJsonb.url, ",").contains(exclude),
-                                          q_func["string_agg"](IndexRecordUrlMetadataJsonb.url, ",").contains(include)))
+                query = query.having(
+                    and_(
+                        ~q_func["string_agg"](
+                            IndexRecordUrlMetadataJsonb.url, ","
+                        ).contains(exclude),
+                        q_func["string_agg"](
+                            IndexRecordUrlMetadataJsonb.url, ","
+                        ).contains(include),
+                    )
+                )
             elif include:
-                query = query.having(q_func["string_agg"](IndexRecordUrlMetadataJsonb.url, ",").contains(include))
+                query = query.having(
+                    q_func["string_agg"](IndexRecordUrlMetadataJsonb.url, ",").contains(
+                        include
+                    )
+                )
             elif exclude:
-                query = query.having(~q_func["string_agg"](IndexRecordUrlMetadataJsonb.url, ",").contains(exclude))
+                query = query.having(
+                    ~q_func["string_agg"](
+                        IndexRecordUrlMetadataJsonb.url, ","
+                    ).contains(exclude)
+                )
             # [("did", "urls")]
-            record_list = query.order_by(IndexRecordUrlMetadataJsonb.did.asc()).offset(offset).limit(limit).all()
+            record_list = (
+                query.order_by(IndexRecordUrlMetadataJsonb.did.asc())
+                .offset(offset)
+                .limit(limit)
+                .all()
+            )
         return self._format_response(fields, record_list)
 
-    def query_metadata_by_key(self, key, value, url=None, versioned=None, exclude_deleted=False, offset=0,
-                              limit=1000, fields="did,urls,rev", **kwargs):
+    def query_metadata_by_key(
+        self,
+        key,
+        value,
+        url=None,
+        versioned=None,
+        exclude_deleted=False,
+        offset=0,
+        limit=1000,
+        fields="did,urls,rev",
+        **kwargs,
+    ):
         """
         Get a list of document fields matching the search parameters
         Args:
@@ -91,21 +131,26 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             raise UserError(f"Unexpected query parameter(s) {kwargs.keys()}")
 
         with self.driver.session as session:
-            query = session.query(IndexRecordUrlMetadataJsonb.did,
-                                  IndexRecordUrlMetadataJsonb.url,
-                                  IndexRecord.rev)
+            query = session.query(
+                IndexRecordUrlMetadataJsonb.did,
+                IndexRecordUrlMetadataJsonb.url,
+                IndexRecord.rev,
+            )
             if key == "type":
                 query = query.filter(
                     IndexRecord.did == IndexRecordUrlMetadataJsonb.did,
-                    IndexRecordUrlMetadataJsonb.type == value)
+                    IndexRecordUrlMetadataJsonb.type == value,
+                )
             elif key == "state":
                 query = query.filter(
                     IndexRecord.did == IndexRecordUrlMetadataJsonb.did,
-                    IndexRecordUrlMetadataJsonb.state == value)
+                    IndexRecordUrlMetadataJsonb.state == value,
+                )
             else:
                 query = query.filter(
                     IndexRecord.did == IndexRecordUrlMetadataJsonb.did,
-                    IndexRecordUrlMetadataJsonb.urls_metadata[key].astext == value)
+                    IndexRecordUrlMetadataJsonb.urls_metadata[key].astext == value,
+                )
 
             # handle filters for versioned and/or exclude_deleted flags
             query = self._filter_indexrecord(query, versioned, exclude_deleted)
@@ -115,7 +160,12 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 query = query.filter(IndexRecordUrlMetadataJsonb.url.like(f"%{url}%"))
 
             # [('did', 'url', 'rev')]
-            record_list = query.order_by(IndexRecordUrlMetadataJsonb.did.asc()).offset(offset).limit(limit).all()
+            record_list = (
+                query.order_by(IndexRecordUrlMetadataJsonb.did.asc())
+                .offset(offset)
+                .limit(limit)
+                .all()
+            )
         return self._format_response(fields, record_list)
 
     @staticmethod
@@ -127,7 +177,10 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             # handle not deleted filter
             if exclude_deleted:
                 query = query.filter(
-                    (func.lower(IndexRecord.index_metadata["deleted"].astext) == "true").isnot(True)
+                    (
+                        func.lower(IndexRecord.index_metadata["deleted"].astext)
+                        == "true"
+                    ).isnot(True)
                 )
 
             # handle version filter if not None

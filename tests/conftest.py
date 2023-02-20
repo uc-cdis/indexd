@@ -20,10 +20,10 @@ from indexd.index.drivers.alchemy import (
 from indexd.utils import setup_database, try_drop_test_data
 
 
-PG_URL = 'postgresql://test:test@localhost/indexd_test'
+PG_URL = "postgresql://test:test@localhost/indexd_test"
 
 
-@pytest.fixture(scope='session', autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def setup_indexd_test_database(request):
     """Set up the database to be used for the tests.
 
@@ -123,7 +123,8 @@ def create_indexd_tables(index_driver, alias_driver, auth_driver):
 
 @pytest.fixture
 def create_indexd_tables_no_migrate(
-        index_driver_no_migrate, alias_driver_no_migrate, auth_driver):
+    index_driver_no_migrate, alias_driver_no_migrate, auth_driver
+):
     """Make sure the tables are created but don't operate on them directly.
 
     There is no migration required for the SQLAlchemyAuthDriver.
@@ -132,7 +133,7 @@ def create_indexd_tables_no_migrate(
     pass
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def indexd_server():
     """
     Starts the indexd server, and cleans up its mess.
@@ -142,10 +143,12 @@ def indexd_server():
     Runs once per test session.
     """
     app = get_app()
-    hostname = 'localhost'
+    hostname = "localhost"
     port = 8001
     debug = False
-    t = threading.Thread(target=app.run, kwargs={'host': hostname, 'port': port, 'debug': debug})
+    t = threading.Thread(
+        target=app.run, kwargs={"host": hostname, "port": port, "debug": debug}
+    )
     t.setDaemon(True)
     t.start()
     wait_for_indexd_alive(port)
@@ -153,7 +156,7 @@ def indexd_server():
 
 
 def wait_for_indexd_alive(port):
-    url = f'http://localhost:{port}'
+    url = f"http://localhost:{port}"
     try:
         requests.get(url)
     except requests.ConnectionError:
@@ -165,7 +168,7 @@ def wait_for_indexd_alive(port):
 class MockServer:
     def __init__(self, port):
         self.port = port
-        self.baseurl = f'http://localhost:{port}'
+        self.baseurl = f"http://localhost:{port}"
 
 
 @pytest.fixture
@@ -175,17 +178,13 @@ def app(index_driver, alias_driver, auth_driver):
     it goes through an entire migration process that creates all the tables.
     The tables are already created from the fixtures in this module.
     """
-    app = flask.Flask('indexd')
+    app = flask.Flask("indexd")
     settings = {
-        'config': {
-            'INDEX': {
-                'driver': index_driver,
-            },
-            'ALIAS': {
-                'driver': alias_driver,
-            },
+        "config": {
+            "INDEX": {"driver": index_driver,},
+            "ALIAS": {"driver": alias_driver,},
         },
-        'auth': auth_driver,
+        "auth": auth_driver,
     }
     app_init(app, settings=settings)
     return app
@@ -193,16 +192,14 @@ def app(index_driver, alias_driver, auth_driver):
 
 @pytest.fixture
 def user(auth_driver):
-    auth_driver.add('test', 'test')
+    auth_driver.add("test", "test")
     yield {
-        'Authorization': (
-            'Basic ' +
-            base64.b64encode(b'test:test').decode('ascii')),
-        'Content-Type': 'application/json'
+        "Authorization": ("Basic " + base64.b64encode(b"test:test").decode("ascii")),
+        "Content-Type": "application/json",
     }
 
     # clean user
-    auth_driver.delete('test')
+    auth_driver.delete("test")
 
 
 @pytest.fixture
@@ -217,9 +214,9 @@ def swg_config(indexd_server, index_driver, alias_driver, indexd_admin_user):
 @pytest.fixture
 def swg_config_no_migrate(indexd_server_no_migrate, create_indexd_tables_no_migrate):
     config = swagger_client.Configuration()
-    config.host = 'http://localhost:8001'
-    config.username = 'admin'
-    config.password = 'admin'
+    config.host = "http://localhost:8001"
+    config.username = "admin"
+    config.password = "admin"
     return config
 
 

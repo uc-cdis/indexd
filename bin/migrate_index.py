@@ -9,13 +9,13 @@ import os
 
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     SQLAlchemyIndexDriver(
-        'postgresql://{username}:{password}@{hostname}:{port}/{database}'.format(
-            username=os.environ.get('PG_USER'),
-            password=os.environ.get('PG_PASS'),
-            hostname=os.environ.get('PG_HOST'),
-            port=os.environ.get('PG_PORT'),
-            database=os.environ.get('PG_DATABASE'),
+        "postgresql://{username}:{password}@{hostname}:{port}/{database}".format(
+            username=os.environ.get("PG_USER"),
+            password=os.environ.get("PG_PASS"),
+            hostname=os.environ.get("PG_HOST"),
+            port=os.environ.get("PG_PORT"),
+            database=os.environ.get("PG_DATABASE"),
         )
     )

@@ -31,12 +31,26 @@ def query():
     """
     args_dict = flask.request.args.to_dict()
     if "versioned" in args_dict.keys():
-        args_dict["versioned"] = args_dict["versioned"].lower() in ["true", "t", "yes", "y"]
+        args_dict["versioned"] = args_dict["versioned"].lower() in [
+            "true",
+            "t",
+            "yes",
+            "y",
+        ]
     if "exclude_deleted" in args_dict.keys():
-        args_dict["exclude_deleted"] = args_dict["exclude_deleted"].lower() in ["true", "t", "yes", "y"]
+        args_dict["exclude_deleted"] = args_dict["exclude_deleted"].lower() in [
+            "true",
+            "t",
+            "yes",
+            "y",
+        ]
 
     record_list = blueprint.driver.query_urls(**args_dict)
-    return flask.Response(json.dumps(record_list, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
+    return flask.Response(
+        json.dumps(record_list, indent=2, separators=(", ", ": ")),
+        200,
+        mimetype="application/json",
+    )
 
 
 @blueprint.route("/metadata/q")
@@ -62,12 +76,26 @@ def query_metadata():
     """
     args_dict = flask.request.args.to_dict()
     if "versioned" in args_dict.keys():
-        args_dict["versioned"] = args_dict["versioned"].lower() in ["true", "t", "yes", "y"]
+        args_dict["versioned"] = args_dict["versioned"].lower() in [
+            "true",
+            "t",
+            "yes",
+            "y",
+        ]
     if "exclude_deleted" in args_dict.keys():
-        args_dict["exclude_deleted"] = args_dict["exclude_deleted"].lower() in ["true", "t", "yes", "y"]
+        args_dict["exclude_deleted"] = args_dict["exclude_deleted"].lower() in [
+            "true",
+            "t",
+            "yes",
+            "y",
+        ]
 
     record_list = blueprint.driver.query_metadata_by_key(**args_dict)
-    return flask.Response(json.dumps(record_list, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
+    return flask.Response(
+        json.dumps(record_list, indent=2, separators=(", ", ": ")),
+        200,
+        mimetype="application/json",
+    )
 
 
 @blueprint.record

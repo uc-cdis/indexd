@@ -2,17 +2,10 @@ from setuptools import setup, find_packages
 
 setup(
     name="indexd",
-    use_scm_version={
-        "local_scheme": "dirty-tag",
-        "write_to": "indexd/_version.py",
-    },
+    use_scm_version={"local_scheme": "dirty-tag", "write_to": "indexd/_version.py",},
     setup_requires=["setuptools_scm<6"],
     packages=find_packages(),
-    package_data={
-        "index": [
-            "schemas/*",
-        ]
-    },
+    package_data={"index": ["schemas/*",]},
     scripts=["bin/index_admin.py", "bin/indexd", "bin/migrate_index.py"],
     install_requires=[
         "flask~=1.1",

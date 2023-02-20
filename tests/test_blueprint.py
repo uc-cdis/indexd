@@ -11,9 +11,9 @@ def test_flask_blueprint(index_driver, alias_driver):
     """
     app = flask.Flask(__name__)
 
-    app.config['INDEX'] = {'driver': index_driver}
-    app.config['ALIAS'] = {'driver': alias_driver}
-    app.config['DIST'] = []
+    app.config["INDEX"] = {"driver": index_driver}
+    app.config["ALIAS"] = {"driver": alias_driver}
+    app.config["DIST"] = []
 
     app.register_blueprint(indexd_bulk_blueprint)
     app.register_blueprint(indexd_index_blueprint)
@@ -26,8 +26,8 @@ def test_flask_blueprint_missing_index_config(alias_driver):
     """
     app = flask.Flask(__name__)
 
-    app.config['ALIAS'] = {'driver': alias_driver}
-    app.config['DIST'] = []
+    app.config["ALIAS"] = {"driver": alias_driver}
+    app.config["DIST"] = []
 
     with pytest.raises(Exception):
         app.register_blueprint(indexd_index_blueprint)
@@ -41,9 +41,9 @@ def test_flask_blueprint_invalid_index_config(alias_driver):
     """
     app = flask.Flask(__name__)
 
-    app.config['INDEX'] = None
-    app.config['ALIAS'] = {'driver': alias_driver}
-    app.config['DIST'] = []
+    app.config["INDEX"] = None
+    app.config["ALIAS"] = {"driver": alias_driver}
+    app.config["DIST"] = []
 
     with pytest.raises(Exception):
         app.register_blueprint(indexd_index_blueprint)
@@ -57,8 +57,8 @@ def test_flask_blueprint_missing_alias_config(index_driver):
     """
     app = flask.Flask(__name__)
 
-    app.config['INDEX'] = {'driver': index_driver}
-    app.config['DIST'] = []
+    app.config["INDEX"] = {"driver": index_driver}
+    app.config["DIST"] = []
 
     with pytest.raises(Exception):
         app.register_blueprint(indexd_alias_blueprint)
@@ -72,9 +72,9 @@ def test_flask_blueprint_invalid_alias_config(index_driver):
     """
     app = flask.Flask(__name__)
 
-    app.config['INDEX'] = {'driver': index_driver}
-    app.config['ALIAS'] = None
-    app.config['DIST'] = []
+    app.config["INDEX"] = {"driver": index_driver}
+    app.config["ALIAS"] = None
+    app.config["DIST"] = []
 
     with pytest.raises(Exception):
         app.register_blueprint(indexd_alias_blueprint)
