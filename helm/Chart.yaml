@@ -1,3 +1,4 @@
+---
 # The apiVersion field should be v2 for Helm charts that require at least Helm 3.
 apiVersion: v2
 name: indexd

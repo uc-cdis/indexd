@@ -1,8 +1,9 @@
 from cdislogging import get_logger
-from indexd.driver_base import SQLAlchemyDriverBase
-from sqlalchemy import String, Column, BigInteger, ForeignKey
+from sqlalchemy import BigInteger, Column, ForeignKey, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
+
+from indexd.driver_base import SQLAlchemyDriverBase
 
 Base = declarative_base()
 CURRENT_SCHEMA_VERSION = 2
@@ -26,11 +27,15 @@ class IndexRecord(Base):
     size = Column(BigInteger)
 
     urls = relationship(
-        "IndexRecordUrl", backref="index_record", cascade="all, delete-orphan",
+        "IndexRecordUrl",
+        backref="index_record",
+        cascade="all, delete-orphan",
     )
 
     hashes = relationship(
-        "IndexRecordHash", backref="index_record", cascade="all, delete-orphan",
+        "IndexRecordHash",
+        backref="index_record",
+        cascade="all, delete-orphan",
     )
 
 

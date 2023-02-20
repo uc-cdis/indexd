@@ -29,7 +29,8 @@ def test_driver_auth_accepts_good_creds(auth_driver, database_conn):
     """
     database_conn.execute(
         make_sql_statement(
-            "INSERT INTO auth_record VALUES (?,?)", (USERNAME, DIGESTED),
+            "INSERT INTO auth_record VALUES (?,?)",
+            (USERNAME, DIGESTED),
         )
     )
 

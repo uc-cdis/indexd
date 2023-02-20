@@ -1,7 +1,7 @@
 import json
-import pkg_resources
 
 import openapi_spec_validator
+import pkg_resources
 from openapi_spec_validator import exceptions as specs_exceptions
 from openapi_spec_validator import readers as specs_readers
 

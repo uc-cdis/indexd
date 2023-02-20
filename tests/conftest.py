@@ -1,24 +1,20 @@
 import base64
-import requests
 import threading
 
 import flask
 import pytest
+import requests
+import swagger_client
 from sqlalchemy import create_engine
 
-import swagger_client
 from indexd import app_init, get_app
-from indexd.alias.drivers.alchemy import (
-    Base as alias_base,
-    SQLAlchemyAliasDriver,
-)
-from indexd.auth.drivers.alchemy import Base as auth_base, SQLAlchemyAuthDriver
-from indexd.index.drivers.alchemy import (
-    Base as index_base,
-    SQLAlchemyIndexDriver,
-)
+from indexd.alias.drivers.alchemy import Base as alias_base
+from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
+from indexd.auth.drivers.alchemy import Base as auth_base
+from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
+from indexd.index.drivers.alchemy import Base as index_base
+from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.utils import setup_database, try_drop_test_data
-
 
 PG_URL = "postgresql://test:test@localhost/indexd_test"
 
@@ -181,8 +177,12 @@ def app(index_driver, alias_driver, auth_driver):
     app = flask.Flask("indexd")
     settings = {
         "config": {
-            "INDEX": {"driver": index_driver,},
-            "ALIAS": {"driver": alias_driver,},
+            "INDEX": {
+                "driver": index_driver,
+            },
+            "ALIAS": {
+                "driver": alias_driver,
+            },
         },
         "auth": auth_driver,
     }

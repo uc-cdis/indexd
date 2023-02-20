@@ -1,16 +1,15 @@
 import re
+
 import flask
 import jsonschema
 import requests
-
 from doiclient.client import DOIClient
 from dosclient.client import DOSClient
 
-from indexd.utils import hint_match, handle_error
-from indexd.errors import AuthError
-from indexd.errors import UserError
 from indexd.alias.errors import NoRecordFound as AliasNoRecordFound
+from indexd.errors import AuthError, UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
+from indexd.utils import handle_error, hint_match
 
 blueprint = flask.Blueprint("cross", __name__)
 
@@ -34,11 +33,18 @@ def get_alias(alias):
     hashes = info["hashes"]
 
     urls = blueprint.index_driver.get_urls(
-        size=size, hashes=hashes, start=start, limit=limit,
+        size=size,
+        hashes=hashes,
+        start=start,
+        limit=limit,
     )
 
     info.update(
-        {"urls": urls, "start": start, "limit": limit,}
+        {
+            "urls": urls,
+            "start": start,
+            "limit": limit,
+        }
     )
 
     return flask.jsonify(info), 200

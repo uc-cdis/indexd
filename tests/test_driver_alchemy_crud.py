@@ -9,7 +9,6 @@ from indexd.index.drivers.alchemy import IndexRecord
 from indexd.index.errors import NoRecordFound, RevisionMismatch
 from tests.util import make_sql_statement
 
-
 # TODO check if pytest has utilities for meta-programming of tests
 
 
@@ -798,9 +797,16 @@ def test_driver_update_record_urls_metadata(index_driver, database_conn):
     did, baseid, rev, form = insert_base_data(database_conn)
 
     update_urls_metadata = {
-        "a": {"type": "ok", "not type": "ok",},
-        "b": {"state": "not ok",},
-        "c": {"not type": "not ok",},
+        "a": {
+            "type": "ok",
+            "not type": "ok",
+        },
+        "b": {
+            "state": "not ok",
+        },
+        "c": {
+            "not type": "not ok",
+        },
     }
 
     changing_fields = {

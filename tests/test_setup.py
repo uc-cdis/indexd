@@ -30,7 +30,9 @@ INDEX_TABLES = {
         ("state", "character varying", "YES", None, None),
         ("urls_metadata", "jsonb", "YES", None, None),
     ],
-    "index_schema_version": [("version", "integer", "NO", None, "PRIMARY KEY"),],
+    "index_schema_version": [
+        ("version", "integer", "NO", None, "PRIMARY KEY"),
+    ],
 }
 
 # column name, data type, nullable, default value, primary key

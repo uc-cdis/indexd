@@ -1,17 +1,17 @@
+import os
+import sys
+
+import cdislogging
+import ddtrace
 import flask
-from .bulk.blueprint import blueprint as indexd_bulk_blueprint
-from .index.blueprint import blueprint as indexd_index_blueprint
-from .alias.blueprint import blueprint as indexd_alias_blueprint
-from .dos.blueprint import blueprint as indexd_dos_blueprint
-from .blueprint import blueprint as cross_blueprint
 
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
-import os
-import sys
-import cdislogging
-
-import ddtrace
+from .alias.blueprint import blueprint as indexd_alias_blueprint
+from .blueprint import blueprint as cross_blueprint
+from .bulk.blueprint import blueprint as indexd_bulk_blueprint
+from .dos.blueprint import blueprint as indexd_dos_blueprint
+from .index.blueprint import blueprint as indexd_index_blueprint
 
 
 def app_init(app, settings=None):

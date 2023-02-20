@@ -1,5 +1,6 @@
 import flask
 import pytest
+
 from indexd.alias.blueprint import blueprint as indexd_alias_blueprint
 from indexd.bulk.blueprint import blueprint as indexd_bulk_blueprint
 from indexd.index.blueprint import blueprint as indexd_index_blueprint

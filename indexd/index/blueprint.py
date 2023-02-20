@@ -218,7 +218,11 @@ def get_urls():
     validate_hashes(**hashes)
 
     urls = blueprint.index_driver.get_urls(
-        size=size, ids=ids, hashes=hashes, start=start, limit=limit,
+        size=size,
+        ids=ids,
+        hashes=hashes,
+        start=start,
+        limit=limit,
     )
 
     ret = {
@@ -337,7 +341,11 @@ def put_index_blank_record(record):
     hashes = flask.request.get_json().get("hashes")
 
     did, rev, baseid = blueprint.index_driver.update_blank_record(
-        did=record, rev=rev, size=size, hashes=hashes, urls_metadata=urls_metadata,
+        did=record,
+        rev=rev,
+        size=size,
+        hashes=hashes,
+        urls_metadata=urls_metadata,
     )
     ret = {
         "did": did,
@@ -360,7 +368,11 @@ def put_index_record(record):
         raise UserError(err)
 
     rev = flask.request.args.get("rev")
-    did, baseid, rev = blueprint.index_driver.update(record, rev, flask.request.json,)
+    did, baseid, rev = blueprint.index_driver.update(
+        record,
+        rev,
+        flask.request.json,
+    )
 
     ret = {
         "did": did,

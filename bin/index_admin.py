@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+
 from cdislogging import get_logger
 
 logger = get_logger("index_admin")
@@ -45,7 +46,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--path", default="/var/www/indexd/", help="path to find local_settings.py",
+        "--path",
+        default="/var/www/indexd/",
+        help="path to find local_settings.py",
     )
     subparsers = parser.add_subparsers(title="action", dest="action")
     create = subparsers.add_parser("create")

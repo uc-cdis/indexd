@@ -37,7 +37,10 @@ INDEX_TABLES = {
         ("hash_type", "character varying"),
         ("hash_value", "character varying"),
     ],
-    "index_record_url": [("did", "character varying"), ("url", "character varying"),],
+    "index_record_url": [
+        ("did", "character varying"),
+        ("url", "character varying"),
+    ],
 }
 
 

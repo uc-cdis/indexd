@@ -10,17 +10,9 @@ from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd import alias
 from indexd.alias.driver import AliasDriverABC
-from indexd.alias.errors import (
-    MultipleRecordsFound,
-    NoRecordFound,
-    RevisionMismatch,
-)
-from indexd.utils import (
-    init_schema_version,
-    is_empty_database,
-    migrate_database,
-)
+from indexd.alias.errors import MultipleRecordsFound, NoRecordFound, RevisionMismatch
 from indexd.index.errors import UnhealthyCheck
+from indexd.utils import init_schema_version, is_empty_database, migrate_database
 
 Base = declarative_base()
 
@@ -46,7 +38,9 @@ class AliasRecord(Base):
     size = Column(BigInteger)
 
     hashes = relationship(
-        "AliasRecordHash", backref="alias_record", cascade="all, delete-orphan",
+        "AliasRecordHash",
+        backref="alias_record",
+        cascade="all, delete-orphan",
     )
 
     release = Column(String)
@@ -214,7 +208,11 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
 
             if hashes is not None:
                 record.hashes = [
-                    AliasRecordHash(name=record, hash_type=h, hash_value=v,)
+                    AliasRecordHash(
+                        name=record,
+                        hash_type=h,
+                        hash_value=v,
+                    )
                     for h, v in hashes.items()
                 ]
 
@@ -226,7 +224,10 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
 
             if host_authorities is not None:
                 record.host_authorities = [
-                    AliasRecordHostAuthority(name=name, host=host,)
+                    AliasRecordHostAuthority(
+                        name=name,
+                        host=host,
+                    )
                     for host in host_authorities
                 ]
 

@@ -1,18 +1,13 @@
 import re
+
 import flask
 import jsonschema
 
 from indexd.auth import authorize
+from indexd.errors import AuthError, UserError
 
-from indexd.errors import AuthError
-from indexd.errors import UserError
-
+from .errors import MultipleRecordsFound, NoRecordFound, RevisionMismatch
 from .schema import PUT_RECORD_SCHEMA
-
-from .errors import NoRecordFound
-from .errors import MultipleRecordsFound
-from .errors import RevisionMismatch
-
 
 blueprint = flask.Blueprint("alias", __name__)
 
@@ -74,7 +69,10 @@ def get_alias():
         raise UserError("limit must be between 0 and 1024")
 
     aliases = blueprint.alias_driver.aliases(
-        start=start, limit=limit, size=size, hashes=hashes,
+        start=start,
+        limit=limit,
+        size=size,
+        hashes=hashes,
     )
 
     base = {

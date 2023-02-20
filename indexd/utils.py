@@ -1,11 +1,9 @@
 import logging
 import re
 
+import sqlalchemy_utils
 from sqlalchemy import create_engine
 from sqlalchemy.engine.reflection import Inspector
-
-import sqlalchemy_utils
-
 
 logger = logging.getLogger(__name__)
 

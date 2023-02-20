@@ -35,11 +35,7 @@ from indexd.index.errors import (
     RevisionMismatch,
     UnhealthyCheck,
 )
-from indexd.utils import (
-    init_schema_version,
-    is_empty_database,
-    migrate_database,
-)
+from indexd.utils import init_schema_version, is_empty_database, migrate_database
 
 Base = declarative_base()
 
@@ -96,15 +92,21 @@ class IndexRecord(Base):
     )
 
     acl = relationship(
-        "IndexRecordACE", backref="index_record", cascade="all, delete-orphan",
+        "IndexRecordACE",
+        backref="index_record",
+        cascade="all, delete-orphan",
     )
 
     hashes = relationship(
-        "IndexRecordHash", backref="index_record", cascade="all, delete-orphan",
+        "IndexRecordHash",
+        backref="index_record",
+        cascade="all, delete-orphan",
     )
 
     aliases = relationship(
-        "IndexRecordAlias", backref="index_record", cascade="all, delete-orphan",
+        "IndexRecordAlias",
+        backref="index_record",
+        cascade="all, delete-orphan",
     )
 
     def to_document_dict(self):
@@ -695,17 +697,30 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record.uploader = uploader
 
-            record.acl = [IndexRecordACE(did=record.did, ace=ace,) for ace in acl]
+            record.acl = [
+                IndexRecordACE(
+                    did=record.did,
+                    ace=ace,
+                )
+                for ace in acl
+            ]
 
             record.hashes = [
-                IndexRecordHash(did=record.did, hash_type=h, hash_value=v,)
+                IndexRecordHash(
+                    did=record.did,
+                    hash_type=h,
+                    hash_value=v,
+                )
                 for h, v in hashes.items()
             ]
 
             record.release_number = release_number
             record.index_metadata = metadata
 
-            record.urls_metadata = create_urls_metadata(record.did, urls_metadata,)
+            record.urls_metadata = create_urls_metadata(
+                record.did,
+                urls_metadata,
+            )
 
             try:
                 session.add(record)
@@ -772,10 +787,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record.size = size
             record.hashes = [
-                IndexRecordHash(did=record.did, hash_type=h, hash_value=v,)
+                IndexRecordHash(
+                    did=record.did,
+                    hash_type=h,
+                    hash_value=v,
+                )
                 for h, v in hashes.items()
             ]
-            record.urls_metadata = create_urls_metadata(record.did, urls_metadata,)
+            record.urls_metadata = create_urls_metadata(
+                record.did,
+                urls_metadata,
+            )
             record.rev = str(uuid.uuid4())[:8]
 
             session.add(record)
@@ -882,7 +904,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             if "urls_metadata" in changing_fields:
                 record.urls_metadata = create_urls_metadata(
-                    record.did, changing_fields["urls_metadata"],
+                    record.did,
+                    changing_fields["urls_metadata"],
                 )
 
             for key, value in changing_fields.items():
@@ -963,12 +986,25 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.file_name = file_name
             record.version = version
 
-            record.urls_metadata = create_urls_metadata(record.did, urls_metadata,)
+            record.urls_metadata = create_urls_metadata(
+                record.did,
+                urls_metadata,
+            )
 
-            record.acl = [IndexRecordACE(did=record.did, ace=ace,) for ace in set(acl)]
+            record.acl = [
+                IndexRecordACE(
+                    did=record.did,
+                    ace=ace,
+                )
+                for ace in set(acl)
+            ]
 
             record.hashes = [
-                IndexRecordHash(did=record.did, hash_type=h, hash_value=v,)
+                IndexRecordHash(
+                    did=record.did,
+                    hash_type=h,
+                    hash_value=v,
+                )
                 for h, v in hashes.items()
             ]
 

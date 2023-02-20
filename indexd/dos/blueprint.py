@@ -1,10 +1,8 @@
 import flask
 
-from indexd.blueprint import dist_get_record
-
-from indexd.errors import AuthError
-from indexd.errors import UserError
 from indexd.alias.errors import NoRecordFound as AliasNoRecordFound
+from indexd.blueprint import dist_get_record
+from indexd.errors import AuthError, UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 
 blueprint = flask.Blueprint("dos", __name__)

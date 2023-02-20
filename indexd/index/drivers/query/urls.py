@@ -1,10 +1,7 @@
 from sqlalchemy import and_, func
 
 from indexd.errors import UserError
-from indexd.index.drivers.alchemy import (
-    IndexRecord,
-    IndexRecordUrlMetadataJsonb,
-)
+from indexd.index.drivers.alchemy import IndexRecord, IndexRecordUrlMetadataJsonb
 from indexd.index.drivers.query import URLsQueryDriver
 
 driver_query_map = {
@@ -17,7 +14,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
     """SQLAlchemy based impl"""
 
     def __init__(self, alchemy_driver):
-        """ Queries index records based on URL
+        """Queries index records based on URL
         Args:
             alchemy_driver (indexd.index.drivers.alchemy.SQLAlchemyIndexDriver):
         """
@@ -170,7 +167,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
 
     @staticmethod
     def _filter_indexrecord(query, versioned, exclude_deleted):
-        """ Handles outer join to IndexRecord for versioned and exclude_deleted filters if filter flags exist """
+        """Handles outer join to IndexRecord for versioned and exclude_deleted filters if filter flags exist"""
         if versioned is not None or exclude_deleted:
             query = query.outerjoin(IndexRecord)
 
@@ -193,7 +190,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
 
     @staticmethod
     def _format_response(requested_fields, record_list):
-        """ loops through the query result and removes undesired columns and converts result of urls string_agg to list
+        """loops through the query result and removes undesired columns and converts result of urls string_agg to list
         Args:
             requested_fields (str): comma separated list of fields to return, if not specified return all fields
             record_list (list(tuple]): must be of the form [(did, urls, rev)], rev is not required for urls query

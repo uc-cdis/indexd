@@ -75,18 +75,38 @@ PUT_RECORD_SCHEMA = {
     "additionalProperties": False,
     "description": "Update an index",
     "properties": {
-        "urls": {"type": "array", "items": {"type": "string",}},
-        "acl": {"type": "array", "items": {"type": "string",},},
-        "file_name": {"type": ["string", "null"],},
+        "urls": {
+            "type": "array",
+            "items": {
+                "type": "string",
+            },
+        },
+        "acl": {
+            "type": "array",
+            "items": {
+                "type": "string",
+            },
+        },
+        "file_name": {
+            "type": ["string", "null"],
+        },
         "size": {
             "description": "Size of the data being indexed in bytes",
             "type": "integer",
             "minimum": 0,
         },
-        "version": {"type": ["string", "null"],},
-        "uploader": {"type": ["string", "null"],},
-        "metadata": {"type": "object",},
-        "urls_metadata": {"type": "object",},
+        "version": {
+            "type": ["string", "null"],
+        },
+        "uploader": {
+            "type": ["string", "null"],
+        },
+        "metadata": {
+            "type": "object",
+        },
+        "urls_metadata": {
+            "type": "object",
+        },
         "hashes": {
             "type": "object",
             "properties": {
