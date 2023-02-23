@@ -116,10 +116,10 @@ def indexd_to_drs(record, expand=False):
     )
 
     version = (
-        record["rev"]
-        if "rev" in record
-        else record["version"]
+        record["version"]
         if "version" in record
+        else record["rev"]
+        if "rev" in record
         else ""
     )
 
@@ -240,7 +240,14 @@ def bundle_to_drs(record, expand=False, is_content=False):
             if "aliases" in record
             else []
         )
-        version = record["version"] if "version" in record else ""
+        version = (
+            record["version"]
+            if "version" in record
+            else record["rev"]
+            if "rev" in record
+            else ""
+        )
+        # version = record["version"] if "version" in record else ""
         drs_object["checksums"] = parse_checksums(record, drs_object)
 
         created_time = (
