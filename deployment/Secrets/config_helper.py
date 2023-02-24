@@ -171,14 +171,6 @@ def _get_all_additional_configs(other_files):
     """
     additional_configs = dict()
     for file_path in other_files:
-        # Sanitize user input to ensure file_path is a valid Python or json file
-        if not os.path.isfile(file_path) or (
-            not file_path.endswith(".py") or not file_path.endswith(".json")
-        ):
-            raise ValueError(
-                "Invalid file path provided: %s. Please provide a valid file path."
-                % file_path
-            )
         try:
             file_ext = file_path.strip().split(".")[-1]
             if file_ext == "json":
