@@ -1441,7 +1441,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             )
 
             for idx, record in enumerate(records):
-
                 ret[idx] = record.to_document_dict()
 
         return ret
@@ -1570,7 +1569,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Number of unique records stored by backend.
         """
         with self.session as session:
-
             return session.execute(
                 select([func.count()]).select_from(IndexRecord)
             ).scalar()
