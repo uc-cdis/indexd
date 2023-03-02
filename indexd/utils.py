@@ -16,7 +16,6 @@ from sqlalchemy.engine.reflection import Inspector
 def try_drop_test_data(
     user, database, root_user="postgres", host=""
 ):  # pragma: no cover
-
     engine = create_engine(
         "postgres://{user}@{host}/postgres".format(user=root_user, host=host)
     )
@@ -75,7 +74,7 @@ def setup_database(
             conn.execute(perm_stmt)
             conn.execute("commit")
         except Exception:
-            logging.warning("Unable to add user:")
+            logging.warning("Unable to add user")
     conn.close()
 
 
@@ -111,7 +110,9 @@ def create_tables(host, user, password, database):  # pragma: no cover
         conn.execute(create_drs_bundle_record)
     except Exception:
         logging.warning("Unable to create table")
-    conn.close()
+        raise
+    finally:
+        conn.close()
 
 
 def check_engine_for_migrate(engine):
