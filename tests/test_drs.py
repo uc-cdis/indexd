@@ -1,4 +1,6 @@
 import json
+import sqlite3
+
 import tests.conftest
 import requests
 import responses
@@ -23,7 +25,7 @@ def generate_presigned_url_response(did, status=200, **query_params):
     return presigned_url
 
 
-def get_doc(has_version=True, urls=list(), drs_list=0):
+def get_doc(has_version=True, urls=list(), has_description=True):
     doc = {
         "form": "object",
         "size": 123,
@@ -34,12 +36,23 @@ def get_doc(has_version=True, urls=list(), drs_list=0):
         doc["version"] = "1"
     if urls:
         doc["urls"] = urls
-    # if drs_list > 0:
-    #     ret = {"drs_objects": []}
-    #     for _ in range(drs_list):
-    #         ret["drs_objects"].append(doc)
-    #     return ret
+    if has_description:
+        doc["description"] = "A description"
     return doc
+
+
+def get_bundle(client, user, has_description=True):
+    docs = [get_doc(), get_doc()]
+    dids = []
+    for doc in docs:
+        res = client.post("/index/", json=doc, headers=user)
+        assert res.status_code == 200
+        dids.append(res.json["did"])
+    bundle = get_bundle_doc(bundles=dids)
+    if has_description:
+        bundle["description"] = "A description"
+
+    return bundle
 
 
 def test_drs_get(client, user):
@@ -55,10 +68,41 @@ def test_drs_get(client, user):
     for k in data["hashes"]:
         assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
         assert rec_2["checksums"][0]["type"] == k
-    assert rec_2["version"]
+    assert rec_2["description"] == data["description"]
     assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
     # according to ga4gh DRS blobs objects are NOT supposed to have contents. Only DRS Bundle objects should include the contetnts field
     assert "contents" not in rec_2
+
+
+def test_drs_get_no_description(client, user):
+    data = get_doc(has_description=False)
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"])
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["description"] is None
+
+
+def test_drs_get_bundle(client, user):
+    bundle = get_bundle(client, user)
+    bundle_res = client.post("/bundle/", json=bundle, headers=user)
+    assert bundle_res.status_code == 200
+    bundle_id = bundle_res.json["bundle_id"]
+    drs_res = client.get(f"/ga4gh/drs/v1/objects/{bundle_id}", headers=user)
+    assert drs_res.status_code == 200
+    assert drs_res.json["description"] == bundle["description"]
+
+
+def test_drs_get_bundle_no_description(client, user):
+    bundle = get_bundle(client, user, has_description=False)
+    bundle_res = client.post("/bundle/", json=bundle, headers=user)
+    assert bundle_res.status_code == 200
+    bundle_id = bundle_res.json["bundle_id"]
+    drs_res = client.get(f"/ga4gh/drs/v1/objects/{bundle_id}", headers=user)
+    assert drs_res.status_code == 200
+    assert drs_res.json["description"] is ""
 
 
 def test_drs_get_no_default(client, user):
@@ -112,7 +156,7 @@ def test_drs_list(client, user):
         submitted_guids.append(did)
         bundle_data = get_bundle_doc(bundles=[did])
         res2 = client.post("/bundle/", json=bundle_data, headers=user)
-        assert res_1.status_code == 200
+        assert res2.status_code == 200
 
     res_2 = client.get("/ga4gh/drs/v1/objects")
     assert res_2.status_code == 200

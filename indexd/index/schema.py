@@ -31,6 +31,10 @@ POST_RECORD_SCHEMA = {
             "description": "optional version string of the object",
             "type": "string",
         },
+        "description": {
+            "description": "optional description string of the object",
+            "type": "string",
+        },
         "uploader": {
             "description": "optional uploader of the object",
             "type": "string",
