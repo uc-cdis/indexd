@@ -134,7 +134,7 @@ def indexd_to_drs(record, expand=False):
     alias = (
         record["alias"]
         if "alias" in record
-        else eval(record["aliases"])
+        else json.loads(record["aliases"])
         if "aliases" in record
         else []
     )
@@ -236,7 +236,7 @@ def bundle_to_drs(record, expand=False, is_content=False):
         aliases = (
             record["alias"]
             if "alias" in record
-            else eval(record["aliases"])
+            else json.loads(record["aliases"])
             if "aliases" in record
             else []
         )
