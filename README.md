@@ -302,6 +302,7 @@ As part of setting up your [local development environment](docs/local_dev_enviro
 ```console
 python3 -m pytest -vv --cov=indexd --cov-report xml --junitxml="test-results.xml" tests
 ```
+
 ### Quickstart with Helm
 
 You can now deploy individual services via Helm!
