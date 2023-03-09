@@ -10,7 +10,11 @@ from tests.default_test_settings import settings
 
 
 def get_doc(
-    has_metadata=True, has_baseid=False, has_urls_metadata=False, has_version=False
+    has_metadata=True,
+    has_baseid=False,
+    has_urls_metadata=False,
+    has_version=False,
+    has_description=False,
 ):
     doc = {
         "form": "object",
@@ -26,6 +30,8 @@ def get_doc(
         doc["urls_metadata"] = {"s3://endpointurl/bucket/key": {"state": "uploaded"}}
     if has_version:
         doc["version"] = "1"
+    if has_description:
+        doc["description"] = "a description"
     return doc
 
 
@@ -1916,7 +1922,7 @@ def test_index_add_prefix_alias(client, user):
 
 def test_index_update(client, user):
     # create record
-    data = get_doc()
+    data = get_doc(has_description=True)
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
     rec = res.json
@@ -1925,16 +1931,17 @@ def test_index_update(client, user):
     assert client.get("/index/" + rec["did"]).json["metadata"] == data["metadata"]
 
     # update record
-    dataNew = get_doc()
-    del dataNew["hashes"]
-    del dataNew["size"]
-    del dataNew["form"]
-    dataNew["metadata"] = {"test": "abcd"}
-    dataNew["version"] = "ver123"
-    dataNew["acl"] = ["a", "b"]
-    dataNew["authz"] = ["x", "y"]
+    data_new = get_doc()
+    del data_new["hashes"]
+    del data_new["size"]
+    del data_new["form"]
+    data_new["metadata"] = {"test": "abcd"}
+    data_new["version"] = "ver123"
+    data_new["acl"] = ["a", "b"]
+    data_new["authz"] = ["x", "y"]
+    data_new["description"] = "a new description"
     res_2 = client.put(
-        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=dataNew, headers=user
+        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=data_new, headers=user
     )
     assert res_2.status_code == 200
     rec_2 = res_2.json
@@ -1944,9 +1951,10 @@ def test_index_update(client, user):
     response = client.get("/index/" + rec_2["did"])
     assert response.status_code == 200
     record = response.json
-    assert record["metadata"] == dataNew["metadata"]
-    assert record["acl"] == dataNew["acl"]
-    assert record["authz"] == dataNew["authz"]
+    assert record["metadata"] == data_new["metadata"]
+    assert record["acl"] == data_new["acl"]
+    assert record["authz"] == data_new["authz"]
+    assert record["description"] == data_new["description"]
 
     # create record
     data = get_doc()
@@ -1958,13 +1966,13 @@ def test_index_update(client, user):
     assert rec["rev"]
 
     # update record
-    dataNew = {
+    data_new = {
         "urls": ["s3://endpointurl/bucket/key"],
         "file_name": "test",
         "version": "ver123",
     }
     res_2 = client.put(
-        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=dataNew, headers=user
+        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=data_new, headers=user
     )
     assert res_2.status_code == 200
     rec_2 = res_2.json
@@ -2579,7 +2587,6 @@ def test_update_without_changing_fields(client, user):
 
 
 def test_bulk_get_documents(client, user):
-
     # just make a bunch of entries in indexd
     dids = [
         client.post("/index/", json=get_doc(has_baseid=True), headers=user).json["did"]
