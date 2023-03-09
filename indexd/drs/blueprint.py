@@ -116,10 +116,10 @@ def indexd_to_drs(record, expand=False):
     )
 
     version = (
-        record["rev"]
-        if "rev" in record
-        else record["version"]
+        record["version"]
         if "version" in record
+        else record["rev"]
+        if "rev" in record
         else ""
     )
 
@@ -129,19 +129,18 @@ def indexd_to_drs(record, expand=False):
 
     form = record["form"] if "form" in record else "bundle"
 
-    description = record["description"] if "description" in record else None
+    description = record["description"] if "description" in record else ""
 
     alias = (
         record["alias"]
         if "alias" in record
-        else eval(record["aliases"])
+        else json.loads(record["aliases"])
         if "aliases" in record
         else []
     )
 
     drs_object = {
         "id": did,
-        "description": "",
         "mime_type": "application/json",
         "name": name,
         "created_time": created_time,
@@ -154,9 +153,6 @@ def indexd_to_drs(record, expand=False):
         "checksums": [],
         "description": description,
     }
-
-    if "description" in record:
-        drs_object["description"] = record["description"]
 
     if "bundle_data" in record:
         drs_object["contents"] = []
@@ -236,11 +232,18 @@ def bundle_to_drs(record, expand=False, is_content=False):
         aliases = (
             record["alias"]
             if "alias" in record
-            else eval(record["aliases"])
+            else json.loads(record["aliases"])
             if "aliases" in record
             else []
         )
-        version = record["version"] if "version" in record else ""
+        version = (
+            record["version"]
+            if "version" in record
+            else record["rev"]
+            if "rev" in record
+            else ""
+        )
+        # version = record["version"] if "version" in record else ""
         drs_object["checksums"] = parse_checksums(record, drs_object)
 
         created_time = (
