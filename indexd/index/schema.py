@@ -86,6 +86,7 @@ PUT_RECORD_SCHEMA = {
         "uploader": {"type": ["string", "null"]},
         "metadata": {"type": "object"},
         "urls_metadata": {"type": "object"},
+        "description": {"type": ["string", "null"]},
     },
 }
 
