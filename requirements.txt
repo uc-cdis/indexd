@@ -15,19 +15,11 @@ cattrs==22.2.0
     # via ddtrace
 cdislogging==1.0.0
     # via indexd (setup.py)
-certifi==2020.6.20
-    # via requests
-chardet==3.0.4
-    # via requests
 click==7.1.2
     # via flask
 ddsketch==2.0.4
     # via ddtrace
 ddtrace==1.6.6
-    # via indexd (setup.py)
-doiclient @ git+https://github.com/uc-cdis/doiclient.git@1.0.0
-    # via indexd (setup.py)
-dosclient @ git+https://github.com/uc-cdis/dosclient.git@1.0.0
     # via indexd (setup.py)
 envier==0.4.0
     # via ddtrace
@@ -35,10 +27,6 @@ exceptiongroup==1.1.0
     # via cattrs
 flask==1.1.2
     # via indexd (setup.py)
-future==0.18.2
-    # via indexd (setup.py)
-idna==2.10
-    # via requests
 itsdangerous==1.1.0
     # via flask
 jinja2==2.11.2
@@ -61,10 +49,6 @@ pyparsing==2.4.7
     # via packaging
 pyrsistent==0.16.0
     # via jsonschema
-requests==2.24.0
-    # via
-    #   doiclient
-    #   dosclient
 six==1.15.0
     # via
     #   ddsketch
@@ -86,12 +70,8 @@ typing-extensions==4.4.0
     # via
     #   bytecode
     #   ddtrace
-urllib3==1.25.9
-    # via requests
 werkzeug==0.16.1
-    # via
-    #   flask
-    #   indexd (setup.py)
+    # via flask
 xmltodict==0.13.0
     # via ddtrace
 

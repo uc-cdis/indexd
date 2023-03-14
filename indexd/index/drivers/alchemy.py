@@ -4,7 +4,6 @@ import uuid
 from contextlib import contextmanager
 
 from cdislogging import get_logger
-from future.utils import iteritems
 from sqlalchemy import (
     BigInteger,
     Column,
@@ -273,7 +272,7 @@ def create_urls_metadata(did, metadata_fields):
     Each row is: DID | URL | TYPE | STATE | METADATA
     """
     rows = []
-    for url, urls_metadata in iteritems(metadata_fields):
+    for url, urls_metadata in metadata_fields.items():
         u_type, u_state, urls_metadata = separate_urls_metadata(urls_metadata)
         rows.append(
             IndexRecordUrlMetadataJsonb(

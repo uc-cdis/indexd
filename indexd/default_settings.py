@@ -41,18 +41,6 @@ CONFIG["DIST"] = [
         "hints": [".*ROCKS.*"],
         "type": "indexd",
     },
-    {
-        "name": "DX DOI",
-        "host": "https://doi.org/",
-        "hints": [r"10\..*"],
-        "type": "doi",
-    },
-    {
-        "name": "DOS System",
-        "host": "https://example.com/api/ga4gh/dos/v1/",
-        "hints": [],
-        "type": "dos",
-    },
 ]
 
 AUTH = SQLAlchemyAuthDriver(PG_URL)

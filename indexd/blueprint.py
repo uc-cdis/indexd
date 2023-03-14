@@ -51,9 +51,10 @@ def get_alias(alias):
 
 
 @blueprint.route("/<path:record>", methods=["GET"])
-def get_record(record):
+def get_record(record: str):
     """
     Returns a record from the local ids, alias, or global resolvers.
+
     """
 
     try:
@@ -66,13 +67,13 @@ def get_record(record):
                 ret = blueprint.alias_driver.get(record)
             except AliasNoRecordFound:
                 if not blueprint.dist or "no_dist" in flask.request.args:
-                    raise
+                    raise IndexNoRecordFound(f"no record found for {record}")
                 ret = dist_get_record(record)
 
     return flask.jsonify(ret), 200
 
 
-def dist_get_record(record):
+def dist_get_record(record: str):
 
     # Sort the list of distributed ID services
     # Ones with which the request matches a hint will be first
@@ -83,17 +84,8 @@ def dist_get_record(record):
 
     for indexd in sorted_dist:
         try:
-            if indexd["type"] == "doi":
-                fetcher_client = DOIClient(baseurl=indexd["host"])
-                res = fetcher_client.get(record)
-            elif indexd["type"] == "dos":
-                fetcher_client = DOSClient(baseurl=indexd["host"])
-                res = fetcher_client.get(record)
-            else:
-                res = requests.get(
-                    indexd["host"] + "/" + record, params={"no_dist": ""}
-                )
-                handle_error(res)
+            res = requests.get(indexd["host"] + "/" + record, params={"no_dist": ""})
+            handle_error(res)
         except:
             # a lot of things can go wrong with the get, but in general we don't care here.
             continue
@@ -106,7 +98,7 @@ def dist_get_record(record):
             }
             return json
 
-    raise IndexNoRecordFound("no record found")
+    raise IndexNoRecordFound(f"no record found for {record}")
 
 
 @blueprint.errorhandler(UserError)
