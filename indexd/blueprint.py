@@ -1,10 +1,5 @@
-import re
-
 import flask
-import jsonschema
 import requests
-from doiclient.client import DOIClient
-from dosclient.client import DOSClient
 
 from indexd.alias.errors import NoRecordFound as AliasNoRecordFound
 from indexd.errors import AuthError, UserError
