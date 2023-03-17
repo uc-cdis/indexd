@@ -1,8 +1,8 @@
 import logging
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
+from sqlalchemy.ext.declarative import declarative_base
 
 from alembic import context
 
@@ -14,14 +14,12 @@ config = context.config
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
-logger = logging.getLogger("fence.alembic")
+logger = logging.getLogger("indexd.alembic")
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+Base = declarative_base()
+target_metadata = Base.metadata
 
+# TODO will need to cd in cloud-auto
 try:
     from local_settings import settings
 except ImportError:
