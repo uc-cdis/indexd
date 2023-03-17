@@ -7,7 +7,7 @@ from .version_data import VERSION, COMMIT
 
 from indexd import auth
 
-from indexd.errors import AuthError, AuthzError, IndexdUnexpectedError
+from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 
 from .schema import PUT_RECORD_SCHEMA
@@ -243,7 +243,7 @@ def get_urls():
 
 # NOTE: /index/<record>/deeper-route methods are above /index/<record> so that routing
 # prefers these first. Without this ordering, newer versions of the web framework
-# were interpreting index/e383a3aa-316e-4a51-975d-d699eff41bd2/aliases/ as routing
+# were interpretting index/e383a3aa-316e-4a51-975d-d699eff41bd2/aliases/ as routing
 # to /index/<record> where <record> was "e383a3aa-316e-4a51-975d-d699eff41bd2/aliases/"
 
 
@@ -407,7 +407,6 @@ def post_index_record():
     version = flask.request.json.get("version")
     baseid = flask.request.json.get("baseid")
     uploader = flask.request.json.get("uploader")
-    description = flask.request.json.get("description")
 
     did, rev, baseid = blueprint.index_driver.add(
         form,
@@ -423,7 +422,6 @@ def post_index_record():
         hashes=hashes,
         baseid=baseid,
         uploader=uploader,
-        description=description,
     )
 
     ret = {"did": did, "rev": rev, "baseid": baseid}
@@ -555,7 +553,6 @@ def add_index_record_version(record):
     metadata = flask.request.json.get("metadata")
     urls_metadata = flask.request.json.get("urls_metadata")
     version = flask.request.json.get("version")
-    description = flask.request.json.get("description")
 
     # authorize done in add_version for both the old and new authz
     did, baseid, rev = blueprint.index_driver.add_version(
@@ -571,7 +568,6 @@ def add_index_record_version(record):
         urls_metadata=urls_metadata,
         version=version,
         hashes=hashes,
-        description=description,
     )
 
     ret = {"did": did, "baseid": baseid, "rev": rev}

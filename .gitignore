@@ -67,9 +67,3 @@ docs/_build/
 local_settings.py
 settings.yaml
 *.sq3
-
-# IDE
-.idea
-
-# pyenv
-.python-version

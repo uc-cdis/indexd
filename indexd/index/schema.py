@@ -31,10 +31,6 @@ POST_RECORD_SCHEMA = {
             "description": "optional version string of the object",
             "type": "string",
         },
-        "description": {
-            "description": "optional description string of the object",
-            "type": "string",
-        },
         "uploader": {
             "description": "optional uploader of the object",
             "type": "string",
@@ -86,7 +82,6 @@ PUT_RECORD_SCHEMA = {
         "uploader": {"type": ["string", "null"]},
         "metadata": {"type": "object"},
         "urls_metadata": {"type": "object"},
-        "description": {"type": ["string", "null"]},
     },
 }
 
