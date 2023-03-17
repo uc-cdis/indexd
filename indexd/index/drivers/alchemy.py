@@ -1921,6 +1921,14 @@ def migrate_13(session, **kwargs):
     )
 
 
+def migrate_14(session, **kwargs):
+    session.execute(
+        "ALTER TABLE {} ADD COLUMN description character varying".format(
+            IndexRecord.__tablename__
+        )
+    )
+
+
 # ordered schema migration functions that the index should correspond to
 # CURRENT_SCHEMA_VERSION - 1 when it's written
 SCHEMA_MIGRATION_FUNCTIONS = [
@@ -1937,5 +1945,5 @@ SCHEMA_MIGRATION_FUNCTIONS = [
     migrate_11,
     migrate_12,
     migrate_13,
+    migrate_14,
 ]
-CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
