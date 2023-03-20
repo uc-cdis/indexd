@@ -16,7 +16,6 @@ from sqlalchemy.engine.reflection import Inspector
 def try_drop_test_data(
     user, database, root_user="postgres", host=""
 ):  # pragma: no cover
-
     engine = create_engine(
         "postgres://{user}@{host}/postgres".format(user=root_user, host=host)
     )

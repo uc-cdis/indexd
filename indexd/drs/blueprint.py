@@ -129,7 +129,7 @@ def indexd_to_drs(record, expand=False):
 
     form = record["form"] if "form" in record else "bundle"
 
-    description = record["description"] if "description" in record else ""
+    description = record["description"] if "description" in record else None
 
     alias = (
         record["alias"]
@@ -141,6 +141,7 @@ def indexd_to_drs(record, expand=False):
 
     drs_object = {
         "id": did,
+        "description": "",
         "mime_type": "application/json",
         "name": name,
         "created_time": created_time,
@@ -153,6 +154,9 @@ def indexd_to_drs(record, expand=False):
         "checksums": [],
         "description": description,
     }
+
+    if "description" in record:
+        drs_object["description"] = record["description"]
 
     if "bundle_data" in record:
         drs_object["contents"] = []

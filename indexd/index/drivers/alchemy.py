@@ -77,7 +77,6 @@ class IndexRecord(Base):
     file_name = Column(String, index=True)
     version = Column(String, index=True)
     uploader = Column(String, index=True)
-    description = Column(String)
 
     urls = relationship(
         "IndexRecordUrl", backref="index_record", cascade="all, delete-orphan"
@@ -136,7 +135,6 @@ class IndexRecord(Base):
             "form": self.form,
             "created_date": created_date,
             "updated_date": updated_date,
-            "description": self.description,
         }
 
 
@@ -684,7 +682,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         hashes=None,
         baseid=None,
         uploader=None,
-        description=None,
     ):
         """
         Creates a new record given size, urls, acl, authz, hashes, metadata,
@@ -744,9 +741,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 IndexRecordMetadata(did=record.did, key=m_key, value=m_value)
                 for m_key, m_value in metadata.items()
             ]
-
-            record.description = description
-
             session.merge(base_version)
 
             try:
@@ -1273,7 +1267,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         acl=None,
         authz=None,
         hashes=None,
-        description=None,
     ):
         """
         Add a record version given did
@@ -1312,7 +1305,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.size = size
             record.file_name = file_name
             record.version = version
-            record.description = description
 
             record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
 

@@ -2579,7 +2579,6 @@ def test_update_without_changing_fields(client, user):
 
 
 def test_bulk_get_documents(client, user):
-
     # just make a bunch of entries in indexd
     dids = [
         client.post("/index/", json=get_doc(has_baseid=True), headers=user).json["did"]

@@ -321,7 +321,6 @@ def test_bundle_get_no_bundle_id(client, user):
 
 
 def test_bundle_get_expand_false(client, user):
-
     did_list, rec = create_index(client, user)
     res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"])
 
@@ -634,7 +633,6 @@ def content_validation(contents):
 
 
 def test_get_drs_expand_contents_default(client, user):
-
     bundle_id = build_bundle(client, user)
     res = client.get("/bundle/" + bundle_id)
     assert res.status_code == 200
@@ -648,7 +646,6 @@ def test_get_drs_expand_contents_default(client, user):
 
 
 def test_get_drs_expand_contents_false(client, user):
-
     bundle_id = build_bundle(client, user)
     res = client.get("/bundle/" + bundle_id)
     assert res.status_code == 200
@@ -662,7 +659,6 @@ def test_get_drs_expand_contents_false(client, user):
 
 
 def test_get_drs_expand_contents_true(client, user):
-
     bundle_id = build_bundle(client, user)
     res = client.get("/bundle/" + bundle_id)
     assert res.status_code == 200
