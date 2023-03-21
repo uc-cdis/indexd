@@ -197,5 +197,4 @@ def is_empty_database(driver):
         Boolean
     """
     table_list = Inspector.from_engine(driver.engine).get_table_names()
-
-    return len(table_list) == 0
+    return table_list == [] or table_list == ["alembic_version"]

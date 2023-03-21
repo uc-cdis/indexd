@@ -1,15 +1,8 @@
 from alembic.config import main as alembic_main
 
-from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
-# from tests.alchemy import SQLAlchemyIndexTestDriver
-from tests.default_test_settings import settings
 
-
-def test_upgrade():
-    # driver = SQLAlchemyIndexTestDriver(settings["config"]["TEST_DB"])
-    driver = SQLAlchemyIndexDriver(settings["config"]["TEST_DB"])
-    settings["config"]["INDEX"]["driver"] = driver
-    conn = driver.engine.connect()
+def test_upgrade(postgres_driver):
+    conn = postgres_driver.engine.connect()
 
     # state before migration
     alembic_main(["--raiseerr", "downgrade", "base"])
@@ -73,10 +66,8 @@ def test_upgrade():
     assert sorted(expected_schema) == sorted([i for i in cols])
 
 
-def test_downgrade():
-    driver = SQLAlchemyIndexDriver(settings["config"]["TEST_DB"])
-    settings["config"]["INDEX"]["driver"] = driver
-    conn = driver.engine.connect()
+def test_downgrade(postgres_driver):
+    conn = postgres_driver.engine.connect()
 
     # state after migration
     alembic_main(["--raiseerr", "downgrade", "base"])

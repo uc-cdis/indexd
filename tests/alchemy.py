@@ -4,9 +4,6 @@ from sqlalchemy import String, Column, BigInteger, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
-Base = declarative_base()
-CURRENT_SCHEMA_VERSION = 2
-
 
 Base = declarative_base()
 CURRENT_SCHEMA_VERSION = 2
@@ -67,6 +64,5 @@ class SQLAlchemyIndexTestDriver(SQLAlchemyDriverBase):
         self.logger = logger or get_logger("SQLAlchemyIndexTestDriver")
 
         Base.metadata.bind = self.engine
-        Base.metadata.create_all()
 
         self.Session = sessionmaker(bind=self.engine)

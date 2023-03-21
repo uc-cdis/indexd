@@ -17,15 +17,18 @@ from indexd.auth.errors import AuthError
 from tests import default_test_settings
 
 
-@pytest.fixture
+@pytest.fixture(scope="function", autouse=True)
 def app():
-    # this is to make sure sqlite is initialized
-    # for every unittest
     from indexd import default_settings
 
     importlib.reload(default_settings)
+    default_settings.settings = {
+        **default_settings.settings,
+        **default_test_settings.settings,
+    }
 
     yield get_app(default_test_settings.settings)
+
     try:
         clear_database()
     except Exception:

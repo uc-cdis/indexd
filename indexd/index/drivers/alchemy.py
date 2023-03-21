@@ -313,28 +313,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     SQLAlchemy implementation of index driver.
     """
 
-    def __init__(
-        self, conn, logger=None, auto_migrate=True, index_config=None, **config
-    ):
+    def __init__(self, conn, logger=None, index_config=None, **config):
         """
         Initialize the SQLAlchemy database driver.
         """
         super().__init__(conn, **config)
         self.logger = logger or get_logger("SQLAlchemyIndexDriver")
         self.config = index_config or {}
-
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
-
-        is_empty_db = is_empty_database(driver=self)
-        Base.metadata.create_all()
-        if is_empty_db:
-            init_schema_version(
-                driver=self, model=IndexSchemaVersion, version=CURRENT_SCHEMA_VERSION
-            )
-
-        if auto_migrate:
-            self.migrate_index_database()
 
     def migrate_index_database(self):
         """
@@ -1433,7 +1420,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             )
 
             for idx, record in enumerate(records):
-
                 ret[idx] = record.to_document_dict()
 
         return ret
@@ -1562,7 +1548,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Number of unique records stored by backend.
         """
         with self.session as session:
-
             return session.execute(
                 select([func.count()]).select_from(IndexRecord)
             ).scalar()

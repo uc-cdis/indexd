@@ -89,7 +89,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
     SQLAlchemy implementation of alias driver.
     """
 
-    def __init__(self, conn, logger=None, auto_migrate=True, **config):
+    def __init__(self, conn, logger=None, **config):
         """
         Initialize the SQLAlchemy database driver.
         """
@@ -97,16 +97,6 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         self.logger = logger or get_logger("SQLAlchemyAliasDriver")
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
-
-        is_empty_db = is_empty_database(driver=self)
-        Base.metadata.create_all()
-        if is_empty_db:
-            init_schema_version(
-                driver=self, model=AliasSchemaVersion, version=CURRENT_SCHEMA_VERSION
-            )
-
-        if auto_migrate:
-            self.migrate_alias_database()
 
     def migrate_alias_database(self):
         """

@@ -1,4 +1,10 @@
+import os
+import sys
+
+from alembic.config import main as alembic_main
+import cdislogging
 import flask
+
 from .bulk.blueprint import blueprint as indexd_bulk_blueprint
 from .index.blueprint import blueprint as indexd_index_blueprint
 from .alias.blueprint import blueprint as indexd_alias_blueprint
@@ -6,12 +12,7 @@ from .dos.blueprint import blueprint as indexd_dos_blueprint
 from .drs.blueprint import blueprint as indexd_guid_blueprint
 from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
-
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
-
-import os
-import sys
-import cdislogging
 
 
 def app_init(app, settings=None):
@@ -20,6 +21,19 @@ def app_init(app, settings=None):
     if not settings:
         from .default_settings import settings
     app.config.update(settings["config"])
+
+    if settings.get("AUTO_MIGRATE", True):
+        if settings["config"]["INDEX"]["driver"].engine.dialect.name == "sqlite":
+            from indexd.index.drivers.alchemy import Base as IndexBase
+            from indexd.alias.drivers.alchemy import Base as AliasBase
+            from indexd.auth.drivers.alchemy import Base as AuthBase
+
+            IndexBase.metadata.create_all()
+            AliasBase.metadata.create_all()
+            AuthBase.metadata.create_all()
+        else:
+            alembic_main(["--raiseerr", "upgrade", "head"])
+
     app.auth = settings["auth"]
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
     app.register_blueprint(indexd_bulk_blueprint)
