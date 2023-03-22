@@ -1,8 +1,15 @@
+import os
+import time
+
 import datetime
+from urllib import response
 import uuid
 import json
 from contextlib import contextmanager
 from cdislogging import get_logger
+from flask import Flask
+from cache import cache
+import requests
 from sqlalchemy import (
     BigInteger,
     Column,
@@ -22,6 +29,7 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
+import urllib.parse
 
 from indexd import auth
 from indexd.errors import UserError, AuthError
@@ -35,6 +43,10 @@ from indexd.index.errors import (
 from indexd.utils import init_schema_version, is_empty_database, migrate_database
 
 Base = declarative_base()
+
+
+app = flask.Flask("indexd")
+cache.init_app(app)
 
 
 class BaseVersion(Base):
@@ -103,6 +115,66 @@ class IndexRecord(Base):
         "IndexRecordAlias", backref="index_record", cascade="all, delete-orphan"
     )
 
+    def url_to_bucket_region_mapping(self, url):
+        """
+        Map the url location of a bucket to its region
+
+        Args:
+            url(str): The url of the object location in the bucket
+
+        Returns:
+            region(str): The region of the bucket where the object is located
+        """
+
+        storage_to_config_map = {"s3": "S3_BUCKETS", "gs": "GS_BUCKETS"}
+        parsed_url = urllib.parse.urlparse(url)
+        cloud_storage_service = parsed_url.scheme
+        bucket_name = parsed_url.netloc
+
+        bucket_region_info = cache.get("bucket_region_info")
+
+        # if cache not found then try to retrieve info from fence and cache it
+        if bucket_region_info is not None:
+            hostname = os.environ["HOSTNAME"]
+            fence_url = "http://" + hostname + "/user/bucket_info/region"
+            retry_count = 0
+            while retry_count < 3:
+                response = requests.get(fence_url)
+                if response.status_code == 200:
+                    if response.json() != None:
+                        # set cache for an hour
+                        cache.set("bucket_region_info", response.json(), timeout=3600)
+                    else:
+                        self.logger.warning(
+                            "/bucket_info/region from fence returned 200 but no data found"
+                        )
+                    break
+                else:
+                    self.logger.warning(
+                        "/bucket_info/region from fence returned status {} with {}".format(
+                            response.status_code(), response.json()
+                        )
+                    )
+                    time.sleep(2**3)
+                    retry_count += 1
+                    return None
+
+        # checks cloud provider > cloud bucket
+        if (
+            bucket_name
+            in bucket_region_info[storage_to_config_map[cloud_storage_service]]
+        ):
+            return bucket_region_info[storage_to_config_map[cloud_storage_service]][
+                bucket_name
+            ]
+        else:
+            self.logger.warning(
+                "Bucket not configured in fence config for {}".format(
+                    cloud_storage_service + "://" + bucket_name
+                )
+            )
+            return None
+
     def to_document_dict(self):
         """
         Get the full index document
@@ -113,9 +185,11 @@ class IndexRecord(Base):
         hashes = {h.hash_type: h.hash_value for h in self.hashes}
         metadata = {m.key: m.value for m in self.index_metadata}
 
+        # Call fence /bucket_info/region endpoint to fill some of the urls metadata
         urls_metadata = {
             u.url: {m.key: m.value for m in u.url_metadata} for u in self.urls
         }
+
         created_date = self.created_date.isoformat()
         updated_date = self.updated_date.isoformat()
 

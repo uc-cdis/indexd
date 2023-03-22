@@ -1,4 +1,6 @@
+from distutils.command.config import config
 import flask
+from flask_caching import Cache
 from .bulk.blueprint import blueprint as indexd_bulk_blueprint
 from .index.blueprint import blueprint as indexd_index_blueprint
 from .alias.blueprint import blueprint as indexd_alias_blueprint
@@ -30,6 +32,8 @@ def app_init(app, settings=None):
     app.register_blueprint(indexd_guid_blueprint)
     app.register_blueprint(cross_blueprint)
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
+
+    cache = Cache(config={"CACHE_TYPE": "simple"})
 
 
 def get_app(settings=None):
