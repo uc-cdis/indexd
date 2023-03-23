@@ -129,7 +129,7 @@ class IndexRecord(Base):
         bucket_region_info = cache.get("bucket_region_info")
 
         # if cache not found then try to retrieve info from fence and cache it
-        if bucket_region_info is not None:
+        if bucket_region_info is None:
             hostname = os.environ["HOSTNAME"]
             fence_url = "http://" + hostname + "/user/bucket_info/region"
             retry_count = 0
@@ -140,12 +140,12 @@ class IndexRecord(Base):
                         # set cache for an hour
                         cache.set("bucket_region_info", response.json(), timeout=3600)
                     else:
-                        self.logger.warning(
+                        print(
                             "/bucket_info/region from fence returned 200 but no data found"
                         )
                     break
                 else:
-                    self.logger.warning(
+                    print(
                         "/bucket_info/region from fence returned status {} with {}".format(
                             response.status_code(), response.json()
                         )
@@ -163,7 +163,7 @@ class IndexRecord(Base):
                 bucket_name
             ]
         else:
-            self.logger.warning(
+            print(
                 "Bucket not configured in fence config for {}".format(
                     cloud_storage_service + "://" + bucket_name
                 )
