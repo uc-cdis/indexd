@@ -5,6 +5,9 @@ from alembic.config import main as alembic_main
 import cdislogging
 import flask
 
+from indexd.index.drivers.alchemy import Base as IndexBase
+from indexd.alias.drivers.alchemy import Base as AliasBase
+from indexd.auth.drivers.alchemy import Base as AuthBase
 from .bulk.blueprint import blueprint as indexd_bulk_blueprint
 from .index.blueprint import blueprint as indexd_index_blueprint
 from .alias.blueprint import blueprint as indexd_alias_blueprint
@@ -26,13 +29,11 @@ def app_init(app, settings=None):
         engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
         app.logger.debug(f"Auto migrating. Engine name: {engine_name}")
         if engine_name == "sqlite":
-            from indexd.index.drivers.alchemy import Base as IndexBase
-            from indexd.alias.drivers.alchemy import Base as AliasBase
-            from indexd.auth.drivers.alchemy import Base as AuthBase
-
             IndexBase.metadata.create_all()
             AliasBase.metadata.create_all()
             AuthBase.metadata.create_all()
+            settings["config"]["INDEX"]["driver"].migrate_index_database()
+            settings["config"]["ALIAS"]["driver"].migrate_alias_database()
         else:
             alembic_main(["--raiseerr", "upgrade", "head"])
     else:
