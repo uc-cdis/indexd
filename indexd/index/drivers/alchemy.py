@@ -130,36 +130,37 @@ class IndexRecord(Base):
         cloud_storage_service = parsed_url.scheme
         bucket_name = parsed_url.netloc
 
-        bucket_region_info = indexd_cache.get("bucket_region_info")
+        with app.app_context():
+            bucket_region_info = indexd_cache.get("bucket_region_info")
 
-        # if cache not found then try to retrieve info from fence and cache it
-        if bucket_region_info is not None:
-            indexd_cache.init_app(app)
-            hostname = os.environ["HOSTNAME"]
-            fence_url = "http://" + hostname + "/user/bucket_info/region"
-            retry_count = 0
-            while retry_count < 3:
-                response = requests.get(fence_url)
-                if response.status_code == 200:
-                    if response.json() != None:
-                        # set cache for an hour
-                        indexd_cache.set(
-                            "bucket_region_info", response.json(), timeout=3600
-                        )
+            # if cache not found then try to retrieve info from fence and cache it
+            if bucket_region_info is not None:
+                indexd_cache.init_app(app)
+                hostname = os.environ["HOSTNAME"]
+                fence_url = "http://" + hostname + "/user/bucket_info/region"
+                retry_count = 0
+                while retry_count < 3:
+                    response = requests.get(fence_url)
+                    if response.status_code == 200:
+                        if response.json() != None:
+                            # set cache for an hour
+                            indexd_cache.set(
+                                "bucket_region_info", response.json(), timeout=3600
+                            )
+                        else:
+                            self.logger.warning(
+                                "/bucket_info/region from fence returned 200 but no data found"
+                            )
+                        break
                     else:
                         self.logger.warning(
-                            "/bucket_info/region from fence returned 200 but no data found"
+                            "/bucket_info/region from fence returned status {} with {}".format(
+                                response.status_code(), response.json()
+                            )
                         )
-                    break
-                else:
-                    self.logger.warning(
-                        "/bucket_info/region from fence returned status {} with {}".format(
-                            response.status_code(), response.json()
-                        )
-                    )
-                    time.sleep(2**3)
-                    retry_count += 1
-                    return None
+                        time.sleep(2**3)
+                        retry_count += 1
+                        return None
 
         # checks cloud provider > cloud bucket
         if (
