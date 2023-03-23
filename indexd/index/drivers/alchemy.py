@@ -325,6 +325,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     def migrate_index_database(self):
         """
+        This migration logic is DEPRECATED. It is still supported for backwards compatibility,
+        but any new migration should be added using Alembic.
+
         migrate index database to match CURRENT_SCHEMA_VERSION
         """
         migrate_database(

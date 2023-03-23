@@ -150,6 +150,9 @@ def init_schema_version(driver, model, version):
 
 def migrate_database(driver, migrate_functions, current_schema_version, model):
     """
+    This migration logic is DEPRECATED. It is still supported for backwards compatibility,
+    but any new migration should be added using Alembic.
+
     migrate current database to match the schema version provided in
     current schema
 
@@ -173,10 +176,10 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
             )
         )
         return
+
     for f in migrate_functions[db_schema_version:current_schema_version]:
         with driver.session as s:
             schema_version = s.query(model).first()
-            schema_version.version += 1
             driver.logger.info(
                 "migrating {} schema to {}".format(
                     driver.__class__.__name__, schema_version.version
@@ -184,17 +187,5 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
             )
 
             f(engine=driver.engine, session=s)
+            schema_version.version += 1
             s.add(schema_version)
-
-
-def is_empty_database(driver):
-    """
-    check if the database is empty or not
-    Args:
-        driver (object): an alias or index driver instance
-
-    Returns:
-        Boolean
-    """
-    table_list = Inspector.from_engine(driver.engine).get_table_names()
-    return table_list == [] or table_list == ["alembic_version"]

@@ -10,14 +10,22 @@ from tests.default_test_settings import settings
 
 @pytest.fixture(scope="function", autouse=True)
 def postgres_driver(app):
+    """
+    Override the default test settings and app configuration to use a
+    postgres DB instead of the SQLite DB used in other tests
+    """
     index_driver = SQLAlchemyIndexDriver(settings["config"]["TEST_DB"])
     alias_driver = SQLAlchemyAliasDriver(settings["config"]["TEST_DB"])
     auth_driver = SQLAlchemyAuthDriver(settings["config"]["TEST_DB"])
 
-    # update the settings so that alembic picks up the right DB url
     index_driver_bk = settings["config"]["INDEX"]["driver"]
+    alias_driver_bk = settings["config"]["ALIAS"]["driver"]
+    auth_driver_bk = settings["auth"]
+
+    # update the settings so that alembic picks up the right DB url
     settings["config"]["INDEX"]["driver"] = index_driver
 
+    # update the app
     for blueprint in app.blueprints.values():
         blueprint.index_driver = index_driver
         blueprint.alias_driver = alias_driver
@@ -25,7 +33,12 @@ def postgres_driver(app):
 
     yield index_driver
 
+    # revert the changes so the next tests use SQLite
     settings["config"]["INDEX"]["driver"] = index_driver_bk
+    for blueprint in app.blueprints.values():
+        blueprint.index_driver = index_driver_bk
+        blueprint.alias_driver = alias_driver_bk
+        blueprint.auth_driver = auth_driver_bk
 
 
 @pytest.fixture(autouse=True)
