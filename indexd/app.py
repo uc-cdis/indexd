@@ -1,6 +1,6 @@
 from distutils.command.config import config
 import flask
-from flask_caching import Cache
+
 from .bulk.blueprint import blueprint as indexd_bulk_blueprint
 from .index.blueprint import blueprint as indexd_index_blueprint
 from .alias.blueprint import blueprint as indexd_alias_blueprint
@@ -8,6 +8,7 @@ from .dos.blueprint import blueprint as indexd_dos_blueprint
 from .drs.blueprint import blueprint as indexd_guid_blueprint
 from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
+from .cache import cache
 
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
@@ -36,6 +37,8 @@ def app_init(app, settings=None):
 
 def get_app(settings=None):
     app = flask.Flask("indexd")
+
+    cache.init_app(app)
 
     if "INDEXD_SETTINGS" in os.environ:
         sys.path.append(os.environ["INDEXD_SETTINGS"])
