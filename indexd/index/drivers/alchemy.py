@@ -32,7 +32,7 @@ from indexd.index.errors import (
     RevisionMismatch,
     UnhealthyCheck,
 )
-from indexd.utils import init_schema_version, is_empty_database, migrate_database
+from indexd.utils import migrate_database
 
 Base = declarative_base()
 
@@ -675,7 +675,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         urls_metadata file name and version
         if did is provided, update the new record with the did otherwise create it
         """
-
         urls = urls or []
         acl = acl or []
         authz = authz or []
@@ -1721,6 +1720,7 @@ def migrate_1(session, **kwargs):
 def migrate_2(session, **kwargs):
     """
     Migrate db from version 1 -> 2
+    Add a base_id (new random uuid), created_date and updated_date to all records
     """
     try:
         session.execute(

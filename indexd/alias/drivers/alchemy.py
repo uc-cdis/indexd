@@ -21,7 +21,7 @@ from indexd.alias.driver import AliasDriverABC
 from indexd.alias.errors import NoRecordFound
 from indexd.alias.errors import MultipleRecordsFound
 from indexd.alias.errors import RevisionMismatch
-from indexd.utils import migrate_database, init_schema_version, is_empty_database
+from indexd.utils import migrate_database
 
 
 Base = declarative_base()

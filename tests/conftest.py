@@ -27,7 +27,7 @@ def app():
         **default_test_settings.settings,
     }
 
-    yield get_app(default_test_settings.settings)
+    yield get_app()
 
     try:
         clear_database()

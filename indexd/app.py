@@ -23,7 +23,9 @@ def app_init(app, settings=None):
     app.config.update(settings["config"])
 
     if settings.get("AUTO_MIGRATE", True):
-        if settings["config"]["INDEX"]["driver"].engine.dialect.name == "sqlite":
+        engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
+        app.logger.debug(f"Auto migrating. Engine name: {engine_name}")
+        if engine_name == "sqlite":
             from indexd.index.drivers.alchemy import Base as IndexBase
             from indexd.alias.drivers.alchemy import Base as AliasBase
             from indexd.auth.drivers.alchemy import Base as AuthBase
@@ -33,6 +35,8 @@ def app_init(app, settings=None):
             AuthBase.metadata.create_all()
         else:
             alembic_main(["--raiseerr", "upgrade", "head"])
+    else:
+        app.logger.debug("Auto migrations are disabled")
 
     app.auth = settings["auth"]
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
