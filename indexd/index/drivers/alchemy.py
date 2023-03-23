@@ -138,6 +138,7 @@ class IndexRecord(Base):
                 if response.status_code == 200:
                     if response.json() != None:
                         # set cache for an hour
+                        bucket_region_info = response.json()
                         cache.set("bucket_region_info", response.json(), timeout=3600)
                     else:
                         print(
