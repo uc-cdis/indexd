@@ -29,6 +29,9 @@ Base = declarative_base()
 
 class AliasSchemaVersion(Base):
     """
+    This migration logic is DEPRECATED. It is still supported for backwards compatibility,
+    but any new migration should be added using Alembic.
+
     Table to track current database's schema version
     """
 

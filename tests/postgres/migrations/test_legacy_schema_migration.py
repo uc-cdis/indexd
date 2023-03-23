@@ -1,3 +1,9 @@
+"""
+These are tests for the old migration logic, which is DEPRECATED. It is still supported
+for backwards compatibility, but any new migration should be added using Alembic.
+"""
+
+
 from sqlalchemy.ext.declarative import declarative_base
 import sqlite3
 import tests.util as util

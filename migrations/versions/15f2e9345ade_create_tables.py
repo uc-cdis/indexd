@@ -276,7 +276,6 @@ def downgrade() -> None:
     op.drop_table("index_record_ace")
     op.drop_index("index_record_metadata_idx", table_name="index_record_metadata")
     op.drop_table("index_record_metadata")
-    # TODO new migration? to drop index_schema_version and alias_schema_version
     op.drop_table("index_schema_version")
     op.drop_index("index_record_hash_idx", table_name="index_record_hash")
     op.drop_index("index_record_hash_type_value_idx", table_name="index_record_hash")
