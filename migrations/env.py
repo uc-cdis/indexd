@@ -19,7 +19,6 @@ logger = logging.getLogger("indexd.alembic")
 Base = declarative_base()
 target_metadata = Base.metadata
 
-# TODO will need to cd in cloud-auto
 try:
     from local_settings import settings
 except ImportError:
