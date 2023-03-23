@@ -45,7 +45,6 @@ from indexd.utils import init_schema_version, is_empty_database, migrate_databas
 Base = declarative_base()
 
 app = Flask("indexd")
-indexd_cache = Cache(config={"CACHE_TYPE": "simple"})
 
 
 class BaseVersion(Base):
@@ -89,6 +88,7 @@ class IndexRecord(Base):
     version = Column(String, index=True)
     uploader = Column(String, index=True)
     description = Column(String)
+    indexd_cache = Cache(config={"CACHE_TYPE": "simple"})
 
     urls = relationship(
         "IndexRecordUrl", backref="index_record", cascade="all, delete-orphan"
@@ -131,11 +131,10 @@ class IndexRecord(Base):
         bucket_name = parsed_url.netloc
 
         with app.app_context():
-            bucket_region_info = indexd_cache.get("bucket_region_info")
+            bucket_region_info = self.indexd_cache.get("bucket_region_info")
 
             # if cache not found then try to retrieve info from fence and cache it
             if bucket_region_info is not None:
-                indexd_cache.init_app(app)
                 hostname = os.environ["HOSTNAME"]
                 fence_url = "http://" + hostname + "/user/bucket_info/region"
                 retry_count = 0
@@ -144,7 +143,7 @@ class IndexRecord(Base):
                     if response.status_code == 200:
                         if response.json() != None:
                             # set cache for an hour
-                            indexd_cache.set(
+                            self.indexd_cache.set(
                                 "bucket_region_info", response.json(), timeout=3600
                             )
                         else:
