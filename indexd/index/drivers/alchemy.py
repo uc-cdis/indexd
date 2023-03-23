@@ -8,7 +8,7 @@ import json
 from contextlib import contextmanager
 from cdislogging import get_logger
 from flask import Flask
-from cache import cache
+from flask_caching import Cache
 import requests
 from sqlalchemy import (
     BigInteger,
@@ -44,9 +44,8 @@ from indexd.utils import init_schema_version, is_empty_database, migrate_databas
 
 Base = declarative_base()
 
-
-app = flask.Flask("indexd")
-cache.init_app(app)
+app = Flask("indexd")
+indexd_cache = Cache(config={"CACHE_TYPE": "simple"})
 
 
 class BaseVersion(Base):
@@ -131,10 +130,11 @@ class IndexRecord(Base):
         cloud_storage_service = parsed_url.scheme
         bucket_name = parsed_url.netloc
 
-        bucket_region_info = cache.get("bucket_region_info")
+        bucket_region_info = indexd_cache.get("bucket_region_info")
 
         # if cache not found then try to retrieve info from fence and cache it
         if bucket_region_info is not None:
+            indexd_cache.init_app(app)
             hostname = os.environ["HOSTNAME"]
             fence_url = "http://" + hostname + "/user/bucket_info/region"
             retry_count = 0
@@ -143,7 +143,9 @@ class IndexRecord(Base):
                 if response.status_code == 200:
                     if response.json() != None:
                         # set cache for an hour
-                        cache.set("bucket_region_info", response.json(), timeout=3600)
+                        indexd_cache.set(
+                            "bucket_region_info", response.json(), timeout=3600
+                        )
                     else:
                         self.logger.warning(
                             "/bucket_info/region from fence returned 200 but no data found"
@@ -188,6 +190,14 @@ class IndexRecord(Base):
         # Call fence /bucket_info/region endpoint to fill some of the urls metadata
         urls_metadata = {
             u.url: {m.key: m.value for m in u.url_metadata} for u in self.urls
+        }
+
+        urls_metadata = {
+            u.url: {
+                "region": self.url_to_bucket_region_mapping(m.url)
+                for m in u.url_metadata
+            }
+            for u in self.urls
         }
 
         created_date = self.created_date.isoformat()
