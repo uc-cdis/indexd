@@ -25,6 +25,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 logger = logging.getLogger("indexd.alembic")
+logger.setLevel(logging.INFO)
 
 Base = declarative_base()
 target_metadata = Base.metadata
