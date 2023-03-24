@@ -25,7 +25,6 @@ def test_driver_init_does_not_create_records():
     Tests driver init does not have unexpected side-effects.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         count = conn.execute(
@@ -44,7 +43,6 @@ def test_driver_init_does_not_create_record_urls():
     Tests driver init does not have unexpected side-effects.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         count = conn.execute(
@@ -63,7 +61,6 @@ def test_driver_init_does_not_create_record_hashes():
     Tests driver init does not have unexpected side-effects.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver(
             "sqlite:///index.sq3"
         )  # pylint: disable=unused-variable
@@ -83,7 +80,6 @@ def test_driver_add_object_record():
     Tests creation of a record.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         driver.add("object")
@@ -115,7 +111,6 @@ def test_driver_add_bundle_record():
     Tests creation of a record.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         driver.add_blank_bundle()
@@ -144,7 +139,6 @@ def test_driver_add_container_record():
     Tests creation of a record.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         driver.add("container")
@@ -176,7 +170,6 @@ def test_driver_add_bundles_record():
     Tests creation of a record.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         driver.add_bundle(name="bundle")
@@ -207,7 +200,6 @@ def test_driver_add_multipart_record():
     Tests creation of a record.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         driver.add("multipart")
@@ -268,7 +260,6 @@ def test_driver_add_multiple_records():
     Tests creation of a record.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         driver.add("object")
@@ -303,7 +294,6 @@ def test_driver_add_with_size():
     Tests creation of a record with size.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         form = "object"
@@ -335,7 +325,6 @@ def test_driver_add_with_urls():
     Tests creation of a record with urls.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         form = "object"
@@ -405,7 +394,6 @@ def test_driver_add_with_hashes():
     Tests creation of a record with hashes.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         form = "object"
@@ -447,7 +435,6 @@ def test_driver_get_record():
     Tests retrieval of a record.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         did = str(uuid.uuid4())
@@ -500,7 +487,6 @@ def test_driver_nonstrict_get_without_prefix():
     Tests retrieval of a record when a default prefix is set, but no prefix is supplied by the request.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver(
             "sqlite:///index.sq3",
             index_config={
@@ -550,7 +536,6 @@ def test_driver_nonstrict_get_with_prefix():
     but records are stored without prefixes.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver(
             "sqlite:///index.sq3",
             index_config={
@@ -599,7 +584,6 @@ def test_driver_nonstrict_get_with_incorrect_prefix():
     Tests retrieval of a record fails if default prefix is set and request uses a different prefix with same uuid
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver(
             "sqlite:///index.sq3",
             index_config={
@@ -659,7 +643,6 @@ def test_driver_get_latest_version():
         baseid = str(uuid.uuid4())
 
         for _ in range(10):
-
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
             size = 512
@@ -700,7 +683,6 @@ def test_driver_get_latest_version_with_no_record():
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         for _ in range(10):
-
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
             size = 512
@@ -738,7 +720,6 @@ def test_driver_get_all_versions():
         updated_dates = []
 
         for _ in range(NUMBER_OF_RECORD):
-
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
             size = 512
@@ -788,7 +769,6 @@ def test_driver_get_all_versions_with_no_record():
         baseid = str(uuid.uuid4())
 
         for _ in range(3):
-
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
             size = 512
@@ -813,7 +793,6 @@ def test_driver_get_fails_with_invalid_id():
     Tests retrieval of a record fails if the record id is not found.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         did = str(uuid.uuid4())
@@ -844,7 +823,6 @@ def _test_driver_update_record():
     Tests updating of a record.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         did = str(uuid.uuid4())
@@ -926,7 +904,6 @@ def test_driver_update_fails_with_invalid_id():
     Tests updating a record fails if the record id is not found.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         did = str(uuid.uuid4())
@@ -953,7 +930,6 @@ def test_driver_update_fails_with_invalid_rev():
     Tests updating a record fails if the record rev is not invalid.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         did = str(uuid.uuid4())
@@ -984,7 +960,6 @@ def _test_driver_delete_record():
     Tests deletion of a record.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         did = str(uuid.uuid4())
@@ -1029,7 +1004,6 @@ def test_driver_delete_fails_with_invalid_id():
     Tests deletion of a record fails if the record id is not found.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         did = str(uuid.uuid4())
@@ -1056,7 +1030,6 @@ def test_driver_delete_fails_with_invalid_rev():
     Tests deletion of a record fails if the record rev is not invalid.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         did = str(uuid.uuid4())
@@ -1083,7 +1056,6 @@ def test_driver_get_bundle():
     Tests retrieval of a record.
     """
     with sqlite3.connect("index.sq3") as conn:
-
         driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
         bundle_id = str(uuid.uuid4())
