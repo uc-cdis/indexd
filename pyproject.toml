@@ -11,6 +11,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
+alembic = "^1.9.4"
 authutils = "^6.0.0"
 cdislogging = "^1.0.0"
 cdiserrors =  "^1.0.0"
