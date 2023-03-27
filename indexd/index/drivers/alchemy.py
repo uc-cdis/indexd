@@ -194,6 +194,9 @@ class IndexRecord(Base):
             for u in self.urls
         }
 
+        for u in urls:
+            urls_metadata[u]["region"] = self.url_to_bucket_region_mapping(u)
+
         created_date = self.created_date.isoformat()
         updated_date = self.updated_date.isoformat()
 
