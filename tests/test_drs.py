@@ -3,26 +3,8 @@ import sqlite3
 
 import tests.conftest
 import requests
-import responses
 from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
-
-
-def generate_presigned_url_response(did, status=200, **query_params):
-    if query_params:
-        query_string = "&".join(
-            f"{param}={value}" for param, value in query_params.items()
-        )
-        full_url = (
-            "https://fictitious-commons.io/data/download/" + did + "?" + query_string
-        )
-    else:
-        full_url = "https://fictitious-commons.io/data/download/" + did
-    presigned_url = {
-        "url": "https://storage.googleapis.com/nih-mock-project-released-phs123-c2/RootStudyConsentSet_phs000007.Whatever.v666.p1.c2.FBI-BMW-CIA.tar.gz?GoogleAccessId=internal-someuser-1399@dcpstage-210518.iam.gserviceaccount.com&Expires=1582215120&Signature=hUsgjkegdsfkjbsajkafnsdjksdnfjknbdsajkfbsdkjfbjdfbkjdasfbnjsdnfjsnd2FTr%2FKs2kGKs0fJ8v5elFk5NQAYdrGcU3kROrzJuHUbI%2BMZ839SAbAz2rbMBuC9e46%2BdB91%2FA==&userProject=dcf-mock-project"
-    }
-    responses.add(responses.GET, full_url, json=presigned_url, status=status)
-    return presigned_url
 
 
 def get_doc(has_version=True, urls=list(), has_description=True):

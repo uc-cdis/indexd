@@ -155,20 +155,25 @@ class IndexRecord(Base):
                     retry_count += 1
                     return None
 
-        # checks cloud provider > cloud bucket
-        if (
-            bucket_name
-            in bucket_region_info[storage_to_config_map[cloud_storage_service]]
-        ):
-            return bucket_region_info[storage_to_config_map[cloud_storage_service]][
+        # if bucket_region_info is still empty that means that there's no bucket configured in the fence config
+        if bucket_region_info is None:
+            # checks cloud provider -> cloud bucket
+            if (
                 bucket_name
-            ]
-        else:
-            print(
-                "Bucket not configured in fence config for {}".format(
-                    cloud_storage_service + "://" + bucket_name
+                in bucket_region_info[storage_to_config_map[cloud_storage_service]]
+            ):
+                return bucket_region_info[storage_to_config_map[cloud_storage_service]][
+                    bucket_name
+                ]
+            else:
+                print(
+                    "Bucket not configured in fence config for {}".format(
+                        cloud_storage_service + "://" + bucket_name
+                    )
                 )
-            )
+                return None
+        else:
+            print("No buckets not configured in fence config")
             return None
 
     def to_document_dict(self):

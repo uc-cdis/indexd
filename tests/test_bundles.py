@@ -1,9 +1,4 @@
-import json
-import pytest
 import uuid
-import tests.conftest
-import requests
-import responses
 from tests.default_test_settings import settings
 
 
@@ -149,7 +144,10 @@ def test_bundle_post_different_checksum_types(client, user):
         "bundles": did_list,
         "bundle_id": bundle_id,
         "checksums": [
-            {"checksum": "85136c79cbf9fe36bb9d05d0639c70c265c18d37", "type": "sha1"}
+            {
+                "checksum": "85136c79cbf9fe36bb9d05d0639c70c265c18d37",  # pragma: allowlist secret
+                "type": "sha1",
+            }
         ],
     }
     res = client.post("/bundle/", json=data, headers=user)
@@ -157,7 +155,7 @@ def test_bundle_post_different_checksum_types(client, user):
     res1 = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
     rec1 = res1.json
     assert rec1["checksums"][0] == {
-        "checksum": "85136c79cbf9fe36bb9d05d0639c70c265c18d37",
+        "checksum": "85136c79cbf9fe36bb9d05d0639c70c265c18d37",  # pragma: allowlist secret
         "type": "sha1",
     }
 
@@ -171,10 +169,13 @@ def test_bundle_post_multiple_checksum_types(client, user):
         "bundle_id": bundle_id,
         "checksums": [
             {
-                "checksum": "bc52d6bfe3ac965e069109dbd7d15e0ccaaa55678f6e2a6664bee2edf8ae1b2b",
+                "checksum": "bc52d6bfe3ac965e069109dbd7d15e0ccaaa55678f6e2a6664bee2edf8ae1b2b",  # pragma: allowlist secret
                 "type": "sha256",
             },
-            {"checksum": "e93ccf5ffc90eefcc0bdb81f87d25d1a", "type": "md5"},
+            {
+                "checksum": "e93ccf5ffc90eefcc0bdb81f87d25d1a",  # pragma: allowlist secret
+                "type": "md5",
+            },
         ],
     }
     res = client.post("/bundle/", json=data, headers=user)
@@ -186,10 +187,13 @@ def test_bundle_post_multiple_checksum_types(client, user):
     for checksum in checksums:
         assert checksum in [
             {
-                "checksum": "bc52d6bfe3ac965e069109dbd7d15e0ccaaa55678f6e2a6664bee2edf8ae1b2b",
+                "checksum": "bc52d6bfe3ac965e069109dbd7d15e0ccaaa55678f6e2a6664bee2edf8ae1b2b",  # pragma: allowlist secret
                 "type": "sha256",
             },
-            {"checksum": "e93ccf5ffc90eefcc0bdb81f87d25d1a", "type": "md5"},
+            {
+                "checksum": "e93ccf5ffc90eefcc0bdb81f87d25d1a",  # pragma: allowlist secret
+                "type": "md5",
+            },
         ]
 
 
@@ -321,7 +325,6 @@ def test_bundle_get_no_bundle_id(client, user):
 
 
 def test_bundle_get_expand_false(client, user):
-
     did_list, rec = create_index(client, user)
     res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"])
 
@@ -634,7 +637,6 @@ def content_validation(contents):
 
 
 def test_get_drs_expand_contents_default(client, user):
-
     bundle_id = build_bundle(client, user)
     res = client.get("/bundle/" + bundle_id)
     assert res.status_code == 200
@@ -648,7 +650,6 @@ def test_get_drs_expand_contents_default(client, user):
 
 
 def test_get_drs_expand_contents_false(client, user):
-
     bundle_id = build_bundle(client, user)
     res = client.get("/bundle/" + bundle_id)
     assert res.status_code == 200
@@ -662,7 +663,6 @@ def test_get_drs_expand_contents_false(client, user):
 
 
 def test_get_drs_expand_contents_true(client, user):
-
     bundle_id = build_bundle(client, user)
     res = client.get("/bundle/" + bundle_id)
     assert res.status_code == 200

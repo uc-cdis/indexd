@@ -26,6 +26,8 @@ sqlalchemy = "~1.3.3"
 sqlalchemy-utils = "^0.37.3"
 PyYAML = "^5.4"
 flask-caching = "^2.0.2"
+pytest-mock = "^3.10.0"
+requests-mock = "^1.10.0"
 
 
 [tool.poetry.dev-dependencies]

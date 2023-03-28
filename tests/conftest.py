@@ -1,8 +1,11 @@
 import base64
+import os
+
 from flask import request
 import importlib
 import pytest
 import requests
+import requests_mock
 import mock
 from unittest.mock import patch
 
@@ -145,3 +148,19 @@ def mock_arborist_requests(app, request):
         request.addfinalizer(patch_method.stop)
 
     return do_patch
+
+
+@pytest.fixture
+def mock_bucket_region_info(requests_mock):
+    mock_response = {
+        "GS_BUCKETS": {"endpointurl": {"region": "us-east-1"}},
+        "S3_BUCKETS": {"endpointurl": {"region": "us-east-1"}},
+    }
+
+    with requests_mock.Mocker() as m:
+        m.get(
+            f"http://{os.environ['HOSTNAME']}/user/bucket_info/region",
+            json=mock_response,
+        )
+
+        yield m
