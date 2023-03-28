@@ -39,7 +39,7 @@ from indexd.index.errors import (
     RevisionMismatch,
     UnhealthyCheck,
 )
-from indexd.utils import init_schema_version, is_empty_database, migrate_database
+from indexd.utils import migrate_database
 
 Base = declarative_base()
 
@@ -59,6 +59,9 @@ class BaseVersion(Base):
 
 class IndexSchemaVersion(Base):
     """
+    This migration logic is DEPRECATED. It is still supported for backwards compatibility,
+    but any new migration should be added using Alembic.
+
     Table to track current database's schema version
     """
 
@@ -84,7 +87,6 @@ class IndexRecord(Base):
     file_name = Column(String, index=True)
     version = Column(String, index=True)
     uploader = Column(String, index=True)
-    description = Column(String)
 
     urls = relationship(
         "IndexRecordUrl", backref="index_record", cascade="all, delete-orphan"
@@ -222,7 +224,6 @@ class IndexRecord(Base):
             "form": self.form,
             "created_date": created_date,
             "updated_date": updated_date,
-            "description": self.description,
         }
 
 
@@ -401,31 +402,21 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     SQLAlchemy implementation of index driver.
     """
 
-    def __init__(
-        self, conn, logger=None, auto_migrate=True, index_config=None, **config
-    ):
+    def __init__(self, conn, logger=None, index_config=None, **config):
         """
         Initialize the SQLAlchemy database driver.
         """
         super().__init__(conn, **config)
         self.logger = logger or get_logger("SQLAlchemyIndexDriver")
         self.config = index_config or {}
-
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
 
-        is_empty_db = is_empty_database(driver=self)
-        Base.metadata.create_all()
-        if is_empty_db:
-            init_schema_version(
-                driver=self, model=IndexSchemaVersion, version=CURRENT_SCHEMA_VERSION
-            )
-
-        if auto_migrate:
-            self.migrate_index_database()
-
     def migrate_index_database(self):
         """
+        This migration logic is DEPRECATED. It is still supported for backwards compatibility,
+        but any new migration should be added using Alembic.
+
         migrate index database to match CURRENT_SCHEMA_VERSION
         """
         migrate_database(
@@ -770,14 +761,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         hashes=None,
         baseid=None,
         uploader=None,
-        description=None,
     ):
         """
         Creates a new record given size, urls, acl, authz, hashes, metadata,
         urls_metadata file name and version
         if did is provided, update the new record with the did otherwise create it
         """
-
         urls = urls or []
         acl = acl or []
         authz = authz or []
@@ -830,9 +819,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 IndexRecordMetadata(did=record.did, key=m_key, value=m_value)
                 for m_key, m_value in metadata.items()
             ]
-
-            record.description = description
-
             session.merge(base_version)
 
             try:
@@ -1359,7 +1345,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         acl=None,
         authz=None,
         hashes=None,
-        description=None,
     ):
         """
         Add a record version given did
@@ -1398,7 +1383,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.size = size
             record.file_name = file_name
             record.version = version
-            record.description = description
 
             record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
 
@@ -1828,6 +1812,7 @@ def migrate_1(session, **kwargs):
 def migrate_2(session, **kwargs):
     """
     Migrate db from version 1 -> 2
+    Add a base_id (new random uuid), created_date and updated_date to all records
     """
     try:
         session.execute(

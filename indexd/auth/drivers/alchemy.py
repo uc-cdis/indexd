@@ -44,7 +44,6 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         """
         super().__init__(conn, **config)
         Base.metadata.bind = self.engine
-        Base.metadata.create_all()
         self.Session = sessionmaker(bind=self.engine)
         if arborist is not None:
             arborist = ArboristClient(arborist_base_url=arborist)

@@ -1,5 +1,6 @@
 import pytest
 
+
 # NOTE these tests apply to the '/alias/' endpoint, which is deprecated
 # in favor of the 'index/{GUID}/aliases' endpoint.
 def test_alias_list(client, user):

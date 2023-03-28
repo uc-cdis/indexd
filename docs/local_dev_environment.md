@@ -192,7 +192,7 @@ python3 -m pytest -vv --cov=indexd --cov-report xml --junitxml="test-results.xml
 You may also need to update the [test settings](./tests/default_test_settings.py) with the appropriate database connection information prior to running the tests.
 
 ```python
-settings["config"]["TEST_DB"] = "postgres://{username}:{password}@localhost:{port}/test_migration_db"
+settings["config"]["TEST_DB"] = "postgres://{username}:{password}@localhost:{port}/indexd_tests"
 ```
 
 > If you are using Azure Postgresql, you will need to include the `username@hostname` for the `username` in the connection string.  You may also need to include support for SSL in the connection string, e.g. `postgres://{username@hostname}:{password}@serverfqdn:{port}/{dbname}?sslmode=require`.
