@@ -29,6 +29,7 @@ PyYAML = "^5.4"
 flask-caching = "^2.0.2"
 pytest-mock = "^3.10.0"
 requests-mock = "^1.10.0"
+flask-cache = "^0.13.1"
 
 
 [tool.poetry.dev-dependencies]

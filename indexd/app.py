@@ -3,6 +3,7 @@ import sys
 
 from alembic.config import main as alembic_main
 import cdislogging
+from distutils.command.config import config
 import flask
 
 from indexd.index.drivers.alchemy import Base as IndexBase
@@ -15,6 +16,8 @@ from .dos.blueprint import blueprint as indexd_dos_blueprint
 from .drs.blueprint import blueprint as indexd_guid_blueprint
 from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
+from .cache import cache
+
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
 

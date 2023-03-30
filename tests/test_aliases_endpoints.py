@@ -1,12 +1,9 @@
 import os
 
 import pytest
-import requests_mock
 import string
 import json
 import urllib.parse
-
-from tests.conftest import mock_bucket_region_info
 
 
 # Test fixtures and helper functions
@@ -102,7 +99,7 @@ def unused_aliases():
 
 # GET /{alias}
 # ------------------------
-def test_global_endpoint_valid_alias(client, guid, aliases, mock_bucket_region_info):
+def test_global_endpoint_valid_alias(client, guid, aliases):
     """
     expect query for alias on global endpoint to return the record associated with alias
     """

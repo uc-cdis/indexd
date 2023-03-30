@@ -193,14 +193,6 @@ class IndexRecord(Base):
             u.url: {m.key: m.value for m in u.url_metadata} for u in self.urls
         }
 
-        urls_metadata = {
-            u.url: {
-                "region": self.url_to_bucket_region_mapping(m.url)
-                for m in u.url_metadata
-            }
-            for u in self.urls
-        }
-
         for u in urls:
             urls_metadata[u]["region"] = self.url_to_bucket_region_mapping(u)
 

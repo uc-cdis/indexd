@@ -152,8 +152,8 @@ def mock_arborist_requests(app, request):
     return do_patch
 
 
-@pytest.fixture
-def mock_bucket_region_info(requests_mock):
+@pytest.fixture(autouse=True)
+def mock_bucket_region_info():
     mock_response = {
         "GS_BUCKETS": {"endpointurl": {"region": "us-east-1"}},
         "S3_BUCKETS": {"endpointurl": {"region": "us-east-1"}},
@@ -166,3 +166,8 @@ def mock_bucket_region_info(requests_mock):
         )
 
         yield m
+
+
+@pytest.fixture
+def mock_bucket_region_info_with_empty_response():
+    pass
