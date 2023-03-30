@@ -111,7 +111,7 @@ def indexd_to_drs(record, expand=False):
 
     name = record["file_name"] if "file_name" in record else record["name"]
 
-    created_time = (
+    index_created_time = (
         record["created_date"] if "created_date" in record else record["created_time"]
     )
 
@@ -123,9 +123,13 @@ def indexd_to_drs(record, expand=False):
         else ""
     )
 
-    updated_date = (
+    index_updated_time = (
         record["updated_date"] if "updated_date" in record else record["updated_time"]
     )
+
+    created_time = record.get("content_created_date", "")
+
+    updated_time = record.get("content_updated_date", "")
 
     form = record["form"] if "form" in record else "bundle"
 
@@ -141,11 +145,12 @@ def indexd_to_drs(record, expand=False):
 
     drs_object = {
         "id": did,
-        "description": "",
         "mime_type": "application/json",
         "name": name,
+        "index_created_time": index_created_time,
+        "index_updated_time": index_updated_time,
         "created_time": created_time,
-        "updated_time": updated_date,
+        "updated_time": updated_time,
         "size": record["size"],
         "aliases": alias,
         "self_uri": self_uri,

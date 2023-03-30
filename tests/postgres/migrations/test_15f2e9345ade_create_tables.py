@@ -62,6 +62,7 @@ def test_upgrade(postgres_driver):
         ("file_name", "character varying"),
         ("version", "character varying"),
         ("uploader", "character varying"),
+        ("description", "character varying"),
     ]
     assert sorted(expected_schema) == sorted([i for i in cols])
 

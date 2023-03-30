@@ -407,6 +407,9 @@ def post_index_record():
     version = flask.request.json.get("version")
     baseid = flask.request.json.get("baseid")
     uploader = flask.request.json.get("uploader")
+    description = flask.request.json.get("description")
+    created_time = flask.request.json.get("created_time")
+    updated_time = flask.request.json.get("updated_time")
 
     did, rev, baseid = blueprint.index_driver.add(
         form,
@@ -422,6 +425,9 @@ def post_index_record():
         hashes=hashes,
         baseid=baseid,
         uploader=uploader,
+        description=description,
+        created_time=created_time,
+        updated_time=updated_time,
     )
 
     ret = {"did": did, "rev": rev, "baseid": baseid}
@@ -553,6 +559,11 @@ def add_index_record_version(record):
     metadata = flask.request.json.get("metadata")
     urls_metadata = flask.request.json.get("urls_metadata")
     version = flask.request.json.get("version")
+    description = flask.request.json.get("description")
+    created_time = flask.request.json.get("created_time")
+    updated_time = flask.request.json.get("updated_time")
+    if updated_time is None:
+        updated_time = created_time
 
     # authorize done in add_version for both the old and new authz
     did, baseid, rev = blueprint.index_driver.add_version(
@@ -568,6 +579,9 @@ def add_index_record_version(record):
         urls_metadata=urls_metadata,
         version=version,
         hashes=hashes,
+        description=description,
+        created_time=created_time,
+        updated_time=updated_time,
     )
 
     ret = {"did": did, "baseid": baseid, "rev": rev}

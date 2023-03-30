@@ -2646,3 +2646,72 @@ def test_get_dist(client):
             "type": "indexd",
         }
     ]
+
+
+def test_timestamps(client, user):
+    data = {
+        "size": 10,
+        "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "urls": [
+            "gs://test-gdc-abc-phs000222-controlled/07340778-86ac-40ab-bd0c-32284b752b20/07340778-86ac-40ab-bd0c-32284b752b20"
+        ],
+        "authz": ["/programs/DEV"],
+        "acl": ["DEV"],
+        "file_name": "asdfsdfsd",
+        "form": "object",
+        "description": "DICOM",
+        "created_time": "2023-03-13T17:02:54",
+        "updated_time": "2023-03-14T17:02:54",
+    }
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_resp = client.get(f"/ga4gh/drs/v1/objects/{obj_did}")
+    assert obj_resp.status_code == 200
+    assert data["created_time"] == obj_resp.json["created_time"]
+    assert data["updated_time"] == obj_resp.json["updated_time"]
+
+
+def test_timestamps_updated_sets_to_created(client, user):
+    data = {
+        "size": 10,
+        "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "urls": [
+            "gs://test-gdc-abc-phs000222-controlled/07340778-86ac-40ab-bd0c-32284b752b20/07340778-86ac-40ab-bd0c-32284b752b20"
+        ],
+        "authz": ["/programs/DEV"],
+        "acl": ["DEV"],
+        "file_name": "asdfsdfsd",
+        "form": "object",
+        "description": "DICOM",
+        "created_time": "2023-03-13T17:02:54",
+    }
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_resp = client.get(f"/ga4gh/drs/v1/objects/{obj_did}")
+    assert obj_resp.status_code == 200
+    assert data["created_time"] == obj_resp.json["created_time"]
+    assert data["created_time"] == obj_resp.json["updated_time"]
+
+
+def test_timestamps_none(client, user):
+    data = {
+        "size": 10,
+        "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "urls": [
+            "gs://test-gdc-abc-phs000222-controlled/07340778-86ac-40ab-bd0c-32284b752b20/07340778-86ac-40ab-bd0c-32284b752b20"
+        ],
+        "authz": ["/programs/DEV"],
+        "acl": ["DEV"],
+        "file_name": "asdfsdfsd",
+        "form": "object",
+        "description": "DICOM",
+    }
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_resp = client.get(f"/ga4gh/drs/v1/objects/{obj_did}")
+    assert obj_resp.status_code == 200
+    assert obj_resp.json.get("created_time") == ""
+    assert obj_resp.json.get("updated_time") == ""

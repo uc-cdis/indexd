@@ -80,6 +80,9 @@ class IndexRecord(Base):
     file_name = Column(String, index=True)
     version = Column(String, index=True)
     uploader = Column(String, index=True)
+    description = Column(String)
+    content_created_date = Column(DateTime, default=datetime.datetime.fromtimestamp(0))
+    content_updated_date = Column(DateTime, default=datetime.datetime.fromtimestamp(0))
 
     urls = relationship(
         "IndexRecordUrl", backref="index_record", cascade="all, delete-orphan"
@@ -120,6 +123,16 @@ class IndexRecord(Base):
         }
         created_date = self.created_date.isoformat()
         updated_date = self.updated_date.isoformat()
+        content_created_date = (
+            self.content_created_date.isoformat()
+            if self.content_created_date != datetime.datetime.fromtimestamp(0)
+            else ""
+        )
+        content_updated_date = (
+            self.content_updated_date.isoformat()
+            if self.content_created_date != datetime.datetime.fromtimestamp(0)
+            else ""
+        )
 
         return {
             "did": self.did,
@@ -138,6 +151,9 @@ class IndexRecord(Base):
             "form": self.form,
             "created_date": created_date,
             "updated_date": updated_date,
+            "description": self.description,
+            "content_created_date": content_created_date,
+            "content_updated_date": content_updated_date,
         }
 
 
@@ -675,6 +691,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         hashes=None,
         baseid=None,
         uploader=None,
+        description=None,
+        created_time=None,
+        updated_time=None,
     ):
         """
         Creates a new record given size, urls, acl, authz, hashes, metadata,
@@ -733,6 +752,19 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 IndexRecordMetadata(did=record.did, key=m_key, value=m_value)
                 for m_key, m_value in metadata.items()
             ]
+
+            record.description = description
+
+            if created_time is not None:
+                record.content_created_date = datetime.datetime.fromisoformat(
+                    created_time
+                )
+                record.content_updated_date = (
+                    datetime.datetime.fromisoformat(updated_time)
+                    if updated_time is not None
+                    else record.content_created_date
+                )
+
             session.merge(base_version)
 
             try:
@@ -1259,6 +1291,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         acl=None,
         authz=None,
         hashes=None,
+        description=None,
+        created_time=None,
+        updated_time=None,
     ):
         """
         Add a record version given did
@@ -1297,6 +1332,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.size = size
             record.file_name = file_name
             record.version = version
+            record.description = description
+            record.content_created_time = created_time
+            record.content_updated_time = updated_time
 
             record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
 
