@@ -421,7 +421,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     query = query.filter(IndexRecord.index_metadata[k].astext == v)
 
             if urls_metadata:
-
                 query = query.join(IndexRecord.urls_metadata)
                 for url_key, url_dict in urls_metadata.items():
                     u_type, u_state, url_dict = separate_urls_metadata(url_dict)
@@ -1195,7 +1194,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Number of unique records stored by backend.
         """
         with self.session as session:
-
             return session.execute(
                 select([func.count()]).select_from(IndexRecord)
             ).scalar()

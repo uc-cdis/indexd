@@ -509,5 +509,4 @@ def test_migrate_index_versioning(monkeypatch, index_driver_no_migrate, database
 
 
 def test_schema_version():
-
     assert CURRENT_SCHEMA_VERSION == len(SCHEMA_MIGRATION_FUNCTIONS)
