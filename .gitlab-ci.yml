@@ -41,7 +41,7 @@ tox:
   before_script:
     - pip install 'tox < 4'
     - apt update
-    - apt install openjdk-8-jdk
+    - apt -y install openjdk-8-jre
     - java -version
   script:
     - !reference [.load_github_key, script]
