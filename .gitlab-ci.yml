@@ -8,7 +8,7 @@ include:
 
 variables:
   PRE_COMMIT_DOCKER_IMAGE: ${BASE_CONTAINER_REGISTRY}/python3.8-builder
-  PRE_COMMIT_VERSION: 3.2.1
+  PRE_COMMIT_VERSION: 2.21.0
 
 tox:
   stage: test
