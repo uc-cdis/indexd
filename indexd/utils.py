@@ -1,5 +1,7 @@
 import logging
+import os
 import re
+from typing import Optional
 
 import sqlalchemy_utils
 from sqlalchemy import create_engine
@@ -26,14 +28,38 @@ def hint_match(record, hints):
     return False
 
 
-def try_drop_test_data(database="indexd_test", root_user="postgres", host="localhost"):
+IndexdConfig = dict(
+    user=os.getenv("PG_INDEXD_USER", "test"),
+    password=os.getenv("PG_INDEXD_PASS", "test"),
+    host=os.getenv("PG_INDEXD_HOST", "localhost"),
+    database=os.getenv("PG_INDEXD_DBNAME", "indexd_test"),
+    root_user=os.getenv("PG_INDEXD_ROOT_USER", "postgres"),
+    root_password=os.getenv("PG_INDEXD_ROOT_PASS"),
+    drop_database=os.getenv("PG_INDEXD_DROP_DB", "true") == "true",
+)
 
-    # Using an engine that connects to the `postgres` database allows us to
-    # create a new database.
+
+def try_drop_test_data(
+    database: Optional[str] = None,
+    root_user: Optional[str] = None,
+    host: Optional[str] = None,
+    root_pass: Optional[str] = None,
+    drop_db: Optional[bool] = None,
+) -> None:
+    """Attempts dropping the indexd database, useful only for testing."""
+
+    host = host or IndexdConfig["host"]
+    database = database or IndexdConfig["database"]
+    root_user = root_user or IndexdConfig["root_user"]
+    root_pass = root_pass or IndexdConfig["root_password"]
+    auth = root_user if not root_pass else f"{root_user}:{root_pass}"
+    drop_db = drop_db or IndexdConfig["drop_database"]
+
+    if not drop_db:
+        return
+
     engine = create_engine(
-        "postgresql://{user}@{host}/{name}".format(
-            user=root_user, host=host, name=database
-        )
+        "postgresql://{user}@{host}/{name}".format(user=auth, host=host, name=database)
     )
 
     if sqlalchemy_utils.database_exists(engine.url):
@@ -43,25 +69,38 @@ def try_drop_test_data(database="indexd_test", root_user="postgres", host="local
 
 
 def setup_database(
-    user="test",
-    password="test",
-    database="indexd_test",
-    root_user="postgres",
-    host="localhost",
-    no_drop=False,
-    no_user=False,
-):
-    """Setup the user and database"""
+    user=None,
+    password=None,
+    database=None,
+    root_user=None,
+    host=None,
+    no_drop=None,
+    no_user=None,
+    root_pass=None,
+) -> None:
+    """Set up the user and database"""
 
-    if not no_drop:
-        try_drop_test_data(database=database, root_user=root_user, host=host)
+    user = user or IndexdConfig["user"]
+    password = password or IndexdConfig["password"]
+    host = host or IndexdConfig["host"]
+    database = database or IndexdConfig["database"]
+    root_user = root_user or IndexdConfig["root_user"]
+    root_pass = root_pass or IndexdConfig["root_password"]
+    auth = root_user if not root_pass else f"{root_user}:{root_pass}"
+    drop_db = no_drop or IndexdConfig["drop_database"]
+
+    try_drop_test_data(
+        database=database,
+        root_user=root_user,
+        host=host,
+        root_pass=root_pass,
+        drop_db=drop_db,
+    )
 
     # Create an engine connecting to the `postgres` database allows us to
     # create a new database from there.
     engine = create_engine(
-        "postgresql://{user}@{host}/{name}".format(
-            user=root_user, host=host, name=database
-        )
+        "postgresql://{user}@{host}/{name}".format(user=auth, host=host, name=database)
     )
     if not sqlalchemy_utils.database_exists(engine.url):
         sqlalchemy_utils.create_database(engine.url)

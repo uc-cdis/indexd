@@ -4,9 +4,9 @@ import threading
 import flask
 import pytest
 import requests
+import swagger_client
 from sqlalchemy import create_engine
 
-import swagger_client
 from indexd import app_init, get_app
 from indexd.alias.drivers.alchemy import Base as alias_base
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver

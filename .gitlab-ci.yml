@@ -1,0 +1,48 @@
+---
+include:
+  - project: nci-gdc/gitlab-templates
+    ref: master
+    file:
+      - templates/global/full.yaml
+      - templates/python/full.yaml
+
+variables:
+  PRE_COMMIT_DOCKER_IMAGE: ${BASE_CONTAINER_REGISTRY}/python3.8-builder
+  PRE_COMMIT_VERSION: 3.2.1
+
+tox:
+  stage: test
+  parallel:
+    matrix:
+      - PY_VER:
+          - '3.6'
+          - '3.8'
+          - '3.9'
+  needs:
+    - pre-commit
+  image: ${BASE_CONTAINER_REGISTRY}/python${PY_VER}-builder
+  tags:
+    - dind
+  services:
+    - name: docker.osdc.io/ncigdc/ci-postgres-13:2.2.0
+      alias: postgres
+    - name: docker.osdc.io/ncigdc/ci-postgres-13:2.2.0
+      alias: bio_postgres
+
+  variables:
+    PG_INDEXD_USER: $PG_INDEXD_USER
+    PG_INDEXD_PASS: $PG_INDEXD_PASS
+    PG_INDEXD_HOST: $PG_INDEXD_HOST
+    PG_INDEXD_DROP_DB: $PG_INDEXD_DROP_DB
+    PG_INDEXD_ROOT_USER: $PG_INDEXD_ROOT_USER
+    PG_INDEXD_ROOT_PASS: $PG_INDEXD_ROOT_PASS
+    POSTGRES_DB: $PG_INDEXD_DBNAME
+    POSTGRES_USER: $PG_INDEXD_ROOT_USER
+    POSTGRES_PASSWORD: $PG_INDEXD_ROOT_PASS
+    POSTGRES_HOST_AUTH_METHOD: trust
+  before_script:
+    - pip install 'tox < 4'
+    - apt-get update && apt-get -y install openjdk-8-jdk
+  script:
+    - !reference [.load_github_key, script]
+    - tox -e py
