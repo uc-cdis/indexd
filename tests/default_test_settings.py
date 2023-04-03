@@ -1,5 +1,6 @@
 import os
 
+from indexd.utils import drs_service_info_id_url_reversal
 from indexd.default_settings import *
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
@@ -9,7 +10,19 @@ CONFIG["DIST"] = [
         "host": "https://fictitious-commons.io/index/",
         "hints": [".*dg\\.4503.*"],
         "type": "indexd",
-    }
+    },
+    {
+        "name": "DRS System",
+        "type": "drs",
+        "host": "https://fictitious-commons.io/",
+        "artifact": "drs",
+        "id": drs_service_info_id_url_reversal("fictitious-commons.io"),
+        "version": "1.3.0",
+        "organization": {
+            "name": "Gen3",
+            "url": "https://fictitious-commons.io/",
+        },
+    },
 ]
 
 os.environ["PRESIGNED_FENCE_URL"] = "https://fictitious-commons.io/"

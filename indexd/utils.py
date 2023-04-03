@@ -16,7 +16,6 @@ from sqlalchemy.engine.reflection import Inspector
 def try_drop_test_data(
     user, database, root_user="postgres", host=""
 ):  # pragma: no cover
-
     engine = create_engine(
         "postgres://{user}@{host}/postgres".format(user=root_user, host=host)
     )
@@ -198,3 +197,21 @@ def is_empty_database(driver):
     table_list = Inspector.from_engine(driver.engine).get_table_names()
 
     return len(table_list) == 0
+
+
+def drs_service_info_id_url_reversal(url):
+    """
+    Reverse the domain name for drs service-info IDs
+    Args:
+        url (str): url of the domain
+        example: drs.example.org
+
+    returns:
+        id (str): DRS service-info ID
+        example: org.example.drs
+    """
+
+    segments = url.split(".")
+    reversed_segments = reversed(segments)
+    res = ".".join(reversed_segments)
+    return res

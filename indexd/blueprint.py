@@ -1,3 +1,6 @@
+import os
+from crypt import methods
+import re
 import flask
 
 from indexclient.client import IndexClient
@@ -65,7 +68,6 @@ def get_record(record):
 
 
 def dist_get_record(record):
-
     # Sort the list of distributed ID services
     # Ones with which the request matches a hint will be first
     # Followed by those that don't match the hint
@@ -100,6 +102,35 @@ def dist_get_record(record):
             return json
 
     raise IndexNoRecordFound("no record found")
+
+
+@blueprint.route("/service-info", methods=["GET"])
+def get_drs_service_info():
+    drs_dist = {}
+
+    for dist in blueprint.dist:
+        if dist.get("type").lower() == "drs":
+            drs_dist = dist
+    if drs_dist == {}:
+        drs_dist = dist[0]
+
+    ret = {
+        "id": drs_dist.get("id"),
+        "name": drs_dist.get("name"),
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "drs",
+            "version": drs_dist.get("version", "1.0.0"),
+        },
+        "organization": {
+            "name": "Gen3",
+            "url": drs_dist.get(
+                "organization_url", "https://" + os.environ["HOSTNAME"]
+            ),
+        },
+    }
+
+    return flask.jsonify(ret), 200
 
 
 @blueprint.errorhandler(UserError)

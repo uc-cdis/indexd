@@ -1,6 +1,8 @@
+from os import environ
 from .index.drivers.alchemy import SQLAlchemyIndexDriver
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
+from .utils import drs_service_info_id_url_reversal
 
 CONFIG = {}
 
@@ -52,6 +54,12 @@ CONFIG["DIST"] = [
         "host": "https://example.com/api/ga4gh/drs/v1/",
         "hints": [],
         "type": "drs",
+        "drs_version": "1.0.0",
+        "id": drs_service_info_id_url_reversal(url="example.com"),
+        "organization": {
+            "name": "Gen3",
+            "url": "http://example.com/",
+        },
     },
 ]
 
