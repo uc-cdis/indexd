@@ -40,8 +40,8 @@ tox:
     POSTGRES_HOST_AUTH_METHOD: trust
   before_script:
     - pip install 'tox < 4'
-    - sudo apt-get update
-    - sudo apt-get -y --no-install-recommends install openjdk-8-jdk
+    - apt update
+    - apt install openjdk-8-jdk
     - java -version
   script:
     - !reference [.load_github_key, script]
