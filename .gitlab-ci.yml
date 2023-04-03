@@ -15,7 +15,7 @@ tox:
   parallel:
     matrix:
       - PY_VER:
-          - '3.6'
+          - '3.7'
           - '3.8'
           - '3.9'
   needs:
@@ -26,8 +26,6 @@ tox:
   services:
     - name: docker.osdc.io/ncigdc/ci-postgres-13:2.2.0
       alias: postgres
-    - name: docker.osdc.io/ncigdc/ci-postgres-13:2.2.0
-      alias: bio_postgres
 
   variables:
     PG_INDEXD_USER: $PG_INDEXD_USER
@@ -42,7 +40,7 @@ tox:
     POSTGRES_HOST_AUTH_METHOD: trust
   before_script:
     - pip install 'tox < 4'
-    - apt-get update && apt-get -y install openjdk-8-jdk
+    - apt-get update && apt-get -y --no-install-recommends install openjdk-8-jdk
   script:
     - !reference [.load_github_key, script]
     - tox -e py
