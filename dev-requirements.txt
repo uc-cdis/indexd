@@ -15,7 +15,7 @@ click==8.0.4
     #   flask
 coverage[toml]==6.2
     # via pytest-cov
-dataclasses==0.8
+dataclasses==0.6 ; python_version < "3.7"
     # via
     #   -c requirements.txt
     #   werkzeug
