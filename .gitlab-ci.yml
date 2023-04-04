@@ -53,4 +53,3 @@ docker_build:
   image: ${BASE_CONTAINER_REGISTRY}/python3.8-builder
   tags:
     - dind
-
