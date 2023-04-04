@@ -1,20 +1,28 @@
 #!/bin/bash
-set -euo pipefail
+set -eo pipefail
+
+PARAM=$1;
 
 # avoid installing git
 COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >indexd/index/version_data.py
 VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >>indexd/index/version_data.py
 
-docker build -t indexd .
+IMAGE_NAME="quay.io/ncigdc/indexd"
 
-# If this is not a pull request, update the branch's docker tag.
-if [ $TRAVIS_PULL_REQUEST = 'false' ]; then
-  docker tag indexd quay.io/ncigdc/indexd:${TRAVIS_BRANCH/\//_} \
-    && docker push quay.io/ncigdc/indexd:${TRAVIS_BRANCH/\//_};
+# setup active branch name, default to using git if build is happening on local
+if [ -z ${TRAVIS_BRANCH+x} ]; then
+  GIT_BRANCH=$(git symbolic-ref --short -q HEAD);
+else
+  GIT_BRANCH=$TRAVIS_BRANCH;
+fi
 
-  # If this commit has a tag, use on the registry too.
-  if ! test -z $TRAVIS_TAG; then
-    docker tag indexd quay.io/ncigdc/indexd:${TRAVIS_TAG} \
-      && docker push quay.io/ncigdc/indexd:${TRAVIS_TAG};
-  fi
+# replace slashes with underscore
+GIT_BRANCH=${GIT_BRANCH/\//_}
+
+echo "$VERSION"
+
+docker build --build-arg version="$VERSION" --ssh default -t "$IMAGE_NAME:$GIT_BRANCH" .
+
+if [ "$PARAM" = "--push" ]; then
+  docker push "$IMAGE_NAME:$GIT_BRANCH"
 fi
