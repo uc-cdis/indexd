@@ -49,9 +49,6 @@ tox:
 docker_build:
   needs:
     - tox
-  image: ${BASE_CONTAINER_REGISTRY}/python3.8-builder
-  tags:
-    - dind
   script:
     - bash docker.sh
 
