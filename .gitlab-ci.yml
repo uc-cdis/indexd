@@ -49,6 +49,8 @@ tox:
 docker_build:
   needs:
     - tox
+  before_script:
+    - apk add bash
   script:
     - bash docker.sh
 
