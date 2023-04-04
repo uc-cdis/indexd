@@ -40,8 +40,8 @@ tox:
     POSTGRES_HOST_AUTH_METHOD: trust
   before_script:
     - pip install 'tox < 4'
-    - apt update
-    - apt -y install openjdk-8-jdk-headless
+    - mkdir -p /usr/share/man/man1
+    - apt update && apt -y install openjdk-8-jdk-headless
     - java -version
   script:
     - !reference [.load_github_key, script]
