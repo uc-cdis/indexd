@@ -50,7 +50,7 @@ docker_build:
   needs:
     - tox
   before_script:
-    - apk add bash
+    - apk add bash git
   script:
     - bash docker.sh --push
 
