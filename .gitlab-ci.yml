@@ -28,15 +28,15 @@ tox:
       alias: postgres
 
   variables:
-    PG_INDEXD_USER: 'test'
-    PG_INDEXD_PASS: 'test'
-    PG_INDEXD_HOST: 'postgres'
+    PG_INDEXD_USER: test
+    PG_INDEXD_PASS: test
+    PG_INDEXD_HOST: postgres
     PG_INDEXD_DROP_DB: 'false'
-    PG_INDEXD_ROOT_USER: 'test'
-    PG_INDEXD_ROOT_PASS: 'test'
-    POSTGRES_DB: 'indexd_test'
-    POSTGRES_USER: 'test'
-    POSTGRES_PASSWORD: 'test'
+    PG_INDEXD_ROOT_USER: test
+    PG_INDEXD_ROOT_PASS: test
+    POSTGRES_DB: indexd_test
+    POSTGRES_USER: test
+    POSTGRES_PASSWORD: test
     POSTGRES_HOST_AUTH_METHOD: trust
   before_script:
     - pip install 'tox < 4'
