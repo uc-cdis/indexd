@@ -8,15 +8,17 @@ import swagger_client
 from sqlalchemy import create_engine
 
 from indexd import app_init, get_app
+from indexd import utils as indexd_utils
 from indexd.alias.drivers.alchemy import Base as alias_base
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 from indexd.index.drivers.alchemy import Base as index_base
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
-from indexd import utils as indexd_utils
 
-PG_URL = f"postgresql://{indexd_utils.IndexdConfig['user']}:{indexd_utils.IndexdConfig['password']}@" \
-         f"{indexd_utils.IndexdConfig['host']}/{indexd_utils.IndexdConfig['database']}"
+PG_URL = (
+    f"postgresql://{indexd_utils.IndexdConfig['user']}:{indexd_utils.IndexdConfig['password']}@"
+    f"{indexd_utils.IndexdConfig['host']}/{indexd_utils.IndexdConfig['database']}"
+)
 
 
 @pytest.fixture(scope="session", autouse=True)

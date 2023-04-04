@@ -68,7 +68,9 @@ def try_drop_test_data(
         return
 
     engine = create_engine(
-        "postgresql://{user}@{host}/{name}".format(user=root_auth, host=host, name=database)
+        "postgresql://{user}@{host}/{name}".format(
+            user=root_auth, host=host, name=database
+        )
     )
 
     if sqlalchemy_utils.database_exists(engine.url):
