@@ -17,7 +17,6 @@ tox:
       - PY_VER:
           - '3.7'
           - '3.8'
-          - '3.9' # broken
   needs:
     - pre-commit
   image: ${BASE_CONTAINER_REGISTRY}/python${PY_VER}-builder
@@ -53,3 +52,11 @@ docker_build:
   image: ${BASE_CONTAINER_REGISTRY}/python3.8-builder
   tags:
     - dind
+  script:
+    - bash docker.sh
+
+release:
+  needs:
+    - docker_build
+  rules:
+    - when: never
