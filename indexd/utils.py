@@ -28,14 +28,25 @@ def hint_match(record, hints):
     return False
 
 
+ROOT_USER = os.getenv("PG_INDEXD_ROOT_USER", "postgres")
+ROOT_PASS = os.getenv("PG_INDEXD_ROOT_PASS")
+
+
+def __root_user_auth(user: str, password: Optional[str] = None) -> Optional[str]:
+    if not user:
+        return
+    return user if not password else f"{user}:{password}"
+
+
 IndexdConfig = dict(
     user=os.getenv("PG_INDEXD_USER", "test"),
     password=os.getenv("PG_INDEXD_PASS", "test"),
     host=os.getenv("PG_INDEXD_HOST", "localhost"),
     database=os.getenv("PG_INDEXD_DBNAME", "indexd_test"),
-    root_user=os.getenv("PG_INDEXD_ROOT_USER", "postgres"),
-    root_password=os.getenv("PG_INDEXD_ROOT_PASS"),
+    root_user=ROOT_USER,
+    root_password=ROOT_PASS,
     drop_database=os.getenv("PG_INDEXD_DROP_DB", "true") == "true",
+    root_auth=__root_user_auth(ROOT_USER, ROOT_PASS),
 )
 
 
@@ -50,16 +61,14 @@ def try_drop_test_data(
 
     host = host or IndexdConfig["host"]
     database = database or IndexdConfig["database"]
-    root_user = root_user or IndexdConfig["root_user"]
-    root_pass = root_pass or IndexdConfig["root_password"]
-    auth = root_user if not root_pass else f"{root_user}:{root_pass}"
+    root_auth = __root_user_auth(root_user, root_pass) or IndexdConfig["root_auth"]
     drop_db = drop_db or IndexdConfig["drop_database"]
 
     if not drop_db:
         return
 
     engine = create_engine(
-        "postgresql://{user}@{host}/{name}".format(user=auth, host=host, name=database)
+        "postgresql://{user}@{host}/{name}".format(user=root_auth, host=host, name=database)
     )
 
     if sqlalchemy_utils.database_exists(engine.url):
@@ -86,7 +95,7 @@ def setup_database(
     database = database or IndexdConfig["database"]
     root_user = root_user or IndexdConfig["root_user"]
     root_pass = root_pass or IndexdConfig["root_password"]
-    auth = root_user if not root_pass else f"{root_user}:{root_pass}"
+    auth = __root_user_auth(root_user, root_pass) or IndexdConfig["root_auth"]
     drop_db = no_drop or IndexdConfig["drop_database"]
 
     try_drop_test_data(
