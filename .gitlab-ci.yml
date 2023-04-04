@@ -41,8 +41,16 @@ tox:
   before_script:
     - pip install 'tox < 4'
     - apt update
-    - apt -y install openjdk-8-jre
+    - apt -y install openjdk-8-jdk-headless
     - java -version
   script:
     - !reference [.load_github_key, script]
     - tox -e py
+
+docker_build:
+  needs:
+    - tox
+  image: ${BASE_CONTAINER_REGISTRY}/python3.8-builder
+  tags:
+    - dind
+
