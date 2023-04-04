@@ -17,7 +17,7 @@ tox:
       - PY_VER:
           - '3.7'
           - '3.8'
-          - '3.9'
+          - '3.9' # broken
   needs:
     - pre-commit
   image: ${BASE_CONTAINER_REGISTRY}/python${PY_VER}-builder
@@ -28,15 +28,15 @@ tox:
       alias: postgres
 
   variables:
-    PG_INDEXD_USER: $PG_INDEXD_USER
-    PG_INDEXD_PASS: $PG_INDEXD_PASS
-    PG_INDEXD_HOST: $PG_INDEXD_HOST
-    PG_INDEXD_DROP_DB: $PG_INDEXD_DROP_DB
-    PG_INDEXD_ROOT_USER: $PG_INDEXD_ROOT_USER
-    PG_INDEXD_ROOT_PASS: $PG_INDEXD_ROOT_PASS
-    POSTGRES_DB: $PG_INDEXD_DBNAME
-    POSTGRES_USER: $PG_INDEXD_ROOT_USER
-    POSTGRES_PASSWORD: $PG_INDEXD_ROOT_PASS
+    PG_INDEXD_USER: 'test'
+    PG_INDEXD_PASS: 'test'
+    PG_INDEXD_HOST: 'postgres'
+    PG_INDEXD_DROP_DB: 'false'
+    PG_INDEXD_ROOT_USER: 'test'
+    PG_INDEXD_ROOT_PASS: 'test'
+    POSTGRES_DB: 'indexd_test'
+    POSTGRES_USER: 'test'
+    POSTGRES_PASSWORD: 'test'
     POSTGRES_HOST_AUTH_METHOD: trust
   before_script:
     - pip install 'tox < 4'
