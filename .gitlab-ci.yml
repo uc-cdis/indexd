@@ -56,7 +56,7 @@ docker_build:
     - apk add bash git
   script:
     - !reference [.load_github_key, script]
-    - cat docker.sh | /bin/bash
+    - /bin/bash docker.sh
 
 release:
   needs:
