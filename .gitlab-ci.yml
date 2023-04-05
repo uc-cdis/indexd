@@ -49,9 +49,13 @@ tox:
 docker_build:
   needs:
     - tox
+  variables:
+    DOCKER_BUILDKIT: 1
+    DOCKER_DRIVER: overlay2
   before_script:
     - apk add bash git
   script:
+    - !reference [.load_github_key, script]
     - bash docker.sh --push
 
 release:
