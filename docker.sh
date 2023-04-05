@@ -1,7 +1,7 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
-PARAM=$1;
+PARAM="${1:-push}";
 
 # avoid installing git
 COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >indexd/index/version_data.py
@@ -23,6 +23,6 @@ echo "$VERSION"
 
 docker build --build-arg version="$VERSION" --ssh default -t "$IMAGE_NAME:$GIT_BRANCH" .
 
-if [ "$PARAM" = "--push" ]; then
+if [ "$PARAM" = "push" ]; then
   docker push "$IMAGE_NAME:$GIT_BRANCH"
 fi
