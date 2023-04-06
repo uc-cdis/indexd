@@ -10,12 +10,12 @@ COMMIT=$(git rev-parse HEAD) && echo "COMMIT=\"${COMMIT}\"" >indexd/index/versio
 VERSION=$(git describe --always --tags) && echo "VERSION=\"${VERSION}\"" >>indexd/index/version_data.py
 
 # setup active branch name, default to using git if build is happening on local
-if [ -z ${TRAVIS_BRANCH+x} ]; then
-  GIT_BRANCH=$(git symbolic-ref --short -q HEAD);
-elif [ -z ${GIT_BRANCH+x} ] && [ ${CI_COMMIT_BRANCH+x} ]; then
+if [ ${TRAVIS_BRANCH+x} ]; then
+  GIT_BRANCH=$TRAVIS_BRANCH;
+elif [ ${CI_COMMIT_BRANCH+x} ]; then
   GIT_BRANCH=$CI_COMMIT_BRANCH;
 else
-  GIT_BRANCH=$TRAVIS_BRANCH;
+  GIT_BRANCH=$(git symbolic-ref --short -q HEAD);
 fi
 
 # replace slashes with underscore
