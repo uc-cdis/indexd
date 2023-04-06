@@ -56,8 +56,7 @@ docker_build:
     - apk add bash git
   script:
     - !reference [.load_github_key, script]
-    - docker build . --ssh default -t ${DOCKER_RELEASE_REGISTRY}/$CI_PROJECT_NAME:$CI_COMMIT_REF_SLUG-${CI_COMMIT_SHORT_SHA}
-    - docker push ${DOCKER_RELEASE_REGISTRY}/$CI_PROJECT_NAME:$CI_COMMIT_REF_SLUG-${CI_COMMIT_SHORT_SHA}
+    - /bin/bash docker.sh
 
 release:
   needs:

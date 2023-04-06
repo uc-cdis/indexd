@@ -1,5 +1,5 @@
 #!/bin/bash
-set -xeuo pipefail
+set -x
 
 PARAM="${1:-push}";
 
@@ -7,7 +7,7 @@ PARAM="${1:-push}";
 COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >indexd/index/version_data.py
 VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >>indexd/index/version_data.py
 
-IMAGE_NAME="quay.io/ncigdc/indexd"
+IMAGE_NAME="${DOCKER_RELEASE_REGISTRY:~quay.io/ncigdc}/indexd"
 
 # setup active branch name, default to using git if build is happening on local
 if [ -z ${TRAVIS_BRANCH+x} ]; then
