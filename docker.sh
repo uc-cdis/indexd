@@ -12,7 +12,7 @@ VERSION=$(git describe --always --tags) && echo "VERSION=\"${VERSION}\"" >>index
 # setup active branch name, default to using git if build is happening on local
 if [ -z ${TRAVIS_BRANCH+x} ]; then
   GIT_BRANCH=$(git symbolic-ref --short -q HEAD);
-elif [ -z ${GIT_BRANCH+x} ]; then
+elif [ -z ${GIT_BRANCH+x} ] && [ -v ${CI_COMMIT_BRANCH+x} ]; then
   GIT_BRANCH=$CI_COMMIT_BRANCH;
 else
   GIT_BRANCH=$TRAVIS_BRANCH;
