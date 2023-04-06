@@ -201,9 +201,63 @@ def test_get_drs_with_encoded_slash(client, user):
     assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
 
 
-def test_drs_service_info_endpoint(client, user):
+def test_drs_service_info_without_drs_block_in_config(client):
+    expected_info = {
+        "id": "io.fictitious-commons",
+        "name": "testStage",
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "drs",
+            "version": "1.0.0",
+        },
+        "organization": {
+            "name": "Gen3",
+            "url": "https://fictitious-commons.io",
+        },
+        "version": "1.0.0",
+    }
+
     res = client.get("/service-info")
 
-    print("--------------------------------")
-    print(res.status_code)
+    assert res.status_code == 200
+    assert res.json == expected_info
     print(res.json)
+
+
+def test_drs_service_info_endpoint(client):
+    expected_info = {
+        "id": "io.fictitious-commons",
+        "name": "DRS System",
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "drs",
+            "version": "1.0.0",
+        },
+        "version": "1.3.0",
+        "organization": {
+            "name": "Gen3",
+            "url": "https://fictitious-commons.io",
+        },
+    }
+
+    settings["config"]["DIST"].append(
+        {
+            "name": "DRS System",
+            "type": {
+                "group": "org.ga4gh",
+                "artifact": "drs",
+                "version": "1.0.0",
+            },
+            "host": "https://fictitious-commons.io/",
+            "version": "1.3.0",
+            "organization": {
+                "name": "Gen3",
+                "url": "https://fictitious-commons.io",
+            },
+        }
+    )
+
+    res = client.get("/service-info")
+
+    assert res.status_code == 200
+    assert res.json == expected_info

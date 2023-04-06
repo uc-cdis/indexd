@@ -53,9 +53,13 @@ CONFIG["DIST"] = [
         "name": "DRS System",
         "host": "https://example.com/api/ga4gh/drs/v1/",
         "hints": [],
-        "type": "drs",
-        "drs_version": "1.0.0",
-        "id": drs_service_info_id_url_reversal(url="example.com"),
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "drs",
+            "version": "1.0.0",
+        },
+        "version": "1.0.0",
+        "id": "com.example",
         "organization": {
             "name": "Gen3",
             "url": "http://example.com/",
