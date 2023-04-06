@@ -8,20 +8,15 @@ PARAM=${1:-push};
 # avoid installing git
 COMMIT=$(git rev-parse HEAD) && echo "COMMIT=\"${COMMIT}\"" >indexd/index/version_data.py
 VERSION=$(git describe --always --tags) && echo "VERSION=\"${VERSION}\"" >>indexd/index/version_data.py
+GIT_BRANCH=$(git symbolic-ref --short -q HEAD);
 
 IMAGE_NAME=quay.io/ncigdc/indexd
-
-# setup active branch name, default to using git if build is happening on local
-if [ -z ${TRAVIS_BRANCH+x} ]; then
-  GIT_BRANCH=$(git symbolic-ref --short -q HEAD);
-else
-  GIT_BRANCH=$TRAVIS_BRANCH;
-fi
 
 # replace slashes with underscore
 GIT_BRANCH=${GIT_BRANCH/\//_}
 
 echo "$VERSION"
+echo "$GIT_BRANCH"
 
 docker build --build-arg version="$VERSION" --ssh default -t "$IMAGE_NAME:$GIT_BRANCH" .
 
