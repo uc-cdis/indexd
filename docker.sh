@@ -3,13 +3,13 @@ set -x
 
 PARAM=${1:-push};
 
-DEFAULT_REGISTRY="${DOCKER_RELEASE_REGISTRY:=quay.io}"
+DEFAULT_REGISTRY="${DOCKER_RELEASE_REGISTRY:=quay.io/ncigdc}"
 
 # avoid installing git
 COMMIT=$(git rev-parse HEAD) && echo "COMMIT=\"${COMMIT}\"" >indexd/index/version_data.py
 VERSION=$(git describe --always --tags) && echo "VERSION=\"${VERSION}\"" >>indexd/index/version_data.py
 GIT_BRANCH=${TRAVIS_BRANCH:~CI_COMMIT_BRANCH}
-IMAGE_NAME=${DEFAULT_REGISTRY}/ncigdc/indexd
+IMAGE_NAME=${DEFAULT_REGISTRY}/indexd
 
 # setup active branch name, default to using git if build is happening on local
 if [ -z ${GIT_BRANCH+x} ]; then
