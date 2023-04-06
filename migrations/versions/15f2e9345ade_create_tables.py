@@ -66,6 +66,9 @@ def upgrade() -> None:
         sa.Column("file_name", sa.VARCHAR(), nullable=True),
         sa.Column("version", sa.VARCHAR(), nullable=True),
         sa.Column("uploader", sa.VARCHAR(), nullable=True),
+        sa.Column("description", sa.VARCHAR(), nullable=True),
+        sa.Column("content_created_date", sa.DateTime, nullable=True),
+        sa.Column("content_updated_date", sa.DateTime, nullable=True),
         sa.ForeignKeyConstraint(
             ["baseid"],
             ["base_version.baseid"],

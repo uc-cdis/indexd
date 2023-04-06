@@ -63,8 +63,11 @@ def test_upgrade(postgres_driver):
         ("version", "character varying"),
         ("uploader", "character varying"),
         ("description", "character varying"),
+        ("content_created_date", "timestamp without time zone"),
+        ("content_updated_date", "timestamp without time zone"),
     ]
-    assert sorted(expected_schema) == sorted([i for i in cols])
+    actual_schema = sorted([i for i in cols])
+    assert sorted(expected_schema) == actual_schema
 
 
 def test_downgrade(postgres_driver):
