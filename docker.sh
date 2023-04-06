@@ -1,14 +1,13 @@
 #!/bin/bash
-set -eou pipefail
+set -xeou pipefail
 
 PARAM=${1:-push};
 
-DEFAULT_REGISTRY="${DOCKER_RELEASE_REGISTRY:=quay.io/ncigdc}"
+IMAGE_NAME="${DOCKER_RELEASE_REGISTRY:=quay.io/ncigdc}/indexd"
 
 # avoid installing git
 COMMIT=$(git rev-parse HEAD) && echo "COMMIT=\"${COMMIT}\"" >indexd/index/version_data.py
 VERSION=$(git describe --always --tags) && echo "VERSION=\"${VERSION}\"" >>indexd/index/version_data.py
-IMAGE_NAME=${DEFAULT_REGISTRY}/indexd
 
 # setup active branch name, default to using git if build is happening on local
 if [ -z ${TRAVIS_BRANCH+x} ]; then
