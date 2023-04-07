@@ -2,7 +2,6 @@ from os import environ
 from .index.drivers.alchemy import SQLAlchemyIndexDriver
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
-from .utils import drs_service_info_id_url_reversal
 
 CONFIG = {}
 

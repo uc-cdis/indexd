@@ -1,6 +1,5 @@
 import os
 
-from indexd.utils import drs_service_info_id_url_reversal
 from indexd.default_settings import *
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
