@@ -106,8 +106,12 @@ def dist_get_record(record):
 
 @blueprint.route("/service-info", methods=["GET"])
 def get_drs_service_info():
+    """
+    Returns DRS compliant service information
+    """
     drs_dist = {}
 
+    # Check to see if the information is of type drs. If not, use the available information to return DRS compliant service information
     for dist in blueprint.dist:
         if (
             "type" in dist

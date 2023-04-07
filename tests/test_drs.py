@@ -202,6 +202,9 @@ def test_get_drs_with_encoded_slash(client, user):
 
 
 def test_drs_service_info_without_drs_block_in_config(client):
+    """
+    Test that the non-drs related, defualt distributions convert to drs service info friendly format
+    """
     expected_info = {
         "id": "io.fictitious-commons",
         "name": "testStage",
@@ -225,6 +228,9 @@ def test_drs_service_info_without_drs_block_in_config(client):
 
 
 def test_drs_service_info_endpoint(client):
+    """
+    Test drs service endpoint with drs service info friendly distribution information
+    """
     expected_info = {
         "id": "io.fictitious-commons",
         "name": "DRS System",
