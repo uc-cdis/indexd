@@ -13,7 +13,7 @@ VERSION=$(git describe --always --tags) && echo "VERSION=\"${VERSION}\"" >>index
 if [ ${TRAVIS_BRANCH+x} ]; then
   GIT_BRANCH=$TRAVIS_BRANCH;
 elif [ ${CI_COMMIT_REF_NAME+x} ]; then
-  GIT_BRANCH=$CI_COMMIT_CI_COMMIT_REF_NAME;
+  GIT_BRANCH=$CI_COMMIT_REF_NAME;
 else
   GIT_BRANCH=$(git symbolic-ref --short -q HEAD);
 fi
