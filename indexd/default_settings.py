@@ -7,6 +7,8 @@ CONFIG = {}
 
 CONFIG["JSONIFY_PRETTYPRINT_REGULAR"] = False
 AUTO_MIGRATE = True
+# Key to lock the database during migrations
+CONFIG["DB_MIGRATION_POSTGRES_LOCK_KEY"] = 100
 
 # - DEFAULT_PREFIX: prefix to be prepended.
 # - PREPEND_PREFIX: the prefix is preprended to the generated GUID when a
@@ -17,7 +19,6 @@ AUTO_MIGRATE = True
 CONFIG["INDEX"] = {
     "driver": SQLAlchemyIndexDriver(
         "sqlite:///index.sq3",
-        auto_migrate=AUTO_MIGRATE,
         echo=True,
         index_config={
             "DEFAULT_PREFIX": "testprefix:",
@@ -27,11 +28,7 @@ CONFIG["INDEX"] = {
     )
 }
 
-CONFIG["ALIAS"] = {
-    "driver": SQLAlchemyAliasDriver(
-        "sqlite:///alias.sq3", auto_migrate=AUTO_MIGRATE, echo=True
-    )
-}
+CONFIG["ALIAS"] = {"driver": SQLAlchemyAliasDriver("sqlite:///alias.sq3", echo=True)}
 
 
 CONFIG["DIST"] = [

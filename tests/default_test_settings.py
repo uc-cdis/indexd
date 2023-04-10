@@ -19,8 +19,8 @@ settings = {"config": CONFIG, "auth": AUTH}
 # Set PSQL Port, see https://www.postgresql.org/docs/12/app-psql.html
 # PSQL default port is 5432, but in some setups, can be 5433.
 psql_port = os.environ["PGPORT"] if os.environ.get("PGPORT") else "5432"
+
+# database used by the `/tests/postgres` tests
 settings["config"][
     "TEST_DB"
-] = "postgres://postgres:postgres@localhost:{0}/test_migration_db".format(  # pragma: allowlist secret
-    psql_port
-)
+] = "postgres://postgres:postgres@localhost:{0}/indexd_tests".format(psql_port)

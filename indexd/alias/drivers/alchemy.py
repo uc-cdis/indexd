@@ -21,7 +21,7 @@ from indexd.alias.driver import AliasDriverABC
 from indexd.alias.errors import NoRecordFound
 from indexd.alias.errors import MultipleRecordsFound
 from indexd.alias.errors import RevisionMismatch
-from indexd.utils import migrate_database, init_schema_version, is_empty_database
+from indexd.utils import migrate_database
 
 
 Base = declarative_base()
@@ -29,6 +29,9 @@ Base = declarative_base()
 
 class AliasSchemaVersion(Base):
     """
+    This migration logic is DEPRECATED. It is still supported for backwards compatibility,
+    but any new migration should be added using Alembic.
+
     Table to track current database's schema version
     """
 
@@ -89,7 +92,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
     SQLAlchemy implementation of alias driver.
     """
 
-    def __init__(self, conn, logger=None, auto_migrate=True, **config):
+    def __init__(self, conn, logger=None, **config):
         """
         Initialize the SQLAlchemy database driver.
         """
@@ -98,18 +101,11 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
 
-        is_empty_db = is_empty_database(driver=self)
-        Base.metadata.create_all()
-        if is_empty_db:
-            init_schema_version(
-                driver=self, model=AliasSchemaVersion, version=CURRENT_SCHEMA_VERSION
-            )
-
-        if auto_migrate:
-            self.migrate_alias_database()
-
     def migrate_alias_database(self):
         """
+        This migration logic is DEPRECATED. It is still supported for backwards compatibility,
+        but any new migration should be added using Alembic.
+
         migrate alias database to match CURRENT_SCHEMA_VERSION
         """
         migrate_database(

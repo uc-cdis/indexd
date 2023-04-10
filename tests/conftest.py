@@ -1,5 +1,4 @@
 import base64
-from flask import request
 import importlib
 import pytest
 import requests
@@ -7,7 +6,6 @@ import mock
 from unittest.mock import patch
 
 # indexd_server and indexd_client is needed as fixtures
-from cdisutilstest.code.conftest import indexd_server, indexd_client  # noqa
 from cdisutilstest.code.indexd_fixture import clear_database
 from gen3authz.client.arborist.client import ArboristClient
 
@@ -17,15 +15,18 @@ from indexd.auth.errors import AuthError
 from tests import default_test_settings
 
 
-@pytest.fixture
+@pytest.fixture(scope="function", autouse=True)
 def app():
-    # this is to make sure sqlite is initialized
-    # for every unittest
     from indexd import default_settings
 
     importlib.reload(default_settings)
+    default_settings.settings = {
+        **default_settings.settings,
+        **default_test_settings.settings,
+    }
 
-    yield get_app(default_test_settings.settings)
+    yield get_app()
+
     try:
         clear_database()
     except Exception:
