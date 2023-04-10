@@ -1,6 +1,3 @@
-import os
-from crypt import methods
-import re
 import flask
 
 from indexclient.client import IndexClient
