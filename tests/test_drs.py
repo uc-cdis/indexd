@@ -224,7 +224,6 @@ def test_drs_service_info_without_drs_block_in_config(client):
 
     assert res.status_code == 200
     assert res.json == expected_info
-    print(res.json)
 
 
 def test_drs_service_info_endpoint(client):
@@ -262,6 +261,33 @@ def test_drs_service_info_endpoint(client):
             },
         }
     )
+
+    res = client.get("/ga4gh/drs/v1/service-info")
+
+    assert res.status_code == 200
+    assert res.json == expected_info
+
+
+def test_drs_service_info_no_dist_in_config(client):
+    """
+    Test drs service info endpoint when dist is not configured in the indexd config file
+    """
+    expected_info = {
+        "id": "io.fictitious-commons",
+        "name": "DRS System",
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "drs",
+            "version": "1.0.0",
+        },
+        "version": "1.0.0",
+        "organization": {
+            "name": "Gen3",
+            "url": "https://fictitious-commons.io",
+        },
+    }
+
+    settings["config"]["DIST"].clear()
 
     res = client.get("/ga4gh/drs/v1/service-info")
 

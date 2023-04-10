@@ -21,19 +21,20 @@ def get_drs_service_info():
     """
     drs_dist = {}
 
-    # Check to see if the information is of type drs. If not, use the available information to return DRS compliant service information
-    for dist in blueprint.dist:
-        if (
-            "type" in dist
-            and isinstance(dist["type"], dict)
-            and "artifact" in dist["type"]
-            and dist["type"]["artifact"] == "drs"
-        ):
-            drs_dist = dist
-    if drs_dist == {}:
-        drs_dist = blueprint.dist[0]
-
     reverse_domain_name = drs_service_info_id_url_reversal(url=os.environ["HOSTNAME"])
+
+    if len(blueprint.dist) > 0:
+        # Check to see if the information is of type drs. If not, use the available information to return DRS compliant service information
+        for dist in blueprint.dist:
+            if (
+                "type" in dist
+                and isinstance(dist["type"], dict)
+                and "artifact" in dist["type"]
+                and dist["type"]["artifact"] == "drs"
+            ):
+                drs_dist = dist
+        if drs_dist == {}:
+            drs_dist = blueprint.dist[0]
 
     ret = {
         "id": drs_dist.get("id", reverse_domain_name),
