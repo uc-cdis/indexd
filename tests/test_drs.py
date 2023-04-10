@@ -220,7 +220,7 @@ def test_drs_service_info_without_drs_block_in_config(client):
         "version": "1.0.0",
     }
 
-    res = client.get("/service-info")
+    res = client.get("/ga4gh/drs/v1/service-info")
 
     assert res.status_code == 200
     assert res.json == expected_info
@@ -263,7 +263,7 @@ def test_drs_service_info_endpoint(client):
         }
     )
 
-    res = client.get("/service-info")
+    res = client.get("/ga4gh/drs/v1/service-info")
 
     assert res.status_code == 200
     assert res.json == expected_info

@@ -1,14 +1,17 @@
+import os
 import flask
 import json
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
+from indexd.utils import drs_service_info_id_url_reversal
 
 blueprint = flask.Blueprint("drs", __name__)
 
 blueprint.config = dict()
 blueprint.index_driver = None
+blueprint.dist = []
 
 
 @blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["GET"])
@@ -291,6 +294,53 @@ def parse_checksums(record, drs_object):
     return ret_checksum
 
 
+@blueprint.route("/ga4gh/drs/v1/service-info", methods=["GET"])
+def get_drs_service_info():
+    """
+    Returns DRS compliant service information
+    """
+    drs_dist = {}
+
+    # Check to see if the information is of type drs. If not, use the available information to return DRS compliant service information
+    for dist in blueprint.dist:
+        if (
+            "type" in dist
+            and isinstance(dist["type"], dict)
+            and "artifact" in dist["type"]
+            and dist["type"]["artifact"] == "drs"
+        ):
+            drs_dist = dist
+    if drs_dist == {}:
+        drs_dist = blueprint.dist[0]
+
+    reverse_domain_name = drs_service_info_id_url_reversal(url=os.environ["HOSTNAME"])
+
+    ret = {
+        "id": drs_dist.get("id", reverse_domain_name),
+        "name": drs_dist.get("name", "DRS System"),
+        "version": drs_dist.get("version", "1.0.0"),
+        "type": {
+            "group": drs_dist.get("group", "org.ga4gh"),
+            "artifact": drs_dist.get("artifact", "drs"),
+        },
+        "organization": {
+            "name": "Gen3",
+        },
+    }
+
+    if "type" in drs_dist and isinstance(drs_dist["type"], dict):
+        ret["type"]["version"] = drs_dist.get("type").get("version", "1.0.0")
+    else:
+        ret["type"]["version"] = "1.0.0"
+
+    if "organization" in drs_dist and "url" in drs_dist["organization"]:
+        ret["organization"]["url"] = drs_dist["organization"]["url"]
+    else:
+        ret["organization"]["url"] = "https://" + os.environ["HOSTNAME"]
+
+    return flask.jsonify(ret), 200
+
+
 @blueprint.errorhandler(UserError)
 def handle_user_error(err):
     ret = {"msg": str(err), "status_code": 400}
@@ -325,3 +375,9 @@ def handle_unexpected_error(err):
 def get_config(setup_state):
     index_config = setup_state.app.config["INDEX"]
     blueprint.index_driver = index_config["driver"]
+
+
+@blueprint.record
+def get_config(setup_state):
+    if "DIST" in setup_state.app.config:
+        blueprint.dist = setup_state.app.config["DIST"]

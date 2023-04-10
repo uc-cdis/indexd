@@ -8,7 +8,7 @@ from doiclient.client import DOIClient
 from dosclient.client import DOSClient
 from hsclient.client import HSClient
 
-from indexd.utils import hint_match, drs_service_info_id_url_reversal
+from indexd.utils import hint_match
 
 from indexd.errors import AuthError
 from indexd.errors import UserError
@@ -102,53 +102,6 @@ def dist_get_record(record):
             return json
 
     raise IndexNoRecordFound("no record found")
-
-
-@blueprint.route("/service-info", methods=["GET"])
-def get_drs_service_info():
-    """
-    Returns DRS compliant service information
-    """
-    drs_dist = {}
-
-    # Check to see if the information is of type drs. If not, use the available information to return DRS compliant service information
-    for dist in blueprint.dist:
-        if (
-            "type" in dist
-            and isinstance(dist["type"], dict)
-            and "artifact" in dist["type"]
-            and dist["type"]["artifact"] == "drs"
-        ):
-            drs_dist = dist
-    if drs_dist == {}:
-        drs_dist = blueprint.dist[0]
-
-    reverse_domain_name = drs_service_info_id_url_reversal(url=os.environ["HOSTNAME"])
-
-    ret = {
-        "id": drs_dist.get("id", reverse_domain_name),
-        "name": drs_dist.get("name", "DRS System"),
-        "version": drs_dist.get("version", "1.0.0"),
-        "type": {
-            "group": drs_dist.get("group", "org.ga4gh"),
-            "artifact": drs_dist.get("artifact", "drs"),
-        },
-        "organization": {
-            "name": "Gen3",
-        },
-    }
-
-    if "type" in drs_dist and isinstance(drs_dist["type"], dict):
-        ret["type"]["version"] = drs_dist.get("type").get("version", "1.0.0")
-    else:
-        ret["type"]["version"] = "1.0.0"
-
-    if "organization" in drs_dist and "url" in drs_dist["organization"]:
-        ret["organization"]["url"] = drs_dist["organization"]["url"]
-    else:
-        ret["organization"]["url"] = "https://" + os.environ["HOSTNAME"]
-
-    return flask.jsonify(ret), 200
 
 
 @blueprint.errorhandler(UserError)
