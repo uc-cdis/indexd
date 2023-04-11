@@ -191,20 +191,6 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
             s.add(schema_version)
 
 
-def is_empty_database(driver):
-    """
-    check if the database is empty or not
-    Args:
-        driver (object): an alias or index driver instance
-
-    Returns:
-        Boolean
-    """
-    table_list = Inspector.from_engine(driver.engine).get_table_names()
-
-    return len(table_list) == 0
-
-
 def drs_service_info_id_url_reversal(url):
     """
     Reverse the domain name for drs service-info IDs
