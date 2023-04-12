@@ -12,6 +12,21 @@ CONFIG["DIST"] = [
     },
 ]
 
+CONFIG["DRS_SERVICE_INFO"] = {
+    "name": "DRS System",
+    "type": {
+        "group": "org.ga4gh",
+        "artifact": "drs",
+        "version": "1.0.3",
+    },
+    "host": "https://fictitious-commons.io/",
+    "version": "1.0.3",
+    "organization": {
+        "name": "CTDS",
+        "url": "https://fictitious-commons.io",
+    },
+}
+
 os.environ["PRESIGNED_FENCE_URL"] = "https://fictitious-commons.io/"
 os.environ["HOSTNAME"] = "fictitious-commons.io"
 settings = {"config": CONFIG, "auth": AUTH}

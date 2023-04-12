@@ -5,13 +5,13 @@ from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
-from indexd.utils import drs_service_info_id_url_reversal
+from indexd.utils import reverse_url
 
 blueprint = flask.Blueprint("drs", __name__)
 
 blueprint.config = dict()
 blueprint.index_driver = None
-blueprint.dist = []
+blueprint.service_info = {}
 
 
 @blueprint.route("/ga4gh/drs/v1/service-info", methods=["GET"])
@@ -19,45 +19,45 @@ def get_drs_service_info():
     """
     Returns DRS compliant service information
     """
-    drs_dist = {}
 
-    reverse_domain_name = drs_service_info_id_url_reversal(url=os.environ["HOSTNAME"])
-
-    if len(blueprint.dist) > 0:
-        # Check to see if the information is of type drs. If not, use the available information to return DRS compliant service information
-        for dist in blueprint.dist:
-            if (
-                "type" in dist
-                and isinstance(dist["type"], dict)
-                and "artifact" in dist["type"]
-                and dist["type"]["artifact"] == "drs"
-            ):
-                drs_dist = dist
-        if drs_dist == {}:
-            drs_dist = blueprint.dist[0]
+    reverse_domain_name = reverse_url(url=os.environ["HOSTNAME"])
 
     ret = {
-        "id": drs_dist.get("id", reverse_domain_name),
-        "name": drs_dist.get("name", "DRS System"),
-        "version": drs_dist.get("version", "1.0.0"),
+        "id": blueprint.service_info.get("id", reverse_domain_name),
+        "name": blueprint.service_info.get("name", "DRS System"),
+        "version": blueprint.service_info.get("version", "1.0.3"),
         "type": {
-            "group": drs_dist.get("group", "org.ga4gh"),
-            "artifact": drs_dist.get("artifact", "drs"),
-        },
-        "organization": {
-            "name": "Gen3",
+            "group": blueprint.service_info.get("group", "org.ga4gh"),
+            "artifact": blueprint.service_info.get("artifact", "drs"),
         },
     }
 
-    if "type" in drs_dist and isinstance(drs_dist["type"], dict):
-        ret["type"]["version"] = drs_dist.get("type").get("version", "1.0.0")
-    else:
-        ret["type"]["version"] = "1.0.0"
+    ret["organization"] = {}
 
-    if "organization" in drs_dist and "url" in drs_dist["organization"]:
-        ret["organization"]["url"] = drs_dist["organization"]["url"]
+    if "type" in blueprint.service_info and isinstance(
+        blueprint.service_info["type"], dict
+    ):
+        ret["type"]["version"] = blueprint.service_info.get("type").get(
+            "version", "1.0.3"
+        )
+    else:
+        ret["type"]["version"] = "1.0.3"
+
+    if (
+        "organization" in blueprint.service_info
+        and "url" in blueprint.service_info["organization"]
+    ):
+        ret["organization"]["url"] = blueprint.service_info["organization"]["url"]
     else:
         ret["organization"]["url"] = "https://" + os.environ["HOSTNAME"]
+
+    if (
+        "organization" in blueprint.service_info
+        and "name" in blueprint.service_info["organization"]
+    ):
+        ret["organization"]["name"] = blueprint.service_info["organization"]["name"]
+    else:
+        ret["organization"]["name"] = "CTDS"
 
     return flask.jsonify(ret), 200
 
@@ -384,5 +384,5 @@ def get_config(setup_state):
 
 @blueprint.record
 def get_config(setup_state):
-    if "DIST" in setup_state.app.config:
-        blueprint.dist = setup_state.app.config["DIST"]
+    if "DRS_SERVICE_INFO" in setup_state.app.config:
+        blueprint.service_info = setup_state.app.config["DRS_SERVICE_INFO"]

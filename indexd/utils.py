@@ -191,7 +191,7 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
             s.add(schema_version)
 
 
-def drs_service_info_id_url_reversal(url):
+def reverse_url(url):
     """
     Reverse the domain name for drs service-info IDs
     Args:
