@@ -1,5 +1,6 @@
 import logging
 import re
+from urllib.parse import urlparse
 
 
 def hint_match(record, hints):
@@ -202,7 +203,9 @@ def reverse_url(url):
         id (str): DRS service-info ID
         example: org.example.drs
     """
-
+    parsed_url = urlparse(url)
+    if parsed_url.scheme in ["http", "https"]:
+        url = parsed_url.hostname
     segments = url.split(".")
     reversed_segments = reversed(segments)
     res = ".".join(reversed_segments)

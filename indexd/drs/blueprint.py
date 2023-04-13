@@ -1,4 +1,5 @@
 import os
+import re
 import flask
 import json
 from indexd.errors import AuthError, AuthzError
@@ -23,41 +24,28 @@ def get_drs_service_info():
     reverse_domain_name = reverse_url(url=os.environ["HOSTNAME"])
 
     ret = {
-        "id": blueprint.service_info.get("id", reverse_domain_name),
-        "name": blueprint.service_info.get("name", "DRS System"),
-        "version": blueprint.service_info.get("version", "1.0.3"),
+        "id": reverse_domain_name,
+        "name": "DRS System",
+        "version": "1.0.3",
         "type": {
-            "group": blueprint.service_info.get("group", "org.ga4gh"),
-            "artifact": blueprint.service_info.get("artifact", "drs"),
+            "group": "org.ga4gh",
+            "artifact": "drs",
+            "version": "1.0.3",
+        },
+        "organization": {
+            "name": "CTDS",
+            "url": "https://" + os.environ["HOSTNAME"],
         },
     }
 
-    ret["organization"] = {}
-
-    if "type" in blueprint.service_info and isinstance(
-        blueprint.service_info["type"], dict
-    ):
-        ret["type"]["version"] = blueprint.service_info.get("type").get(
-            "version", "1.0.3"
-        )
-    else:
-        ret["type"]["version"] = "1.0.3"
-
-    if (
-        "organization" in blueprint.service_info
-        and "url" in blueprint.service_info["organization"]
-    ):
-        ret["organization"]["url"] = blueprint.service_info["organization"]["url"]
-    else:
-        ret["organization"]["url"] = "https://" + os.environ["HOSTNAME"]
-
-    if (
-        "organization" in blueprint.service_info
-        and "name" in blueprint.service_info["organization"]
-    ):
-        ret["organization"]["name"] = blueprint.service_info["organization"]["name"]
-    else:
-        ret["organization"]["name"] = "CTDS"
+    if blueprint.service_info:
+        for key, value in blueprint.service_info.items():
+            if key in ret:
+                if isinstance(value, dict):
+                    for inner_key, inner_value in value.items():
+                        ret[key][inner_key] = inner_value
+                else:
+                    ret[key] = value
 
     return flask.jsonify(ret), 200
 

@@ -1,4 +1,3 @@
-from os import environ
 from .index.drivers.alchemy import SQLAlchemyIndexDriver
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
@@ -49,8 +48,6 @@ CONFIG["DIST"] = [
 
 CONFIG["DRS_SERVICE_INFO"] = {
     "name": "DRS System",
-    "host": "https://example.com/api/ga4gh/drs/v1/",
-    "hints": [],
     "type": {
         "group": "org.ga4gh",
         "artifact": "drs",

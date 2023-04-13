@@ -19,7 +19,6 @@ CONFIG["DRS_SERVICE_INFO"] = {
         "artifact": "drs",
         "version": "1.0.3",
     },
-    "host": "https://fictitious-commons.io/",
     "version": "1.0.3",
     "organization": {
         "name": "CTDS",

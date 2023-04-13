@@ -203,10 +203,14 @@ def test_drs_service_info_no_information_configured(client):
             "url": "https://fictitious-commons.io",
         },
     }
+    backup = settings["config"]["DRS_SERVICE_INFO"].copy()
 
-    settings["config"]["DRS_SERVICE_INFO"].clear()
+    try:
+        settings["config"]["DRS_SERVICE_INFO"].clear()
 
-    res = client.get("/ga4gh/drs/v1/service-info")
+        res = client.get("/ga4gh/drs/v1/service-info")
 
-    assert res.status_code == 200
-    assert res.json == expected_info
+        assert res.status_code == 200
+        assert res.json == expected_info
+    finally:
+        settings["config"]["DRS_SERVICE_INFO"] = backup
