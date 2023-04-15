@@ -1,14 +1,53 @@
+import os
+import re
 import flask
 import json
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
+from indexd.utils import reverse_url
 
 blueprint = flask.Blueprint("drs", __name__)
 
 blueprint.config = dict()
 blueprint.index_driver = None
+blueprint.service_info = {}
+
+
+@blueprint.route("/ga4gh/drs/v1/service-info", methods=["GET"])
+def get_drs_service_info():
+    """
+    Returns DRS compliant service information
+    """
+
+    reverse_domain_name = reverse_url(url=os.environ["HOSTNAME"])
+
+    ret = {
+        "id": reverse_domain_name,
+        "name": "DRS System",
+        "version": "1.0.3",
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "drs",
+            "version": "1.0.3",
+        },
+        "organization": {
+            "name": "CTDS",
+            "url": "https://" + os.environ["HOSTNAME"],
+        },
+    }
+
+    if blueprint.service_info:
+        for key, value in blueprint.service_info.items():
+            if key in ret:
+                if isinstance(value, dict):
+                    for inner_key, inner_value in value.items():
+                        ret[key][inner_key] = inner_value
+                else:
+                    ret[key] = value
+
+    return flask.jsonify(ret), 200
 
 
 @blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["GET"])
@@ -329,3 +368,9 @@ def handle_unexpected_error(err):
 def get_config(setup_state):
     index_config = setup_state.app.config["INDEX"]
     blueprint.index_driver = index_config["driver"]
+
+
+@blueprint.record
+def get_config(setup_state):
+    if "DRS_SERVICE_INFO" in setup_state.app.config:
+        blueprint.service_info = setup_state.app.config["DRS_SERVICE_INFO"]

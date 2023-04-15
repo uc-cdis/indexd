@@ -1,3 +1,4 @@
+import flask
 import json
 import tests.conftest
 import requests
@@ -155,3 +156,61 @@ def test_get_drs_with_encoded_slash(client, user):
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
     assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
+
+
+def test_drs_service_info_endpoint(client):
+    """
+    Test drs service endpoint with drs service info friendly distribution information
+    """
+    app = flask.Flask(__name__)
+
+    expected_info = {
+        "id": "io.fictitious-commons",
+        "name": "DRS System",
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "drs",
+            "version": "1.0.3",
+        },
+        "version": "1.0.3",
+        "organization": {
+            "name": "CTDS",
+            "url": "https://fictitious-commons.io",
+        },
+    }
+
+    res = client.get("/ga4gh/drs/v1/service-info")
+
+    assert res.status_code == 200
+    assert res.json == expected_info
+
+
+def test_drs_service_info_no_information_configured(client):
+    """
+    Test drs service info endpoint when dist is not configured in the indexd config file
+    """
+    expected_info = {
+        "id": "io.fictitious-commons",
+        "name": "DRS System",
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "drs",
+            "version": "1.0.3",
+        },
+        "version": "1.0.3",
+        "organization": {
+            "name": "CTDS",
+            "url": "https://fictitious-commons.io",
+        },
+    }
+    backup = settings["config"]["DRS_SERVICE_INFO"].copy()
+
+    try:
+        settings["config"]["DRS_SERVICE_INFO"].clear()
+
+        res = client.get("/ga4gh/drs/v1/service-info")
+
+        assert res.status_code == 200
+        assert res.json == expected_info
+    finally:
+        settings["config"]["DRS_SERVICE_INFO"] = backup

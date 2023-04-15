@@ -44,13 +44,22 @@ CONFIG["DIST"] = [
         "hints": [],
         "type": "dos",
     },
-    {
-        "name": "DRS System",
-        "host": "https://example.com/api/ga4gh/drs/v1/",
-        "hints": [],
-        "type": "drs",
-    },
 ]
+
+CONFIG["DRS_SERVICE_INFO"] = {
+    "name": "DRS System",
+    "type": {
+        "group": "org.ga4gh",
+        "artifact": "drs",
+        "version": "1.0.3",
+    },
+    "version": "1.0.3",
+    "id": "com.example",
+    "organization": {
+        "name": "CTDS",
+        "url": "http://example.com/",
+    },
+}
 
 AUTH = SQLAlchemyAuthDriver("sqlite:///auth.sq3")
 
