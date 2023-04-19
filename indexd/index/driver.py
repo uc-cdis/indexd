@@ -58,6 +58,9 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         hashes=None,
         baseid=None,
         uploader=None,
+        description=None,
+        content_created_date=None,
+        content_updated_date=None,
     ):
         """
         Creates record for given data.
@@ -100,6 +103,9 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         acl=None,
         authz=None,
         hashes=None,
+        description=None,
+        created_time=None,
+        updated_time=None,
     ):
         """
         Add a record version given did

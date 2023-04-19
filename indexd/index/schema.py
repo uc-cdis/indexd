@@ -31,6 +31,10 @@ POST_RECORD_SCHEMA = {
             "description": "optional version string of the object",
             "type": "string",
         },
+        "description": {
+            "description": "optional description string of the object",
+            "type": "string",
+        },
         "uploader": {
             "description": "optional uploader of the object",
             "type": "string",
@@ -45,6 +49,16 @@ POST_RECORD_SCHEMA = {
         "did": {
             "type": "string",
             "pattern": "^.*[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+        },
+        "created_time": {
+            "description": "Timestamp of content creation. Refers to the underyling content, not the JSON object.",
+            "type": "string",
+            "format": "date-time",
+        },
+        "updated_time": {
+            "description": "Timestamp of content update, identical to created_time in systems that do not support updates. Refers to the underyling content, not the JSON object.",
+            "type": "string",
+            "format": "date-time",
         },
         "hashes": {
             "type": "object",
@@ -82,6 +96,9 @@ PUT_RECORD_SCHEMA = {
         "uploader": {"type": ["string", "null"]},
         "metadata": {"type": "object"},
         "urls_metadata": {"type": "object"},
+        "description": {"type": ["string", "null"]},
+        "created_time": {"type": ["string", "null"], "format": "date-time"},
+        "updated_time": {"type": ["string", "null"], "format": "date-time"},
     },
 }
 

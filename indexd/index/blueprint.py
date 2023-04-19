@@ -407,6 +407,19 @@ def post_index_record():
     version = flask.request.json.get("version")
     baseid = flask.request.json.get("baseid")
     uploader = flask.request.json.get("uploader")
+    description = flask.request.json.get("description")
+    content_created_date = flask.request.json.get("created_time")
+    content_updated_date = flask.request.json.get("updated_time")
+
+    if content_updated_date is None:
+        content_updated_date = content_created_date
+
+    if content_updated_date is not None and content_created_date is None:
+        raise UserError("Cannot set updated_time without created_time")
+
+    if content_updated_date is not None and content_created_date is not None:
+        if content_updated_date < content_created_date:
+            raise UserError("updated_time cannot come before created_date")
 
     did, rev, baseid = blueprint.index_driver.add(
         form,
@@ -422,6 +435,9 @@ def post_index_record():
         hashes=hashes,
         baseid=baseid,
         uploader=uploader,
+        description=description,
+        content_created_date=content_created_date,
+        content_updated_date=content_updated_date,
     )
 
     ret = {"did": did, "rev": rev, "baseid": baseid}
@@ -508,9 +524,13 @@ def put_index_record(record):
         raise UserError(err)
 
     rev = flask.request.args.get("rev")
+    json = flask.request.json
+    if "updated_time" in json and "created_time" in json:
+        if json["updated_time"] < json["created_time"]:
+            raise UserError("updated_time cannot come before created_date")
 
     # authorize done in update
-    did, baseid, rev = blueprint.index_driver.update(record, rev, flask.request.json)
+    did, baseid, rev = blueprint.index_driver.update(record, rev, json)
 
     ret = {"did": did, "baseid": baseid, "rev": rev}
 
@@ -553,6 +573,16 @@ def add_index_record_version(record):
     metadata = flask.request.json.get("metadata")
     urls_metadata = flask.request.json.get("urls_metadata")
     version = flask.request.json.get("version")
+    description = flask.request.json.get("description")
+    content_created_date = flask.request.json.get("created_time")
+    content_updated_date = flask.request.json.get("updated_time")
+
+    if content_updated_date is None:
+        content_updated_date = content_created_date
+
+    if content_updated_date is not None and content_created_date is not None:
+        if content_updated_date < content_created_date:
+            raise UserError("updated_time cannot come before created_date")
 
     # authorize done in add_version for both the old and new authz
     did, baseid, rev = blueprint.index_driver.add_version(
@@ -568,6 +598,9 @@ def add_index_record_version(record):
         urls_metadata=urls_metadata,
         version=version,
         hashes=hashes,
+        description=description,
+        content_created_date=content_created_date,
+        content_updated_date=content_updated_date,
     )
 
     ret = {"did": did, "baseid": baseid, "rev": rev}

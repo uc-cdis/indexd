@@ -24,7 +24,13 @@ def generate_presigned_url_response(did, status=200, **query_params):
     return presigned_url
 
 
-def get_doc(has_version=True, urls=list(), drs_list=0):
+def get_doc(
+    has_version=True,
+    urls=list(),
+    has_description=True,
+    has_created_time=True,
+    has_updated_time=True,
+):
     doc = {
         "form": "object",
         "size": 123,
@@ -35,12 +41,28 @@ def get_doc(has_version=True, urls=list(), drs_list=0):
         doc["version"] = "1"
     if urls:
         doc["urls"] = urls
-    # if drs_list > 0:
-    #     ret = {"drs_objects": []}
-    #     for _ in range(drs_list):
-    #         ret["drs_objects"].append(doc)
-    #     return ret
+    if has_description:
+        doc["description"] = "A description"
+    if has_updated_time:
+        doc["updated_time"] = "2023-03-14T17:02:54"
+    if has_created_time:
+        doc["created_time"] = "2023-03-13T17:02:54"
+
     return doc
+
+
+def get_bundle(client, user, has_description=True):
+    docs = [get_doc(), get_doc()]
+    dids = []
+    for doc in docs:
+        res = client.post("/index/", json=doc, headers=user)
+        assert res.status_code == 200
+        dids.append(res.json["did"])
+    bundle = get_bundle_doc(bundles=dids)
+    if has_description:
+        bundle["description"] = "A description"
+
+    return bundle
 
 
 def test_drs_get(client, user):
@@ -79,6 +101,163 @@ def test_drs_get_no_default(client, user):
 
     settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = "testprefix:"
     settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
+
+
+def test_timestamps(client, user):
+    data = get_doc()
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_resp = client.get(f"/ga4gh/drs/v1/objects/{obj_did}")
+    assert obj_resp.status_code == 200
+    assert data["created_time"] == obj_resp.json["created_time"]
+    assert data["updated_time"] == obj_resp.json["updated_time"]
+
+
+def test_changing_timestamps(client, user):
+    data = get_doc()
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_rev = create_obj_resp.json["rev"]
+    update_json = {
+        "created_time": "2023-03-15T17:02:54",
+        "updated_time": "2023-03-30T17:02:54",
+    }
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 200
+    update_obj_did = update_obj_resp.json["did"]
+    obj_resp = client.get(f"/ga4gh/drs/v1/objects/{update_obj_did}")
+    assert obj_resp.status_code == 200
+    assert update_json["created_time"] == obj_resp.json["created_time"]
+    assert update_json["updated_time"] == obj_resp.json["updated_time"]
+
+
+def test_changing_timestamps_updated_not_before_created(client, user):
+    data = get_doc()
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_rev = create_obj_resp.json["rev"]
+    update_json = {
+        "created_time": "2023-03-15T17:02:54",
+        "updated_time": "2022-03-30T17:02:54",
+    }
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 400
+
+
+def test_changing_timestamps_no_updated_without_created(client, user):
+    data = get_doc(has_created_time=False, has_updated_time=False)
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_rev = create_obj_resp.json["rev"]
+    update_json = {"updated_time": "2022-03-30T17:02:54"}
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 400
+
+
+def test_timestamps_updated_not_before_created(client, user):
+    data = get_doc()
+    data["updated_time"] = "2022-03-14T17:02:54"  # get_doc sets created year to 2023
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 400
+
+
+def test_timestamps_no_updated_without_created(client, user):
+    data = get_doc(has_created_time=False)
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 400
+
+
+def test_timestamps_updated_sets_to_created(client, user):
+    data = get_doc(has_updated_time=False)
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_resp = client.get(f"/ga4gh/drs/v1/objects/{obj_did}")
+    assert obj_resp.status_code == 200
+    assert data["created_time"] == obj_resp.json["created_time"]
+    assert data["created_time"] == obj_resp.json["updated_time"]
+
+
+def test_timestamps_none(client, user):
+    data = get_doc(has_updated_time=False, has_created_time=False)
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_resp = client.get(f"/ga4gh/drs/v1/objects/{obj_did}")
+    assert obj_resp.status_code == 200
+    assert obj_resp.json.get("created_time") == ""
+    assert obj_resp.json.get("updated_time") == ""
+
+
+def test_drs_get_description(client, user):
+    data = get_doc(has_description=True)
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"])
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["description"] == data["description"]
+
+
+def test_drs_changing_description(client, user):
+    data = get_doc(has_description=True)
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    created_obj = create_obj_resp.json
+    obj_did = created_obj["did"]
+    obj_rev = created_obj["rev"]
+    update_json = {"description": "a newly updated description"}
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 200
+    update_obj = update_obj_resp.json
+    drs_resp = client.get("/ga4gh/drs/v1/objects/" + update_obj["did"])
+    assert drs_resp.status_code == 200
+    drs_rec = drs_resp.json
+    assert drs_rec["description"] == update_json["description"]
+
+
+def test_drs_get_no_description(client, user):
+    data = get_doc(has_description=False)
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"])
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["description"] is None
+
+
+def test_drs_get_bundle(client, user):
+    bundle = get_bundle(client, user)
+    bundle_res = client.post("/bundle/", json=bundle, headers=user)
+    assert bundle_res.status_code == 200
+    bundle_id = bundle_res.json["bundle_id"]
+    drs_res = client.get(f"/ga4gh/drs/v1/objects/{bundle_id}", headers=user)
+    assert drs_res.status_code == 200
+    assert drs_res.json["description"] == bundle["description"]
+
+
+def test_drs_get_bundle_no_description(client, user):
+    bundle = get_bundle(client, user, has_description=False)
+    bundle_res = client.post("/bundle/", json=bundle, headers=user)
+    assert bundle_res.status_code == 200
+    bundle_id = bundle_res.json["bundle_id"]
+    drs_res = client.get(f"/ga4gh/drs/v1/objects/{bundle_id}", headers=user)
+    assert drs_res.status_code == 200
+    assert drs_res.json["description"] is ""
 
 
 def test_drs_multiple_endpointurl(client, user):
