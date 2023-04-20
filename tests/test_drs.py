@@ -28,8 +28,8 @@ def get_doc(
     has_version=True,
     urls=list(),
     has_description=True,
-    has_created_time=True,
-    has_updated_time=True,
+    has_content_created_date=True,
+    has_content_updated_date=True,
 ):
     doc = {
         "form": "object",
@@ -43,10 +43,10 @@ def get_doc(
         doc["urls"] = urls
     if has_description:
         doc["description"] = "A description"
-    if has_updated_time:
-        doc["updated_time"] = "2023-03-14T17:02:54"
-    if has_created_time:
-        doc["created_time"] = "2023-03-13T17:02:54"
+    if has_content_updated_date:
+        doc["content_updated_date"] = "2023-03-14T17:02:54"
+    if has_content_created_date:
+        doc["content_created_date"] = "2023-03-13T17:02:54"
 
     return doc
 
@@ -110,8 +110,8 @@ def test_timestamps(client, user):
     obj_did = create_obj_resp.json["did"]
     obj_resp = client.get(f"/ga4gh/drs/v1/objects/{obj_did}")
     assert obj_resp.status_code == 200
-    assert data["created_time"] == obj_resp.json["created_time"]
-    assert data["updated_time"] == obj_resp.json["updated_time"]
+    assert data["content_created_date"] == obj_resp.json["created_time"]
+    assert data["content_updated_date"] == obj_resp.json["updated_time"]
 
 
 def test_changing_timestamps(client, user):
@@ -121,8 +121,8 @@ def test_changing_timestamps(client, user):
     obj_did = create_obj_resp.json["did"]
     obj_rev = create_obj_resp.json["rev"]
     update_json = {
-        "created_time": "2023-03-15T17:02:54",
-        "updated_time": "2023-03-30T17:02:54",
+        "content_created_date": "2023-03-15T17:02:54",
+        "content_updated_date": "2023-03-30T17:02:54",
     }
     update_obj_resp = client.put(
         f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
@@ -131,8 +131,8 @@ def test_changing_timestamps(client, user):
     update_obj_did = update_obj_resp.json["did"]
     obj_resp = client.get(f"/ga4gh/drs/v1/objects/{update_obj_did}")
     assert obj_resp.status_code == 200
-    assert update_json["created_time"] == obj_resp.json["created_time"]
-    assert update_json["updated_time"] == obj_resp.json["updated_time"]
+    assert update_json["content_created_date"] == obj_resp.json["created_time"]
+    assert update_json["content_updated_date"] == obj_resp.json["updated_time"]
 
 
 def test_changing_timestamps_updated_not_before_created(client, user):
@@ -142,8 +142,8 @@ def test_changing_timestamps_updated_not_before_created(client, user):
     obj_did = create_obj_resp.json["did"]
     obj_rev = create_obj_resp.json["rev"]
     update_json = {
-        "created_time": "2023-03-15T17:02:54",
-        "updated_time": "2022-03-30T17:02:54",
+        "content_created_date": "2023-03-15T17:02:54",
+        "content_updated_date": "2022-03-30T17:02:54",
     }
     update_obj_resp = client.put(
         f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
@@ -152,12 +152,12 @@ def test_changing_timestamps_updated_not_before_created(client, user):
 
 
 def test_changing_timestamps_no_updated_without_created(client, user):
-    data = get_doc(has_created_time=False, has_updated_time=False)
+    data = get_doc(has_content_created_date=False, has_content_updated_date=False)
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
     obj_did = create_obj_resp.json["did"]
     obj_rev = create_obj_resp.json["rev"]
-    update_json = {"updated_time": "2022-03-30T17:02:54"}
+    update_json = {"content_updated_date": "2022-03-30T17:02:54"}
     update_obj_resp = client.put(
         f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
     )
@@ -166,30 +166,32 @@ def test_changing_timestamps_no_updated_without_created(client, user):
 
 def test_timestamps_updated_not_before_created(client, user):
     data = get_doc()
-    data["updated_time"] = "2022-03-14T17:02:54"  # get_doc sets created year to 2023
+    data[
+        "content_updated_date"
+    ] = "2022-03-14T17:02:54"  # get_doc sets created year to 2023
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 400
 
 
 def test_timestamps_no_updated_without_created(client, user):
-    data = get_doc(has_created_time=False)
+    data = get_doc(has_content_created_date=False)
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 400
 
 
 def test_timestamps_updated_sets_to_created(client, user):
-    data = get_doc(has_updated_time=False)
+    data = get_doc(has_content_updated_date=False)
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
     obj_did = create_obj_resp.json["did"]
     obj_resp = client.get(f"/ga4gh/drs/v1/objects/{obj_did}")
     assert obj_resp.status_code == 200
-    assert data["created_time"] == obj_resp.json["created_time"]
-    assert data["created_time"] == obj_resp.json["updated_time"]
+    assert data["content_created_date"] == obj_resp.json["created_time"]
+    assert data["content_created_date"] == obj_resp.json["updated_time"]
 
 
 def test_timestamps_none(client, user):
-    data = get_doc(has_updated_time=False, has_created_time=False)
+    data = get_doc(has_content_updated_date=False, has_content_created_date=False)
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
     obj_did = create_obj_resp.json["did"]

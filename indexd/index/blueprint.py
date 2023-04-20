@@ -408,8 +408,8 @@ def post_index_record():
     baseid = flask.request.json.get("baseid")
     uploader = flask.request.json.get("uploader")
     description = flask.request.json.get("description")
-    content_created_date = flask.request.json.get("created_time")
-    content_updated_date = flask.request.json.get("updated_time")
+    content_created_date = flask.request.json.get("content_created_date")
+    content_updated_date = flask.request.json.get("content_updated_date")
 
     if content_updated_date is None:
         content_updated_date = content_created_date
@@ -525,8 +525,8 @@ def put_index_record(record):
 
     rev = flask.request.args.get("rev")
     json = flask.request.json
-    if "updated_time" in json and "created_time" in json:
-        if json["updated_time"] < json["created_time"]:
+    if "content_updated_date" in json and "content_created_date" in json:
+        if json["content_updated_date"] < json["content_created_date"]:
             raise UserError("updated_time cannot come before created_date")
 
     # authorize done in update
@@ -574,8 +574,8 @@ def add_index_record_version(record):
     urls_metadata = flask.request.json.get("urls_metadata")
     version = flask.request.json.get("version")
     description = flask.request.json.get("description")
-    content_created_date = flask.request.json.get("created_time")
-    content_updated_date = flask.request.json.get("updated_time")
+    content_created_date = flask.request.json.get("content_created_date")
+    content_updated_date = flask.request.json.get("content_updated_date")
 
     if content_updated_date is None:
         content_updated_date = content_created_date

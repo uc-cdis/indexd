@@ -166,9 +166,9 @@ def indexd_to_drs(record, expand=False):
         record["updated_date"] if "updated_date" in record else record["updated_time"]
     )
 
-    created_time = record.get("content_created_date", "")
+    content_created_date = record.get("content_created_date", "")
 
-    updated_time = record.get("content_updated_date", "")
+    content_updated_date = record.get("content_updated_date", "")
 
     form = record["form"] if "form" in record else "bundle"
 
@@ -188,8 +188,8 @@ def indexd_to_drs(record, expand=False):
         "name": name,
         "index_created_time": index_created_time,
         "index_updated_time": index_updated_time,
-        "created_time": created_time,
-        "updated_time": updated_time,
+        "created_time": content_created_date,
+        "updated_time": content_updated_date,
         "size": record["size"],
         "aliases": alias,
         "self_uri": self_uri,

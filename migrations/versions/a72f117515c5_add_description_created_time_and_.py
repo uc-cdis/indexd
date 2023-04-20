@@ -1,4 +1,4 @@
-"""Add description, created_time and updated_time columns to IndexRecord
+"""Add description, content_created_date and content_updated_date columns to IndexRecord
 
 Revision ID: a72f117515c5
 Revises: 15f2e9345ade

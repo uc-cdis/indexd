@@ -1176,8 +1176,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             "authz",
             "metadata",
             "urls_metadata",
-            "created_time",
-            "updated_time",
+            "content_created_date",
+            "content_updated_date",
         ]
 
         with self.session as session:
@@ -1250,17 +1250,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
                 create_urls_metadata(changing_fields["urls_metadata"], record, session)
 
-            if "created_time" in changing_fields:
+            if "content_created_date" in changing_fields:
                 record.content_created_date = datetime.datetime.fromisoformat(
-                    changing_fields["created_time"]
+                    changing_fields["content_created_date"]
                 )
-            if "updated_time" in changing_fields:
+            if "content_updated_date" in changing_fields:
                 if record.content_created_date is None:
                     raise UserError(
                         "Cannot set updated_time on record that does not have a created_time"
                     )
                 record.content_updated_date = datetime.datetime.fromisoformat(
-                    changing_fields["updated_time"]
+                    changing_fields["content_updated_date"]
                 )
 
             for key, value in changing_fields.items():

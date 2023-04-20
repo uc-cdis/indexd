@@ -50,12 +50,12 @@ POST_RECORD_SCHEMA = {
             "type": "string",
             "pattern": "^.*[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
         },
-        "created_time": {
+        "content_created_date": {
             "description": "Timestamp of content creation. Refers to the underyling content, not the JSON object.",
             "type": "string",
             "format": "date-time",
         },
-        "updated_time": {
+        "content_updated_date": {
             "description": "Timestamp of content update, identical to created_time in systems that do not support updates. Refers to the underyling content, not the JSON object.",
             "type": "string",
             "format": "date-time",
@@ -97,8 +97,8 @@ PUT_RECORD_SCHEMA = {
         "metadata": {"type": "object"},
         "urls_metadata": {"type": "object"},
         "description": {"type": ["string", "null"]},
-        "created_time": {"type": ["string", "null"], "format": "date-time"},
-        "updated_time": {"type": ["string", "null"], "format": "date-time"},
+        "content_created_date": {"type": ["string", "null"], "format": "date-time"},
+        "content_updated_date": {"type": ["string", "null"], "format": "date-time"},
     },
 }
 

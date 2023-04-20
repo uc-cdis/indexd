@@ -104,8 +104,8 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         authz=None,
         hashes=None,
         description=None,
-        created_time=None,
-        updated_time=None,
+        content_created_date=None,
+        content_updated_date=None,
     ):
         """
         Add a record version given did
