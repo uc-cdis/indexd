@@ -445,7 +445,7 @@ def test_driver_get_record():
         baseid = str(uuid.uuid4())
         created_date = datetime.now()
         updated_date = datetime.now()
-        description = ""
+        description = "a description"
         content_created_date = datetime.now()
         content_updated_date = datetime.now()
 
@@ -520,9 +520,10 @@ def test_driver_nonstrict_get_without_prefix():
         updated_date = datetime.now()
         content_created_date = datetime.now()
         content_updated_date = datetime.now()
+        description = "a description"
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date) VALUES (?,?,?,?,?,?,?,?,?)
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES (?,?,?,?,?,?,?,?,?,?)
         """,
             (
                 "testprefix/" + did,
@@ -534,6 +535,7 @@ def test_driver_nonstrict_get_without_prefix():
                 updated_date,
                 content_created_date,
                 content_updated_date,
+                description,
             ),
         )
 
@@ -578,7 +580,7 @@ def test_driver_nonstrict_get_with_prefix():
         baseid = str(uuid.uuid4())
         created_date = datetime.now()
         updated_date = datetime.now()
-        description = ""
+        description = "a description"
         content_created_date = datetime.now()
         content_updated_date = datetime.now()
         conn.execute(
@@ -688,7 +690,7 @@ def test_driver_get_latest_version():
             baseid = str(uuid.uuid4())
             created_date = datetime.now()
             updated_date = datetime.now()
-            description = ""
+            description = "a description"
             content_created_date = datetime.now()
             content_updated_date = datetime.now()
             conn.execute(
@@ -771,6 +773,7 @@ def test_driver_get_all_versions():
         updated_dates = []
         content_created_dates = []
         content_updated_dates = []
+        descriptions = []
         for _ in range(NUMBER_OF_RECORD):
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
@@ -780,16 +783,17 @@ def test_driver_get_all_versions():
             updated_date = created_date
             content_created_date = datetime.now()
             content_updated_date = created_date
+            description = f"description for {did}"
             dids.append(did)
             revs.append(rev)
             created_dates.append(created_date)
             updated_dates.append(updated_date)
             content_created_dates.append(content_created_date)
-            content_updated_dates.append(content_updated_date)
+            descriptions.append(description)
             conn.execute(
                 """
-                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date) \
-                    VALUES (?,?,?,?,?,?,?,?,?)
+                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) \
+                    VALUES (?,?,?,?,?,?,?,?,?,?)
             """,
                 (
                     did,
@@ -801,6 +805,7 @@ def test_driver_get_all_versions():
                     updated_date,
                     content_created_date,
                     content_updated_date,
+                    description,
                 ),
             )
 
