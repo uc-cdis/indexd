@@ -259,7 +259,7 @@ def get_aliases(record):
     return flask.jsonify(aliases_payload), 200
 
 
-@blueprint.route("/index/<path:record>/aliases/", methods=["POST"], strict_slashes=False)
+@blueprint.route("/index/<path:record>/aliases/", methods=["POST"])
 def append_aliases(record):
     """
     Append one or more aliases to aliases already associated with this
