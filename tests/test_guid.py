@@ -8,11 +8,12 @@ GUID_REGEX = re.compile(
 )
 
 
-def test_single_guid(app, client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_single_guid(app, client, user, url_ends_with):
     """
     Test that generating a single GUID works
     """
-    response = client.get("/guid/mint")
+    response = client.get("/guid/mint" + url_ends_with)
     assert response.status_code == 200
     response_json = response.json
     guid_list = response_json["guids"]

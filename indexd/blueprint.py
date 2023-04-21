@@ -42,7 +42,7 @@ def get_alias(alias):
     return flask.jsonify(info), 200
 
 
-@blueprint.route("/<path:record>", methods=["GET"])
+@blueprint.route("/<path:record>/", methods=["GET"])
 def get_record(record):
     """
     Returns a record from the local ids, alias, or global resolvers.

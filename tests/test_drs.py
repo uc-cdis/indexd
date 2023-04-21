@@ -1,5 +1,8 @@
 import flask
 import json
+
+import pytest
+
 import tests.conftest
 import requests
 import responses
@@ -35,15 +38,11 @@ def get_doc(has_version=True, urls=list(), drs_list=0):
         doc["version"] = "1"
     if urls:
         doc["urls"] = urls
-    # if drs_list > 0:
-    #     ret = {"drs_objects": []}
-    #     for _ in range(drs_list):
-    #         ret["drs_objects"].append(doc)
-    #     return ret
     return doc
 
 
-def test_drs_get(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_drs_get(client, user, url_ends_with):
     data = get_doc()
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200

@@ -15,7 +15,7 @@ blueprint.alias_driver = None
 blueprint.dist = []
 
 
-@blueprint.route("/ga4gh/dos/v1/dataobjects/<path:record>", methods=["GET"])
+@blueprint.route("/ga4gh/dos/v1/dataobjects/<path:record>/", methods=["GET"])
 def get_dos_record(record):
     """
     Returns a record from the local ids, alias, or global resolvers.
@@ -40,7 +40,7 @@ def get_dos_record(record):
     return flask.jsonify(indexd_to_dos(ret)), 200
 
 
-@blueprint.route("/ga4gh/dos/v1/dataobjects", methods=["GET"])
+@blueprint.route("/ga4gh/dos/v1/dataobjects/", methods=["GET"])
 def list_dos_records():
     """
     Returns a record from the local ids, alias, or global resolvers.

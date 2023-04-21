@@ -29,14 +29,19 @@ def get_doc(
     return doc
 
 
-def test_index_list(client):
-    res = client.get("/index/")
+# GET /index
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_index_list(client, url_ends_with):
+    res = client.get("/index" + url_ends_with)
     assert res.status_code == 200
     rec = res.json
     assert rec["records"] == []
 
 
-def test_index_list_with_params(client, user):
+# POST /index
+# GET /index
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_index_list_with_params(client, user, url_ends_with):
     data1 = get_doc()
     data1["urls"] = [
         "s3://endpointurl/bucket_2/key_2",
@@ -46,7 +51,7 @@ def test_index_list_with_params(client, user):
         "s3://endpointurl/bucket_2/key_2": {"state": "error", "other": "xxx"},
         "s3://anotherurl/bucket_2/key_2": {"state": "error", "other": "xxx"},
     }
-    res_1 = client.post("/index/", json=data1, headers=user)
+    res_1 = client.post("/index" + url_ends_with, json=data1, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
 
@@ -56,7 +61,7 @@ def test_index_list_with_params(client, user):
     data2["urls_metadata"] = {
         "s3://endpointurl/bucket/key_2": {"state": "error", "other": "yyy"}
     }
-    res_2 = client.post("/index/", json=data2, headers=user)
+    res_2 = client.post("/index" + url_ends_with, json=data2, headers=user)
     assert res_2.status_code == 200
     rec_2 = res_2.json
 
@@ -69,23 +74,29 @@ def test_index_list_with_params(client, user):
         "s3://endpointurl/bucket_2/key_2": {"state": "test", "other": "xxx"},
         "s3://anotherurl/bucket_2/key_2": {"state": "test", "other": "xxx"},
     }
-    res_3 = client.post("/index/", json=data3, headers=user)
+    res_3 = client.post("/index" + url_ends_with, json=data3, headers=user)
     assert res_3.status_code == 200
     rec_3 = res_3.json
 
-    data1_by_md = client.get("/index/?metadata=project_id:bpa-UChicago")
+    data1_by_md = client.get(
+        "/index" + url_ends_with + "?metadata=project_id:bpa-UChicago"
+    )
     assert data1_by_md.status_code == 200
     data1_list = data1_by_md.json
     ids = [record["did"] for record in data1_list["records"]]
     assert rec_1["did"] in ids
 
-    data2_by_md = client.get("/index/?metadata=project_id:other-project")
+    data2_by_md = client.get(
+        "/index" + url_ends_with + "?metadata=project_id:other-project"
+    )
     assert data2_by_md.status_code == 200
     data2_list = data2_by_md.json
     ids = [record["did"] for record in data2_list["records"]]
     assert rec_2["did"] in ids
 
-    data_by_hash = client.get("/index/?hash=md5:8b9942cf415384b27cadf1f4d2d682e5")
+    data_by_hash = client.get(
+        "/index" + url_ends_with + "?hash=md5:8b9942cf415384b27cadf1f4d2d682e5"
+    )
     assert data_by_hash.status_code == 200
     data_list_all = data_by_hash.json
     ids = [record["did"] for record in data_list_all["records"]]
@@ -95,7 +106,9 @@ def test_index_list_with_params(client, user):
     # with nonstrict prefix
     stripped = rec_1["did"].split("testprefix:", 1)[1]
     with_prefix = rec_3["did"]
-    data_by_ids = client.get("/index/?ids={},{}".format(stripped, with_prefix))
+    data_by_ids = client.get(
+        "/index" + url_ends_with + "?ids={},{}".format(stripped, with_prefix)
+    )
     assert data_by_ids.status_code == 200
     data_list_all = data_by_ids.json
 
@@ -104,14 +117,16 @@ def test_index_list_with_params(client, user):
     assert not rec_2["did"] in ids
     assert rec_3["did"] in ids
 
-    data_with_limit = client.get("/index/?limit=1")
+    data_with_limit = client.get("/index" + url_ends_with + "?limit=1")
     assert data_with_limit.status_code == 200
     data_list_limit = data_with_limit.json
     assert len(data_list_limit["records"]) == 1
 
     param = {"bucket": {"state": "error", "other": "xxx"}}
 
-    data_by_url_md = client.get("/index/?urls_metadata=" + json.dumps(param))
+    data_by_url_md = client.get(
+        "/index" + url_ends_with + "?urls_metadata=" + json.dumps(param)
+    )
     assert data_by_url_md.status_code == 200
     data_list = data_by_url_md.json
     assert len(data_list["records"]) == 1
@@ -119,7 +134,9 @@ def test_index_list_with_params(client, user):
     assert data_list["records"][0]["urls_metadata"] == data1["urls_metadata"]
 
 
-def test_get_list_form_param(client, user):
+# POST /bundle
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_get_list_form_param(client, user, url_ends_with):
     """
     bundle1
         +-object1
@@ -136,7 +153,7 @@ def test_get_list_form_param(client, user):
         bundle_id = str(uuid.uuid4())
         data = get_bundle_doc(did_list, bundle_id=bundle_id)
 
-        res2 = client.post("/bundle/", json=data, headers=user)
+        res2 = client.post("/bundle" + url_ends_with, json=data, headers=user)
         assert res2.status_code == 200
 
     res3 = client.get("/index/")
@@ -661,21 +678,23 @@ def test_list_entries_with_uploader_wrong_uploader(client, user):
     assert len(data_list["records"]) == 0
 
 
-def test_create_blank_record(client, user):
+# POST /index/blank
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_create_blank_record(client, user, url_ends_with):
     """
     Test that new blank records only contain the uploader
     and optionally file_name fields: test without file name
     """
 
     doc = {"uploader": "uploader_123"}
-    res = client.post("/index/blank/", json=doc, headers=user)
+    res = client.post("/index/blank" + url_ends_with, json=doc, headers=user)
     assert res.status_code == 201
     rec = res.json
     assert rec["did"]
     assert rec["rev"]
     assert rec["baseid"]
 
-    res = client.get("/index/?uploader=uploader_123")
+    res = client.get("/index" + url_ends_with + "?uploader=uploader_123")
     assert res.status_code == 200
     rec = res.json
     assert rec["records"][0]["uploader"] == "uploader_123"
@@ -760,7 +779,8 @@ def test_create_blank_record_with_authz(client, use_mock_authz):
     assert res.status_code == 403, res.json
 
 
-def test_create_blank_version(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_create_blank_version(client, user, url_ends_with):
     """
     Test that we can create a new, blank version of a record
     with POST /index/blank/{GUID}. The new blank version should
@@ -804,7 +824,7 @@ def test_create_blank_version(client, user):
 
     # Make a new blank version of the original record
     doc = {"uploader": "uploader_123", "file_name": "test_file"}
-    url = "/index/blank/{}".format(original_doc_guid)
+    url = "/index/blank/{}".format(original_doc_guid) + url_ends_with
     res = client.post(url, json=doc, headers=user)
     assert res.status_code == 201, "Failed to make new blank version: {}".format(
         res.json
@@ -1222,6 +1242,52 @@ def test_update_blank_record_with_authz_new(client, user, use_mock_authz):
     assert rec["authz"] == [new_authz2]  # authz as provided
 
 
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_PUT_index_blank(client, user, url_ends_with):
+    """
+    Test that new blank records only contain the uploader
+    and optionally file_name fields: test without file name
+    """
+
+    doc = {"uploader": "uploader_123"}
+    res = client.post("/index/blank" + url_ends_with, json=doc, headers=user)
+    assert res.status_code == 201
+    rec = res.json
+    did = rec["did"]
+    rev = rec["rev"]
+    to_update = {
+        "size": "400",
+    }
+    res = client.put(
+        "/index/blank/{}?rev={}".format(did, rev), json=to_update, headers=user
+    )
+    assert res.status_code == 200
+
+
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_PUT_index(client, user, url_ends_with):
+    """
+    Test that new blank records only contain the uploader
+    and optionally file_name fields: test without file name
+    """
+
+    doc = {"uploader": "uploader_123"}
+    res = client.post("/index/blank" + url_ends_with, json=doc, headers=user)
+    assert res.status_code == 201
+    rec = res.json
+    did = rec["did"]
+    rev = rec["rev"]
+    to_update = {
+        "file_name": "new filename",
+    }
+    res = client.put(
+        "/index/{}?rev={}".format(did + url_ends_with, rev),
+        json=to_update,
+        headers=user,
+    )
+    assert res.status_code == 200
+
+
 def test_get_empty_acl_authz_record(client, user):
     """
     Test that can get a list of empty acl/authz given uploader
@@ -1459,7 +1525,8 @@ def test_urls_metadata_partial_match(
     assert ids == {url_doc_mapping[url]["did"] for url in expected}
 
 
-def test_get_urls(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_get_urls(client, user, url_ends_with):
     data = get_doc(has_urls_metadata=True)
     response = client.post("/index/", json=data, headers=user)
     assert response.status_code == 200
@@ -1472,7 +1539,7 @@ def test_get_urls(client, user):
     assert record["urls"][0]["url"] == url
     assert record["urls"][0]["metadata"] == data["urls_metadata"][url]
 
-    response = client.get("/urls/?size={}".format(data["size"]))
+    response = client.get("/urls" + url_ends_with + "?size={}".format(data["size"]))
     assert response.status_code == 200
     record = response.json
     url = data["urls"][0]
@@ -1674,7 +1741,8 @@ def test_index_get_with_baseid(client, user):
     assert rec_2["did"] == rec_1["did"]
 
 
-def test_delete_and_recreate(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_delete_and_recreate(client, user, url_ends_with):
     """
     Test that you can delete an IndexDocument and be able to
     recreate it with the same fields.
@@ -1695,7 +1763,7 @@ def test_delete_and_recreate(client, user):
 
     # delete the old doc
     res = client.delete(
-        "/index/{}?rev={}".format(old_record["did"], old_record["rev"]),
+        "/index/{}?rev={}".format(old_record["did"] + url_ends_with, old_record["rev"]),
         json=old_data,
         headers=user,
     )
@@ -1866,13 +1934,14 @@ def test_index_create_with_uploader(client, user):
     assert rec["uploader"] == data["uploader"]
 
 
-def test_index_get_global_endpoint(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_index_get_global_endpoint(client, user, url_ends_with):
     data = get_doc()
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
     rec = res.json
-    res = client.get("/" + rec["did"])
+    res = client.get("/" + rec["did"] + url_ends_with)
     assert res.status_code == 200
     rec = res.json
 
@@ -2074,7 +2143,8 @@ def test_update_uploader_field(client, user):
     assert rec["uploader"] is None
 
 
-def test_index_delete(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_index_delete(client, user, url_ends_with):
     data = get_doc(has_metadata=False, has_baseid=False)
 
     res = client.post("/index/", json=data, headers=user)
@@ -2089,7 +2159,9 @@ def test_index_delete(client, user):
     assert rec["did"]
 
     res = client.delete(
-        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=data, headers=user
+        "/index/{}?rev={}".format(rec["did"] + url_ends_with, rec["rev"]),
+        json=data,
+        headers=user,
     )
     assert res.status_code == 200
 
@@ -2124,7 +2196,8 @@ def test_create_index_version(client, user):
     assert rec_2["did"] == dataNew["did"]
 
 
-def test_get_latest_version(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_get_latest_version(client, user, url_ends_with):
     data = get_doc(has_metadata=False, has_baseid=False, has_version=True)
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
@@ -2132,21 +2205,25 @@ def test_get_latest_version(client, user):
     assert rec_1["did"]
 
     data = get_doc(has_metadata=False, has_baseid=False, has_version=False)
-    res_2 = client.post("/index/" + rec_1["did"], json=data, headers=user)
+    res_2 = client.post(
+        "/index/" + rec_1["did"] + url_ends_with, json=data, headers=user
+    )
     assert res_2.status_code == 200
     rec_2 = res_2.json
 
-    res_3 = client.get("/index/{}/latest".format(rec_2["did"]))
+    res_3 = client.get("/index/{}/latest".format(rec_2["did"]) + url_ends_with)
     assert res_3.status_code == 200
     rec_3 = res_3.json
     assert rec_3["did"] == rec_2["did"]
 
-    res_4 = client.get("/index/{}/latest".format(rec_1["baseid"]))
+    res_4 = client.get("/index/{}/latest".format(rec_1["baseid"]) + url_ends_with)
     assert res_4.status_code == 200
     rec_4 = res_4.json
     assert rec_4["did"] == rec_2["did"]
 
-    res_5 = client.get("/index/{}/latest?has_version=True".format(rec_1["baseid"]))
+    res_5 = client.get(
+        "/index/{}/latest".format(rec_1["baseid"]) + url_ends_with + "?has_version=True"
+    )
     assert res_5.status_code == 200
     rec_5 = res_5.json
     assert rec_5["did"] == rec_1["did"]
@@ -2184,7 +2261,8 @@ def test_get_all_versions(client, user):
         assert record["did"] == dids[int(i)], "record id does not match"
 
 
-def test_update_all_versions(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_update_all_versions(client, user, url_ends_with):
     dids = []
     mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
     mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
@@ -2215,7 +2293,9 @@ def test_update_all_versions(client, user):
     # Update all versions
     update_data = {"acl": mock_acl_B, "authz": mock_authz_B}
     res = client.put(
-        "/index/{}/versions".format(rec1["did"]), json=update_data, headers=user
+        "/index/{}/versions".format(rec1["did"]) + url_ends_with,
+        json=update_data,
+        headers=user,
     )
     assert res.status_code == 200, "Failed to update all version: {}".format(res.json)
     # Expect the GUIDs of all updated versions to be returned by the request,
@@ -2223,7 +2303,7 @@ def test_update_all_versions(client, user):
     assert dids == [record["did"] for record in res.json]
 
     # Expect all versions to have the new acl/authz
-    res = client.get("/index/{}/versions".format(rec1["did"]))
+    res = client.get("/index/{}/versions".format(rec1["did"]) + url_ends_with)
     assert res.status_code == 200, "Failed to get all versions"
     for _, version in res.json.items():
         assert sorted(version["acl"]) == sorted(mock_acl_B)
@@ -2472,13 +2552,14 @@ def test_bad_hashes(client, user, typ, h):
         assert "does not match" in json_resp["error"]
 
 
-def test_dos_get(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_dos_get(client, user, url_ends_with):
     data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    res_2 = client.get("/ga4gh/dos/v1/dataobjects/" + rec_1["did"])
+    res_2 = client.get("/ga4gh/dos/v1/dataobjects/" + rec_1["did"] + url_ends_with)
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["data_object"]["id"] == rec_1["did"]
@@ -2507,14 +2588,15 @@ def test_get_dos_record_error(client, user):
     assert res.status_code == 404
 
 
-def test_dos_list(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_dos_list(client, user, url_ends_with):
     data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
 
-    res_2 = client.get("/ga4gh/dos/v1/dataobjects?page_size=100")
+    res_2 = client.get("/ga4gh/dos/v1/dataobjects" + url_ends_with + "?page_size=100")
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert len(rec_2["data_objects"]) == 1
@@ -2578,14 +2660,15 @@ def test_update_without_changing_fields(client, user):
     assert second_doc["version"] != third_doc["version"]
 
 
-def test_bulk_get_documents(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_bulk_get_documents(client, user, url_ends_with):
     # just make a bunch of entries in indexd
     dids = [
         client.post("/index/", json=get_doc(has_baseid=True), headers=user).json["did"]
         for _ in range(20)
     ]
     # do a bulk query for them all
-    res = client.post("/bulk/documents", json=dids, headers=user)
+    res = client.post("/bulk/documents" + url_ends_with, json=dids, headers=user)
     assert res.status_code == 200
     docs = res.json
 

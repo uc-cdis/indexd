@@ -47,7 +47,8 @@ def create_index(client, user, add_bundle=False):
     return did_list, rec1
 
 
-def test_bundle_post(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_bundle_post(client, user, url_ends_with):
     """
     Bundle 1
         +-object1
@@ -55,7 +56,7 @@ def test_bundle_post(client, user):
     did_list, _ = create_index(client, user)
 
     data = get_bundle_doc(bundles=did_list)
-    res2 = client.post("/bundle/", json=data, headers=user)
+    res2 = client.post("/bundle" + url_ends_with, json=data, headers=user)
     assert res2.status_code == 200
 
 
@@ -441,7 +442,8 @@ def test_multiple_bundle_data(client, user):
         assert data["id"] in did_list
 
 
-def test_bundle_delete(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_bundle_delete(client, user, url_ends_with):
     n_records = 6
     n_delete = 2
     bundle_ids = []
@@ -460,7 +462,9 @@ def test_bundle_delete(client, user):
     assert len(rec3["records"]) == n_records
 
     for i in range(n_delete):
-        res4 = client.delete("/bundle/" + bundle_ids[i], headers=user)
+        res4 = client.delete(
+            "/bundle/{}".format(bundle_ids[i]) + url_ends_with, headers=user
+        )
         assert res4.status_code == 200
         res5 = client.get("/bundle/" + bundle_ids[i])
         assert res5.status_code == 404

@@ -248,6 +248,7 @@ def get_urls():
 
 
 @blueprint.route("/index/<path:record>/aliases", methods=["GET"])
+@blueprint.route("/index/<path:record>/aliases/", methods=["GET"])
 def get_aliases(record):
     """
     Get all aliases associated with this DID / GUID
@@ -260,6 +261,7 @@ def get_aliases(record):
 
 
 @blueprint.route("/index/<path:record>/aliases", methods=["POST"])
+@blueprint.route("/index/<path:record>/aliases/", methods=["POST"])
 def append_aliases(record):
     """
     Append one or more aliases to aliases already associated with this
@@ -286,6 +288,7 @@ def append_aliases(record):
 
 
 @blueprint.route("/index/<path:record>/aliases", methods=["PUT"])
+@blueprint.route("/index/<path:record>/aliases/", methods=["PUT"])
 def replace_aliases(record):
     """
     Replace all aliases associated with this DID / GUID
@@ -309,6 +312,7 @@ def replace_aliases(record):
 
 
 @blueprint.route("/index/<path:record>/aliases", methods=["DELETE"])
+@blueprint.route("/index/<path:record>/aliases/", methods=["DELETE"])
 def delete_all_aliases(record):
     # authorization and error handling done in driver
     blueprint.index_driver.delete_all_aliases_for_did(record)
@@ -317,6 +321,7 @@ def delete_all_aliases(record):
 
 
 @blueprint.route("/index/<path:record>/aliases/<path:alias>", methods=["DELETE"])
+@blueprint.route("/index/<path:record>/aliases/<path:alias>/", methods=["DELETE"])
 def delete_one_alias(record, alias):
     # authorization and error handling done in driver
     blueprint.index_driver.delete_one_alias_for_did(alias, record)
@@ -325,6 +330,7 @@ def delete_one_alias(record, alias):
 
 
 @blueprint.route("/index/<path:record>/versions", methods=["GET"])
+@blueprint.route("/index/<path:record>/versions/", methods=["GET"])
 def get_all_index_record_versions(record):
     """
     Get all record versions
@@ -335,6 +341,7 @@ def get_all_index_record_versions(record):
 
 
 @blueprint.route("/index/<path:record>/versions", methods=["PUT"])
+@blueprint.route("/index/<path:record>/versions/", methods=["PUT"])
 def update_all_index_record_versions(record):
     """
     Update metadata for all record versions.
@@ -357,6 +364,7 @@ def update_all_index_record_versions(record):
 
 
 @blueprint.route("/index/<path:record>/latest", methods=["GET"])
+@blueprint.route("/index/<path:record>/latest/", methods=["GET"])
 def get_latest_index_record_versions(record):
     """
     Get the latest record version
@@ -371,6 +379,7 @@ def get_latest_index_record_versions(record):
 
 
 @blueprint.route("/index/<path:record>", methods=["GET"])
+@blueprint.route("/index/<path:record>/", methods=["GET"])
 def get_index_record(record):
     """
     Returns a record.
@@ -451,6 +460,7 @@ def post_index_blank_record():
 
 
 @blueprint.route("/index/blank/<path:record>", methods=["POST"])
+@blueprint.route("/index/blank/<path:record>/", methods=["POST"])
 def add_index_blank_record_version(record):
     """
     Create a new blank version of the record with this GUID.
@@ -476,6 +486,7 @@ def add_index_blank_record_version(record):
 
 
 @blueprint.route("/index/blank/<path:record>", methods=["PUT"])
+@blueprint.route("/index/blank/<path:record>/", methods=["PUT"])
 def put_index_blank_record(record):
     """
     Update a blank record with size, hashes and url
@@ -498,6 +509,7 @@ def put_index_blank_record(record):
 
 
 @blueprint.route("/index/<path:record>", methods=["PUT"])
+@blueprint.route("/index/<path:record>/", methods=["PUT"])
 def put_index_record(record):
     """
     Update an existing record.
@@ -518,6 +530,7 @@ def put_index_record(record):
 
 
 @blueprint.route("/index/<path:record>", methods=["DELETE"])
+@blueprint.route("/index/<path:record>/", methods=["DELETE"])
 def delete_index_record(record):
     """
     Delete an existing record.
@@ -532,7 +545,7 @@ def delete_index_record(record):
     return "", 200
 
 
-@blueprint.route("/index/<path:record>", methods=["POST"])
+@blueprint.route("/index/<path:record>/", methods=["POST"])
 def add_index_record_version(record):
     """
     Add a record version
@@ -752,7 +765,7 @@ def get_bundle_record_with_id(bundle_id):
     return flask.jsonify(ret), 200
 
 
-@blueprint.route("/bundle/<path:bundle_id>", methods=["DELETE"])
+@blueprint.route("/bundle/<path:bundle_id>/", methods=["DELETE"])
 def delete_bundle_record(bundle_id):
     """
     Delete bundle record given bundle_id
