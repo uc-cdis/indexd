@@ -247,7 +247,6 @@ def get_urls():
 # to /index/<record> where <record> was "e383a3aa-316e-4a51-975d-d699eff41bd2/aliases/"
 
 
-@blueprint.route("/index/<path:record>/aliases", methods=["GET"])
 @blueprint.route("/index/<path:record>/aliases/", methods=["GET"])
 def get_aliases(record):
     """
@@ -260,7 +259,6 @@ def get_aliases(record):
     return flask.jsonify(aliases_payload), 200
 
 
-@blueprint.route("/index/<path:record>/aliases", methods=["POST"])
 @blueprint.route("/index/<path:record>/aliases/", methods=["POST"])
 def append_aliases(record):
     """
@@ -287,7 +285,6 @@ def append_aliases(record):
     return flask.jsonify(aliases_payload), 200
 
 
-@blueprint.route("/index/<path:record>/aliases", methods=["PUT"])
 @blueprint.route("/index/<path:record>/aliases/", methods=["PUT"])
 def replace_aliases(record):
     """
@@ -311,7 +308,6 @@ def replace_aliases(record):
     return flask.jsonify(aliases_payload), 200
 
 
-@blueprint.route("/index/<path:record>/aliases", methods=["DELETE"])
 @blueprint.route("/index/<path:record>/aliases/", methods=["DELETE"])
 def delete_all_aliases(record):
     # authorization and error handling done in driver
@@ -320,7 +316,6 @@ def delete_all_aliases(record):
     return flask.jsonify("Aliases deleted successfully"), 200
 
 
-@blueprint.route("/index/<path:record>/aliases/<path:alias>", methods=["DELETE"])
 @blueprint.route("/index/<path:record>/aliases/<path:alias>/", methods=["DELETE"])
 def delete_one_alias(record, alias):
     # authorization and error handling done in driver
@@ -329,7 +324,6 @@ def delete_one_alias(record, alias):
     return flask.jsonify("Aliases deleted successfully"), 200
 
 
-@blueprint.route("/index/<path:record>/versions", methods=["GET"])
 @blueprint.route("/index/<path:record>/versions/", methods=["GET"])
 def get_all_index_record_versions(record):
     """
@@ -340,7 +334,6 @@ def get_all_index_record_versions(record):
     return flask.jsonify(ret), 200
 
 
-@blueprint.route("/index/<path:record>/versions", methods=["PUT"])
 @blueprint.route("/index/<path:record>/versions/", methods=["PUT"])
 def update_all_index_record_versions(record):
     """
@@ -363,7 +356,6 @@ def update_all_index_record_versions(record):
     return flask.jsonify(ret), 200
 
 
-@blueprint.route("/index/<path:record>/latest", methods=["GET"])
 @blueprint.route("/index/<path:record>/latest/", methods=["GET"])
 def get_latest_index_record_versions(record):
     """
@@ -378,7 +370,6 @@ def get_latest_index_record_versions(record):
 ## /index
 
 
-@blueprint.route("/index/<path:record>", methods=["GET"])
 @blueprint.route("/index/<path:record>/", methods=["GET"])
 def get_index_record(record):
     """
@@ -459,7 +450,6 @@ def post_index_blank_record():
     return flask.jsonify(ret), 201
 
 
-@blueprint.route("/index/blank/<path:record>", methods=["POST"])
 @blueprint.route("/index/blank/<path:record>/", methods=["POST"])
 def add_index_blank_record_version(record):
     """
@@ -485,7 +475,6 @@ def add_index_blank_record_version(record):
     return flask.jsonify(ret), 201
 
 
-@blueprint.route("/index/blank/<path:record>", methods=["PUT"])
 @blueprint.route("/index/blank/<path:record>/", methods=["PUT"])
 def put_index_blank_record(record):
     """
@@ -508,7 +497,6 @@ def put_index_blank_record(record):
     return flask.jsonify(ret), 200
 
 
-@blueprint.route("/index/<path:record>", methods=["PUT"])
 @blueprint.route("/index/<path:record>/", methods=["PUT"])
 def put_index_record(record):
     """
@@ -529,7 +517,6 @@ def put_index_record(record):
     return flask.jsonify(ret), 200
 
 
-@blueprint.route("/index/<path:record>", methods=["DELETE"])
 @blueprint.route("/index/<path:record>/", methods=["DELETE"])
 def delete_index_record(record):
     """
