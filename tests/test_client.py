@@ -1532,7 +1532,7 @@ def test_get_urls(client, user, url_ends_with):
     assert response.status_code == 200
     record = response.json
 
-    response = client.get("/urls/?ids=" + record["did"])
+    response = client.get("/urls" + url_ends_with + "?ids=" + record["did"])
     assert response.status_code == 200
     record = response.json
     url = data["urls"][0]

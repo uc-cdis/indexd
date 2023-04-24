@@ -54,14 +54,15 @@ def test_guids_invalid_count(app, client, user):
     assert response.status_code == 400
 
 
-def test_get_prefix(app, client, user, monkeypatch):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_get_prefix(app, client, user, monkeypatch, url_ends_with):
     """
     Test that generating a prefix works
     """
     original_config = copy.deepcopy(app.config["INDEX"]["driver"].config)
     app.config["INDEX"]["driver"].config["DEFAULT_PREFIX"] = "foobar:"
     app.config["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = False
-    response = client.get("/guid/prefix")
+    response = client.get("/guid/prefix" + url_ends_with)
     app.config["INDEX"]["driver"].config = original_config
 
     assert response.status_code == 200

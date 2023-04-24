@@ -95,13 +95,13 @@ def unused_aliases():
 
 # GET /{alias}
 # ------------------------
-@pytest.mark.parametrize("path_ends_with", ["/", ""])
-def test_global_endpoint_valid_alias(client, guid, aliases, path_ends_with):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_global_endpoint_valid_alias(client, guid, aliases, url_ends_with):
     """
     expect query for alias on global endpoint to return the record associated with alias
     """
     for alias in aliases:
-        res = client.get("/" + url_encode(alias) + path_ends_with)
+        res = client.get("/" + url_encode(alias) + url_ends_with)
         assert res.status_code == 200, res.text
         record = res.get_json()
         assert record["did"] == guid, f"Did not retrieve correct record for alias"
@@ -173,12 +173,12 @@ def test_GET_aliases_invalid_GUID(client, guid, aliases):
     assert res.status_code == 404, res.text
 
 
-@pytest.mark.parametrize("path_ends_with", ["/", ""])
-def test_GET_aliases_valid_GUID(client, guid, aliases, path_ends_with):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_GET_aliases_valid_GUID(client, guid, aliases, url_ends_with):
     """
     expect to return all aliases for a valid GUID
     """
-    alias_endpoint = get_endpoint(guid) + path_ends_with
+    alias_endpoint = get_endpoint(guid) + url_ends_with
     res = client.get(alias_endpoint)
     assert res.status_code == 200, res.text
     aliases_in_db = payload_to_list(res.get_json())
@@ -188,9 +188,9 @@ def test_GET_aliases_valid_GUID(client, guid, aliases, path_ends_with):
 
 # POST /index/{GUID}/aliases
 # -------------------------
-@pytest.mark.parametrize("path_ends_with", ["/", ""])
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
 def test_POST_aliases_valid_GUID_valid_aliases(
-    client, user, guid, aliases, unused_aliases, path_ends_with
+    client, user, guid, aliases, unused_aliases, url_ends_with
 ):
     """
     normal operation: expect to append to aliases and return list of all aliases
@@ -200,7 +200,7 @@ def test_POST_aliases_valid_GUID_valid_aliases(
 
     # expect POST to return list of all aliases
     res = client.post(
-        get_endpoint(guid) + path_ends_with, json=new_alias_payload, headers=user
+        get_endpoint(guid) + url_ends_with, json=new_alias_payload, headers=user
     )
     assert res.status_code == 200, res.text
     aliases_in_db = payload_to_list(res.get_json())
@@ -356,9 +356,9 @@ def test_POST_bad_content_type(client, user, guid, aliases):
 
 # PUT /index/{GUID}/aliases
 # -------------------------
-@pytest.mark.parametrize("path_ends_with", ["/", ""])
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
 def test_PUT_aliases_valid_GUID_valid_aliases(
-    client, user, guid, aliases, unused_aliases, path_ends_with
+    client, user, guid, aliases, unused_aliases, url_ends_with
 ):
     """
     normal operation: expect to replace aliases and return list of new aliases
@@ -368,7 +368,7 @@ def test_PUT_aliases_valid_GUID_valid_aliases(
     new_alias_payload = to_payload(new_aliases)
     # expect PUT to return list of all aliases
     res = client.put(
-        get_endpoint(guid) + path_ends_with, json=new_alias_payload, headers=user
+        get_endpoint(guid) + url_ends_with, json=new_alias_payload, headers=user
     )
     assert res.status_code == 200, res.text
     aliases_in_db = payload_to_list(res.get_json())
@@ -551,12 +551,12 @@ def test_PUT_bad_content_type(client, user, guid, aliases):
 
 # DELETE /index/{GUID}/aliases
 # ----------------------------
-@pytest.mark.parametrize("path_ends_with", ["/", ""])
-def test_DELETE_all_aliases_valid_GUID(client, user, guid, aliases, path_ends_with):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_DELETE_all_aliases_valid_GUID(client, user, guid, aliases, url_ends_with):
     """
     normal operation: expect to delete all aliases if valid GUID
     """
-    res = client.delete(get_endpoint(guid) + path_ends_with, headers=user)
+    res = client.delete(get_endpoint(guid) + url_ends_with, headers=user)
     assert res.status_code == 200, res.text
 
     # expect all aliases to be gone
@@ -592,15 +592,15 @@ def test_DELETE_all_aliases_invalid_GUID(client, user, guid, aliases):
 
 # DELETE /index/{GUID}/aliases/{ALIAS}
 # ------------------------------------
-@pytest.mark.parametrize("path_ends_with", ["/", ""])
-def test_DELETE_one_alias_valid_GUID(client, user, guid, aliases, path_ends_with):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_DELETE_one_alias_valid_GUID(client, user, guid, aliases, url_ends_with):
     """
     normal operation: expect to delete listed alias if valid GUID and
     alias associated with this GUID
     """
     # pick one alias to delete
     alias_to_delete = aliases[0]
-    endpoint = get_endpoint(guid) + "/" + url_encode(alias_to_delete) + path_ends_with
+    endpoint = get_endpoint(guid) + "/" + url_encode(alias_to_delete) + url_ends_with
     res = client.delete(endpoint, headers=user)
     assert res.status_code == 200, res.text
 

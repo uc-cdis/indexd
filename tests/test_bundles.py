@@ -60,7 +60,8 @@ def test_bundle_post(client, user, url_ends_with):
     assert res2.status_code == 200
 
 
-def test_bundle_get_post_with_optional_fields(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_bundle_get_post_with_optional_fields(client, user, url_ends_with):
     """
     Bundle 1
         +-object1
@@ -89,7 +90,7 @@ def test_bundle_get_post_with_optional_fields(client, user):
     assert rec3["version"] == data["version"]
     assert rec3["aliases"] == data["aliases"]
 
-    res4 = client.get("/bundle/" + did)
+    res4 = client.get("/bundle/" + did + url_ends_with)
     rec4 = res4.json
     assert res4.status_code == 200
     assert rec4["description"] == data["description"]
@@ -101,7 +102,7 @@ def test_bundle_get_post_with_optional_fields(client, user):
     res5 = client.post("/bundle/", json=data2, headers=user)
     did2 = res5.json["bundle_id"]
     assert res5.status_code == 200
-    res6 = client.get("/bundle/" + did2 + "?expand=true")
+    res6 = client.get("/bundle/" + did2 + url_ends_with + "?expand=true")
     rec6 = res6.json
     contents = rec6["contents"]
     for content in contents:
@@ -369,7 +370,8 @@ def test_bundle_from_drs_endpoint(client, user):
     assert res3.status_code == 200
 
 
-def test_get_bundle_list(client, user):
+@pytest.mark.parametrize("url_ends_with", ["/", ""])
+def test_get_bundle_list(client, user, url_ends_with):
     """
     bundle1
         +-object1
@@ -394,7 +396,7 @@ def test_get_bundle_list(client, user):
         res2 = client.post("/bundle/", json=data, headers=user)
         assert res2.status_code == 200
 
-    res3 = client.get("/bundle/")
+    res3 = client.get("/bundle" + url_ends_with)
     assert res3.status_code == 200
     rec3 = res3.json
     assert len(rec3["records"]) == n_bundles
