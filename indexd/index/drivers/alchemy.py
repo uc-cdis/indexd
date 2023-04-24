@@ -1257,8 +1257,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if "content_updated_date" in changing_fields:
                 if record.content_created_date is None:
                     raise UserError(
-                        "Cannot set updated_time on record that does not have a created_time"
+                        "Cannot set content_updated_date on record that does not have a content_created_date"
                     )
+                if record.content_created_date > datetime.datetime.fromisoformat(
+                    changing_fields["content_updated_date"]
+                ):
+                    raise UserError(
+                        "Cannot set content_updated_date before the content_created_date"
+                    )
+
                 record.content_updated_date = datetime.datetime.fromisoformat(
                     changing_fields["content_updated_date"]
                 )

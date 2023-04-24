@@ -2350,7 +2350,6 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Checksum'
-
       bundles:
         type: array
         items:
