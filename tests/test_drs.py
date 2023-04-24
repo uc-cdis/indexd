@@ -109,24 +109,18 @@ def verify_timestamps(expected_doc, did, client, has_updated_date=True):
 
     record_resp = client.get(f"/index/{did}")
     assert record_resp.status_code == 200
+    assert expected_doc["content_created_date"] == drs_resp.json["created_time"]
+    assert (
+        expected_doc["content_created_date"] == record_resp.json["content_created_date"]
+    )
     if has_updated_date:
-        assert expected_doc["content_created_date"] == drs_resp.json["created_time"]
         assert expected_doc["content_updated_date"] == drs_resp.json["updated_time"]
-        assert (
-            expected_doc["content_created_date"]
-            == record_resp.json["content_created_date"]
-        )
         assert (
             expected_doc["content_updated_date"]
             == record_resp.json["content_updated_date"]
         )
     else:
-        assert expected_doc["content_created_date"] == drs_resp.json["created_time"]
         assert expected_doc["content_created_date"] == drs_resp.json["updated_time"]
-        assert (
-            expected_doc["content_created_date"]
-            == record_resp.json["content_created_date"]
-        )
         assert (
             expected_doc["content_created_date"]
             == record_resp.json["content_updated_date"]
@@ -163,6 +157,9 @@ def test_changing_timestamps(client, user):
 
 
 def test_timestamps_updated_sets_to_created(client, user):
+    """
+    Checks that content_updated_date is set to content_created_date when none is provided.
+    """
     data = get_doc(has_content_updated_date=False)
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
