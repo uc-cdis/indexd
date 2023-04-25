@@ -445,12 +445,26 @@ def test_driver_get_record():
         baseid = str(uuid.uuid4())
         created_date = datetime.now()
         updated_date = datetime.now()
+        description = "a description"
+        content_created_date = datetime.now()
+        content_updated_date = datetime.now()
 
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES (?,?,?,?,?,?,?,?,?,?)
         """,
-            (did, baseid, rev, form, size, created_date, updated_date),
+            (
+                did,
+                baseid,
+                rev,
+                form,
+                size,
+                created_date,
+                updated_date,
+                content_created_date,
+                content_updated_date,
+                description,
+            ),
         )
 
         conn.commit()
@@ -504,12 +518,25 @@ def test_driver_nonstrict_get_without_prefix():
         baseid = str(uuid.uuid4())
         created_date = datetime.now()
         updated_date = datetime.now()
-
+        content_created_date = datetime.now()
+        content_updated_date = datetime.now()
+        description = "a description"
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES (?,?,?,?,?,?,?,?,?,?)
         """,
-            ("testprefix/" + did, baseid, rev, form, size, created_date, updated_date),
+            (
+                "testprefix/" + did,
+                baseid,
+                rev,
+                form,
+                size,
+                created_date,
+                updated_date,
+                content_created_date,
+                content_updated_date,
+                description,
+            ),
         )
 
         conn.commit()
@@ -553,12 +580,25 @@ def test_driver_nonstrict_get_with_prefix():
         baseid = str(uuid.uuid4())
         created_date = datetime.now()
         updated_date = datetime.now()
-
+        description = "a description"
+        content_created_date = datetime.now()
+        content_updated_date = datetime.now()
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES (?,?,?,?,?,?,?,?,?,?)
         """,
-            (did, baseid, rev, form, size, created_date, updated_date),
+            (
+                did,
+                baseid,
+                rev,
+                form,
+                size,
+                created_date,
+                updated_date,
+                content_created_date,
+                content_updated_date,
+                description,
+            ),
         )
 
         conn.commit()
@@ -650,12 +690,25 @@ def test_driver_get_latest_version():
             baseid = str(uuid.uuid4())
             created_date = datetime.now()
             updated_date = datetime.now()
-
+            description = "a description"
+            content_created_date = datetime.now()
+            content_updated_date = datetime.now()
             conn.execute(
                 """
-                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
+                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES (?,?,?,?,?,?,?,?,?,?)
             """,
-                (did, baseid, rev, form, size, created_date, updated_date),
+                (
+                    did,
+                    baseid,
+                    rev,
+                    form,
+                    size,
+                    created_date,
+                    updated_date,
+                    content_created_date,
+                    content_updated_date,
+                    description,
+                ),
             )
 
             conn.commit()
@@ -718,7 +771,9 @@ def test_driver_get_all_versions():
         revs = []
         created_dates = []
         updated_dates = []
-
+        content_created_dates = []
+        content_updated_dates = []
+        descriptions = []
         for _ in range(NUMBER_OF_RECORD):
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
@@ -726,18 +781,32 @@ def test_driver_get_all_versions():
             form = "object"
             created_date = datetime.now()
             updated_date = created_date
-
+            content_created_date = datetime.now()
+            content_updated_date = created_date
+            description = f"description for {did}"
             dids.append(did)
             revs.append(rev)
             created_dates.append(created_date)
             updated_dates.append(updated_date)
-
+            content_created_dates.append(content_created_date)
+            descriptions.append(description)
             conn.execute(
                 """
-                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) \
-                    VALUES (?,?,?,?,?,?,?)
+                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) \
+                    VALUES (?,?,?,?,?,?,?,?,?,?)
             """,
-                (did, baseid, rev, form, size, created_date, updated_date),
+                (
+                    did,
+                    baseid,
+                    rev,
+                    form,
+                    size,
+                    created_date,
+                    updated_date,
+                    content_created_date,
+                    content_updated_date,
+                    description,
+                ),
             )
 
         conn.commit()

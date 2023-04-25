@@ -2646,3 +2646,69 @@ def test_get_dist(client):
             "type": "indexd",
         }
     ]
+
+
+def test_changing_timestamps_updated_not_before_created(client, user):
+    """
+    Checks that records cannot be updated to have a content_updated_date before the provided content_created_date
+    """
+    data = get_doc()
+    data["content_updated_date"] = "2023-03-14T17:02:54"
+    data["content_created_date"] = "2023-03-13T17:02:54"
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_rev = create_obj_resp.json["rev"]
+    update_json = {
+        "content_created_date": "2023-03-15T17:02:54",
+        "content_updated_date": "2022-03-30T17:02:54",
+    }
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 400
+    update_json = {
+        "content_updated_date": "2022-03-30T17:02:54",
+    }
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 400
+
+
+def test_changing_timestamps_no_updated_without_created(client, user):
+    """
+    Checks that records cannot be updated to have a content_updated_date when a content_created_date does not exist
+    for the record and one is not provided in the update.
+    """
+    data = get_doc()
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_rev = create_obj_resp.json["rev"]
+    update_json = {"content_updated_date": "2022-03-30T17:02:54"}
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 400
+
+
+def test_timestamps_updated_not_before_created(client, user):
+    """
+    Checks that records cannot be created with a content_update_date that is before the content_created_date
+    """
+    data = get_doc()
+    data["content_created_date"] = "2023-03-13T17:02:54"
+    data["content_updated_date"] = "2022-03-14T17:02:54"
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 400
+
+
+def test_timestamps_no_updated_without_created(client, user):
+    """
+    Checks that records cannot be created with a content_update_date without providing a content_created_date
+    """
+    data = get_doc()
+    data["content_updated_date"] = "2022-03-14T17:02:54"
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 400
