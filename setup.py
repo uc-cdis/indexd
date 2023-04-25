@@ -21,7 +21,6 @@ setup(
         "sqlalchemy-utils>=0.32",
         "psycopg2>=2.7",
         "cdislogging>=1.0",
-        "requests",
         "ddtrace",
         "dataclasses; python_version < '3.7'",
     ],
