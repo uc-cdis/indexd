@@ -6,7 +6,30 @@ from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
 
 
-def get_doc(has_version=True, urls=list(), has_description=True):
+def generate_presigned_url_response(did, status=200, **query_params):
+    if query_params:
+        query_string = "&".join(
+            f"{param}={value}" for param, value in query_params.items()
+        )
+        full_url = (
+            "https://fictitious-commons.io/data/download/" + did + "?" + query_string
+        )
+    else:
+        full_url = "https://fictitious-commons.io/data/download/" + did
+    presigned_url = {
+        "url": "https://storage.googleapis.com/nih-mock-project-released-phs123-c2/RootStudyConsentSet_phs000007.Whatever.v666.p1.c2.FBI-BMW-CIA.tar.gz?GoogleAccessId=internal-someuser-1399@dcpstage-210518.iam.gserviceaccount.com&Expires=1582215120&Signature=hUsgjkegdsfkjbsajkafnsdjksdnfjknbdsajkfbsdkjfbjdfbkjdasfbnjsdnfjsnd2FTr%2FKs2kGKs0fJ8v5elFk5NQAYdrGcU3kROrzJuHUbI%2BMZ839SAbAz2rbMBuC9e46%2BdB91%2FA==&userProject=dcf-mock-project"
+    }
+    responses.add(responses.GET, full_url, json=presigned_url, status=status)
+    return presigned_url
+
+
+def get_doc(
+    has_version=True,
+    urls=list(),
+    has_description=True,
+    has_content_created_date=True,
+    has_content_updated_date=True,
+):
     doc = {
         "form": "object",
         "size": 123,
@@ -17,12 +40,28 @@ def get_doc(has_version=True, urls=list(), has_description=True):
         doc["version"] = "1"
     if urls:
         doc["urls"] = urls
-    # if drs_list > 0:
-    #     ret = {"drs_objects": []}
-    #     for _ in range(drs_list):
-    #         ret["drs_objects"].append(doc)
-    #     return ret
+    if has_description:
+        doc["description"] = "A description"
+    if has_content_updated_date:
+        doc["content_updated_date"] = "2023-03-14T17:02:54"
+    if has_content_created_date:
+        doc["content_created_date"] = "2023-03-13T17:02:54"
+
     return doc
+
+
+def get_bundle(client, user, has_description=True):
+    docs = [get_doc(), get_doc()]
+    dids = []
+    for doc in docs:
+        res = client.post("/index/", json=doc, headers=user)
+        assert res.status_code == 200
+        dids.append(res.json["did"])
+    bundle = get_bundle_doc(bundles=dids)
+    if has_description:
+        bundle["description"] = "A description"
+
+    return bundle
 
 
 def test_drs_get(client, user):
@@ -61,6 +100,148 @@ def test_drs_get_no_default(client, user):
 
     settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = "testprefix:"
     settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
+
+
+def verify_timestamps(expected_doc, did, client, has_updated_date=True):
+    drs_resp = client.get(f"/ga4gh/drs/v1/objects/{did}")
+    assert drs_resp.status_code == 200
+
+    record_resp = client.get(f"/index/{did}")
+    assert record_resp.status_code == 200
+    assert expected_doc["content_created_date"] == drs_resp.json["created_time"]
+    assert (
+        expected_doc["content_created_date"] == record_resp.json["content_created_date"]
+    )
+    if has_updated_date:
+        assert expected_doc["content_updated_date"] == drs_resp.json["updated_time"]
+        assert (
+            expected_doc["content_updated_date"]
+            == record_resp.json["content_updated_date"]
+        )
+    else:
+        assert expected_doc["content_created_date"] == drs_resp.json["updated_time"]
+        assert (
+            expected_doc["content_created_date"]
+            == record_resp.json["content_updated_date"]
+        )
+
+    assert drs_resp.json["index_created_time"] == record_resp.json["created_date"]
+    assert drs_resp.json["index_updated_time"] == record_resp.json["updated_date"]
+
+
+def test_timestamps(client, user):
+    data = get_doc()
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    verify_timestamps(data, obj_did, client)
+
+
+def test_changing_timestamps(client, user):
+    data = get_doc()
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_rev = create_obj_resp.json["rev"]
+    update_json = {
+        "content_created_date": "2023-03-15T17:02:54",
+        "content_updated_date": "2023-03-30T17:02:54",
+    }
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 200
+    update_obj_did = update_obj_resp.json["did"]
+    verify_timestamps(update_json, update_obj_did, client)
+
+
+def test_timestamps_updated_sets_to_created(client, user):
+    """
+    Checks that content_updated_date is set to content_created_date when none is provided.
+    """
+    data = get_doc(has_content_updated_date=False)
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    verify_timestamps(data, obj_did, client, has_updated_date=False)
+
+
+def test_timestamps_none(client, user):
+    data = get_doc(has_content_updated_date=False, has_content_created_date=False)
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    drs_resp = client.get(f"/ga4gh/drs/v1/objects/{obj_did}")
+    assert drs_resp.status_code == 200
+    assert drs_resp.json.get("created_time") == ""
+    assert drs_resp.json.get("updated_time") == ""
+    record_resp = client.get(f"/index/{obj_did}")
+    assert record_resp.status_code == 200
+    assert record_resp.json.get("content_created_date") == ""
+    assert record_resp.json.get("content_updated_date") == ""
+    assert drs_resp.json["index_created_time"] == record_resp.json["created_date"]
+    assert drs_resp.json["index_updated_time"] == record_resp.json["updated_date"]
+
+
+def test_drs_get_description(client, user):
+    data = get_doc(has_description=True)
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"])
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["description"] == data["description"]
+
+
+def test_drs_changing_description(client, user):
+    data = get_doc(has_description=True)
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    created_obj = create_obj_resp.json
+    obj_did = created_obj["did"]
+    obj_rev = created_obj["rev"]
+    update_json = {"description": "a newly updated description"}
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 200
+    update_obj = update_obj_resp.json
+    drs_resp = client.get("/ga4gh/drs/v1/objects/" + update_obj["did"])
+    assert drs_resp.status_code == 200
+    drs_rec = drs_resp.json
+    assert drs_rec["description"] == update_json["description"]
+
+
+def test_drs_get_no_description(client, user):
+    data = get_doc(has_description=False)
+    res_1 = client.post("/index/", json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"])
+    assert res_2.status_code == 200
+    rec_2 = res_2.json
+    assert rec_2["description"] is None
+
+
+def test_drs_get_bundle(client, user):
+    bundle = get_bundle(client, user)
+    bundle_res = client.post("/bundle/", json=bundle, headers=user)
+    assert bundle_res.status_code == 200
+    bundle_id = bundle_res.json["bundle_id"]
+    drs_res = client.get(f"/ga4gh/drs/v1/objects/{bundle_id}", headers=user)
+    assert drs_res.status_code == 200
+    assert drs_res.json["description"] == bundle["description"]
+
+
+def test_drs_get_bundle_no_description(client, user):
+    bundle = get_bundle(client, user, has_description=False)
+    bundle_res = client.post("/bundle/", json=bundle, headers=user)
+    assert bundle_res.status_code == 200
+    bundle_id = bundle_res.json["bundle_id"]
+    drs_res = client.get(f"/ga4gh/drs/v1/objects/{bundle_id}", headers=user)
+    assert drs_res.status_code == 200
+    assert drs_res.json["description"] is ""
 
 
 def test_drs_multiple_endpointurl(client, user):
