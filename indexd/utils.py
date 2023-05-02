@@ -1,5 +1,6 @@
 import logging
 import re
+from urllib.parse import urlparse
 
 
 def hint_match(record, hints):
@@ -189,3 +190,23 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
             f(engine=driver.engine, session=s)
             schema_version.version += 1
             s.add(schema_version)
+
+
+def reverse_url(url):
+    """
+    Reverse the domain name for drs service-info IDs
+    Args:
+        url (str): url of the domain
+        example: drs.example.org
+
+    returns:
+        id (str): DRS service-info ID
+        example: org.example.drs
+    """
+    parsed_url = urlparse(url)
+    if parsed_url.scheme in ["http", "https"]:
+        url = parsed_url.hostname
+    segments = url.split(".")
+    reversed_segments = reversed(segments)
+    res = ".".join(reversed_segments)
+    return res
