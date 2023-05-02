@@ -1463,6 +1463,17 @@ definitions:
           type: string
       hashes:
         $ref: '#/definitions/HashInfo'
+      description:
+        type: string
+        description: optional description of the object
+      content_created_date:
+        type: string
+        format: date-time
+        description: optional creation date and time of the content being indexed
+      content_updated_date:
+        type: string
+        format: date-time
+        description: optional creation date and time of the content being indexed
   BulkInputInfo:
     type: array
     items:
@@ -2350,7 +2361,12 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Checksum'
-
+      description:
+        type: string
+        description: optional description of the object
+      version:
+        type: string
+        description: optional version string of the object
       bundles:
         type: array
         items:
