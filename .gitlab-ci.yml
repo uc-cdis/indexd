@@ -16,7 +16,7 @@ include:
       - DEPLOY_SERVICE_LIST: [ portal2 ]
 
 variables:
-  PRE_COMMIT_PY_VERSION: 3.8
+  PRE_COMMIT_PY_VERSION: '3.8'
   PRE_COMMIT_VERSION: 3.2.1
 
 tox:
