@@ -39,7 +39,7 @@ repos:
     hooks:
       - id: yamlfmt
         args: [--mapping, '2', --sequence, '4', --offset, '2', --width, '80']
-        exclude: ^helm/templates/
+        exclude: ^helm/templates/|^\.gitlab-ci.yml|^\.travis.yml
   - repo: https://github.com/pappasam/toml-sort
     rev: v0.23.0 # last version to support py36
     hooks:

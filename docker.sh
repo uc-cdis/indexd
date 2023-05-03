@@ -1,5 +1,5 @@
 #!/bin/bash
-set -xeou pipefail
+set -eou pipefail
 
 PARAM=${1:-push};
 
@@ -12,8 +12,8 @@ VERSION=$(git describe --always --tags) && echo "VERSION=\"${VERSION}\"" >>index
 # setup active branch name, default to using git if build is happening on local
 if [ ${TRAVIS_BRANCH+x} ]; then
   GIT_BRANCH=$TRAVIS_BRANCH;
-elif [ ${CI_COMMIT_REF_NAME+x} ]; then
-  GIT_BRANCH=$CI_COMMIT_REF_NAME;
+elif [ ${GITLAB_CI+x} ]; then
+  GIT_BRANCH=${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA};
 else
   GIT_BRANCH=$(git symbolic-ref --short -q HEAD);
 fi
