@@ -14,7 +14,6 @@ include:
   parallel:
     matrix:
       - DEPLOY_SERVICE_LIST: [ portal2 ]
-  <<: *default_rules
 
 variables:
   PRE_COMMIT_PY_VERSION: 3.8
