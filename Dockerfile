@@ -1,7 +1,7 @@
 # To run: docker run -v /path/to/wsgi.py:/var/www/indexd/wsgi.py --name=indexd -p 81:80 indexd
 # To check running container: docker exec -it indexd /bin/bash
 
-FROM quay.io/cdis/python:python3.9-buster-2.0.0
+FROM quay.io/cdis/python:python3.9-buster-test_pypy-uwsgi
 
 ENV appname=indexd
 
