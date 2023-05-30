@@ -30,6 +30,7 @@ if [ "$PARAM" = "push" ]; then
 fi
 
 if [ ! -z "$GITLAB_CI"  ]; then
-  docker tag "$IMAGE_NAME:$GIT_BRANCH" "$IMAGE_NAME:$CI_COMMIT_REF_SLUG"
-  docker push "$IMAGE_NAME:$CI_COMMIT_REF_SLUG"
+  LEGACY_BRANCH_NAME=${CI_COMMIT_BRANCH/\//_}
+  docker tag "$IMAGE_NAME:$GIT_BRANCH" "$IMAGE_NAME:$LEGACY_BRANCH_NAME"
+  docker push "$IMAGE_NAME:$LEGACY_BRANCH_NAME"
 fi
