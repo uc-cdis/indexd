@@ -69,7 +69,6 @@ def get_record(record: str):
 
 
 def dist_get_record(record: str):
-
     # Sort the list of distributed ID services
     # Ones with which the request matches a hint will be first
     # Followed by those that don't match the hint

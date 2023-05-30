@@ -4,18 +4,21 @@ import threading
 import flask
 import pytest
 import requests
+import swagger_client
 from sqlalchemy import create_engine
 
-import swagger_client
 from indexd import app_init, get_app
+from indexd import utils as indexd_utils
 from indexd.alias.drivers.alchemy import Base as alias_base
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 from indexd.index.drivers.alchemy import Base as index_base
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
-from indexd.utils import setup_database, try_drop_test_data
 
-PG_URL = "postgresql://test:test@localhost/indexd_test"
+PG_URL = (
+    f"postgresql://{indexd_utils.IndexdConfig['user']}:{indexd_utils.IndexdConfig['password']}@"
+    f"{indexd_utils.IndexdConfig['host']}/{indexd_utils.IndexdConfig['database']}"
+)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -31,8 +34,8 @@ def setup_indexd_test_database(request):
 
     # try_drop_test_data() is run before the tests starts and after the tests
     # complete. This ensures a clean database on start and end of the tests.
-    setup_database()
-    request.addfinalizer(try_drop_test_data)
+    indexd_utils.setup_database()
+    request.addfinalizer(indexd_utils.try_drop_test_data)
 
 
 def truncate_tables(driver, base):

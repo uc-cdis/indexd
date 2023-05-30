@@ -42,7 +42,6 @@ def main(path, action=None, username=None, password=None):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
 
     parser.add_argument(

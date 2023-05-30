@@ -416,7 +416,6 @@ def test_driver_get_latest_version(index_driver, database_conn):
     baseid = str(uuid.uuid4())
 
     for _ in range(10):
-
         did = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         size = 512
@@ -453,7 +452,6 @@ def test_driver_get_latest_version_with_no_record(index_driver, database_conn):
     Tests retrieval of the latest record version
     """
     for _ in range(10):
-
         did = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         size = 512
@@ -482,7 +480,6 @@ def test_driver_get_latest_version_exclude_deleted(index_driver, database_conn):
 
     is_first_record = True
     for _ in range(10):
-
         did = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         size = 512
@@ -536,7 +533,6 @@ def test_driver_get_all_version(index_driver, database_conn):
     given_records = {}
 
     for _ in range(NUMBER_OF_RECORD):
-
         did = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         size = 512
@@ -586,7 +582,6 @@ def test_driver_get_all_version_with_no_record(index_driver, database_conn):
     baseid = str(uuid.uuid4())
 
     for _ in range(3):
-
         did = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         size = 512
@@ -615,7 +610,6 @@ def test_driver_get_all_version_exclude_deleted(index_driver, database_conn):
     deleted_dids = []
 
     for i in range(10):
-
         did = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         size = 512
@@ -985,7 +979,6 @@ def test_driver_bulk_get_latest_versions_exclude_deleted(index_driver, database_
     for baseid in baseids.keys():
         is_first_record = True
         for _ in range(10):
-
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
             size = 512

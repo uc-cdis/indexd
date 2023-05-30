@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils import database_exists, drop_database
 
+from indexd import utils as indexd_utils
 from indexd.alias.drivers.alchemy import AliasSchemaVersion
 from indexd.index.drivers.alchemy import (
     CURRENT_SCHEMA_VERSION,
@@ -20,7 +21,7 @@ from tests.util import make_sql_statement
 
 Base = declarative_base()
 
-TEST_DB = "postgresql://postgres@localhost/test_migration_db"
+TEST_DB = f"postgresql://{indexd_utils.IndexdConfig['root_auth']}@{indexd_utils.IndexdConfig['host']}/test_migration_db"
 
 INDEX_TABLES = {
     "index_record": [
@@ -509,5 +510,4 @@ def test_migrate_index_versioning(monkeypatch, index_driver_no_migrate, database
 
 
 def test_schema_version():
-
     assert CURRENT_SCHEMA_VERSION == len(SCHEMA_MIGRATION_FUNCTIONS)

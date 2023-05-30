@@ -28,7 +28,6 @@ def main(host, port, debug_flask=False, **kwargs):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
 
     parser.set_defaults(log_levels=[logging.ERROR])
