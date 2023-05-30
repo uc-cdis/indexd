@@ -31,6 +31,6 @@ fi
 
 if [ "$GITLAB_CI" = true ]
 then
-  docker tag "$IMAGE_NAME:$GIT_BRANCH" "$IMAGE_NAME:$(git symbolic-ref --short -q HEAD)"
-  docker push "$IMAGE_NAME:$(git symbolic-ref --short -q HEAD)"
+  docker tag "$IMAGE_NAME:$GIT_BRANCH" "$IMAGE_NAME:$CI_COMMIT_REF_SLUG"
+  docker push "$IMAGE_NAME:$CI_COMMIT_REF_SLUG"
 fi
