@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eoxu pipefail
+set -eo pipefail
 
 PARAM=${1:-push};
 
