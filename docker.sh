@@ -1,9 +1,9 @@
 #!/bin/bash
-set -eou pipefail
+set -eoxu pipefail
 
 PARAM=${1:-push};
 
-IMAGE_NAME="${DOCKER_RELEASE_REGISTRY:=quay.io/ncigdc}/indexd"
+IMAGE_NAME="${DOCKER_RELEASE_REGISTRY/ncigdc:=quay.io/ncigdc}/indexd"
 
 # avoid installing git
 COMMIT=$(git rev-parse HEAD) && echo "COMMIT=\"${COMMIT}\"" >indexd/index/version_data.py
