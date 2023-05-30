@@ -29,7 +29,7 @@ if [ "$PARAM" = "push" ]; then
   docker push "$IMAGE_NAME:$GIT_BRANCH"
 fi
 
-if [ -z "$GITLAB_CI" ]
+if [ "$GITLAB_CI" = true ]
 then
   docker tag "$IMAGE_NAME:$GIT_BRANCH" "$IMAGE_NAME:$(git symbolic-ref --short -q HEAD)"
   docker push "$IMAGE_NAME:$(git symbolic-ref --short -q HEAD)"
