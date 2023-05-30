@@ -29,8 +29,7 @@ if [ "$PARAM" = "push" ]; then
   docker push "$IMAGE_NAME:$GIT_BRANCH"
 fi
 
-if [ "$GITLAB_CI" = true ]
-then
+if [ ! -z "$GITLAB_CI"  ]; then
   docker tag "$IMAGE_NAME:$GIT_BRANCH" "$IMAGE_NAME:$CI_COMMIT_REF_SLUG"
   docker push "$IMAGE_NAME:$CI_COMMIT_REF_SLUG"
 fi
