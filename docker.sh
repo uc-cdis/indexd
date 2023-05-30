@@ -28,3 +28,9 @@ docker build --build-arg version="$VERSION" --ssh default -t "$IMAGE_NAME:$GIT_B
 if [ "$PARAM" = "push" ]; then
   docker push "$IMAGE_NAME:$GIT_BRANCH"
 fi
+
+if [ -z "$GITLAB_CI" ]
+then
+  docker tag "$IMAGE_NAME:$GIT_BRANCH" "$IMAGE_NAME:$(git symbolic-ref --short -q HEAD)"
+  docker push "$IMAGE_NAME:$(git symbolic-ref --short -q HEAD)"
+fi
