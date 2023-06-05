@@ -126,12 +126,12 @@ class IndexRecord(Base):
         content_created_date = (
             self.content_created_date.isoformat()
             if self.content_created_date is not None
-            else ""
+            else None
         )
         content_updated_date = (
             self.content_updated_date.isoformat()
             if self.content_created_date is not None
-            else ""
+            else None
         )
 
         return {
@@ -1250,11 +1250,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
                 create_urls_metadata(changing_fields["urls_metadata"], record, session)
 
-            if "content_created_date" in changing_fields:
+            if changing_fields.get("content_created_date") is not None:
                 record.content_created_date = datetime.datetime.fromisoformat(
                     changing_fields["content_created_date"]
                 )
-            if "content_updated_date" in changing_fields:
+            if changing_fields.get("content_updated_date") is not None:
                 if record.content_created_date is None:
                     raise UserError(
                         "Cannot set content_updated_date on record that does not have a content_created_date"
