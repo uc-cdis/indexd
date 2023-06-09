@@ -174,12 +174,12 @@ def test_timestamps_none(client, user):
     obj_did = create_obj_resp.json["did"]
     drs_resp = client.get(f"/ga4gh/drs/v1/objects/{obj_did}")
     assert drs_resp.status_code == 200
-    assert drs_resp.json.get("created_time") == ""
-    assert drs_resp.json.get("updated_time") == ""
+    assert drs_resp.json.get("created_time") is None
+    assert drs_resp.json.get("updated_time") is None
     record_resp = client.get(f"/index/{obj_did}")
     assert record_resp.status_code == 200
-    assert record_resp.json.get("content_created_date") == ""
-    assert record_resp.json.get("content_updated_date") == ""
+    assert record_resp.json.get("content_created_date") is None
+    assert record_resp.json.get("content_updated_date") is None
     assert drs_resp.json["index_created_time"] == record_resp.json["created_date"]
     assert drs_resp.json["index_updated_time"] == record_resp.json["updated_date"]
 
