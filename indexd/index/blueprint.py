@@ -17,18 +17,18 @@ from .errors import (
 from .schema import POST_RECORD_SCHEMA, PUT_RECORD_SCHEMA
 from .version_data import COMMIT, VERSION
 
-blueprint = flask.Blueprint('index', __name__)
+blueprint = flask.Blueprint("index", __name__)
 
 blueprint.config = dict()
 blueprint.index_driver = None
 
 ACCEPTABLE_HASHES = {
-    'md5': re.compile(r'^[0-9a-f]{32}$').match,
-    'sha1': re.compile(r'^[0-9a-f]{40}$').match,
-    'sha256': re.compile(r'^[0-9a-f]{64}$').match,
-    'sha512': re.compile(r'^[0-9a-f]{128}$').match,
-    'crc': re.compile(r'^[0-9a-f]{8}$').match,
-    'etag': re.compile(r'^[0-9a-f]{32}(-\d+)?$').match
+    "md5": re.compile(r"^[0-9a-f]{32}$").match,
+    "sha1": re.compile(r"^[0-9a-f]{40}$").match,
+    "sha256": re.compile(r"^[0-9a-f]{64}$").match,
+    "sha512": re.compile(r"^[0-9a-f]{128}$").match,
+    "crc": re.compile(r"^[0-9a-f]{8}$").match,
+    "etag": re.compile(r"^[0-9a-f]{32}(-\d+)?$").match,
 }
 
 
@@ -45,19 +45,19 @@ def separate_metadata(metadata):
     release_number = None
     # Metadata might be None, we have to check before popping.
     if metadata:
-        release_number = metadata.pop('release_number', None)
+        release_number = metadata.pop("release_number", None)
     return release_number, metadata
 
 
 def validate_hashes(**hashes):
-    '''
+    """
     Validate hashes against known and valid hashing algorithms.
-    '''
+    """
     if not all(h in ACCEPTABLE_HASHES for h in hashes):
-        raise UserError('invalid hash types specified')
+        raise UserError("invalid hash types specified")
 
     if not all(ACCEPTABLE_HASHES[h](v) for h, v in hashes.items()):
-        raise UserError('invalid hash values specified')
+        raise UserError("invalid hash values specified")
 
 
 def get_urls_metadata():
@@ -66,84 +66,83 @@ def get_urls_metadata():
     Validate the urls and urls_metadata object by comparing their contents, but
     not the order of the contents.
     """
-    urls = flask.request.json.get('urls', [])
-    urls_metadata = flask.request.json.get('urls_metadata', {})
+    urls = flask.request.json.get("urls", [])
+    urls_metadata = flask.request.json.get("urls_metadata", {})
     if not sorted(urls) == sorted(urls_metadata.keys()):
-        raise UserError('urls and urls_metadata mismatch')
+        raise UserError("urls and urls_metadata mismatch")
 
     return urls_metadata
 
 
-@blueprint.route('/index/', methods=['GET'])
+@blueprint.route("/index/", methods=["GET"])
 def get_index():
-    '''
+    """
     Returns a list of records.
-    '''
-    limit = flask.request.args.get('limit')
-    start = flask.request.args.get('start')
+    """
+    limit = flask.request.args.get("limit")
+    start = flask.request.args.get("start")
 
-    ids = flask.request.args.get('ids')
+    ids = flask.request.args.get("ids")
     if ids:
-        ids = ids.split(',')
+        ids = ids.split(",")
         if start is not None or limit is not None:
-            raise UserError(
-                'pagination is not supported when ids is provided')
+            raise UserError("pagination is not supported when ids is provided")
     try:
         limit = 100 if limit is None else int(limit)
     except ValueError as err:
-        raise UserError('limit must be an integer')
+        raise UserError("limit must be an integer")
 
     if limit <= 0 or limit > 1024:
-        raise UserError('limit must be between 1 and 1024')
+        raise UserError("limit must be between 1 and 1024")
 
-    size = flask.request.args.get('size')
+    size = flask.request.args.get("size")
     try:
         size = size if size is None else int(size)
     except ValueError as err:
-        raise UserError('size must be an integer')
+        raise UserError("size must be an integer")
 
     if size is not None and size < 0:
-        raise UserError('size must be > 0')
+        raise UserError("size must be > 0")
 
-    uploader = flask.request.args.get('uploader')
+    uploader = flask.request.args.get("uploader")
 
     # TODO: Based on indexclient, url here should be urls instead. Or change urls to url in indexclient.
-    urls = flask.request.args.getlist('url')
+    urls = flask.request.args.getlist("url")
 
-    file_name = flask.request.args.get('file_name')
+    file_name = flask.request.args.get("file_name")
 
-    version = flask.request.args.get('version')
+    version = flask.request.args.get("version")
 
-    hashes = flask.request.args.getlist('hash')
-    hashes = {h: v for h, v in map(lambda x: x.split(':', 1), hashes)}
+    hashes = flask.request.args.getlist("hash")
+    hashes = {h: v for h, v in map(lambda x: x.split(":", 1), hashes)}
 
     validate_hashes(**hashes)
     hashes = hashes if hashes else None
 
-    metadata = flask.request.args.getlist('metadata')
-    metadata = {k: v for k, v in map(lambda x: x.split(':', 1), metadata)}
+    metadata = flask.request.args.getlist("metadata")
+    metadata = {k: v for k, v in map(lambda x: x.split(":", 1), metadata)}
     release_number, metadata = separate_metadata(metadata)
 
-    acl = flask.request.args.get('acl')
+    acl = flask.request.args.get("acl")
     if acl is not None:
-        acl = [] if acl == 'null' else acl.split(',')
+        acl = [] if acl == "null" else acl.split(",")
 
-    urls_metadata = flask.request.args.get('urls_metadata')
+    urls_metadata = flask.request.args.get("urls_metadata")
     if urls_metadata:
         try:
             urls_metadata = json.loads(urls_metadata)
         except ValueError:
-            raise UserError('urls_metadata must be a valid json string')
+            raise UserError("urls_metadata must be a valid json string")
 
     if limit < 0 or limit > 1024:
-        raise UserError('limit must be between 0 and 1024')
+        raise UserError("limit must be between 0 and 1024")
 
-    negate_params = flask.request.args.get('negate_params')
+    negate_params = flask.request.args.get("negate_params")
     if negate_params:
         try:
             negate_params = json.loads(negate_params)
         except ValueError:
-            raise UserError('negate_params must be a valid json string')
+            raise UserError("negate_params must be a valid json string")
 
     records = blueprint.index_driver.ids(
         start=start,
@@ -163,58 +162,58 @@ def get_index():
     )
 
     base = {
-        'ids': ids,
-        'records': records,
-        'limit': limit,
-        'start': start,
-        'size': size,
-        'file_name': file_name,
-        'version': version,
-        'urls': urls,
-        'acl': acl,
-        'hashes': hashes,
-        'metadata': metadata,
+        "ids": ids,
+        "records": records,
+        "limit": limit,
+        "start": start,
+        "size": size,
+        "file_name": file_name,
+        "version": version,
+        "urls": urls,
+        "acl": acl,
+        "hashes": hashes,
+        "metadata": metadata,
     }
 
     return flask.jsonify(base), 200
 
 
-@blueprint.route('/urls/', methods=['GET'])
+@blueprint.route("/urls/", methods=["GET"])
 def get_urls():
-    '''
+    """
     Returns a list of urls.
-    '''
-    ids = flask.request.args.getlist('ids')
-    hashes = flask.request.args.getlist('hash')
-    hashes = {h: v for h, v in map(lambda x: x.split(':', 1), hashes)}
-    size = flask.request.args.get('size')
+    """
+    ids = flask.request.args.getlist("ids")
+    hashes = flask.request.args.getlist("hash")
+    hashes = {h: v for h, v in map(lambda x: x.split(":", 1), hashes)}
+    size = flask.request.args.get("size")
     if size:
         try:
             size = int(size)
         except TypeError:
-            raise UserError('size must be an integer')
+            raise UserError("size must be an integer")
 
         if size < 0:
-            raise UserError('size must be >= 0')
+            raise UserError("size must be >= 0")
 
     try:
-        start = int(flask.request.args.get('start', 0))
+        start = int(flask.request.args.get("start", 0))
     except TypeError:
-        raise UserError('start must be an integer')
+        raise UserError("start must be an integer")
 
     try:
-        limit = int(flask.request.args.get('limit', 100))
+        limit = int(flask.request.args.get("limit", 100))
     except TypeError:
-        raise UserError('limit must be an integer')
+        raise UserError("limit must be an integer")
 
     if start < 0:
-        raise UserError('start must be >= 0')
+        raise UserError("start must be >= 0")
 
     if limit < 0:
-        raise UserError('limit must be >= 0')
+        raise UserError("limit must be >= 0")
 
     if limit > 1024:
-        raise UserError('limit must be <= 1024')
+        raise UserError("limit must be <= 1024")
 
     validate_hashes(**hashes)
 
@@ -227,51 +226,51 @@ def get_urls():
     )
 
     ret = {
-        'urls': urls,
-        'limit': limit,
-        'start': start,
-        'size': size,
-        'hashes': hashes,
+        "urls": urls,
+        "limit": limit,
+        "start": start,
+        "size": size,
+        "hashes": hashes,
     }
 
     return flask.jsonify(ret), 200
 
 
-@blueprint.route('/index/<path:record>', methods=['GET'])
+@blueprint.route("/index/<path:record>", methods=["GET"])
 def get_index_record(record):
-    '''
+    """
     Returns a record.
-    '''
+    """
 
     ret = blueprint.index_driver.get(record)
 
     return flask.jsonify(ret), 200
 
 
-@blueprint.route('/index/', methods=['POST'])
+@blueprint.route("/index/", methods=["POST"])
 @authorize
 def post_index_record():
-    '''
+    """
     Create a new record.
-    '''
+    """
     try:
         jsonschema.validate(flask.request.json, POST_RECORD_SCHEMA)
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
     urls_metadata = get_urls_metadata()
-    did = flask.request.json.get('did')
-    form = flask.request.json['form']
-    size = flask.request.json['size']
-    acl = flask.request.json.get('acl', [])
+    did = flask.request.json.get("did")
+    form = flask.request.json["form"]
+    size = flask.request.json["size"]
+    acl = flask.request.json.get("acl", [])
 
-    hashes = flask.request.json['hashes']
-    file_name = flask.request.json.get('file_name')
-    metadata = flask.request.json.get('metadata')
+    hashes = flask.request.json["hashes"]
+    file_name = flask.request.json.get("file_name")
+    metadata = flask.request.json.get("metadata")
     release_number, metadata = separate_metadata(metadata)
-    version = flask.request.json.get('version')
-    baseid = flask.request.json.get('baseid')
-    uploader = flask.request.json.get('uploader')
+    version = flask.request.json.get("version")
+    baseid = flask.request.json.get("baseid")
+    uploader = flask.request.json.get("uploader")
 
     did, rev, baseid = blueprint.index_driver.add(
         form,
@@ -290,42 +289,41 @@ def post_index_record():
     )
 
     ret = {
-        'did': did,
-        'rev': rev,
-        'baseid': baseid,
+        "did": did,
+        "rev": rev,
+        "baseid": baseid,
     }
 
     return flask.jsonify(ret), 200
 
 
-@blueprint.route('/index/blank/', methods=['POST'])
+@blueprint.route("/index/blank/", methods=["POST"])
 @authorize
 def post_index_blank_record():
-    '''
+    """
     Create a blank new record with only uploader and optionally
     file_name fields filled
-    '''
+    """
 
-    uploader = flask.request.get_json().get('uploader')
-    file_name = flask.request.get_json().get('file_name')
+    uploader = flask.request.get_json().get("uploader")
+    file_name = flask.request.get_json().get("file_name")
     if not uploader:
-        raise UserError('no uploader specified')
+        raise UserError("no uploader specified")
 
     did, rev, baseid = blueprint.index_driver.add_blank_record(
-        uploader=uploader,
-        file_name=file_name
+        uploader=uploader, file_name=file_name
     )
 
     ret = {
-        'did': did,
-        'rev': rev,
-        'baseid': baseid,
+        "did": did,
+        "rev": rev,
+        "baseid": baseid,
     }
 
     return flask.jsonify(ret), 201
 
 
-@blueprint.route('/index/blank/<path:record>', methods=['PUT'])
+@blueprint.route("/index/blank/<path:record>", methods=["PUT"])
 @authorize
 def put_index_blank_record(record):
     """
@@ -338,9 +336,9 @@ def put_index_blank_record(record):
     """
 
     urls_metadata = get_urls_metadata()
-    rev = flask.request.args.get('rev')
-    size = flask.request.get_json().get('size')
-    hashes = flask.request.get_json().get('hashes')
+    rev = flask.request.args.get("rev")
+    size = flask.request.get_json().get("size")
+    hashes = flask.request.get_json().get("hashes")
 
     did, rev, baseid = blueprint.index_driver.update_blank_record(
         did=record,
@@ -350,15 +348,15 @@ def put_index_blank_record(record):
         urls_metadata=urls_metadata,
     )
     ret = {
-        'did': did,
-        'rev': rev,
-        'baseid': baseid,
+        "did": did,
+        "rev": rev,
+        "baseid": baseid,
     }
 
     return flask.jsonify(ret), 200
 
 
-@blueprint.route('/index/<path:record>', methods=['PUT'])
+@blueprint.route("/index/<path:record>", methods=["PUT"])
 @authorize
 def put_index_record(record):
     """
@@ -369,7 +367,7 @@ def put_index_record(record):
     except jsonschema.ValidationError as err:
         raise UserError(err)
 
-    rev = flask.request.args.get('rev')
+    rev = flask.request.args.get("rev")
     did, baseid, rev = blueprint.index_driver.update(
         record,
         rev,
@@ -377,35 +375,35 @@ def put_index_record(record):
     )
 
     ret = {
-        'did': did,
-        'baseid': baseid,
-        'rev': rev,
+        "did": did,
+        "baseid": baseid,
+        "rev": rev,
     }
 
     return flask.jsonify(ret), 200
 
 
-@blueprint.route('/index/<path:record>', methods=['DELETE'])
+@blueprint.route("/index/<path:record>", methods=["DELETE"])
 @authorize
 def delete_index_record(record):
-    '''
+    """
     Delete an existing record.
-    '''
-    rev = flask.request.args.get('rev')
+    """
+    rev = flask.request.args.get("rev")
     if rev is None:
-        raise UserError('no revision specified')
+        raise UserError("no revision specified")
 
     blueprint.index_driver.delete(record, rev)
 
-    return '', 200
+    return "", 200
 
 
-@blueprint.route('/index/<path:record>', methods=['POST'])
+@blueprint.route("/index/<path:record>", methods=["POST"])
 @authorize
 def add_index_record_version(record):
-    '''
+    """
     Add a record version
-    '''
+    """
     try:
         jsonschema.validate(flask.request.json, POST_RECORD_SCHEMA)
     except jsonschema.ValidationError as err:
@@ -413,15 +411,15 @@ def add_index_record_version(record):
 
     urls_metadata = get_urls_metadata()
 
-    new_did = flask.request.json.get('did')
-    form = flask.request.json['form']
-    size = flask.request.json['size']
-    acl = flask.request.json.get('acl', [])
-    hashes = flask.request.json['hashes']
-    file_name = flask.request.json.get('file_name')
-    metadata = flask.request.json.get('metadata')
+    new_did = flask.request.json.get("did")
+    form = flask.request.json["form"]
+    size = flask.request.json["size"]
+    acl = flask.request.json.get("acl", [])
+    hashes = flask.request.json["hashes"]
+    file_name = flask.request.json.get("file_name")
+    metadata = flask.request.json.get("metadata")
     release_number, metadata = separate_metadata(metadata)
-    version = flask.request.json.get('version')
+    version = flask.request.json.get("version")
 
     did, baseid, rev = blueprint.index_driver.add_version(
         record,
@@ -439,9 +437,9 @@ def add_index_record_version(record):
     )
 
     ret = {
-        'did': did,
-        'baseid': baseid,
-        'rev': rev,
+        "did": did,
+        "baseid": baseid,
+        "rev": rev,
     }
 
     return flask.jsonify(ret), 200
@@ -452,8 +450,12 @@ def get_all_index_record_versions(record):
     """
     Get all record versions
     """
-    exclude_deleted = flask.request.args.get("exclude_deleted", "false").lower() == "true"
-    ret = blueprint.index_driver.get_all_versions(record, exclude_deleted=exclude_deleted)
+    exclude_deleted = (
+        flask.request.args.get("exclude_deleted", "false").lower() == "true"
+    )
+    ret = blueprint.index_driver.get_all_versions(
+        record, exclude_deleted=exclude_deleted
+    )
 
     return flask.jsonify(ret), 200
 
@@ -464,52 +466,55 @@ def get_latest_index_record_versions(record):
     Get the latest record version
     """
     has_version = flask.request.args.get("has_version", "").lower() == "true"
-    exclude_deleted = flask.request.args.get("exclude_deleted", "false").lower() == "true"
+    exclude_deleted = (
+        flask.request.args.get("exclude_deleted", "false").lower() == "true"
+    )
     ret = blueprint.index_driver.get_latest_version(
-        record, has_version=has_version, exclude_deleted=exclude_deleted)
+        record, has_version=has_version, exclude_deleted=exclude_deleted
+    )
 
     return flask.jsonify(ret), 200
 
 
-@blueprint.route('/_status', methods=['GET'])
+@blueprint.route("/_status", methods=["GET"])
 def health_check():
-    '''
+    """
     Health Check.
-    '''
+    """
 
     blueprint.index_driver.health_check()
-    flask.current_app.config['ALIAS']['driver'].health_check()
+    flask.current_app.config["ALIAS"]["driver"].health_check()
     flask.current_app.auth.health_check()
 
-    return 'Healthy', 200
+    return "Healthy", 200
 
 
-@blueprint.route('/_stats', methods=['GET'])
+@blueprint.route("/_stats", methods=["GET"])
 def stats():
-    '''
+    """
     Return indexed data stats.
-    '''
+    """
 
     filecount = blueprint.index_driver.len()
     totalfilesize = blueprint.index_driver.totalbytes()
 
     base = {
-        'fileCount': filecount,
-        'totalFileSize': totalfilesize,
+        "fileCount": filecount,
+        "totalFileSize": totalfilesize,
     }
 
     return flask.jsonify(base), 200
 
 
-@blueprint.route('/_version', methods=['GET'])
+@blueprint.route("/_version", methods=["GET"])
 def version():
-    '''
+    """
     Return the version of this service.
-    '''
+    """
 
     base = {
-        'version': VERSION,
-        'commit': COMMIT,
+        "version": VERSION,
+        "commit": COMMIT,
     }
 
     return flask.jsonify(base), 200
@@ -547,5 +552,5 @@ def handle_unhealthy_check(err):
 
 @blueprint.record
 def get_config(setup_state):
-    config = setup_state.app.config['INDEX']
-    blueprint.index_driver = config['driver']
+    config = setup_state.app.config["INDEX"]
+    blueprint.index_driver = config["driver"]

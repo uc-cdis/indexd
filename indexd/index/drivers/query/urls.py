@@ -1,15 +1,12 @@
 from sqlalchemy import and_, func
 
 from indexd.errors import UserError
-from indexd.index.drivers.alchemy import (
-    IndexRecord,
-    IndexRecordUrlMetadataJsonb,
-)
+from indexd.index.drivers.alchemy import IndexRecord, IndexRecordUrlMetadataJsonb
 from indexd.index.drivers.query import URLsQueryDriver
 
 driver_query_map = {
     "sqlite": dict(array_agg=func.group_concat, string_agg=func.group_concat),
-    "postgresql": dict(array_agg=func.array_agg, string_agg=func.string_agg)
+    "postgresql": dict(array_agg=func.array_agg, string_agg=func.string_agg),
 }
 
 
@@ -17,14 +14,23 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
     """SQLAlchemy based impl"""
 
     def __init__(self, alchemy_driver):
-        """ Queries index records based on URL
+        """Queries index records based on URL
         Args:
             alchemy_driver (indexd.index.drivers.alchemy.SQLAlchemyIndexDriver):
         """
         self.driver = alchemy_driver
 
-    def query_urls(self, exclude=None, include=None, versioned=None, exclude_deleted=False, offset=0, limit=1000,
-                   fields="did,urls", **kwargs):
+    def query_urls(
+        self,
+        exclude=None,
+        include=None,
+        versioned=None,
+        exclude_deleted=False,
+        offset=0,
+        limit=1000,
+        fields="did,urls",
+        **kwargs,
+    ):
         """
         Get a list of document fields matching the search parameters
         Args:
@@ -41,7 +47,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             list (dict): matching documents with specified return fields
         """
         if kwargs:
-            raise UserError("Unexpected query parameter(s) {}".format(kwargs.keys()))
+            raise UserError(f"Unexpected query parameter(s) {kwargs.keys()}")
 
         with self.driver.session as session:
             # special database specific functions dependent of the selected dialect
@@ -59,18 +65,49 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
 
             # add url filters
             if include and exclude:
-                query = query.having(and_(~q_func["string_agg"](IndexRecordUrlMetadataJsonb.url, ",").contains(exclude),
-                                          q_func["string_agg"](IndexRecordUrlMetadataJsonb.url, ",").contains(include)))
+                query = query.having(
+                    and_(
+                        ~q_func["string_agg"](
+                            IndexRecordUrlMetadataJsonb.url, ","
+                        ).contains(exclude),
+                        q_func["string_agg"](
+                            IndexRecordUrlMetadataJsonb.url, ","
+                        ).contains(include),
+                    )
+                )
             elif include:
-                query = query.having(q_func["string_agg"](IndexRecordUrlMetadataJsonb.url, ",").contains(include))
+                query = query.having(
+                    q_func["string_agg"](IndexRecordUrlMetadataJsonb.url, ",").contains(
+                        include
+                    )
+                )
             elif exclude:
-                query = query.having(~q_func["string_agg"](IndexRecordUrlMetadataJsonb.url, ",").contains(exclude))
+                query = query.having(
+                    ~q_func["string_agg"](
+                        IndexRecordUrlMetadataJsonb.url, ","
+                    ).contains(exclude)
+                )
             # [("did", "urls")]
-            record_list = query.order_by(IndexRecordUrlMetadataJsonb.did.asc()).offset(offset).limit(limit).all()
+            record_list = (
+                query.order_by(IndexRecordUrlMetadataJsonb.did.asc())
+                .offset(offset)
+                .limit(limit)
+                .all()
+            )
         return self._format_response(fields, record_list)
 
-    def query_metadata_by_key(self, key, value, url=None, versioned=None, exclude_deleted=False, offset=0,
-                              limit=1000, fields="did,urls,rev", **kwargs):
+    def query_metadata_by_key(
+        self,
+        key,
+        value,
+        url=None,
+        versioned=None,
+        exclude_deleted=False,
+        offset=0,
+        limit=1000,
+        fields="did,urls,rev",
+        **kwargs,
+    ):
         """
         Get a list of document fields matching the search parameters
         Args:
@@ -88,46 +125,59 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             list (dict): matching documents with specified return fields
         """
         if kwargs:
-            raise UserError("Unexpected query parameter(s) {}".format(kwargs.keys()))
+            raise UserError(f"Unexpected query parameter(s) {kwargs.keys()}")
 
         with self.driver.session as session:
-            query = session.query(IndexRecordUrlMetadataJsonb.did,
-                                  IndexRecordUrlMetadataJsonb.url,
-                                  IndexRecord.rev)
+            query = session.query(
+                IndexRecordUrlMetadataJsonb.did,
+                IndexRecordUrlMetadataJsonb.url,
+                IndexRecord.rev,
+            )
             if key == "type":
                 query = query.filter(
                     IndexRecord.did == IndexRecordUrlMetadataJsonb.did,
-                    IndexRecordUrlMetadataJsonb.type == value)
+                    IndexRecordUrlMetadataJsonb.type == value,
+                )
             elif key == "state":
                 query = query.filter(
                     IndexRecord.did == IndexRecordUrlMetadataJsonb.did,
-                    IndexRecordUrlMetadataJsonb.state == value)
+                    IndexRecordUrlMetadataJsonb.state == value,
+                )
             else:
                 query = query.filter(
                     IndexRecord.did == IndexRecordUrlMetadataJsonb.did,
-                    IndexRecordUrlMetadataJsonb.urls_metadata[key].astext == value)
+                    IndexRecordUrlMetadataJsonb.urls_metadata[key].astext == value,
+                )
 
             # handle filters for versioned and/or exclude_deleted flags
             query = self._filter_indexrecord(query, versioned, exclude_deleted)
 
             # add url filter
             if url:
-                query = query.filter(IndexRecordUrlMetadataJsonb.url.like("%{}%".format(url)))
+                query = query.filter(IndexRecordUrlMetadataJsonb.url.like(f"%{url}%"))
 
             # [('did', 'url', 'rev')]
-            record_list = query.order_by(IndexRecordUrlMetadataJsonb.did.asc()).offset(offset).limit(limit).all()
+            record_list = (
+                query.order_by(IndexRecordUrlMetadataJsonb.did.asc())
+                .offset(offset)
+                .limit(limit)
+                .all()
+            )
         return self._format_response(fields, record_list)
 
     @staticmethod
     def _filter_indexrecord(query, versioned, exclude_deleted):
-        """ Handles outer join to IndexRecord for versioned and exclude_deleted filters if filter flags exist """
+        """Handles outer join to IndexRecord for versioned and exclude_deleted filters if filter flags exist"""
         if versioned is not None or exclude_deleted:
             query = query.outerjoin(IndexRecord)
 
             # handle not deleted filter
             if exclude_deleted:
                 query = query.filter(
-                    (func.lower(IndexRecord.index_metadata["deleted"].astext) == "true").isnot(True)
+                    (
+                        func.lower(IndexRecord.index_metadata["deleted"].astext)
+                        == "true"
+                    ).isnot(True)
                 )
 
             # handle version filter if not None
@@ -140,7 +190,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
 
     @staticmethod
     def _format_response(requested_fields, record_list):
-        """ loops through the query result and removes undesired columns and converts result of urls string_agg to list
+        """loops through the query result and removes undesired columns and converts result of urls string_agg to list
         Args:
             requested_fields (str): comma separated list of fields to return, if not specified return all fields
             record_list (list(tuple]): must be of the form [(did, urls, rev)], rev is not required for urls query

@@ -1,7 +1,52 @@
+---
 repos:
--   repo: git@github.com:Yelp/detect-secrets
-    rev: v0.13.0
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
     hooks:
-    -   id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
-
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-yaml
+        exclude: ^helm/templates/|^\.gitlab-ci.yml
+      - id: check-toml
+      - id: check-json
+      - id: pretty-format-json
+        args: [--autofix]
+        exclude: ^gdcapi/data/bam/gencode_.._gene_mapping.json
+      - id: end-of-file-fixer
+      - id: no-commit-to-branch
+        args: [--branch, develop, --branch, master, --pattern, release/.*]
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+      - id: black
+        additional_dependencies: [click==8.0.4]
+  - repo: https://github.com/pycqa/isort
+    rev: 5.11.5
+    hooks:
+      - id: isort
+        name: isort (python)
+        args: [--profile, black]
+      - id: isort
+        name: isort (cython)
+        types: [cython]
+        args: [--profile, black]
+      - id: isort
+        name: isort (pyi)
+        types: [pyi]
+        args: [--profile, black]
+  - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
+    rev: 0.2.2
+    hooks:
+      - id: yamlfmt
+        args: [--mapping, '2', --sequence, '4', --offset, '2', --width, '80']
+        exclude: ^helm/templates/|^\.gitlab-ci.yml|^\.travis.yml
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.23.0 # last version to support py36
+    hooks:
+      - id: toml-sort
+        args: [--in-place]
+  - repo: git@github.com:Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]

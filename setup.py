@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="indexd",
@@ -15,23 +15,15 @@ setup(
     },
     scripts=["bin/index_admin.py", "bin/indexd", "bin/migrate_index.py"],
     install_requires=[
-        "flask~=1.1",
-        "jsonschema>3,<4",
-        "sqlalchemy~=1.3",
-        # Support Python 2 until everything that uses indexd in its tests has been updated.
-        "sqlalchemy-utils>=0.32,<0.36.4",
-        "psycopg2~=2.7",
-        "cdislogging~=1.0",
-        "doiclient @ git+https://github.com/uc-cdis/doiclient.git@1.0.0#egg=doiclient",
-        "dosclient @ git+https://github.com/uc-cdis/dosclient.git@1.0.0#egg=dosclient",
-        "future~=0.18",
-        "Werkzeug~=0.16",
-        "ddtrace~=0.59.1",
-        # pinned to make ddtrace install in python2.7
-        "packaging~=20.9",
-        "pyparsing~=2.4.7",
-        "tenacity~=7.0.0",
-        "typing~=3.7.4.3",
-        "futures==3.1.1",
+        "flask>=1.1",
+        "jsonschema>3",
+        "sqlalchemy<1.4",
+        "sqlalchemy-utils>=0.32",
+        "psycopg2>=2.7",
+        "cdislogging>=1.0",
+        "pyrsistent<0.17.0",
+        "requests",
+        "ddtrace",
+        "dataclasses; python_version < '3.7'",
     ],
 )

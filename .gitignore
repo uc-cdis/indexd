@@ -27,6 +27,7 @@ var/
 .eggs/
 .ssh/
 */_version.py
+indexd/index/version_data.py
 calculateTags.sh
 wait-for-it.sh
 test-reports/
@@ -69,6 +70,8 @@ docs/_build/
 #*#
 
 #venv
+.python-version
+venv
 .venv*/
 venv/
 

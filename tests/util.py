@@ -3,10 +3,11 @@ import os
 import shutil
 
 
-class removes(object):
+class removes:
     """
     Decorator to remove a path after function call.
     """
+
     def __init__(self, path):
         self.path = path
 
@@ -14,8 +15,10 @@ class removes(object):
         """
         Ensures path is removed after function call.
         """
+
         def wrapper(*args, **kwargs):
-            try: return f(*args, **kwargs)
+            try:
+                return f(*args, **kwargs)
             finally:
                 if not os.path.exists(self.path):
                     pass
@@ -54,19 +57,19 @@ def make_sql_statement(statement, args):
     execute those statements, or maybe figure out how to replace the
     raw sql into sqlalchemy.
     """
-    if statement.count('?') != len(args):
-        raise ValueError('Mismatch between ?\'s and args')
+    if statement.count("?") != len(args):
+        raise ValueError("Mismatch between ?'s and args")
 
     for arg in args:
         if isinstance(arg, str):
-            arg = "'{}'".format(arg)
+            arg = f"'{arg}'"
         elif arg is None:
-            arg = 'null'
+            arg = "null"
         elif isinstance(arg, datetime.datetime):
-            arg = "'{}'".format(arg.isoformat())
+            arg = f"'{arg.isoformat()}'"
         else:
             arg = str(arg)
 
-        statement = statement.replace('?', arg, 1)
+        statement = statement.replace("?", arg, 1)
 
     return statement.strip()

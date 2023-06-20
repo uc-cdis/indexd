@@ -1,29 +1,27 @@
 import base64
-import requests
 import threading
 
 import flask
 import pytest
+import requests
+import swagger_client
 from sqlalchemy import create_engine
 
-import swagger_client
 from indexd import app_init, get_app
-from indexd.alias.drivers.alchemy import (
-    Base as alias_base,
-    SQLAlchemyAliasDriver,
+from indexd import utils as indexd_utils
+from indexd.alias.drivers.alchemy import Base as alias_base
+from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
+from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
+from indexd.index.drivers.alchemy import Base as index_base
+from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
+
+PG_URL = (
+    f"postgresql://{indexd_utils.IndexdConfig['user']}:{indexd_utils.IndexdConfig['password']}@"
+    f"{indexd_utils.IndexdConfig['host']}/{indexd_utils.IndexdConfig['database']}"
 )
-from indexd.auth.drivers.alchemy import Base as auth_base, SQLAlchemyAuthDriver
-from indexd.index.drivers.alchemy import (
-    Base as index_base,
-    SQLAlchemyIndexDriver,
-)
-from indexd.utils import setup_database, try_drop_test_data
 
 
-PG_URL = 'postgresql://test:test@localhost/indexd_test'
-
-
-@pytest.fixture(scope='session', autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def setup_indexd_test_database(request):
     """Set up the database to be used for the tests.
 
@@ -36,8 +34,8 @@ def setup_indexd_test_database(request):
 
     # try_drop_test_data() is run before the tests starts and after the tests
     # complete. This ensures a clean database on start and end of the tests.
-    setup_database()
-    request.addfinalizer(try_drop_test_data)
+    indexd_utils.setup_database()
+    request.addfinalizer(indexd_utils.try_drop_test_data)
 
 
 def truncate_tables(driver, base):
@@ -54,7 +52,7 @@ def truncate_tables(driver, base):
         for table in reversed(base.metadata.sorted_tables):
             # do not clear schema versions so each test does not re-trigger migration.
             if table.name not in ["index_schema_version", "alias_schema_version"]:
-                txn.execute("TRUNCATE {} CASCADE;".format(table.name))
+                txn.execute(f"TRUNCATE {table.name} CASCADE;")
 
 
 @pytest.fixture
@@ -123,7 +121,8 @@ def create_indexd_tables(index_driver, alias_driver, auth_driver):
 
 @pytest.fixture
 def create_indexd_tables_no_migrate(
-        index_driver_no_migrate, alias_driver_no_migrate, auth_driver):
+    index_driver_no_migrate, alias_driver_no_migrate, auth_driver
+):
     """Make sure the tables are created but don't operate on them directly.
 
     There is no migration required for the SQLAlchemyAuthDriver.
@@ -132,7 +131,7 @@ def create_indexd_tables_no_migrate(
     pass
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def indexd_server():
     """
     Starts the indexd server, and cleans up its mess.
@@ -142,10 +141,12 @@ def indexd_server():
     Runs once per test session.
     """
     app = get_app()
-    hostname = 'localhost'
+    hostname = "localhost"
     port = 8001
     debug = False
-    t = threading.Thread(target=app.run, kwargs={'host': hostname, 'port': port, 'debug': debug})
+    t = threading.Thread(
+        target=app.run, kwargs={"host": hostname, "port": port, "debug": debug}
+    )
     t.setDaemon(True)
     t.start()
     wait_for_indexd_alive(port)
@@ -153,7 +154,7 @@ def indexd_server():
 
 
 def wait_for_indexd_alive(port):
-    url = 'http://localhost:{}'.format(port)
+    url = f"http://localhost:{port}"
     try:
         requests.get(url)
     except requests.ConnectionError:
@@ -162,10 +163,10 @@ def wait_for_indexd_alive(port):
         return
 
 
-class MockServer(object):
+class MockServer:
     def __init__(self, port):
         self.port = port
-        self.baseurl = 'http://localhost:{}'.format(port)
+        self.baseurl = f"http://localhost:{port}"
 
 
 @pytest.fixture
@@ -175,17 +176,17 @@ def app(index_driver, alias_driver, auth_driver):
     it goes through an entire migration process that creates all the tables.
     The tables are already created from the fixtures in this module.
     """
-    app = flask.Flask('indexd')
+    app = flask.Flask("indexd")
     settings = {
-        'config': {
-            'INDEX': {
-                'driver': index_driver,
+        "config": {
+            "INDEX": {
+                "driver": index_driver,
             },
-            'ALIAS': {
-                'driver': alias_driver,
+            "ALIAS": {
+                "driver": alias_driver,
             },
         },
-        'auth': auth_driver,
+        "auth": auth_driver,
     }
     app_init(app, settings=settings)
     return app
@@ -193,16 +194,14 @@ def app(index_driver, alias_driver, auth_driver):
 
 @pytest.fixture
 def user(auth_driver):
-    auth_driver.add('test', 'test')
+    auth_driver.add("test", "test")
     yield {
-        'Authorization': (
-            'Basic ' +
-            base64.b64encode(b'test:test').decode('ascii')),
-        'Content-Type': 'application/json'
+        "Authorization": ("Basic " + base64.b64encode(b"test:test").decode("ascii")),
+        "Content-Type": "application/json",
     }
 
     # clean user
-    auth_driver.delete('test')
+    auth_driver.delete("test")
 
 
 @pytest.fixture
@@ -217,9 +216,9 @@ def swg_config(indexd_server, index_driver, alias_driver, indexd_admin_user):
 @pytest.fixture
 def swg_config_no_migrate(indexd_server_no_migrate, create_indexd_tables_no_migrate):
     config = swagger_client.Configuration()
-    config.host = 'http://localhost:8001'
-    config.username = 'admin'
-    config.password = 'admin'
+    config.host = "http://localhost:8001"
+    config.username = "admin"
+    config.password = "admin"
     return config
 
 
@@ -251,16 +250,6 @@ def swg_alias_client(swg_config):
 @pytest.fixture
 def swg_alias_client_no_migrate(swg_config_no_migrate):
     return swagger_client.AliasApi(swagger_client.ApiClient(swg_config_no_migrate))
-
-
-@pytest.fixture
-def swg_dos_client(swg_config):
-    return swagger_client.DOSApi(swagger_client.ApiClient(swg_config))
-
-
-@pytest.fixture
-def swg_dos_client_no_migrate(swg_config_no_migrate):
-    return swagger_client.DOSApi(swagger_client.ApiClient(swg_config_no_migrate))
 
 
 @pytest.fixture

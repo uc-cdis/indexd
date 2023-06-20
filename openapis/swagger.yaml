@@ -1,3 +1,4 @@
+---
 openapi: 3.0.1
 info:
   title: Indexd OpenAPI Specification
@@ -14,49 +15,50 @@ externalDocs:
   description: Find out more about Swagger
   url: http://swagger.io
 servers:
-- url: https://indexd.service.consul
-- url: http://indexd.service.consul
+  - url: https://indexd.service.consul
+  - url: http://indexd.service.consul
 tags:
-- name: global
-  description: Search for an alias or index, potentially even a distributed search.
-  externalDocs:
-    description: Find out more
-    url: https://github.com/NCI-GDC/indexd
-- name: index
-  description: Associate a file (object) with a unique id, and store some basic metadata.
-  externalDocs:
-    description: Find out more
-    url: https://github.com/NCI-GDC/indexd
-- name: bulk
-  description: bulk endpoints
-- name: query
-  description: query endpoints
-- name: alias
-  description: create an alias for an entity stored in an external system managed
-    by some other authority
-  externalDocs:
-    description: Find out more
-    url: https://github.com/NCI-GDC/indexd
-- name: DOS
-  description: Data Object Service Retrieval Endpoints
-- name: system
-  description: System endpoints
+  - name: global
+    description: Search for an alias or index, potentially even a distributed search.
+    externalDocs:
+      description: Find out more
+      url: https://github.com/NCI-GDC/indexd
+  - name: index
+    description: Associate a file (object) with a unique id, and store some basic
+      metadata.
+    externalDocs:
+      description: Find out more
+      url: https://github.com/NCI-GDC/indexd
+  - name: bulk
+    description: bulk endpoints
+  - name: query
+    description: query endpoints
+  - name: alias
+    description: create an alias for an entity stored in an external system managed
+      by some other authority
+    externalDocs:
+      description: Find out more
+      url: https://github.com/NCI-GDC/indexd
+  - name: DOS
+    description: Data Object Service Retrieval Endpoints
+  - name: system
+    description: System endpoints
 paths:
   /{GUID}:
     get:
       tags:
-      - global
+        - global
       summary: Get the metadata associated with the given id, alias, or distributed
         identifier
       description: Only the hashes which exist will be included in the response.
       operationId: getEntry
       parameters:
-      - name: GUID
-        in: path
-        description: entry id
-        required: true
-        schema:
-          type: string
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          schema:
+            type: string
       responses:
         200:
           description: successful operation
@@ -73,25 +75,25 @@ paths:
   /urls:
     get:
       tags:
-      - global
+        - global
       summary: Get a list of urls that match query params
       operationId: listUrls
       parameters:
-      - name: size
-        in: query
-        description: object size
-        schema:
-          type: integer
-      - name: hash
-        in: query
-        description: hashes specified as algorithm:value
-        schema:
-          type: string
-      - name: ids
-        in: query
-        description: comma delimited ids
-        schema:
-          type: string
+        - name: size
+          in: query
+          description: object size
+          schema:
+            type: integer
+        - name: hash
+          in: query
+          description: hashes specified as algorithm:value
+          schema:
+            type: string
+        - name: ids
+          in: query
+          description: comma delimited ids
+          schema:
+            type: string
       responses:
         200:
           description: successful operation
@@ -103,81 +105,81 @@ paths:
           description: Invalid input
           content: {}
       security:
-      - basic_auth: []
+        - basic_auth: []
   /index:
     get:
       tags:
-      - index
+        - index
       summary: List all records
       operationId: listIndexEntries
       parameters:
-      - name: urls_metadata
-        in: query
-        description: |
-          urls_metadata in json string format as {url_key: {key: value}, ...}
-          check doc.url_metadata has key that contains substring url_key
-          and regular filter on key: value
-        schema:
-          type: string
-      - name: metadata
-        in: query
-        description: metadata in format key:value
-        schema:
-          type: string
-      - name: size
-        in: query
-        description: object size
-        schema:
-          type: integer
-      - name: hash
-        in: query
-        description: hash in format hash_type:hash_value
-        schema:
-          type: string
-      - name: uploader
-        in: query
-        description: uploader id
-        schema:
-          type: string
-      - name: ids
-        in: query
-        description: |
-          comma delimited ids, when provided,
-          pagination params(start, limit) are not supported
-        schema:
-          type: string
-      - name: urls
-        in: query
-        description: comma delimited urls
-        schema:
-          type: string
-      - name: acl
-        in: query
-        description: comma delimited ace
-        schema:
-          type: string
-      - name: negate_params
-        in: query
-        description: |
-          All the negate params go in here as the same format with regular params:
-          pass a Document as a json string with all the negated values.
-          For string (version, file_name), filter with value != <value>
-          For list (urls, acl), filter with doc that don't HAS <value>
-          For dict (metadata, urls_metadata). In each (key,value) pair:
-          - if value is None or empty: then filter with key doesn't exist
-          - if value is provided, then filter with value != <value> OR key doesn't exist
-        schema:
-          type: string
-      - name: start
-        in: query
-        description: start did
-        schema:
-          type: string
-      - name: limit
-        in: query
-        description: number of records to return for this page, default to 100
-        schema:
-          type: integer
+        - name: urls_metadata
+          in: query
+          description: |
+            urls_metadata in json string format as {url_key: {key: value}, ...}
+            check doc.url_metadata has key that contains substring url_key
+            and regular filter on key: value
+          schema:
+            type: string
+        - name: metadata
+          in: query
+          description: metadata in format key:value
+          schema:
+            type: string
+        - name: size
+          in: query
+          description: object size
+          schema:
+            type: integer
+        - name: hash
+          in: query
+          description: hash in format hash_type:hash_value
+          schema:
+            type: string
+        - name: uploader
+          in: query
+          description: uploader id
+          schema:
+            type: string
+        - name: ids
+          in: query
+          description: |
+            comma delimited ids, when provided,
+            pagination params(start, limit) are not supported
+          schema:
+            type: string
+        - name: urls
+          in: query
+          description: comma delimited urls
+          schema:
+            type: string
+        - name: acl
+          in: query
+          description: comma delimited ace
+          schema:
+            type: string
+        - name: negate_params
+          in: query
+          description: |
+            All the negate params go in here as the same format with regular params:
+            pass a Document as a json string with all the negated values.
+            For string (version, file_name), filter with value != <value>
+            For list (urls, acl), filter with doc that don't HAS <value>
+            For dict (metadata, urls_metadata). In each (key,value) pair:
+            - if value is None or empty: then filter with key doesn't exist
+            - if value is provided, then filter with value != <value> OR key doesn't exist
+          schema:
+            type: string
+        - name: start
+          in: query
+          description: start did
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: number of records to return for this page, default to 100
+          schema:
+            type: integer
       responses:
         200:
           description: successful operation
@@ -187,7 +189,7 @@ paths:
                 $ref: '#/components/schemas/ListRecords'
     post:
       tags:
-      - index
+        - index
       summary: Add a new entry to the index
       operationId: addIndexEntry
       requestBody:
@@ -209,12 +211,12 @@ paths:
           description: Invalid input
           content: {}
       security:
-      - basic_auth: []
+        - basic_auth: []
       x-codegen-request-body-name: body
   /index/blank:
     post:
       tags:
-      - index
+        - index
       summary: Create a blank record
       operationId: createIndexBlankEntry
       requestBody:
@@ -235,27 +237,27 @@ paths:
           description: Invalid status value
           content: {}
       security:
-      - basic_auth: []
+        - basic_auth: []
       x-codegen-request-body-name: body
   /index/blank/{GUID}:
     put:
       tags:
-      - index
+        - index
       summary: Update only hashes and size for blank index
       operationId: updateIndexBlankEntry
       parameters:
-      - name: GUID
-        in: path
-        description: entry id
-        required: true
-        schema:
-          type: string
-      - name: rev
-        in: query
-        description: data revision - simple consistency mechanism
-        required: true
-        schema:
-          type: string
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          schema:
+            type: string
+        - name: rev
+          in: query
+          description: data revision - simple consistency mechanism
+          required: true
+          schema:
+            type: string
       requestBody:
         description: index record that needs to be updated
         content:
@@ -274,21 +276,21 @@ paths:
           description: Invalid input
           content: {}
       security:
-      - basic_auth: []
+        - basic_auth: []
       x-codegen-request-body-name: body
   /index/{GUID}:
     get:
       tags:
-      - index
+        - index
       summary: Get the metadata associated with the given id
       operationId: getIndexEntry
       parameters:
-      - name: GUID
-        in: path
-        description: entry id
-        required: true
-        schema:
-          type: string
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          schema:
+            type: string
       responses:
         200:
           description: successful operation
@@ -301,22 +303,22 @@ paths:
           content: {}
     put:
       tags:
-      - index
+        - index
       summary: Update an existing entry in the index
       operationId: updateIndexEntry
       parameters:
-      - name: GUID
-        in: path
-        description: entry id
-        required: true
-        schema:
-          type: string
-      - name: rev
-        in: query
-        description: data revision - simple consistency mechanism
-        required: true
-        schema:
-          type: string
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          schema:
+            type: string
+        - name: rev
+          in: query
+          description: data revision - simple consistency mechanism
+          required: true
+          schema:
+            type: string
       requestBody:
         description: index record that needs to be updated
         content:
@@ -335,11 +337,11 @@ paths:
           description: Invalid input
           content: {}
       security:
-      - basic_auth: []
+        - basic_auth: []
       x-codegen-request-body-name: body
     post:
       tags:
-      - index
+        - index
       summary: Add new version for the document associated to the provided uuid.
       description: Since data content is immutable, when you want to change the size
         or hash, a new index document with new uuid need to be created as its new
@@ -347,12 +349,12 @@ paths:
         document is not deleted.
       operationId: addIndexNewVersion
       parameters:
-      - name: GUID
-        in: path
-        description: the uuid associated to the record needed to have new version
-        required: true
-        schema:
-          type: string
+        - name: GUID
+          in: path
+          description: the uuid associated to the record needed to have new version
+          required: true
+          schema:
+            type: string
       requestBody:
         description: index record metadata for the new version
         content:
@@ -371,26 +373,26 @@ paths:
           description: Invalid status value
           content: {}
       security:
-      - basic_auth: []
+        - basic_auth: []
       x-codegen-request-body-name: body
     delete:
       tags:
-      - index
+        - index
       summary: Delete an entry from the index
       operationId: deleteIndexEntry
       parameters:
-      - name: GUID
-        in: path
-        description: entry id
-        required: true
-        schema:
-          type: string
-      - name: rev
-        in: query
-        description: data revision - simple consistency mechanism
-        required: true
-        schema:
-          type: string
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          schema:
+            type: string
+        - name: rev
+          in: query
+          description: data revision - simple consistency mechanism
+          required: true
+          schema:
+            type: string
       responses:
         200:
           description: Record is deleted successfully
@@ -399,31 +401,31 @@ paths:
           description: Invalid ID supplied
           content: {}
       security:
-      - basic_auth: []
+        - basic_auth: []
   /index/{GUID}/latest:
     get:
       tags:
-      - index
+        - index
       summary: Get the metadata of the latest index record version associated with
         the given id
       operationId: getIndexLatestVersion
       parameters:
-      - name: GUID
-        in: path
-        description: entry id
-        required: true
-        schema:
-          type: string
-      - name: has_version
-        in: query
-        description: filter by latest doc that has version value populated
-        schema:
-          type: boolean
-      - name: exclude_deleted
-        in: query
-        description: filter by latest doc not marked as deleted
-        schema:
-          type: boolean
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          schema:
+            type: string
+        - name: has_version
+          in: query
+          description: filter by latest doc that has version value populated
+          schema:
+            type: boolean
+        - name: exclude_deleted
+          in: query
+          description: filter by latest doc not marked as deleted
+          schema:
+            type: boolean
       responses:
         200:
           description: successful operation
@@ -437,22 +439,22 @@ paths:
   /index/{GUID}/versions:
     get:
       tags:
-      - index
+        - index
       summary: Get the metadata of index record versions associated with the given
         id
       operationId: getIndexAllVersions
       parameters:
-      - name: GUID
-        in: path
-        description: entry id
-        required: true
-        schema:
-          type: string
-      - name: exclude_deleted
-        in: query
-        description: filter by docs not marked as deleted
-        schema:
-          type: boolean
+        - name: GUID
+          in: path
+          description: entry id
+          required: true
+          schema:
+            type: string
+        - name: exclude_deleted
+          in: query
+          description: filter by docs not marked as deleted
+          schema:
+            type: boolean
       responses:
         200:
           description: successful operation
@@ -466,31 +468,31 @@ paths:
   /alias/:
     get:
       tags:
-      - alias
+        - alias
       summary: list aliases with pagination
       operationId: listAliasEntries
       parameters:
-      - name: size
-        in: query
-        description: size in bytes
-        schema:
-          type: integer
-          format: int64
-      - name: start
-        in: query
-        description: start index for the pagination
-        schema:
-          type: integer
-          format: int64
-      - name: limit
-        in: query
-        description: number of aliases to return
-        schema:
-          type: integer
-      - name: hash
-        in: query
-        schema:
-          type: string
+        - name: size
+          in: query
+          description: size in bytes
+          schema:
+            type: integer
+            format: int64
+        - name: start
+          in: query
+          description: start index for the pagination
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          in: query
+          description: number of aliases to return
+          schema:
+            type: integer
+        - name: hash
+          in: query
+          schema:
+            type: string
       responses:
         200:
           description: successful operation
@@ -520,16 +522,16 @@ paths:
   /alias/{ALIASSTRING}:
     get:
       tags:
-      - alias
+        - alias
       summary: Fetch an alias
       operationId: getAliasEntry
       parameters:
-      - name: ALIASSTRING
-        in: path
-        description: alias like ark:/31807/DC1-TESTARK
-        required: true
-        schema:
-          type: string
+        - name: ALIASSTRING
+          in: path
+          description: alias like ark:/31807/DC1-TESTARK
+          required: true
+          schema:
+            type: string
       responses:
         200:
           description: successful operation
@@ -542,23 +544,23 @@ paths:
           content: {}
     put:
       tags:
-      - alias
+        - alias
       summary: Create or update an alias
       operationId: upsertAliasEntry
       parameters:
-      - name: ALIASSTRING
-        in: path
-        description: alias like ark:/31807/DC1-TESTARK
-        required: true
-        schema:
-          type: string
-      - name: rev
-        in: query
-        description: Revision of the current alias to be updated. If you do not specify
-          this then the last update wins in races.
-        schema:
-          pattern: ^[a-z,0-9]{8}$
-          type: string
+        - name: ALIASSTRING
+          in: path
+          description: alias like ark:/31807/DC1-TESTARK
+          required: true
+          schema:
+            type: string
+        - name: rev
+          in: query
+          description: Revision of the current alias to be updated. If you do not
+            specify this then the last update wins in races.
+          schema:
+            pattern: ^[a-z,0-9]{8}$
+            type: string
       requestBody:
         description: Metadata object that needs to be added to the store
         content:
@@ -577,26 +579,26 @@ paths:
           description: Invalid input
           content: {}
       security:
-      - basic_auth: []
+        - basic_auth: []
       x-codegen-request-body-name: body
     delete:
       tags:
-      - alias
+        - alias
       summary: Delete an alias
       operationId: deleteAliasEntry
       parameters:
-      - name: ALIASSTRING
-        in: path
-        description: alias like ark:/31807/DC1-TESTARK
-        required: true
-        schema:
-          type: string
-      - name: rev
-        in: query
-        description: Revision of the current alias to be deleted.
-        schema:
-          pattern: ^[a-z,0-9]{8}$
-          type: string
+        - name: ALIASSTRING
+          in: path
+          description: alias like ark:/31807/DC1-TESTARK
+          required: true
+          schema:
+            type: string
+        - name: rev
+          in: query
+          description: Revision of the current alias to be deleted.
+          schema:
+            pattern: ^[a-z,0-9]{8}$
+            type: string
       responses:
         200:
           description: successful operation
@@ -605,11 +607,11 @@ paths:
           description: Invalid input
           content: {}
       security:
-      - basic_auth: []
+        - basic_auth: []
   /_status:
     get:
       tags:
-      - system
+        - system
       summary: Returns if IndexD is healthy or not
       description: Health check endpoint which checks if IndexD can connect to its
         backing datastore or not.
@@ -623,7 +625,7 @@ paths:
   /_version:
     get:
       tags:
-      - system
+        - system
       summary: Returns the version of IndexD
       responses:
         200:
@@ -635,7 +637,7 @@ paths:
   /_stats:
     get:
       tags:
-      - system
+        - system
       summary: Returns basic information about the records in IndexD
       responses:
         200:
@@ -644,142 +646,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemStatsOutputRef'
-  /ga4gh/dos/v1/dataobjects:
-    get:
-      tags:
-      - DOS
-      summary: List the Data Objects
-      operationId: ListDataObjects
-      parameters:
-      - name: alias
-        in: query
-        description: If provided will only return Data Objects with the given alias.
-        schema:
-          type: string
-      - name: url
-        in: query
-        description: |-
-          If provided will return only Data Objects with a that URL matches
-          this string.
-        schema:
-          type: string
-      - name: checksum
-        in: query
-        description: The hexlified checksum that one would like to match on.
-        schema:
-          type: string
-      - name: checksum_type
-        in: query
-        description: |-
-          If provided will restrict responses to those that match the provided
-          type.
-          possible values:
-          md5                # most blob stores provide a checksum using this
-          multipart-md5      # multipart uploads provide a specialized tag in S3
-          sha256
-          sha512
-        schema:
-          type: string
-      - name: page_size
-        in: query
-        description: |-
-          Specifies the maximum number of results to return in a single page.
-          If unspecified, a system default will be used.
-        schema:
-          type: integer
-          format: int32
-      - name: page_token
-        in: query
-        description: |-
-          The continuation token, which is used to page through large result sets.
-          To get the next page of results, set this parameter to the value of
-          `next_page_token` from the previous response.
-        schema:
-          type: string
-      responses:
-        200:
-          description: The Data Objects were listed successfully.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ListDataObjectsResponse'
-        400:
-          description: The request is malformed.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        401:
-          description: The request is unauthorized.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        403:
-          description: The requester is not authorized to perform this action.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        500:
-          description: An unexpected error occurred.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /ga4gh/dos/v1/dataobjects/{GUID}:
-    get:
-      tags:
-      - DOS
-      summary: Retrieve a Data Object
-      operationId: GetDataObject
-      parameters:
-      - name: GUID
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: The Data Object was found successfully.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/GetDataObjectResponse'
-        400:
-          description: The request is malformed.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        401:
-          description: The request is unauthorized.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        403:
-          description: The requester is not authorized to perform this action.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        404:
-          description: The requested Data Object wasn't found
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        500:
-          description: An unexpected error occurred.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /bulk/documents:
     post:
       tags:
-      - bulk
+        - bulk
       summary: Get a list of documents given a list of dids
       operationId: getBulkIds
       requestBody:
@@ -803,20 +673,20 @@ paths:
   /bulk/documents/latest:
     post:
       tags:
-      - bulk
+        - bulk
       summary: Get the latest version documents of the given list of dids
       operationId: getBulkLatest
       parameters:
-      - name: skip_null
-        in: query
-        description: filter by latest doc that has version value populated
-        schema:
-          type: boolean
-      - name: exclude_deleted
-        in: query
-        description: filter by latest doc not marked as deleted
-        schema:
-          type: boolean
+        - name: skip_null
+          in: query
+          description: filter by latest doc that has version value populated
+          schema:
+            type: boolean
+        - name: exclude_deleted
+          in: query
+          description: filter by latest doc not marked as deleted
+          schema:
+            type: boolean
       requestBody:
         description: List of dids to retrieve
         content:
@@ -838,52 +708,54 @@ paths:
   /_query/urls/q:
     get:
       tags:
-      - query
+        - query
       summary: search index records by urls
       operationId: queryUrls
       parameters:
-      - name: exclude
-        in: query
-        description: search for documents without a single URL that match this pattern
-        schema:
-          type: string
-      - name: include
-        in: query
-        description: search for documents with at least one URL that match this pattern
-        schema:
-          type: string
-      - name: versioned
-        in: query
-        description: if true search for documents with a version set, if false search
-          documents without version, else search both versioned and unversioned 
-          documents
-        schema:
-          type: boolean
-      - name: exclude_deleted
-        in: query
-        description: if true search documents not flagged as deleted, else search all
-          documents regardless of deleted status
-        schema:
-          type: boolean
-          default: false
-      - name: limit
-        in: query
-        description: maximum rows to return
-        schema:
-          type: integer
-          default: 100
-      - name: offset
-        in: query
-        description: pointer position to start search
-        schema:
-          type: integer
-          default: 0
-      - name: fields
-        in: query
-        description: Comma separated list (defaults to did,urls) of fields to return. Valid fields are did and urls.
-        schema:
-          type: string
-          default: urls,did
+        - name: exclude
+          in: query
+          description: search for documents without a single URL that match this pattern
+          schema:
+            type: string
+        - name: include
+          in: query
+          description: search for documents with at least one URL that match this
+            pattern
+          schema:
+            type: string
+        - name: versioned
+          in: query
+          description: if true search for documents with a version set, if false search
+            documents without version, else search both versioned and unversioned
+            documents
+          schema:
+            type: boolean
+        - name: exclude_deleted
+          in: query
+          description: if true search documents not flagged as deleted, else search
+            all documents regardless of deleted status
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          description: maximum rows to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: pointer position to start search
+          schema:
+            type: integer
+            default: 0
+        - name: fields
+          in: query
+          description: Comma separated list (defaults to did,urls) of fields to return.
+            Valid fields are did and urls.
+          schema:
+            type: string
+            default: urls,did
       responses:
         200:
           description: successful
@@ -897,59 +769,60 @@ paths:
   /_query/urls/metadata/q:
     get:
       tags:
-      - query
+        - query
       summary: search index records by urls metadata key and value
       operationId: queryUrlsMetadata
       parameters:
-      - name: key
-        in: query
-        description: metadata key to search by
-        required: true
-        schema:
-          type: string
-      - name: value
-        in: query
-        description: metadata value for provided key
-        required: true
-        schema:
-          type: string
-      - name: url
-        in: query
-        description: URL patter to filter by
-        schema:
-          type: string
-      - name: versioned
-        in: query
-        description: if true search for documents with a version set, if false search
-          documents without version, else search both versioned and unversioned 
-          documents
-        schema:
-          type: boolean
-      - name: exclude_deleted
-        in: query
-        description: if true search documents not flagged as deleted, else search all
-          documents regardless of deleted status
-        schema:
-          type: boolean
-          default: false
-      - name: limit
-        in: query
-        description: maximum rows to return
-        schema:
-          type: integer
-          default: 100
-      - name: offset
-        in: query
-        description: pointer position to start search
-        schema:
-          type: integer
-          default: 0
-      - name: fields
-        in: query
-        description: Comma separated list (defaults to did,urls,rev) of fields to return. Valid fields are did, urls and rev.
-        schema:
-          type: string
-          default: urls,did,rev
+        - name: key
+          in: query
+          description: metadata key to search by
+          required: true
+          schema:
+            type: string
+        - name: value
+          in: query
+          description: metadata value for provided key
+          required: true
+          schema:
+            type: string
+        - name: url
+          in: query
+          description: URL patter to filter by
+          schema:
+            type: string
+        - name: versioned
+          in: query
+          description: if true search for documents with a version set, if false search
+            documents without version, else search both versioned and unversioned
+            documents
+          schema:
+            type: boolean
+        - name: exclude_deleted
+          in: query
+          description: if true search documents not flagged as deleted, else search
+            all documents regardless of deleted status
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          description: maximum rows to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: pointer position to start search
+          schema:
+            type: integer
+            default: 0
+        - name: fields
+          in: query
+          description: Comma separated list (defaults to did,urls,rev) of fields to
+            return. Valid fields are did, urls and rev.
+          schema:
+            type: string
+            default: urls,did,rev
       responses:
         200:
           description: successful
@@ -985,10 +858,10 @@ components:
           type: string
     VersionInputInfo:
       required:
-      - form
-      - hashes
-      - size
-      - urls
+        - form
+        - hashes
+        - size
+        - urls
       type: object
       properties:
         did:
@@ -997,9 +870,9 @@ components:
           type: string
           description: how the entry was submitted to storage
           enum:
-          - object
-          - container
-          - multipart
+            - object
+            - container
+            - multipart
         size:
           type: integer
           description: size in bytes
@@ -1026,7 +899,7 @@ components:
           $ref: '#/components/schemas/HashInfo'
     BulkInputInfo:
       required:
-      - ids
+        - ids
       type: object
       properties:
         ids:
@@ -1035,10 +908,10 @@ components:
             type: string
     InputInfo:
       required:
-      - form
-      - hashes
-      - size
-      - urls
+        - form
+        - hashes
+        - size
+        - urls
       type: object
       properties:
         did:
@@ -1049,9 +922,9 @@ components:
           type: string
           description: how the entry was submitted to storage
           enum:
-          - object
-          - container
-          - multipart
+            - object
+            - container
+            - multipart
         size:
           type: integer
           description: size in bytes
@@ -1139,18 +1012,18 @@ components:
           type: string
     AliasInputInfo:
       required:
-      - hashes
-      - release
-      - size
+        - hashes
+        - release
+        - size
       type: object
       properties:
         release:
           type: string
           description: has the entity been released?
           enum:
-          - public
-          - private
-          - controlled
+            - public
+            - private
+            - controlled
         size:
           type: integer
           description: size in bytes
@@ -1187,9 +1060,9 @@ components:
           type: string
           description: has the entity been released?
           enum:
-          - public
-          - private
-          - controlled
+            - public
+            - private
+            - controlled
         size:
           type: integer
           description: size in bytes
@@ -1242,9 +1115,9 @@ components:
           type: string
           description: how the entry was submitted to storage
           enum:
-          - object
-          - container
-          - multipart
+            - object
+            - container
+            - multipart
         size:
           type: integer
           description: size in bytes
@@ -1301,10 +1174,10 @@ components:
           description: the accumulated size of the object files recorded in IndexD
     DataObject:
       required:
-      - checksums
-      - created
-      - id
-      - size
+        - checksums
+        - created
+        - id
+        - size
       type: object
       properties:
         id:
@@ -1416,14 +1289,14 @@ components:
         token, that can be used to retrieve more results.
     GetDataObjectResponse:
       required:
-      - data_object
+        - data_object
       type: object
       properties:
         data_object:
           $ref: '#/components/schemas/DataObject'
     URL:
       required:
-      - url
+        - url
       type: object
       properties:
         url:
@@ -1445,13 +1318,13 @@ components:
             items:
               type: string
     URLsMetadataOutput:
-        allOf:
-         - $ref: '#/components/schemas/URLsOutput'
-         - type: array
-         - items:
+      allOf:
+        - $ref: '#/components/schemas/URLsOutput'
+        - type: array
+        - items:
             type: object
             properties:
-             rev:
+              rev:
                 type: string
     SystemMetadata:
       type: object
@@ -1466,7 +1339,7 @@ components:
         A set of key-value pairs that represent metadata provided by the uploader.
     Checksum:
       required:
-      - checksum
+        - checksum
       type: object
       properties:
         checksum:

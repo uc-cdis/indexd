@@ -12,11 +12,13 @@ from indexd.index.errors import UnhealthyCheck
 
 Base = declarative_base()
 
+
 class AuthRecord(Base):
     """
     Base auth record representation.
     """
-    __tablename__ = 'auth_record'
+
+    __tablename__ = "auth_record"
 
     username = Column(String, primary_key=True)
     password = Column(String)
@@ -31,7 +33,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         """
         Initialize the SQLAlchemy database driver.
         """
-        super(SQLAlchemyAuthDriver, self).__init__(conn, **config)
+        super().__init__(conn, **config)
         Base.metadata.bind = self.engine
         Base.metadata.create_all()
         self.Session = sessionmaker(bind=self.engine)
@@ -58,26 +60,30 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         """
         Digests a string.
         """
-        return hashlib.sha256(password.encode('utf-8')).hexdigest()
+        return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
     def add(self, username, password):
         password = self.digest(password)
         with self.session as session:
-            if (session.query(AuthRecord)
+            if (
+                session.query(AuthRecord)
                 .filter(AuthRecord.username == username)
-                .first()):
-                raise AuthError('User {} already exists'.format(username))
+                .first()
+            ):
+                raise AuthError(f"User {username} already exists")
 
-            new_record = AuthRecord(
-                username=username, password=password)
+            new_record = AuthRecord(username=username, password=password)
             session.add(new_record)
 
     def delete(self, username):
         with self.session as session:
-            user = session.query(AuthRecord).filter(
-                AuthRecord.username == username).first()
+            user = (
+                session.query(AuthRecord)
+                .filter(AuthRecord.username == username)
+                .first()
+            )
             if not user:
-                raise AuthError("User {} doesn't exist".format(username))
+                raise AuthError(f"User {username} doesn't exist")
             session.delete(user)
 
     def health_check(self):
@@ -86,7 +92,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         """
         with self.session as session:
             try:
-                session.execute('SELECT 1')
+                session.execute("SELECT 1")
             except Exception:
                 raise UnhealthyCheck()
 
@@ -108,10 +114,10 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             try:
                 query.one()
             except NoResultFound:
-                raise AuthError('username / password mismatch')
+                raise AuthError("username / password mismatch")
 
         context = {
-            'username': username,
+            "username": username,
             # TODO include other user information
         }
 

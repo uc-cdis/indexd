@@ -1,12 +1,12 @@
 import json
 import random
+import uuid
 
 import pytest
+from swagger_client.rest import ApiException
 
 from indexd.index.blueprint import ACCEPTABLE_HASHES
-from swagger_client.rest import ApiException
 from tests.util import assert_blank
-import uuid
 
 
 def get_doc(baseid=None, version=None, has_metadata=True):
@@ -924,37 +924,6 @@ def test_bad_hashes(client, user, typ, h):
         assert "does not match" in json_resp["error"]
 
 
-def test_dos_get(swg_index_client, swg_dos_client):
-    data = get_doc(has_metadata=True, baseid=str(uuid.uuid4()))
-
-    result = swg_index_client.add_index_entry(data)
-    r = swg_dos_client.get_data_object(result.did)
-    assert r.data_object.id == result.did
-    assert r.data_object.size == "123"
-    assert r.data_object.checksums[0].checksum == "8b9942cf415384b27cadf1f4d2d682e5"
-    assert r.data_object.checksums[0].type == "md5"
-    assert r.data_object.urls[0].url == "s3://endpointurl/bucket/key"
-    assert r.data_object.urls[0].user_metadata["state"] == "uploaded"
-    assert r.data_object.urls[0].system_metadata["project_id"] == "bpa-UChicago"
-    r2 = swg_dos_client.get_data_object(result.baseid)
-    assert r2.data_object.id == result.did
-
-
-def test_dos_list(swg_index_client, swg_dos_client):
-    data = get_doc(has_metadata=True, baseid=str(uuid.uuid4()))
-
-    result = swg_index_client.add_index_entry(data)
-    r = swg_dos_client.list_data_objects(page_size=100)
-    assert len(r.data_objects) == 1
-    assert r.data_objects[0].id == result.did
-    assert r.data_objects[0].size == "123"
-    assert r.data_objects[0].checksums[0].checksum == "8b9942cf415384b27cadf1f4d2d682e5"
-    assert r.data_objects[0].checksums[0].type == "md5"
-    assert r.data_objects[0].urls[0].url == "s3://endpointurl/bucket/key"
-    assert r.data_objects[0].urls[0].user_metadata["state"] == "uploaded"
-    assert r.data_objects[0].urls[0].system_metadata["project_id"] == "bpa-UChicago"
-
-
 def test_update_without_changing_fields(swg_index_client):
     # setup test
     data = get_doc(has_metadata=True, baseid=str(uuid.uuid4()))
@@ -1011,7 +980,11 @@ def test_bulk_get_documents(swg_index_client, swg_bulk_client):
 @pytest.mark.parametrize("add_target_criteria", [True, False])
 @pytest.mark.parametrize("target_flag_value", [True, False])
 def test_bulk_get_latest_version(
-    swg_index_client, swg_bulk_client, target_flag, add_target_criteria, target_flag_value
+    swg_index_client,
+    swg_bulk_client,
+    target_flag,
+    add_target_criteria,
+    target_flag_value,
 ):
     """
     Tests the bulk_get_latest_version targeting either the skip_null or exclude_deleted flag

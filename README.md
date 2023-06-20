@@ -128,7 +128,7 @@ data as well as the type.
 - Install [swagger-codegen](https://swagger.io/swagger-codegen/)
 - Run:
 ```
-pip install -r dev-requirements.txt -r requirements.txt
+pip install --no-deps -r dev-requirements.txt -r requirements.txt
 swagger-codegen generate -i openapis/swagger.yaml -l python -o swagger_client
 cd swagger_client; python setup.py develop; cd -
 py.test -v tests/
@@ -150,11 +150,11 @@ Doesn't work with all the DB tests yet, but you can adjust to run specific tests
 docker build -t indexd -f TestDockerfile .
 ```
 
-    
+
 ## Setup pre-commit hook to check for secrets
 
 We use [pre-commit](https://pre-commit.com/) to setup pre-commit hooks for this repo.
-We use [detect-secrets](https://github.com/Yelp/detect-secrets) to search for secrets being committed into the repo. 
+We use [detect-secrets](https://github.com/Yelp/detect-secrets) to search for secrets being committed into the repo.
 
 To install the pre-commit hook, run
 ```
@@ -166,10 +166,8 @@ To update the .secrets.baseline file run
 detect-secrets scan --update .secrets.baseline
 ```
 
-`.secrets.baseline` contains all the string that were caught by detect-secrets but are not stored in plain text. Audit the baseline to view the secrets . 
+`.secrets.baseline` contains all the string that were caught by detect-secrets but are not stored in plain text. Audit the baseline to view the secrets .
 
 ```
 detect-secrets audit .secrets.baseline
 ```
-
-

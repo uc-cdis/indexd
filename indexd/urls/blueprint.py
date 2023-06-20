@@ -5,13 +5,12 @@ import flask
 from indexd.errors import UserError
 from indexd.index.drivers.query.urls import AlchemyURLsQueryDriver
 
-
 blueprint = flask.Blueprint("urls", __name__)
 
 
 @blueprint.route("/q", methods=["GET"])
 def query():
-    """ Queries indexes based on URLs
+    """Queries indexes based on URLs
     Params:
         exclude (str): only include documents (did) with urls that does not match this pattern
         include (str): only include documents (did) with a url matching this pattern
@@ -31,17 +30,31 @@ def query():
     """
     args_dict = flask.request.args.to_dict()
     if "versioned" in args_dict.keys():
-        args_dict["versioned"] = args_dict["versioned"].lower() in ["true", "t", "yes", "y"]
+        args_dict["versioned"] = args_dict["versioned"].lower() in [
+            "true",
+            "t",
+            "yes",
+            "y",
+        ]
     if "exclude_deleted" in args_dict.keys():
-        args_dict["exclude_deleted"] = args_dict["exclude_deleted"].lower() in ["true", "t", "yes", "y"]
+        args_dict["exclude_deleted"] = args_dict["exclude_deleted"].lower() in [
+            "true",
+            "t",
+            "yes",
+            "y",
+        ]
 
     record_list = blueprint.driver.query_urls(**args_dict)
-    return flask.Response(json.dumps(record_list, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
+    return flask.Response(
+        json.dumps(record_list, indent=2, separators=(", ", ": ")),
+        200,
+        mimetype="application/json",
+    )
 
 
 @blueprint.route("/metadata/q")
 def query_metadata():
-    """ Queries indexes by URLs metadata key and value
+    """Queries indexes by URLs metadata key and value
     Params:
         key (str): metadata key
         value (str): metadata value for key
@@ -62,12 +75,26 @@ def query_metadata():
     """
     args_dict = flask.request.args.to_dict()
     if "versioned" in args_dict.keys():
-        args_dict["versioned"] = args_dict["versioned"].lower() in ["true", "t", "yes", "y"]
+        args_dict["versioned"] = args_dict["versioned"].lower() in [
+            "true",
+            "t",
+            "yes",
+            "y",
+        ]
     if "exclude_deleted" in args_dict.keys():
-        args_dict["exclude_deleted"] = args_dict["exclude_deleted"].lower() in ["true", "t", "yes", "y"]
+        args_dict["exclude_deleted"] = args_dict["exclude_deleted"].lower() in [
+            "true",
+            "t",
+            "yes",
+            "y",
+        ]
 
     record_list = blueprint.driver.query_metadata_by_key(**args_dict)
-    return flask.Response(json.dumps(record_list, indent=2, separators=(', ', ': ')), 200, mimetype="application/json")
+    return flask.Response(
+        json.dumps(record_list, indent=2, separators=(", ", ": ")),
+        200,
+        mimetype="application/json",
+    )
 
 
 @blueprint.record

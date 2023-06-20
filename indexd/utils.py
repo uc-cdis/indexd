@@ -1,13 +1,14 @@
 import logging
+import os
 import re
+from typing import Optional
 
+import sqlalchemy_utils
 from sqlalchemy import create_engine
 from sqlalchemy.engine.reflection import Inspector
 
-import sqlalchemy_utils
-
-
 logger = logging.getLogger(__name__)
+
 
 def handle_error(resp):
     if 400 <= resp.status_code < 600:
@@ -19,7 +20,7 @@ def handle_error(resp):
         finally:
             resp.raise_for_status()
 
-            
+
 def hint_match(record, hints):
     for hint in hints:
         if re.match(hint, record):
@@ -27,13 +28,50 @@ def hint_match(record, hints):
     return False
 
 
-def try_drop_test_data(
-        database='indexd_test', root_user='postgres', host='localhost'):
+ROOT_USER = os.getenv("PG_INDEXD_ROOT_USER", "postgres")
+ROOT_PASS = os.getenv("PG_INDEXD_ROOT_PASS")
 
-    # Using an engine that connects to the `postgres` database allows us to
-    # create a new database.
-    engine = create_engine("postgresql://{user}@{host}/{name}".format(
-        user=root_user, host=host, name=database))
+
+def __root_user_auth(user: str, password: Optional[str] = None) -> Optional[str]:
+    if not user:
+        return
+    return user if not password else f"{user}:{password}"
+
+
+IndexdConfig = dict(
+    user=os.getenv("PG_INDEXD_USER", "test"),
+    password=os.getenv("PG_INDEXD_PASS", "test"),
+    host=os.getenv("PG_INDEXD_HOST", "localhost"),
+    database=os.getenv("PG_INDEXD_DBNAME", "indexd_test"),
+    root_user=ROOT_USER,
+    root_password=ROOT_PASS,
+    drop_database=os.getenv("PG_INDEXD_DROP_DB", "true") == "true",
+    root_auth=__root_user_auth(ROOT_USER, ROOT_PASS),
+)
+
+
+def try_drop_test_data(
+    database: Optional[str] = None,
+    root_user: Optional[str] = None,
+    host: Optional[str] = None,
+    root_pass: Optional[str] = None,
+    drop_db: Optional[bool] = None,
+) -> None:
+    """Attempts dropping the indexd database, useful only for testing."""
+
+    host = host or IndexdConfig["host"]
+    database = database or IndexdConfig["database"]
+    root_auth = __root_user_auth(root_user, root_pass) or IndexdConfig["root_auth"]
+    drop_db = drop_db or IndexdConfig["drop_database"]
+
+    if not drop_db:
+        return
+
+    engine = create_engine(
+        "postgresql://{user}@{host}/{name}".format(
+            user=root_auth, host=host, name=database
+        )
+    )
 
     if sqlalchemy_utils.database_exists(engine.url):
         sqlalchemy_utils.drop_database(engine.url)
@@ -42,17 +80,39 @@ def try_drop_test_data(
 
 
 def setup_database(
-        user='test', password='test', database='indexd_test',
-        root_user='postgres', host='localhost', no_drop=False, no_user=False):
-    """Setup the user and database"""
+    user=None,
+    password=None,
+    database=None,
+    root_user=None,
+    host=None,
+    no_drop=None,
+    no_user=None,
+    root_pass=None,
+) -> None:
+    """Set up the user and database"""
 
-    if not no_drop:
-        try_drop_test_data(database)
+    user = user or IndexdConfig["user"]
+    password = password or IndexdConfig["password"]
+    host = host or IndexdConfig["host"]
+    database = database or IndexdConfig["database"]
+    root_user = root_user or IndexdConfig["root_user"]
+    root_pass = root_pass or IndexdConfig["root_password"]
+    auth = __root_user_auth(root_user, root_pass) or IndexdConfig["root_auth"]
+    drop_db = no_drop or IndexdConfig["drop_database"]
+
+    try_drop_test_data(
+        database=database,
+        root_user=root_user,
+        host=host,
+        root_pass=root_pass,
+        drop_db=drop_db,
+    )
 
     # Create an engine connecting to the `postgres` database allows us to
     # create a new database from there.
-    engine = create_engine("postgresql://{user}@{host}/{name}".format(
-        user=root_user, host=host, name=database))
+    engine = create_engine(
+        "postgresql://{user}@{host}/{name}".format(user=auth, host=host, name=database)
+    )
     if not sqlalchemy_utils.database_exists(engine.url):
         sqlalchemy_utils.create_database(engine.url)
 
@@ -61,11 +121,14 @@ def setup_database(
     if not no_user:
         try:
             user_stmt = "CREATE USER {user} WITH PASSWORD '{password}'".format(
-                user=user, password=password)
+                user=user, password=password
+            )
             conn.execute(user_stmt)
 
-            perm_stmt = 'GRANT ALL PRIVILEGES ON DATABASE {database} to {password}'\
-                        ''.format(database=database, password=password)
+            perm_stmt = (
+                "GRANT ALL PRIVILEGES ON DATABASE {database} to {password}"
+                "".format(database=database, password=password)
+            )
             conn.execute(perm_stmt)
             conn.execute("commit")
         except Exception as e:
@@ -127,22 +190,26 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
 
     if not check_engine_for_migrate(driver.engine) and need_migrate:
         logger.error(
-            'Engine {} does not support alter, skip migration'.format(
-                driver.engine.dialect.name))
+            "Engine {} does not support alter, skip migration".format(
+                driver.engine.dialect.name
+            )
+        )
         return
-    for f in migrate_functions[
-            db_schema_version:current_schema_version]:
+    for f in migrate_functions[db_schema_version:current_schema_version]:
         with driver.session as s:
             schema_version = s.query(model).first()
             schema_version.version += 1
-            logger.debug('migrating {} schema to {}'.format(
-                driver.__class__.__name__,
-                schema_version.version))
+            logger.debug(
+                "migrating {} schema to {}".format(
+                    driver.__class__.__name__, schema_version.version
+                )
+            )
 
             f(engine=driver.engine, session=s)
             s.merge(schema_version)
-            logger.debug('finished migration for version {}'.format(
-                schema_version.version))
+            logger.debug(
+                "finished migration for version {}".format(schema_version.version)
+            )
 
 
 def is_empty_database(driver):
