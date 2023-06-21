@@ -15,10 +15,11 @@ RUN pip3 install --no-deps .
 
 
 FROM ${registry}/ncigdc/python38-httpd:${base_version}
+ARG version="Invalid-version"
 
 LABEL org.label-schema.name="indexd" \
       org.label-schema.description="indexd container image" \
-      org.label-schema.version="2.4.0" \
+      org.label-schema.version=${version} \
       org.label-schema.schema-version="1.0"
 
 RUN mkdir -p /var/www/indexd/ \
