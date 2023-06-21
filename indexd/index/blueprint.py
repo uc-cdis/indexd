@@ -527,7 +527,10 @@ def put_index_record(record):
 
     rev = flask.request.args.get("rev")
     json = flask.request.json
-    if "content_updated_date" in json and "content_created_date" in json:
+    if (
+        json.get("content_updated_date") is not None
+        and json.get("content_created_date") is not None
+    ):
         if json["content_updated_date"] < json["content_created_date"]:
             raise UserError(
                 "content_updated_date cannot come before content_created_date"

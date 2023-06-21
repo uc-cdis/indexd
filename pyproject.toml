@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "indexd"
-version = "3.5.0"
+version = "5.0.0"
 description = "Gen3 Indexing Service"
 authors = ["CTDS UChicago <cdis@uchicago.edu>"]
 license = "Apache-2.0"
@@ -10,7 +10,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "3.9.*"
 alembic = "^1.9.4"
 authutils = "^6.0.0"
 cdislogging = "^1.0.0"

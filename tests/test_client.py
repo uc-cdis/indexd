@@ -2686,6 +2686,25 @@ def test_changing_timestamps_updated_not_before_created(client, user):
     assert update_obj_resp.status_code == 400
 
 
+def test_changing_none_timestamps(client, user):
+    """
+    Checks that updates with null values are handled correctly
+    """
+    data = get_doc()
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_rev = create_obj_resp.json["rev"]
+    update_json = {
+        "content_created_date": None,
+        "content_updated_date": None,
+    }
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 200
+
+
 def test_changing_timestamps_no_updated_without_created(client, user):
     """
     Checks that records cannot be updated to have a content_updated_date when a content_created_date does not exist
