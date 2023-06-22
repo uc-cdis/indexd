@@ -5,6 +5,7 @@ include:
     file:
       - templates/global/full.yaml
       - templates/python/full.yaml
+      - templates/common/python.yaml
       - templates/deployments/salt-service.yaml
 
 .services:
@@ -83,3 +84,16 @@ Docker build git tag:
     - tags
   tags:
     - dind
+
+# used by release
+.python_versions:
+  parallel:
+    matrix:
+      - BUILD_PY_VERSION: [python3.6]
+      - RELEASE_PY_VERSION: [python3.6]
+
+release:
+  before_script:
+    - git fetch --unshallow
+  variables:
+    LEGACY_BASE_CONTAINER_VERSION: 2.3.0
