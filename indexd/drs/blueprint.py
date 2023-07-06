@@ -2,8 +2,10 @@ import os
 import re
 import flask
 import json
+import cdislogging
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
+from indexd.index.drivers.alchemy import url_to_bucket_region_mapping
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
 from indexd.utils import reverse_url
@@ -218,12 +220,18 @@ def indexd_to_drs(record, expand=False):
                 0
             ]  # (s3, gs, ftp, gsiftp, globus, htsget, https, file)
 
+            logger = cdislogging.get_logger(__name__, log_level="info")
+
+            region = url_to_bucket_region_mapping(
+                session="", url=location, logger=logger
+            )
+
             drs_object["access_methods"].append(
                 {
                     "type": location_type,
                     "access_url": {"url": location},
                     "access_id": location_type,
-                    "region": "",
+                    "region": region,
                 }
             )
 

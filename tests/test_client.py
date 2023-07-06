@@ -1382,7 +1382,6 @@ def test_update_urls_metadata(client, user):
     assert res_2.status_code == 200
     rec_2 = res_2.json
 
-    data["urls_metadata"]["s3://endpointurl/bucket/key"]["region"] = None
     assert rec_2["urls_metadata"] == data["urls_metadata"]
     updated = {"urls_metadata": {data["urls"][0]: {"test": "b"}}}
     res = client.put(
@@ -1395,7 +1394,6 @@ def test_update_urls_metadata(client, user):
     res_3 = client.get("/index/" + rec["did"])
     assert res_3.status_code == 200
     rec_3 = res_3.json
-    updated["urls_metadata"]["s3://endpointurl/bucket/key"]["region"] = None
     assert rec_3["urls_metadata"] == updated["urls_metadata"]
 
 

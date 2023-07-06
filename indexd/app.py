@@ -3,10 +3,9 @@ import sys
 
 from alembic.config import main as alembic_main
 import cdislogging
-from distutils.command.config import config
 import flask
 
-from indexd.index.drivers.alchemy import Base as IndexBase
+from indexd.index.drivers.alchemy import Base as IndexBase, cache_bucket_info_mapping
 from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.auth.drivers.alchemy import Base as AuthBase
 from .bulk.blueprint import blueprint as indexd_bulk_blueprint
@@ -16,9 +15,10 @@ from .dos.blueprint import blueprint as indexd_dos_blueprint
 from .drs.blueprint import blueprint as indexd_guid_blueprint
 from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
-from .cache import cache
 
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
+
+logger = cdislogging.get_logger(__name__, log_level="info")
 
 
 def app_init(app, settings=None):
@@ -57,8 +57,6 @@ def app_init(app, settings=None):
 def get_app(settings=None):
     app = flask.Flask("indexd")
 
-    cache.init_app(app)
-
     if "INDEXD_SETTINGS" in os.environ:
         sys.path.append(os.environ["INDEXD_SETTINGS"])
 
@@ -69,5 +67,10 @@ def get_app(settings=None):
             pass
 
     app_init(app, settings)
+
+    try:
+        cache_bucket_info_mapping(settings, logger)
+    except Exception as e:
+        logger.error("Failed to cache bucket region mapping: %s", e)
 
     return app
