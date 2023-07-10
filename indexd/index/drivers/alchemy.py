@@ -362,14 +362,21 @@ def cache_bucket_info_mapping(settings=None, logger=None):
             )
         return
 
+    """
+    {'GS_BUCKETS': {'gs-bucket-1': {'region': 'us-east-1'}, 'gs-bucket-2': {'region': 'us-east-1'}}, 'S3_BUCKETS': {'cdis-presigned-url-test': {'region': 'us-east-1'}, 'devplanetv1-data-bucket': {'region': 'us-east-1'}}}
+    GS_BUCKETS
+    G
+
+    """
     with driver.session as session:
         try:
-            for storage_type in bucket_region_response:
-                for bucket_name in storage_type:
+            resp = bucket_region_response.json()
+            for storage_type in resp:
+                for bucket_name in resp[storage_type]:
                     mapping_cache = BucketRegionMappingCache(
                         bucket_name=bucket_name,
-                        bucket_region=bucket_name["region"],
-                        stroage_type=storage_type,
+                        bucket_region=resp[storage_type][bucket_name]["region"],
+                        storage_type=storage_type,
                     )
                     session.add(mapping_cache)
             session.commit()
@@ -407,11 +414,16 @@ def url_to_bucket_region_mapping(session, url, logger=None):
         from indexd.default_settings import settings
 
     cache_bucket_info_mapping(settings, logger=logger)
-    bucket_mapping = (
-        session.query(BucketRegionMappingCache)
-        .filter(BucketRegionMappingCache.bucket_name == bucket_name)
-        .first()
-    )
+
+    # TODO: this isnt working properly
+    try:
+        bucket_mapping = (
+            session.query(BucketRegionMappingCache)
+            .filter(BucketRegionMappingCache.bucket_name == bucket_name)
+            .first()
+        )
+    except Exception as e:
+        print("Failed to insert to table: {}".format(e))
     # if bucket_region_info is still empty that means that there's no bucket configured in the fence config
     if bucket_mapping is None:
         logger.warning(
