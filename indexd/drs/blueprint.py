@@ -212,28 +212,30 @@ def indexd_to_drs(record, expand=False):
                 bundle_object.pop("contents", None)
             drs_object["contents"].append(bundle_object)
 
-    # access_methods mapping
-    if "urls" in record:
-        drs_object["access_methods"] = []
-        for location in record["urls"]:
-            location_type = location.split(":")[
-                0
-            ]  # (s3, gs, ftp, gsiftp, globus, htsget, https, file)
+    driver = blueprint.driver
+    with driver.session as session:
+        # access_methods mapping
+        if "urls" in record:
+            drs_object["access_methods"] = []
+            for location in record["urls"]:
+                location_type = location.split(":")[
+                    0
+                ]  # (s3, gs, ftp, gsiftp, globus, htsget, https, file)
 
-            logger = cdislogging.get_logger(__name__, log_level="info")
+                logger = cdislogging.get_logger(__name__, log_level="info")
 
-            region = url_to_bucket_region_mapping(
-                session="", url=location, logger=logger
-            )
+                region = url_to_bucket_region_mapping(
+                    session=session, url=location, logger=logger
+                )
 
-            drs_object["access_methods"].append(
-                {
-                    "type": location_type,
-                    "access_url": {"url": location},
-                    "access_id": location_type,
-                    "region": region,
-                }
-            )
+                drs_object["access_methods"].append(
+                    {
+                        "type": location_type,
+                        "access_url": {"url": location},
+                        "access_id": location_type,
+                        "region": region,
+                    }
+                )
 
     # parse out checksums
     drs_object["checksums"] = parse_checksums(record, drs_object)

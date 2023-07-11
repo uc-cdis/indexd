@@ -402,37 +402,49 @@ def url_to_bucket_region_mapping(session, url, logger=None):
     parsed_url = urllib.parse.urlparse(url)
     cloud_storage_service = parsed_url.scheme
     bucket_name = parsed_url.netloc
-    # bucket_mapping = session.query(BucketRegionMappingCache).filter(BucketRegionMappingCache.bucket_name == bucket_name, BucketRegionMappingCache.bucket_region == storage_to_config_map[cloud_storage_service]).first()
 
-    # if cache not found then try to retrieve info from fence and cache it
+    bucket_region_response = get_bucket_info_mapping_from_fence(logger=logger)
 
-    # if bucket_mapping is None:
-    try:
-        from local_settings import settings
-    except ImportError:
-        logger.info("Can't import local_settings, import from default")
-        from indexd.default_settings import settings
+    storage_map = storage_to_config_map.get(cloud_storage_service, None)
 
-    cache_bucket_info_mapping(settings, logger=logger)
-
-    # TODO: this isnt working properly
-    try:
-        bucket_mapping = (
-            session.query(BucketRegionMappingCache)
-            .filter(BucketRegionMappingCache.bucket_name == bucket_name)
-            .first()
-        )
-    except Exception as e:
-        print("Failed to insert to table: {}".format(e))
-    # if bucket_region_info is still empty that means that there's no bucket configured in the fence config
-    if bucket_mapping is None:
+    if storage_map is None:
         logger.warning(
-            "Bucket region information for the bucket {} is not configured in Fence".format(
-                bucket_name
-            )
+            "Storage type {} not found/not configured in Fence.", cloud_storage_service
         )
+        return None
 
-    bucket_region = bucket_mapping.bucket_region
+    bucket_list = bucket_region_response
+
+    bucket_region = bucket_list[bucket_name]
+
+    # TODO: Add caching mechanism later. Currently, calling fence is fast enough.
+    # try:
+    #     from local_settings import settings
+    # except ImportError:
+    #     logger.info("Can't import local_settings, import from default")
+    #     from indexd.default_settings import settings
+
+    # if cache is enabled then cache
+    # cache_bucket_info_mapping(settings, logger=logger)
+
+    # TODO: this isnt working properly. Fix Session query
+    # try:
+    #     bucket_mapping = (
+    #         session.query(BucketRegionMappingCache)
+    #         .filter(BucketRegionMappingCache.bucket_name == bucket_name)
+    #         .first()
+    #     )
+    # except Exception as e:
+    #     print("Failed to query to table: {}".format(e))
+    # # if bucket_region_info is still empty that means that there's no bucket configured in the fence config
+    # if bucket_mapping is None:
+    #     logger.warning(
+    #         "Bucket region information for the bucket {} is not configured in Fence".format(
+    #             bucket_name
+    #         )
+    #     )
+
+    # bucket_region = bucket_mapping.bucket_region
 
     return bucket_region
 
