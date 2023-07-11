@@ -1,7 +1,11 @@
 import base64
+import os
+
+from flask import request
 import importlib
 import pytest
 import requests
+import requests_mock
 import mock
 from unittest.mock import patch
 
@@ -146,3 +150,48 @@ def mock_arborist_requests(app, request):
         request.addfinalizer(patch_method.stop)
 
     return do_patch
+
+
+@pytest.fixture
+def mock_bucket_region_info():
+    mock_response = {
+        "GS_BUCKETS": {
+            "gs-bucket-1": {"region": "us-east-1"},
+            "gs-bucket-2": {"region": "us-east-1"},
+        },
+        "S3_BUCKETS": {
+            "cdis-presigned-url-test": {"region": "us-east-1"},
+            "devplanetv1-data-bucket": {"region": "us-east-1"},
+        },
+    }
+
+    with requests_mock.Mocker() as m:
+        m.get(
+            f"http://{os.environ['HOSTNAME']}/user/bucket_info/region",
+            json=mock_response,
+        )
+
+        yield m
+
+
+@pytest.fixture
+def mock_bucket_region_info_with_empty_response():
+    mock_response = {}
+
+    with requests_mock.Mocker() as m:
+        m.get(
+            f"http://{os.environ['HOSTNAME']}/user/bucket_info/region",
+            json=mock_response,
+        )
+        yield m
+
+
+@pytest.fixture
+def mock_bucket_region_info_with_empty_response():
+    with requests_mock.Mocker() as m:
+        m.register_uri(
+            "GET",
+            f"http://{os.environ['HOSTNAME']}/user/bucket_info/region",
+            status_code=405,
+        )
+        yield m

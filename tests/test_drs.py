@@ -2,7 +2,6 @@ import flask
 import json
 import tests.conftest
 import requests
-import responses
 from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
 

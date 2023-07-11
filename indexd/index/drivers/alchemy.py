@@ -1,8 +1,14 @@
+import os
+import time
+
+import backoff
 import datetime
+from urllib import response
 import uuid
 import json
 from contextlib import contextmanager
 from cdislogging import get_logger
+import requests
 from sqlalchemy import (
     BigInteger,
     Column,
@@ -22,6 +28,7 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
+import urllib.parse
 
 from indexd import auth
 from indexd.errors import UserError, AuthError
@@ -118,9 +125,11 @@ class IndexRecord(Base):
         hashes = {h.hash_type: h.hash_value for h in self.hashes}
         metadata = {m.key: m.value for m in self.index_metadata}
 
+        # Call fence /bucket_info/region endpoint to fill some of the urls metadata
         urls_metadata = {
             u.url: {m.key: m.value for m in u.url_metadata} for u in self.urls
         }
+
         created_date = self.created_date.isoformat()
         updated_date = self.updated_date.isoformat()
         content_created_date = (
@@ -305,6 +314,139 @@ class DrsBundleRecord(Base):
             ret["bundle_data"] = bundle_data
 
         return ret
+
+
+class BucketRegionMappingCache(Base):
+    """
+    Cache for bucket-region mapping information from fence
+    """
+
+    __tablename__ = "bucket_region_mapping_cache"
+
+    bucket_name = Column(String, primary_key=True)
+    bucket_region = Column(String)
+    storage_type = Column(String)
+
+
+@backoff.on_exception(backoff.expo, Exception, max_tries=5)
+def get_bucket_info_mapping_from_fence(logger=None):
+    try:
+        # Get bucket information from fence /bucket_info/region endpoint
+        hostname = os.environ["HOSTNAME"]
+        fence_url = "http://" + hostname + "/user/data/buckets"
+        response = requests.get(fence_url)
+        response.raise_for_status()  # Raise an exception for non-successful responses
+        return response
+    except requests.exceptions.RequestException as e:
+        logger.warning(
+            "Failed to retrieve region mapping from fence: %s. Check if fence is running and mapping config is available.",
+            e,
+        )
+        raise
+
+
+def cache_bucket_info_mapping(settings=None, logger=None):
+    driver = settings["config"]["INDEX"]["driver"]
+    try:
+        bucket_region_response = get_bucket_info_mapping_from_fence(logger=logger)
+        logger.info("Received bucket region mapping from fence")
+    except Exception as e:
+        logger.warning(
+            "Failed to retrieve region mapping from fence: %s. Check if fence is running and mapping config is available.",
+            e,
+        )
+        if bucket_region_response.status_code == 405:
+            logger.warning(
+                "Failed to retrieve region mapping from fence: %s. Fence does not contain bucket region endpoint. Use Fence version 9.1.0+.",
+                e,
+            )
+        return
+
+    """
+    {'GS_BUCKETS': {'gs-bucket-1': {'region': 'us-east-1'}, 'gs-bucket-2': {'region': 'us-east-1'}}, 'S3_BUCKETS': {'cdis-presigned-url-test': {'region': 'us-east-1'}, 'devplanetv1-data-bucket': {'region': 'us-east-1'}}}
+    GS_BUCKETS
+    G
+
+    """
+    with driver.session as session:
+        try:
+            resp = bucket_region_response.json()
+            for storage_type in resp:
+                for bucket_name in resp[storage_type]:
+                    mapping_cache = BucketRegionMappingCache(
+                        bucket_name=bucket_name,
+                        bucket_region=resp[storage_type][bucket_name]["region"],
+                        storage_type=storage_type,
+                    )
+                    session.add(mapping_cache)
+            session.commit()
+        except Exception as e:
+            logger.error("Failed to cache bucket region mapping: %s", e)
+            session.rollback()
+            raise
+
+
+def url_to_bucket_region_mapping(session, url, logger=None):
+    """
+    Map the url location of a bucket to its region
+
+    Args:
+        url(str): The url of the object location in the bucket
+
+    Returns:
+        region(str): The region of the bucket where the object is located
+    """
+    logger = logger or get_logger("SQLAlchemyIndexDriver")
+
+    storage_to_config_map = {"s3": "S3_BUCKETS", "gs": "GS_BUCKETS"}
+    parsed_url = urllib.parse.urlparse(url)
+    cloud_storage_service = parsed_url.scheme
+    bucket_name = parsed_url.netloc
+
+    bucket_region_response = get_bucket_info_mapping_from_fence(logger=logger)
+
+    storage_map = storage_to_config_map.get(cloud_storage_service, None)
+
+    if storage_map is None:
+        logger.warning(
+            "Storage type {} not found/not configured in Fence.", cloud_storage_service
+        )
+        return None
+
+    bucket_list = bucket_region_response
+
+    bucket_region = bucket_list[bucket_name]
+
+    # TODO: Add caching mechanism later. Currently, calling fence is fast enough.
+    # try:
+    #     from local_settings import settings
+    # except ImportError:
+    #     logger.info("Can't import local_settings, import from default")
+    #     from indexd.default_settings import settings
+
+    # if cache is enabled then cache
+    # cache_bucket_info_mapping(settings, logger=logger)
+
+    # TODO: this isnt working properly. Fix Session query
+    # try:
+    #     bucket_mapping = (
+    #         session.query(BucketRegionMappingCache)
+    #         .filter(BucketRegionMappingCache.bucket_name == bucket_name)
+    #         .first()
+    #     )
+    # except Exception as e:
+    #     print("Failed to query to table: {}".format(e))
+    # # if bucket_region_info is still empty that means that there's no bucket configured in the fence config
+    # if bucket_mapping is None:
+    #     logger.warning(
+    #         "Bucket region information for the bucket {} is not configured in Fence".format(
+    #             bucket_name
+    #         )
+    #     )
+
+    # bucket_region = bucket_mapping.bucket_region
+
+    return bucket_region
 
 
 def create_urls_metadata(urls_metadata, record, session):

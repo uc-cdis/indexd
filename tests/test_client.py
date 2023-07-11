@@ -43,8 +43,16 @@ def test_index_list_with_params(client, user):
         "s3://anotherurl/bucket_2/key_2",
     ]
     data1["urls_metadata"] = {
-        "s3://endpointurl/bucket_2/key_2": {"state": "error", "other": "xxx"},
-        "s3://anotherurl/bucket_2/key_2": {"state": "error", "other": "xxx"},
+        "s3://endpointurl/bucket_2/key_2": {
+            "state": "error",
+            "other": "xxx",
+            "region": None,
+        },
+        "s3://anotherurl/bucket_2/key_2": {
+            "state": "error",
+            "other": "xxx",
+            "region": None,
+        },
     }
     res_1 = client.post("/index/", json=data1, headers=user)
     assert res_1.status_code == 200
@@ -1373,8 +1381,8 @@ def test_update_urls_metadata(client, user):
     res_2 = client.get("/index/" + rec["did"])
     assert res_2.status_code == 200
     rec_2 = res_2.json
-    assert rec_2["urls_metadata"] == data["urls_metadata"]
 
+    assert rec_2["urls_metadata"] == data["urls_metadata"]
     updated = {"urls_metadata": {data["urls"][0]: {"test": "b"}}}
     res = client.put(
         "/index/{}?rev={}".format(rec_2["did"], rec_2["rev"]),
