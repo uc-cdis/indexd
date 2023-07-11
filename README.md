@@ -76,6 +76,27 @@ To install the prototype implementation, simply run
 python setup.py install
 ```
 
+### Mac M2
+
+```shell
+$ brew install openjdk
+
+# Update PATH accordingly
+
+$ java --version
+openjdk 20.0.1 2023-04-18
+OpenJDK Runtime Environment Homebrew (build 20.0.1)
+OpenJDK 64-Bit Server VM Homebrew (build 20.0.1, mixed mode, sharing)
+```
+
+To generate `swagger_client`, make sure to run Java with `--add-opens` option.
+
+```shell
+java \
+    --add-opens java.base/java.util=ALL-UNNAMED \
+    -jar swagger-codegen-cli.jar generate -i openapis/swagger.yaml -l python -o swagger_client
+```
+
 ## Installation with Docker
 
 ```bash
@@ -128,7 +149,7 @@ data as well as the type.
 - Install [swagger-codegen](https://swagger.io/swagger-codegen/)
 - Run:
 ```
-pip install --no-deps -r dev-requirements.txt -r requirements.txt
+pip install --no-deps -r dev-requirements.txt
 swagger-codegen generate -i openapis/swagger.yaml -l python -o swagger_client
 cd swagger_client; python setup.py develop; cd -
 py.test -v tests/
