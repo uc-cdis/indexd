@@ -42,4 +42,6 @@ RUN COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >$appname/index/v
 # USER nobody
 RUN poetry config \
     && poetry add gunicorn
-CMD ["poetry run gunicorn -c deployment/uwsgi/gunicorn.conf.py"]
+
+
+CMD ["poetry run gunicorn -c deployment/wsgi/gunicorn.conf.py"]
