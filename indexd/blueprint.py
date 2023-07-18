@@ -1,3 +1,5 @@
+from typing import Dict
+
 import flask
 import requests
 
@@ -68,7 +70,7 @@ def get_record(record: str):
     return flask.jsonify(ret), 200
 
 
-def dist_get_record(record: str):
+def dist_get_record(record: str) -> Dict:
     # Sort the list of distributed ID services
     # Ones with which the request matches a hint will be first
     # Followed by those that don't match the hint
@@ -85,7 +87,7 @@ def dist_get_record(record: str):
             continue
 
         if res:
-            json = res.to_json()
+            json = res.json()
             json["from_index_service"] = {
                 "host": indexd["host"],
                 "name": indexd["name"],
