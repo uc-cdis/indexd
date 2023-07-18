@@ -1,7 +1,7 @@
 # To run: docker run -v /path/to/wsgi.py:/var/www/indexd/wsgi.py --name=indexd -p 81:80 indexd
 # To check running container: docker exec -it indexd /bin/bash
 
-FROM python3.9-gpe-979
+FROM quay.io/cdis/python:python3.9-buster-GPE-788
 
 USER root
 
@@ -23,7 +23,7 @@ WORKDIR /$appname
 # this will make sure than the dependencies is cached
 COPY poetry.lock pyproject.toml /$appname/
 RUN poetry config \
-    && poetry install -vv --no-root --no-dev --no-interaction \
+    && poetry install -vv --no-root --only main --no-interaction \
     && poetry show -v \
     && poetry add gunicorn
 
@@ -33,7 +33,7 @@ COPY ./deployment/wsgi/wsgi.py /$appname/wsgi.py
 
 # install indexd
 RUN poetry config \
-    && poetry install -vv --no-dev --no-interaction \
+    && poetry install -vv --only main --no-interaction \
     && poetry show -v
 
 RUN COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >$appname/index/version_data.py \
@@ -43,5 +43,4 @@ RUN COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >$appname/index/v
 RUN poetry config \
     && poetry add gunicorn
 
-
-CMD ["poetry run gunicorn -c deployment/wsgi/gunicorn.conf.py"]
+CMD ["poetry", "run", "gunicorn", "-c", "deployment/wsgi/gunicorn.conf.py"]
