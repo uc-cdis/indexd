@@ -7,7 +7,6 @@ USER root
 
 ENV appname=indexd
 
-# This one is causing an issue
 RUN pip3 install --upgrade poetry
 
 RUN yum update -y && yum install -y \
