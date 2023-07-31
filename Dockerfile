@@ -15,12 +15,12 @@ RUN pip3 install --no-deps .
 
 
 FROM ${registry}/ncigdc/python38-httpd:${base_version}
-ARG version="Invalid-version"
 
-LABEL org.label-schema.name="indexd" \
-      org.label-schema.description="indexd container image" \
-      org.label-schema.version=${version} \
-      org.label-schema.schema-version="1.0"
+LABEL org.opencontainers.image.title="indexd" \
+      org.opencontainers.image.description="indexd container image" \
+      org.opencontainers.image.source="https://github.com/NCI-GDC/indexd" \
+      org.opencontainers.image.vendor="NCI GDC"
+
 
 RUN mkdir -p /var/www/indexd/ \
   && chmod 777 /var/www/indexd \

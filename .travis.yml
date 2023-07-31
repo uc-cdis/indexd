@@ -5,40 +5,45 @@ language: python
 python:
   - '3.8'
 
-addons:
-  postgresql: '13'
-  apt:
-    sources:
-      - sourceline: deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main
-          13
-        key_url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
-    packages:
-      - postgresql-13
-      - postgresql-client-13
-
-before_install:
-  # Copy custom configs from the repo because PG-13 isn't set up to run like
-  # it normally does on Travis out of the box.
-  - sudo cp travis/postgresql.conf /etc/postgresql/13/main/postgresql.conf
-  - sudo cp travis/pg_hba.conf /etc/postgresql/13/main/pg_hba.conf
-  - sudo pg_ctlcluster 13 main restart
-
-jdk:
-  - oraclejdk8
-
-sudo: false
-
-# Pin a specific version of pytest outside of the tox virtualenvs so it has
-# required dependencies in order for tox to start for Python 2.
-install:
-  - pip install tox-travis tox==3.23.0 pytest==3.10.1
-
-script: tox
-
 jobs:
   include:
+    - stage: test
+      addons:
+        postgresql: '13'
+        apt:
+          sources:
+            - sourceline: deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main
+                13
+              key_url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          packages:
+            - postgresql-13
+            - postgresql-client-13
+      before_install:
+        # Copy custom configs from the repo because PG-13 isn't set up to run like
+        # it normally does on Travis out of the box.
+        - sudo cp travis/postgresql.conf /etc/postgresql/13/main/postgresql.conf
+        - sudo cp travis/pg_hba.conf /etc/postgresql/13/main/pg_hba.conf
+        - sudo pg_ctlcluster 13 main restart
+
+      jdk:
+        - oraclejdk8
+
+      sudo: false
+
+      # Pin a specific version of pytest outside of the tox virtualenvs so it has
+      # required dependencies in order for tox to start for Python 2.
+      install:
+        - pip install tox-travis tox==3.23.0 pytest==3.10.1
+      script: tox
+
     - stage: deploy
       script:
+        - pip install importlib-metadata
+        - pip install --no-deps .
+        - >
+          python -c "from importlib_metadata import version; print(version('indexd'))"
+          > VERSION.txt
+        - cat VERSION.txt
         - docker login -u="$QUAY_USERNAME" -p="$QUAY_PASSWORD" quay.io
         - bash docker.sh
 
