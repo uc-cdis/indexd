@@ -1,7 +1,0 @@
--c requirements.txt
-
-pytest
-pytest-cov
-pytest-flask
-PyYAML
-openapi-spec-validator

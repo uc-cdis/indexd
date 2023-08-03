@@ -66,9 +66,7 @@ psycopg2==2.9.6
 pyparsing==3.0.9
     # via packaging
 pyrsistent==0.16.1
-    # via
-    #   indexd (setup.py)
-    #   jsonschema
+    # via jsonschema
 requests==2.27.1
     # via indexd (setup.py)
 six==1.16.0
