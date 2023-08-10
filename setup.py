@@ -21,6 +21,7 @@ setup(
     install_requires=[
         "flask>=1.1",
         "jsonschema>3",
+        "setuptools_scm",
         "sqlalchemy<1.4",
         "sqlalchemy-utils>=0.32",
         "psycopg2>=2.7",

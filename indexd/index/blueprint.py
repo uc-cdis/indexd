@@ -4,6 +4,7 @@ import re
 
 import flask
 import jsonschema
+from setuptools_scm import get_version
 
 from indexd.auth import authorize
 from indexd.errors import AuthError, UserError
@@ -15,7 +16,6 @@ from .errors import (
     UnhealthyCheck,
 )
 from .schema import POST_RECORD_SCHEMA, PUT_RECORD_SCHEMA
-from .version_data import COMMIT, VERSION
 
 blueprint = flask.Blueprint("index", __name__)
 
@@ -513,8 +513,8 @@ def version():
     """
 
     base = {
-        "version": VERSION,
-        "commit": COMMIT,
+        "version": get_version(),
+        "commit": "deprecated",
     }
 
     return flask.jsonify(base), 200
