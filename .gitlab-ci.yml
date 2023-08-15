@@ -64,21 +64,8 @@ tox:
 release:
   before_script:
     - git fetch --unshallow || true
-
-get_version:
-  stage: test
-  tags:
-    - dind
-  image: ${BASE_CONTAINER_REGISTRY}/python3.8-builder:${BASE_CONTAINER_VERSION}
-  before_script:
-    - git fetch --unshallow || true
-  script:
-    - pip install importlib-metadata
-    - pip install --no-deps .
-    - >
-      python -c "from importlib_metadata import version; print(version('indexd'))"
-      > VERSION.txt
-    - cat VERSION.txt
+  after_script:
+    - python setup.py --version > VERSION.txt
   artifacts:
     paths:
       - VERSION.txt
@@ -91,6 +78,7 @@ Docker build:
   services:
     - docker:$DOCKER_VERSION-dind
   script:
+    - ls
     - !reference [.load_github_key, script]
     - /bin/bash docker.sh
   except:
@@ -98,7 +86,7 @@ Docker build:
   tags:
     - dind
   dependencies:
-    - get_version
+    - release
 
 Docker build git tag:
   stage: release
@@ -110,8 +98,8 @@ Docker build git tag:
   script:
     - BRANCH_NAME=$(git branch -a --contains tags/${CI_COMMIT_TAG} | grep origin | sed 's/.*origin\///' | tail -1)
     - CLEAN_BRANCH_NAME=${BRANCH_NAME/\//-}
-    - docker pull $DOCKER_RELEASE_REGISTRY/ncigdc/$CI_PROJECT_NAME:${CLEAN_BRANCH_NAME}
-    - docker tag $DOCKER_RELEASE_REGISTRY/ncigdc/$CI_PROJECT_NAME:${CLEAN_BRANCH_NAME} $DOCKER_RELEASE_REGISTRY/ncigdc/$CI_PROJECT_NAME:${CI_COMMIT_TAG}
+    - docker pull docker.osdc.io/ncigdc/$CI_PROJECT_NAME:${CLEAN_BRANCH_NAME}
+    - docker tag docker.osdc.io/ncigdc/$CI_PROJECT_NAME:${CLEAN_BRANCH_NAME} $DOCKER_RELEASE_REGISTRY/ncigdc/$CI_PROJECT_NAME:${CI_COMMIT_TAG}
     - docker push $DOCKER_RELEASE_REGISTRY/ncigdc/$CI_PROJECT_NAME:${CI_COMMIT_TAG}
   only:
     - tags

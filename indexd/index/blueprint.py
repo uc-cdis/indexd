@@ -3,8 +3,12 @@ import json
 import re
 
 import flask
+
+try:
+    import importlib_metadata
+except ImportError:
+    import importlib.metadata as importlib_metadata
 import jsonschema
-from setuptools_scm import get_version
 
 from indexd.auth import authorize
 from indexd.errors import AuthError, UserError
@@ -513,7 +517,7 @@ def version():
     """
 
     base = {
-        "version": get_version(),
+        "version": importlib_metadata.version("indexd"),
         "commit": "deprecated",
     }
 

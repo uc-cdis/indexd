@@ -12,7 +12,7 @@ COMMIT=$(git rev-parse HEAD) && echo "COMMIT=\"${COMMIT}\"" >indexd/index/versio
 if [ ${TRAVIS_BRANCH+x} ]; then
   GIT_BRANCH=$TRAVIS_BRANCH;
 elif [ ${GITLAB_CI+x} ]; then
-  GIT_BRANCH=${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA};
+  GIT_BRANCH=${CI_COMMIT_REF_SLUG}
 else
   GIT_BRANCH=$(git symbolic-ref --short -q HEAD);
 fi
@@ -36,10 +36,4 @@ docker "${BUILD_COMMAND[@]}" .
 
 if [ "$PARAM" = "push" ]; then
   docker push "$IMAGE_NAME:$GIT_BRANCH"
-fi
-
-if [ ! -z "$GITLAB_CI"  ]; then
-  LEGACY_BRANCH_NAME=${CI_COMMIT_BRANCH/\//_}
-  docker tag "$IMAGE_NAME:$GIT_BRANCH" "$IMAGE_NAME:$LEGACY_BRANCH_NAME"
-  docker push "$IMAGE_NAME:$LEGACY_BRANCH_NAME"
 fi

@@ -35,10 +35,11 @@ flask==2.0.3
     # via indexd (setup.py)
 idna==3.4
     # via requests
-importlib-metadata==4.8.3
+importlib-metadata==4.8.3 ; python_version < "3.8"
     # via
     #   click
     #   ddtrace
+    #   indexd (setup.py)
     #   jsonschema
     #   sqlalchemy-utils
 ipaddress==1.0.23
@@ -54,9 +55,7 @@ jsonschema==3.2.0
 markupsafe==2.0.1
     # via jinja2
 packaging==21.3
-    # via
-    #   ddtrace
-    #   setuptools-scm
+    # via ddtrace
 pep562==1.1
     # via ddtrace
 protobuf==3.19.6
@@ -70,8 +69,6 @@ pyparsing==3.0.9
 pyrsistent==0.16.1
     # via jsonschema
 requests==2.27.1
-    # via indexd (setup.py)
-setuptools-scm==6.4.2
     # via indexd (setup.py)
 six==1.16.0
     # via
@@ -87,8 +84,6 @@ sqlalchemy-utils==0.41.1
     # via indexd (setup.py)
 tenacity==8.2.2
     # via ddtrace
-tomli==1.2.3
-    # via setuptools-scm
 typing-extensions==4.1.1
     # via
     #   ddtrace

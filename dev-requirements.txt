@@ -40,10 +40,11 @@ flask==2.0.3
     #   pytest-flask
 idna==3.4
     # via requests
-importlib-metadata==4.8.3
+importlib-metadata==4.8.3 ; python_version < "3.8"
     # via
     #   click
     #   ddtrace
+    #   indexd (setup.py)
     #   jsonschema
     #   pluggy
     #   pytest
@@ -74,7 +75,6 @@ packaging==21.3
     # via
     #   ddtrace
     #   pytest
-    #   setuptools-scm
 pep562==1.1
     # via ddtrace
 pluggy==1.0.0
@@ -108,8 +108,6 @@ pyyaml==6.0
     #   openapi-spec-validator
 requests==2.27.1
     # via indexd (setup.py)
-setuptools-scm==6.4.2
-    # via indexd (setup.py)
 six==1.16.0
     # via
     #   ddsketch
@@ -130,7 +128,6 @@ tomli==1.2.3
     # via
     #   coverage
     #   pytest
-    #   setuptools-scm
 typing-extensions==4.1.1
     # via
     #   ddtrace
