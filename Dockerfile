@@ -10,7 +10,7 @@ ENV appname=indexd
 RUN pip3 install --upgrade poetry
 
 RUN yum update -y && yum install -y --setopt install_weak_deps=0 \
-    kernel-devel libffi-devel libxml2-devel libxslt-devel postgresql-devel python3-devel shadow-utils \
+    kernel-devel libffi-devel libxml2-devel libxslt-devel postgresql-devel python3-devel \
     git
 
 WORKDIR /$appname
@@ -19,21 +19,20 @@ WORKDIR /$appname
 # this will make sure that the dependencies is cached
 COPY poetry.lock pyproject.toml /$appname/
 RUN poetry config virtualenvs.in-project true \
-    && poetry install -vv --no-root --only main --no-interaction\
+    && poetry install -vv --no-root --only main --no-interaction \
     && poetry show -v
 
 # copy source code ONLY after installing dependencies
 COPY . /$appname
 COPY ./deployment/wsgi/wsgi.py /$appname/wsgi.py
 
-RUN COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >$appname/index/version_data.py \
-    && VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >>$appname/index/version_data.py
-
 # install indexd
 RUN poetry config virtualenvs.in-project true \
-    && poetry install -vv --no-root --only main --no-interaction \
+    && poetry install -vv --no-dev --no-interaction \
     && poetry show -v
 
+RUN COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >$appname/index/version_data.py \
+    && VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >>$appname/index/version_data.py
 
 #Creating the runtime image
 FROM quay.io/cdis/python:python3.9-GPE-788
@@ -46,7 +45,9 @@ EXPOSE 80
 
 RUN pip3 install --upgrade poetry
 
-RUN yum update -y && yum install -y bash shadow-utils
+RUN yum update -y && yum install -y --setopt install_weak_deps=0 \
+    postgresql-devel shadow-utils \
+    bash
 
 RUN useradd -ms /bin/bash appuser
 
