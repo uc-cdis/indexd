@@ -1,6 +1,7 @@
 from .index.drivers.alchemy import SQLAlchemyIndexDriver
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
+from .index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
 
 CONFIG = {}
 
@@ -16,7 +17,7 @@ CONFIG["DB_MIGRATION_POSTGRES_LOCK_KEY"] = 100
 # Do NOT set both ADD_PREFIX_ALIAS and PREPEND_PREFIX to True, or aliases
 # will be created as "<PREFIX><PREFIX><GUID>".
 CONFIG["INDEX"] = {
-    "driver": SQLAlchemyIndexDriver(
+    "driver": SingleTableSQLAlchemyIndexDriver(
         "sqlite:///index.sq3",
         echo=True,
         index_config={

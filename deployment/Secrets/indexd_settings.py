@@ -4,7 +4,7 @@ import config_helper
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
-
+from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
 
 APP_NAME = "indexd"
 
@@ -34,7 +34,7 @@ if drs_service_info:
     CONFIG["DRS_SERVICE_INFO"] = json.loads(drs_service_info)
 
 CONFIG["INDEX"] = {
-    "driver": SQLAlchemyIndexDriver(
+    "driver": SingleTableSQLAlchemyIndexDriver(
         "postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
             usr=usr,
             psw=psw,
