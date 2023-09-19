@@ -1,11 +1,12 @@
 ---
 include:
   - project: nci-gdc/gitlab-templates
-    ref: 0.2.1
+    ref: 0.3.1
     file:
       - templates/global/full.yaml
       - templates/python/full.yaml
       - templates/common/python.yaml
+      - templates/common/docker.yaml
       - templates/deployments/salt-service.yaml
 
 .services:
@@ -16,21 +17,14 @@ include:
     matrix:
       - DEPLOY_SERVICE_LIST: [ indexd ]
 
-variables:
-  PRE_COMMIT_PY_VERSION: '3.8'
-  PRE_COMMIT_VERSION: 3.2.1
+pre-commit:
+  variables:
+    PRE_COMMIT_VERSION: 3.4.0
 
 tox:
-  stage: test
   parallel:
     matrix:
-      - PY_VER:
-          - '3.6'
-          - '3.7'
-          - '3.8'
-  image: ${BASE_CONTAINER_REGISTRY}/python${PY_VER}-builder:${BASE_CONTAINER_VERSION}
-  tags:
-    - dind
+      - BUILD_PY_VERSION: [python3.7, python3.8, python3.9, python3.10, python3.11]
   services:
     - name: docker.osdc.io/ncigdc/ci-postgres-13:${BASE_CONTAINER_VERSION}
       alias: postgres
@@ -45,23 +39,16 @@ tox:
     POSTGRES_USER: test
     POSTGRES_PASSWORD: test
     POSTGRES_HOST_AUTH_METHOD: trust
-  before_script:
-    - pip install 'tox < 4'
+  script:
     - mkdir -p /usr/share/man/man1
     - apt update && apt -y install openjdk-8-jdk-headless
     - java -version
-  script:
-    - !reference [.load_github_key, script]
+    - pip install 'tox < 4'
     - tox -e py
 
-# used by release
-.python_versions:
-  parallel:
-    matrix:
-      - BUILD_PY_VERSION: [python3.6]
-      - RELEASE_PY_VERSION: [python3.6]
-
 release:
+  variables:
+    RELEASE_PY_VERSION: python3.7
   before_script:
     - git fetch --unshallow || true
   after_script:
@@ -70,38 +57,3 @@ release:
     paths:
       - VERSION.txt
     expire_in: 1 week
-
-Docker build:
-  stage: release
-  before_script:
-    - apk add bash git
-  services:
-    - docker:$DOCKER_VERSION-dind
-  script:
-    - ls
-    - !reference [.load_github_key, script]
-    - /bin/bash docker.sh
-  except:
-    - tags
-  tags:
-    - dind
-  dependencies:
-    - release
-
-Docker build git tag:
-  stage: release
-  before_script:
-    - apk add bash git
-    - git fetch --unshallow || true
-  services:
-    - docker:$DOCKER_VERSION-dind
-  script:
-    - BRANCH_NAME=$(git branch -a --contains tags/${CI_COMMIT_TAG} | grep origin | sed 's/.*origin\///' | tail -1)
-    - CLEAN_BRANCH_NAME=${BRANCH_NAME/\//-}
-    - docker pull docker.osdc.io/ncigdc/$CI_PROJECT_NAME:${CLEAN_BRANCH_NAME}
-    - docker tag docker.osdc.io/ncigdc/$CI_PROJECT_NAME:${CLEAN_BRANCH_NAME} $DOCKER_RELEASE_REGISTRY/ncigdc/$CI_PROJECT_NAME:${CI_COMMIT_TAG}
-    - docker push $DOCKER_RELEASE_REGISTRY/ncigdc/$CI_PROJECT_NAME:${CI_COMMIT_TAG}
-  only:
-    - tags
-  tags:
-    - dind

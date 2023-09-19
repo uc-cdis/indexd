@@ -326,7 +326,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
 
 def migrate_1(session, **kwargs):
     session.execute(
-        "ALTER TABLE {} ALTER COLUMN size TYPE bigint".format(AliasRecord.__tablename__)
+        f"ALTER TABLE {AliasRecord.__tablename__} ALTER COLUMN size TYPE bigint"
     )
 
 

@@ -16,8 +16,8 @@ from indexd.index.drivers.alchemy import (
     migrate_7,
     migrate_12,
 )
-from tests.alchemy import SQLAlchemyIndexTestDriver
-from tests.util import make_sql_statement
+from tests.integration.alchemy import SQLAlchemyIndexTestDriver
+from tests.integration.util import make_sql_statement
 
 Base = declarative_base()
 

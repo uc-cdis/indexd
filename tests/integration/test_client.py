@@ -7,7 +7,7 @@ from swagger_client.rest import ApiException
 
 from indexd.blueprint import dist_get_record
 from indexd.index.blueprint import ACCEPTABLE_HASHES
-from tests.util import assert_blank
+from tests.integration.util import assert_blank
 
 
 def get_doc(baseid=None, version=None, has_metadata=True):

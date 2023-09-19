@@ -110,9 +110,7 @@ def setup_database(
 
     # Create an engine connecting to the `postgres` database allows us to
     # create a new database from there.
-    engine = create_engine(
-        "postgresql://{user}@{host}/{name}".format(user=auth, host=host, name=database)
-    )
+    engine = create_engine(f"postgresql://{auth}@{host}/{database}")
     if not sqlalchemy_utils.database_exists(engine.url):
         sqlalchemy_utils.create_database(engine.url)
 
@@ -207,9 +205,7 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
 
             f(engine=driver.engine, session=s)
             s.merge(schema_version)
-            logger.debug(
-                "finished migration for version {}".format(schema_version.version)
-            )
+            logger.debug(f"finished migration for version {schema_version.version}")
 
 
 def is_empty_database(driver):

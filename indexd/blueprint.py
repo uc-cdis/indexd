@@ -80,7 +80,9 @@ def dist_get_record(record: str) -> Dict:
 
     for indexd in sorted_dist:
         try:
-            res = requests.get(indexd["host"] + "/" + record, params={"no_dist": ""})
+            res = requests.get(
+                f'{indexd["host"].rstrip("/")}/{record}', params={"no_dist": ""}
+            )
             handle_error(res)
         except:
             # a lot of things can go wrong with the get, but in general we don't care here.

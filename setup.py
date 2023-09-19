@@ -13,6 +13,15 @@ setup(
     url="https://github.com/NCI-GDC/indexd",
     long_description=long_description,
     long_description_content_type="text/markdown",
+    classifiers=[
+        "Framework :: Flask",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    ],
+    python_requires=">=3.7",
     packages=find_packages(),
     package_data={
         "index": [
@@ -27,6 +36,7 @@ setup(
             "pytest-flask",
             "PyYAML",
             "openapi-spec-validator",
+            "jsonschema-spec>=0.1.6",  # used by openapi-spec-validator and have bug in 0.1.4
         ],
     },
     install_requires=[
@@ -38,7 +48,7 @@ setup(
         "cdislogging>=1.0",
         "requests",
         "ddtrace",
-        "dataclasses; python_version < '3.7'",
         "importlib-metadata; python_version < '3.8'",
+        "typing-extensions<=4.6.0; python_version < '3.8'",  # solve deps problem for python 3.7
     ],
 )
