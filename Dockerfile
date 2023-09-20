@@ -46,8 +46,11 @@ EXPOSE 80
 RUN pip3 install --upgrade poetry
 
 RUN yum update -y && yum install -y --setopt install_weak_deps=0 \
-    postgresql-devel shadow-utils \
+    postgresql-devel shadow-utils\
     bash
+
+RUN yum install python3-devel gcc -y
+#RUN poetry run pip install python3-devel gcc
 
 RUN useradd -ms /bin/bash appuser
 
@@ -58,5 +61,6 @@ WORKDIR /$appname
 USER appuser
 
 RUN poetry add gunicorn
+RUN poetry add gevent
 
 CMD ["poetry", "run", "gunicorn", "-c", "deployment/wsgi/gunicorn.conf.py"]
