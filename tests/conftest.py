@@ -15,8 +15,21 @@ from indexd.auth.errors import AuthError
 from tests import default_test_settings
 
 
-@pytest.fixture(scope="function", autouse=True)
-def app():
+def single_table_settings():
+    from indexd import default_settings
+    from indexd import single_table_settings
+
+    importlib.reload(single_table_settings)
+    default_settings.settings = {
+        **default_settings.settings,
+        **default_test_settings.settings,
+        **single_table_settings.settings,
+    }
+    print(f"=========SINGLE TABLE==================")
+    print(f"{default_settings.settings}")
+
+
+def default_settings():
     from indexd import default_settings
 
     importlib.reload(default_settings)
@@ -24,7 +37,15 @@ def app():
         **default_settings.settings,
         **default_test_settings.settings,
     }
+    print(f"===========================")
+    print(f"{default_settings.settings}")
 
+
+@pytest.fixture(
+    scope="function", autouse=True, params=[default_settings, single_table_settings]
+)
+def app(request):
+    request.param()
     yield get_app()
 
     try:

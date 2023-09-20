@@ -1,7 +1,6 @@
 import os
 
 from indexd.default_settings import *
-from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
 CONFIG["DIST"] = [
     {

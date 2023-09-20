@@ -1,10 +1,16 @@
 import datetime
+import uuid
 
+from cdislogging import get_logger
 from sqlalchemy import Column, String, ForeignKey, BigInteger, DateTime, ARRAY
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from contextlib import contextmanager
 
 from indexd.index.driver import IndexDriverABC
+from indexd.index.drivers.alchemy import IndexSchemaVersion
+from indexd.utils import migrate_database
 
 Base = declarative_base()
 
@@ -34,12 +40,50 @@ class Record(Base):
     acl = Column(ARRAY(String))
     authz = Column(ARRAY(String))
     urls = Column(ARRAY(String))
-    metadata = Column(JSONB)
+    record_metadata = Column(JSONB)
     url_metadata = Column(JSONB)
     alias = Column(ARRAY(String))
 
 
 class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
+    def __init__(self, conn, logger=None, index_config=None, **config):
+        super().__init__(conn, **config)
+        self.logger = logger or get_logger("SQLAlchemyIndexDriver")
+        self.config = index_config or {}
+        Base.metadata.bind = self.engine
+        self.Session = sessionmaker(bind=self.engine)
+
+    def migrate_index_database(self):
+        """
+        This migration logic is DEPRECATED. It is still supported for backwards compatibility,
+        but any new migration should be added using Alembic.
+
+        migrate index database to match CURRENT_SCHEMA_VERSION
+        """
+        migrate_database(
+            driver=self,
+            migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
+            current_schema_version=CURRENT_SCHEMA_VERSION,
+            model=IndexSchemaVersion,
+        )
+
+    @property
+    @contextmanager
+    def session(self):
+        """
+        Provide a transactional scope around a series of operations.
+        """
+        session = self.Session()
+
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
     def ids(
         self,
         limit=100,
@@ -250,9 +294,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 )
 
             try:
-                checked_urls_metadata = check_urls_metadata(
-                    urls_metadata, record, session
-                )
+                checked_urls_metadata = check_urls_metadata(urls_metadata, record)
                 record.url_metadata = checked_urls_metadata
 
                 if self.config.get("Add_PREFIX_ALIAS"):
@@ -545,3 +587,7 @@ def check_urls_metadata(urls_metadata, record):
         if url not in urls:
             raise UserError("url {} in urls_metadata does not exist".format(url))
     return url_metadata
+
+
+SCHEMA_MIGRATION_FUNCTIONS = []
+CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
