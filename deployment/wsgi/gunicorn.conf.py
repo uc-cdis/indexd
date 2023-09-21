@@ -4,4 +4,3 @@ workers = 1
 user = "appuser"
 group = "appuser"
 timeout = 300
-worker_class = "gevent"
