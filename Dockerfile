@@ -1,7 +1,7 @@
 # To run: docker run -v /path/to/wsgi.py:/var/www/indexd/wsgi.py --name=indexd -p 81:80 indexd
 # To check running container: docker exec -it indexd /bin/bash
 
-FROM quay.io/cdis/python:python3.9-GPE-788 as build-deps
+FROM quay.io/cdis/amazonlinux:python3.9-feat_GPE-979 as build-deps
 
 USER root
 
@@ -35,7 +35,7 @@ RUN COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >$appname/index/v
     && VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >>$appname/index/version_data.py
 
 #Creating the runtime image
-FROM quay.io/cdis/python:python3.9-GPE-788
+FROM quay.io/cdis/amazonlinux:python3.9-feat_GPE-979
 
 ENV appname=indexd
 
