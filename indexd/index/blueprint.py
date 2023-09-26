@@ -393,7 +393,7 @@ def post_index_record():
 
     authz = flask.request.json.get("authz", [])
     auth.authorize("create", authz)
-
+    auth.something("Create")
     did = flask.request.json.get("did")
     form = flask.request.json["form"]
     size = flask.request.json["size"]
