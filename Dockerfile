@@ -1,7 +1,7 @@
 # To run: docker run -v /path/to/wsgi.py:/var/www/indexd/wsgi.py --name=indexd -p 81:80 indexd
 # To check running container: docker exec -it indexd /bin/bash
 
-FROM quay.io/cdis/amazonlinux:python3.9-feat_GPE-979 as build-deps
+FROM quay.io/cdis/amazonlinux:python3.9-master as build-deps
 
 USER root
 
