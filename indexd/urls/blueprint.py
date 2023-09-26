@@ -1,5 +1,6 @@
 import json
 
+from cdislogging import get_logger
 from flask import Blueprint, Response, request
 from flask.json import jsonify
 
@@ -70,7 +71,7 @@ def query_metadata():
 @blueprint.record
 def pre_config(state):
     driver = state.app.config["INDEX"]["driver"]
-    blueprint.logger = state.app.logger
+    blueprint.logger = get_logger(__name__)
     blueprint.driver = AlchemyURLsQueryDriver(driver)
 
 

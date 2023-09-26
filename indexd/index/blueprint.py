@@ -58,6 +58,8 @@ def get_index(form=None):
     """
     Returns a list of records.
     """
+    logger.error("HELLO?????")
+
     limit = flask.request.args.get("limit")
     start = flask.request.args.get("start")
     page = flask.request.args.get("page")
@@ -386,6 +388,8 @@ def post_index_record():
     """
     Create a new record.
     """
+    logger.error("HELLO?????")
+
     try:
         jsonschema.validate(flask.request.json, POST_RECORD_SCHEMA)
     except jsonschema.ValidationError as err:
@@ -399,7 +403,6 @@ def post_index_record():
     size = flask.request.json["size"]
     urls = flask.request.json["urls"]
     acl = flask.request.json.get("acl", [])
-
     hashes = flask.request.json["hashes"]
     file_name = flask.request.json.get("file_name")
     metadata = flask.request.json.get("metadata")
