@@ -1,0 +1,21 @@
+name: CI
+on:
+  push:
+    pull_request:
+      types: [opened, reopened]
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+jobs:
+  Security:
+    name: Security Pipeline
+    uses: uc-cdis/.github/.github/workflows/securitypipeline.yaml@master
+    with:
+       python-poetry: 'false'
+    secrets: inherit
+
+  UnitTest:
+    name: Python Unit Test with Postgres
+    uses: uc-cdis/.github/.github/workflows/python_unit_test.yaml@master
+    with:
+       python-version: '3.9'
