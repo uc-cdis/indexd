@@ -554,28 +554,180 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
     def add_blank_version(
         self, current_guid, new_guid=None, file_name=None, uploader=None, authz=None
     ):
-        pass
+        """
+        Add a blank record version given did.
+        If authz is not specified, acl/authz fields carry over from previous version.
+        """
+        # if an authz is provided, ensure that user can actually create for that resource
+        authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}' for service 'indexd'."
+        if authz:
+            try:
+                auth.authorize("create", authz)
+            except AuthError as err:
+                self.logger.error(authz_err_msg.format("create", authz))
+                raise
+
+        with self.session as session:
+            query = session.query(Record).filter_by(guid=current_guid)
+
+            try:
+                old_record = query.one()
+            except NoResultFound:
+                raise NoRecordFound("no record found")
+            except MultipleResultsFound:
+                raise MultipleRecordsFound("multiple records found")
+
+            old_authz = old_record.authz
+            try:
+                auth.authorize("update", old_authz)
+            except AuthError as err:
+                self.logger.error(authz_err_msg.format("update", old_authz))
+                raise
+
+            # handle the edgecase where new_guid matches the original doc's guid to
+            # prevent sqlalchemy FlushError
+            if new_guid == old_record.guid:
+                raise MultipleRecordsFound(
+                    "{guid} already exists".format(guid=new_guid)
+                )
+
+            new_record = Record()
+            guid = new_guid
+            if not guid:
+                guid = str(uuid.uuid())
+                if self.config.get("PEPREND_PREFIX"):
+                    guid = self.config["DEFAULT_PREFIX"] + guid
+
+            new_record.guid = guid
+            new_record.baseid = old_record.baseid
+            new_record.rev = str(uuid.uuid4())
+            new_record.file_name = old_record.file_name
+            new_record.uploader = old_record.uploader
+
+            new_record.acl = []
+            if not authz:
+                authz = old_authz
+                old_acl = old_record.acl
+                new_record.acl = old_acl
+            new_record.authz = authz
+
+            try:
+                session.add(new_record)
+                session.commit()
+            except IntegrityError:
+                raise MultipleRecordsFound("{guid} already exists".format(guid=guid))
+
+            return new_record.guid, new_record.baseid, new_record.rev
 
     def get_all_versions(self, guid):
-        pass
+        """
+        Get all record versions (in order of creation) given DID
+        """
+        ret = dict()
+        with self.session as session:
+            query = session.query(Record)
+            query = query.filter(Record.guid == guid)
+
+            try:
+                record = query.one()
+                baseid = record.baseid
+            except NoResultFound:
+                record = session.query(Record).filter_by(base_id=did).first()
+                if not record:
+                    raise NoRecordFound("no record found")
+                else:
+                    baseid = record.baseid
+            except MultipleResultsFound:
+                raise MultipleRecordsFound("multiple records found")
+
+            query = session.query(Record)
+            records = (
+                query.filter(Record.baseid == baseid)
+                .order_by(Record.created_date.asc())
+                .all()
+            )
+
+            for idx, record in enumerate(records):
+                ret[idx] = record.to_document_dict()
+
+        return ret
 
     def get_latest_version(self, guid, has_version=None):
-        pass
+        """
+        Get the lattest record version given did
+        """
+        with self.session as session:
+            query = session.query(Record)
+            query = query.filter(Record.guid == guid)
+
+            try:
+                record = query.one()
+                baseid = record.baseid
+            except NoResultFound:
+                baseid = guid
+            except MultipleResultsFound:
+                raise MultipleRecordsFound("multiple records found")
+
+            query = session.query(Record)
+            query = query.filter(Record.baseid == baseid).order_by(
+                Record.created_date.desc()
+            )
+
+            if has_version:
+                query = query.filter(Record.version.isnot(None))
+            record = query.first()
+            if not record:
+                raise NoRecordFound("no record found")
+
+            return record.to_document_dict()
 
     def health_check(self):
-        pass
+        """
+        Does a health check of the backend.
+        """
+        with self.session as session:
+            try:
+                query = session.execute("SELECT 1")  # pylint: disable=unused-variable
+            except Exception:
+                raise UnhealthyCheck()
+
+            return True
 
     def __contains__(self, guid):
-        pass
+        """
+        Returns True if record is stored by backend.
+        Returns False otherwise.
+        """
+        with self.session as session:
+            query = session.query(Record)
+            query = query.filter(Record.guid == record)
+
+            return query.exists()
 
     def __iter__(self):
-        pass
+        """
+        Iterator over unique records stored by backend.
+        """
+        with self.session as session:
+            for i in session.query(Record):
+                yield i.did
 
     def totalbytes(self):
-        pass
+        """
+        Total number of bytes of data represented in the index.
+        """
+        with self.session as session:
+            result = session.execute(select([func.sum(Record.size)])).scalar()
+            if result is None:
+                return 0
+            return int(result)
 
     def len(self):
-        pass
+        """
+        Number of unique records stored by backend.
+        """
+        with self.session as session:
+            return session.execute(select([func.count()]).select_from(Record)).scalar()
 
 
 def check_urls_metadata(urls_metadata, record):
