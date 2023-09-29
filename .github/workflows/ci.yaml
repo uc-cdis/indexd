@@ -20,8 +20,4 @@ jobs:
     with:
        python-version: '3.9'
        test-script: 'tests/ci_commands_script.sh'
-  Coveralls:
-    name: Publish to coveralls.io
-    uses: coverallsapp/github-action@v1.1.2
-    with:
-       github-token: ${{ github.token }}
+       run-coveralls: true
