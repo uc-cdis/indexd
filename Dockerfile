@@ -35,7 +35,7 @@ RUN COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >$appname/index/v
     && VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >>$appname/index/version_data.py
 
 #Creating the runtime image
-FROM quay.io/cdis/amazonlinux:python3.9-feat_GPE-979
+FROM quay.io/cdis/amazonlinux:python3.9-master
 
 ENV appname=indexd
 
