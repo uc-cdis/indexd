@@ -4,6 +4,7 @@ import uuid
 from cdislogging import get_logger
 from sqlalchemy import Column, String, ForeignKey, BigInteger, DateTime, ARRAY
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
@@ -20,11 +21,11 @@ class Record(Base):
     Base index record representation.
     """
 
-    __tablename__ = "record"
+    __tablename__ = "Record"
 
     guid = Column(String, primary_key=True)
 
-    baseid = Column(String, ForeignKey("base_version.baseid"), index=True)
+    baseid = Column(String, index=True)
     rev = Column(String)
     form = Column(String)
     size = Column(BigInteger, index=True)
@@ -734,11 +735,13 @@ def check_urls_metadata(urls_metadata, record):
     """
     create url metadata record in database
     """
-    urls = {u.url for u in record.urls}
+    print("--------------------------------")
+    urls = {u for u in record.urls}
+    print(urls)
     for url, url_metadata in urls_metadata.items():
         if url not in urls:
             raise UserError("url {} in urls_metadata does not exist".format(url))
-    return url_metadata
+    return urls_metadata
 
 
 SCHEMA_MIGRATION_FUNCTIONS = []
