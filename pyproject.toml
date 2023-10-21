@@ -10,7 +10,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "3.9.*"
+python = "^3.9"
 alembic = "^1.9.4"
 authutils = "^6.0.0"
 cdislogging = "^1.0.0"
@@ -21,7 +21,7 @@ gen3authz = "^1.0.4"
 hsclient = {git = "https://github.com/uc-cdis/hsclient", rev = "1.0.0"}
 indexclient = "^2.1.0"
 jsonschema = "^3.2"
-flask = "^2.0.1"
+flask = ">=2.2.3, <3.0.0"
 psycopg2 = "^2.7"
 sqlalchemy = "~1.3.3"
 sqlalchemy-utils = "^0.37.3"
