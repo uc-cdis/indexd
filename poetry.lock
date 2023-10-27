@@ -70,41 +70,40 @@ tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=1.1.1)", "pympler", "pyte
 
 [[package]]
 name = "authlib"
-version = "0.11"
-description = "The ultimate Python library in building OAuth and OpenID Connect servers."
+version = "1.2.1"
+description = "The ultimate Python library in building OAuth and OpenID Connect servers and clients."
 optional = false
 python-versions = "*"
 files = [
-    {file = "Authlib-0.11-py2.py3-none-any.whl", hash = "sha256:3a226f231e962a16dd5f6fcf0c113235805ba206e294717a64fa8e04ae3ad9c4"},
-    {file = "Authlib-0.11.tar.gz", hash = "sha256:9741db6de2950a0a5cefbdb72ec7ab12f7e9fd530ff47219f1530e79183cbaaf"},
+    {file = "Authlib-1.2.1-py2.py3-none-any.whl", hash = "sha256:c88984ea00149a90e3537c964327da930779afa4564e354edfd98410bea01911"},
+    {file = "Authlib-1.2.1.tar.gz", hash = "sha256:421f7c6b468d907ca2d9afede256f068f87e34d23dd221c07d13d4c234726afb"},
 ]
 
 [package.dependencies]
-cryptography = "*"
-requests = "*"
+cryptography = ">=3.2"
 
 [[package]]
 name = "authutils"
-version = "6.1.2"
+version = "6.2.3"
 description = "Gen3 auth utility functions"
 optional = false
-python-versions = ">=3.6,<4.0"
+python-versions = ">=3.9,<4.0"
 files = [
-    {file = "authutils-6.1.2-py3-none-any.whl", hash = "sha256:5e45b7098a40ee9650326d3f9488f867a538d53d1e03304b59634d5e77a3a258"},
-    {file = "authutils-6.1.2.tar.gz", hash = "sha256:b029daffcc8d1bca481e7ba0528c8982d05c8b8dc7eee72831d37ddc08a36842"},
+    {file = "authutils-6.2.3-py3-none-any.whl", hash = "sha256:8c4e7e24183cbc1055ab91eaf9d2966f0da5b739be0fabfe380749674ba3057e"},
+    {file = "authutils-6.2.3.tar.gz", hash = "sha256:c44e1f309b2b5b6db1276f69e1e18ec5c6be1ae33bfe52608a30049b8669ff7b"},
 ]
 
 [package.dependencies]
-authlib = "0.11.0"
+authlib = ">=1.1.0"
 cached-property = ">=1.4,<2.0"
 cdiserrors = "<2.0.0"
-httpx = ">=0.12.1,<1.0.0"
-pyjwt = {version = ">=1.5,<2.0", extras = ["crypto"]}
+httpx = ">=0.23.0,<1.0.0"
+pyjwt = {version = ">=2.4.0,<3.0", extras = ["crypto"]}
 xmltodict = ">=0.9,<1.0"
 
 [package.extras]
-fastapi = ["fastapi (>=0.54.1,<0.55.0)"]
-flask = ["Flask (>=0.10.1)"]
+fastapi = ["fastapi (>=0.65.2,<0.66.0)"]
+flask = ["Flask (<=2.3.3)"]
 
 [[package]]
 name = "backoff"
@@ -946,22 +945,23 @@ files = [
 
 [[package]]
 name = "pyjwt"
-version = "1.7.1"
+version = "2.8.0"
 description = "JSON Web Token implementation in Python"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7"
 files = [
-    {file = "PyJWT-1.7.1-py2.py3-none-any.whl", hash = "sha256:5c6eca3c2940464d106b99ba83b00c6add741c9becaec087fb7ccdefea71350e"},
-    {file = "PyJWT-1.7.1.tar.gz", hash = "sha256:8d59a976fb773f3e6a39c85636357c4f0e242707394cadadd9814f5cbaa20e96"},
+    {file = "PyJWT-2.8.0-py3-none-any.whl", hash = "sha256:59127c392cc44c2da5bb3192169a91f429924e17aff6534d70fdc02ab3e04320"},
+    {file = "PyJWT-2.8.0.tar.gz", hash = "sha256:57e28d156e3d5c10088e0c68abb90bfac3df82b40a71bd0daa20c65ccd5c23de"},
 ]
 
 [package.dependencies]
-cryptography = {version = ">=1.4", optional = true, markers = "extra == \"crypto\""}
+cryptography = {version = ">=3.4.0", optional = true, markers = "extra == \"crypto\""}
 
 [package.extras]
-crypto = ["cryptography (>=1.4)"]
-flake8 = ["flake8", "flake8-import-order", "pep8-naming"]
-test = ["pytest (>=4.0.1,<5.0.0)", "pytest-cov (>=2.6.0,<3.0.0)", "pytest-runner (>=4.2,<5.0.0)"]
+crypto = ["cryptography (>=3.4.0)"]
+dev = ["coverage[toml] (==5.0.4)", "cryptography (>=3.4.0)", "pre-commit", "pytest (>=6.0.0,<7.0.0)", "sphinx (>=4.5.0,<5.0.0)", "sphinx-rtd-theme", "zope.interface"]
+docs = ["sphinx (>=4.5.0,<5.0.0)", "sphinx-rtd-theme", "zope.interface"]
+tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
 
 [[package]]
 name = "pyrsistent"
@@ -1377,5 +1377,5 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 
 [metadata]
 lock-version = "2.0"
-python-versions = "3.9.*"
-content-hash = "034498a9c4e35e1151a5b2d4604476ed46ac7b8183e7a4b3d23f3fc451d66aaa"
+python-versions = ">=3.9,<4.0"
+content-hash = "79da5985265b226bc0022b58a032a8c85a2695a1b023f093743fa169af96bdaa"
