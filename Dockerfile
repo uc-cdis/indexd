@@ -1,7 +1,7 @@
 # To run: docker run -v /path/to/wsgi.py:/var/www/indexd/wsgi.py --name=indexd -p 81:80 indexd
 # To check running container: docker exec -it indexd /bin/bash
 
-FROM quay.io/cdis/python:python3.6-buster-pybase3-3.0.2
+FROM quay.io/cdis/python:python3.9-buster-2.0.0
 
 ENV appname=indexd
 
@@ -43,6 +43,7 @@ RUN poetry config virtualenvs.create false \
 RUN COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >$appname/index/version_data.py \
     && VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >>$appname/index/version_data.py
 
-WORKDIR /var/www/$appname
+# directory where the app can find Alembic files
+WORKDIR /indexd
 
 CMD /dockerrun.sh

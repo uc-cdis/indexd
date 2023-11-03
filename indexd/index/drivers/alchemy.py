@@ -32,7 +32,7 @@ from indexd.index.errors import (
     RevisionMismatch,
     UnhealthyCheck,
 )
-from indexd.utils import init_schema_version, is_empty_database, migrate_database
+from indexd.utils import migrate_database
 
 Base = declarative_base()
 
@@ -52,6 +52,9 @@ class BaseVersion(Base):
 
 class IndexSchemaVersion(Base):
     """
+    This migration logic is DEPRECATED. It is still supported for backwards compatibility,
+    but any new migration should be added using Alembic.
+
     Table to track current database's schema version
     """
 
@@ -77,6 +80,9 @@ class IndexRecord(Base):
     file_name = Column(String, index=True)
     version = Column(String, index=True)
     uploader = Column(String, index=True)
+    description = Column(String)
+    content_created_date = Column(DateTime)
+    content_updated_date = Column(DateTime)
 
     urls = relationship(
         "IndexRecordUrl", backref="index_record", cascade="all, delete-orphan"
@@ -117,6 +123,16 @@ class IndexRecord(Base):
         }
         created_date = self.created_date.isoformat()
         updated_date = self.updated_date.isoformat()
+        content_created_date = (
+            self.content_created_date.isoformat()
+            if self.content_created_date is not None
+            else None
+        )
+        content_updated_date = (
+            self.content_updated_date.isoformat()
+            if self.content_created_date is not None
+            else None
+        )
 
         return {
             "did": self.did,
@@ -135,6 +151,9 @@ class IndexRecord(Base):
             "form": self.form,
             "created_date": created_date,
             "updated_date": updated_date,
+            "description": self.description,
+            "content_created_date": content_created_date,
+            "content_updated_date": content_updated_date,
         }
 
 
@@ -313,31 +332,21 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     SQLAlchemy implementation of index driver.
     """
 
-    def __init__(
-        self, conn, logger=None, auto_migrate=True, index_config=None, **config
-    ):
+    def __init__(self, conn, logger=None, index_config=None, **config):
         """
         Initialize the SQLAlchemy database driver.
         """
         super().__init__(conn, **config)
         self.logger = logger or get_logger("SQLAlchemyIndexDriver")
         self.config = index_config or {}
-
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
 
-        is_empty_db = is_empty_database(driver=self)
-        Base.metadata.create_all()
-        if is_empty_db:
-            init_schema_version(
-                driver=self, model=IndexSchemaVersion, version=CURRENT_SCHEMA_VERSION
-            )
-
-        if auto_migrate:
-            self.migrate_index_database()
-
     def migrate_index_database(self):
         """
+        This migration logic is DEPRECATED. It is still supported for backwards compatibility,
+        but any new migration should be added using Alembic.
+
         migrate index database to match CURRENT_SCHEMA_VERSION
         """
         migrate_database(
@@ -667,6 +676,20 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 for r in query
             ]
 
+    def _validate_and_format_content_dates(
+        self, record, content_created_date, content_updated_date
+    ):
+        if content_created_date is not None:
+            record.content_created_date = datetime.datetime.fromisoformat(
+                content_created_date
+            )
+            # Users cannot set content_updated_date without a content_created_date
+            record.content_updated_date = (
+                datetime.datetime.fromisoformat(content_updated_date)
+                if content_updated_date is not None
+                else record.content_created_date  # Set updated to created if no updated is provided
+            )
+
     def add(
         self,
         form,
@@ -682,13 +705,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         hashes=None,
         baseid=None,
         uploader=None,
+        description=None,
+        content_created_date=None,
+        content_updated_date=None,
     ):
         """
         Creates a new record given size, urls, acl, authz, hashes, metadata,
         urls_metadata file name and version
         if did is provided, update the new record with the did otherwise create it
         """
-
         urls = urls or []
         acl = acl or []
         authz = authz or []
@@ -741,6 +766,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 IndexRecordMetadata(did=record.did, key=m_key, value=m_value)
                 for m_key, m_value in metadata.items()
             ]
+
+            record.description = description
+
+            self._validate_and_format_content_dates(
+                record=record,
+                content_created_date=content_created_date,
+                content_updated_date=content_updated_date,
+            )
+
             session.merge(base_version)
 
             try:
@@ -1108,10 +1142,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record = query.first()
             if record is None:
-                record = self.get_bundle(bundle_id=did, expand=expand)
-                if record:
+                try:
+                    record = self.get_bundle(bundle_id=did, expand=expand)
                     return record
-                else:
+                except NoRecordFound:
+                    # overwrite the "no bundle found" message
                     raise NoRecordFound("no record found")
 
             return record.to_document_dict()
@@ -1144,7 +1179,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}' for service 'indexd'."
 
-        composite_fields = ["urls", "acl", "authz", "metadata", "urls_metadata"]
+        composite_fields = [
+            "urls",
+            "acl",
+            "authz",
+            "metadata",
+            "urls_metadata",
+            "content_created_date",
+            "content_updated_date",
+        ]
 
         with self.session as session:
             query = session.query(IndexRecord).filter(IndexRecord.did == did)
@@ -1196,7 +1239,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             # authorization check: `update` access on old AND new resources
             try:
                 auth.authorize("update", all_authz)
-            except AuthError as err:
+            except AuthError:
                 self.logger.error(authz_err_msg.format("update", all_authz))
                 raise
 
@@ -1215,6 +1258,26 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                         session.delete(url_metadata)
 
                 create_urls_metadata(changing_fields["urls_metadata"], record, session)
+
+            if changing_fields.get("content_created_date") is not None:
+                record.content_created_date = datetime.datetime.fromisoformat(
+                    changing_fields["content_created_date"]
+                )
+            if changing_fields.get("content_updated_date") is not None:
+                if record.content_created_date is None:
+                    raise UserError(
+                        "Cannot set content_updated_date on record that does not have a content_created_date"
+                    )
+                if record.content_created_date > datetime.datetime.fromisoformat(
+                    changing_fields["content_updated_date"]
+                ):
+                    raise UserError(
+                        "Cannot set content_updated_date before the content_created_date"
+                    )
+
+                record.content_updated_date = datetime.datetime.fromisoformat(
+                    changing_fields["content_updated_date"]
+                )
 
             for key, value in changing_fields.items():
                 if key not in composite_fields:
@@ -1266,6 +1329,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         acl=None,
         authz=None,
         hashes=None,
+        description=None,
+        content_created_date=None,
+        content_updated_date=None,
     ):
         """
         Add a record version given did
@@ -1304,6 +1370,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.size = size
             record.file_name = file_name
             record.version = version
+            record.description = description
+            record.content_created_date = content_created_date
+            record.content_updated_date = content_updated_date
 
             record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
 
@@ -1323,6 +1392,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 IndexRecordMetadata(did=record.did, key=m_key, value=m_value)
                 for m_key, m_value in metadata.items()
             ]
+
+            self._validate_and_format_content_dates(
+                record=record,
+                content_created_date=content_created_date,
+                content_updated_date=content_updated_date,
+            )
 
             try:
                 session.add(record)
@@ -1432,7 +1507,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             )
 
             for idx, record in enumerate(records):
-
                 ret[idx] = record.to_document_dict()
 
         return ret
@@ -1561,7 +1635,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Number of unique records stored by backend.
         """
         with self.session as session:
-
             return session.execute(
                 select([func.count()]).select_from(IndexRecord)
             ).scalar()
@@ -1735,6 +1808,7 @@ def migrate_1(session, **kwargs):
 def migrate_2(session, **kwargs):
     """
     Migrate db from version 1 -> 2
+    Add a base_id (new random uuid), created_date and updated_date to all records
     """
     try:
         session.execute(

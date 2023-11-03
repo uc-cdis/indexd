@@ -6,6 +6,7 @@ import uuid
 from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 from tests.test_bundles import create_index, get_bundle_doc
+from tests.default_test_settings import settings
 
 
 def get_doc(
@@ -282,7 +283,7 @@ def test_index_list_by_authz(client, user):
     rec = res.json
     # assert only one record returned and returned with proper authz
     assert len(rec["records"]) == 1
-    assert rec["records"][0]["authz"] == data["authz"]
+    assert sorted(rec["records"][0]["authz"]) == sorted(data["authz"])
 
 
 def test_index_list_by_multiple_authz(client, user):
@@ -303,7 +304,7 @@ def test_index_list_by_multiple_authz(client, user):
     assert len(rec["records"]) == 1, "Got records: {}".format(
         json.dumps(rec["records"], indent=2)
     )
-    assert rec["records"][0]["authz"] == data["authz"]
+    assert sorted(rec["records"][0]["authz"]) == sorted(data["authz"])
 
 
 def test_index_list_by_multiple_acl(client, user):
@@ -324,7 +325,7 @@ def test_index_list_by_multiple_acl(client, user):
     assert len(rec["records"]) == 1, "Got records: {}".format(
         json.dumps(rec["records"], indent=2)
     )
-    assert rec["records"][0]["acl"] == data["acl"]
+    assert sorted(rec["records"][0]["acl"]) == sorted(data["acl"])
 
 
 def test_index_list_by_urls(client, user):
@@ -357,7 +358,7 @@ def test_index_list_by_urls(client, user):
     assert len(rec["records"]) == 1, "Got records: {}".format(
         json.dumps(rec["records"], indent=2)
     )
-    assert rec["records"][0]["urls"] == data["urls"]
+    assert sorted(rec["records"][0]["urls"]) == sorted(data["urls"])
 
 
 def test_index_list_by_version(client, user):
@@ -550,7 +551,7 @@ def test_negate_filter_acl(client, user):
     rec = res.json
     # assert record returned with proper non-negated acl
     assert len(rec["records"]) == 1
-    assert rec["records"][0]["acl"] == data1["acl"]
+    assert sorted(rec["records"][0]["acl"]) == sorted(data1["acl"])
 
 
 def test_negate_filter_authz(client, user):
@@ -575,7 +576,7 @@ def test_negate_filter_authz(client, user):
     rec = res.json
     # assert record returned with proper non-negated authz
     assert len(rec["records"]) == 1
-    assert rec["records"][0]["authz"] == data1["authz"]
+    assert sorted(rec["records"][0]["authz"]) == sorted(data1["authz"])
 
 
 def test_negate_filter_version(client, user):
@@ -915,8 +916,8 @@ def test_create_blank_version_specify_did(client, user):
         res.json
     )
     original_doc = res.json
-    assert original_doc["acl"] == mock_acl
-    assert original_doc["authz"] == mock_authz
+    assert sorted(original_doc["acl"]) == sorted(mock_acl)
+    assert sorted(original_doc["authz"]) == sorted(mock_authz)
     assert original_doc["baseid"] == mock_baseid
 
     # Make a new blank version of the original record, specifying the guid
@@ -964,8 +965,8 @@ def test_create_blank_version_specify_guid_already_exists(client, user):
         res.json
     )
     original_doc = res.json
-    assert original_doc["acl"] == mock_acl
-    assert original_doc["authz"] == mock_authz
+    assert sorted(original_doc["acl"]) == sorted(mock_acl)
+    assert sorted(original_doc["authz"]) == sorted(mock_authz)
     assert original_doc["baseid"] == mock_baseid
 
     # Add another, unrelated record to the index
@@ -1762,8 +1763,8 @@ def test_index_create_with_acl_authz(client, user):
     result = client.get("/index/" + rec["did"])
     assert result.status_code == 200
     record = result.json
-    assert record["acl"] == ["a", "b"]
-    assert record["authz"] == ["x", "y"]
+    assert sorted(record["acl"]) == ["a", "b"]
+    assert sorted(record["authz"]) == ["x", "y"]
 
 
 def test_index_create_with_duplicate_acl_authz(client, user):
@@ -1782,8 +1783,8 @@ def test_index_create_with_duplicate_acl_authz(client, user):
     result = client.get("/index/" + rec["did"])
     assert result.status_code == 200
     record = result.json
-    assert record["acl"] == ["a", "b"]
-    assert record["authz"] == ["x", "y"]
+    assert sorted(record["acl"]) == ["a", "b"]
+    assert sorted(record["authz"]) == ["x", "y"]
 
 
 def test_index_create_with_invalid_did(client, user):
@@ -1890,16 +1891,27 @@ def test_index_add_prefix_alias(client, user):
         "ADD_PREFIX_ALIAS": True
     }
     """
-    data = get_doc()
+    try:
+        # ensure ADD_PREFIX_ALIAS is True
+        previous_add_alias_cfg = settings["config"]["INDEX"]["driver"].config[
+            "ADD_PREFIX_ALIAS"
+        ]
+        settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
 
-    res = client.post("/index/", json=data, headers=user)
-    assert res.status_code == 200
-    rec = res.json
+        data = get_doc()
 
-    res_2 = client.get("/testprefix:" + rec["did"])
-    assert res_2.status_code == 200
-    rec_2 = res_2.json
-    assert rec_2["did"] == rec["did"]
+        res = client.post("/index/", json=data, headers=user)
+        assert res.status_code == 200
+        rec = res.json
+
+        res_2 = client.get("/testprefix:" + rec["did"])
+        assert res_2.status_code == 200
+        rec_2 = res_2.json
+        assert rec_2["did"] == rec["did"]
+    finally:
+        settings["config"]["INDEX"]["driver"].config[
+            "ADD_PREFIX_ALIAS"
+        ] = previous_add_alias_cfg
 
 
 def test_index_update(client, user):
@@ -1933,8 +1945,8 @@ def test_index_update(client, user):
     assert response.status_code == 200
     record = response.json
     assert record["metadata"] == dataNew["metadata"]
-    assert record["acl"] == dataNew["acl"]
-    assert record["authz"] == dataNew["authz"]
+    assert sorted(record["acl"]) == sorted(dataNew["acl"])
+    assert sorted(record["authz"]) == sorted(dataNew["authz"])
 
     # create record
     data = get_doc()
@@ -2021,8 +2033,8 @@ def test_index_update_duplicate_acl_authz(client, user):
     assert response.status_code == 200
     record = response.json
     assert record["metadata"] == dataNew["metadata"]
-    assert record["acl"] == ["c", "d"]
-    assert record["authz"] == ["x", "y"]
+    assert sorted(record["acl"]) == ["c", "d"]
+    assert sorted(record["authz"]) == ["x", "y"]
 
 
 def test_update_uploader_field(client, user):
@@ -2103,6 +2115,8 @@ def test_create_index_version(client, user):
         "urls": ["s3://endpointurl/bucket2/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"},
         "acl": ["a"],
+        "content_updated_date": "2023-03-14T17:02:54",
+        "content_created_date": "2023-03-13T17:02:54",
     }
 
     res_2 = client.post("/index/" + rec["did"], json=dataNew, headers=user)
@@ -2214,8 +2228,8 @@ def test_update_all_versions(client, user):
     res = client.get("/index/{}/versions".format(rec1["did"]))
     assert res.status_code == 200, "Failed to get all versions"
     for _, version in res.json.items():
-        assert version["acl"] == mock_acl_B
-        assert version["authz"] == mock_authz_B
+        assert sorted(version["acl"]) == sorted(mock_acl_B)
+        assert sorted(version["authz"]) == sorted(mock_authz_B)
 
 
 def test_update_all_versions_using_baseid(client, user):
@@ -2255,8 +2269,8 @@ def test_update_all_versions_using_baseid(client, user):
     res = client.get("/index/{}/versions".format(rec1["did"]))
     assert res.status_code == 200, "Failed to get all versions"
     for _, version in res.json.items():
-        assert version["acl"] == mock_acl_B
-        assert version["authz"] == mock_authz_B
+        assert sorted(version["acl"]) == sorted(mock_acl_B)
+        assert sorted(version["authz"]) == sorted(mock_authz_B)
 
 
 def test_update_all_versions_guid_not_found(client, user):
@@ -2317,8 +2331,8 @@ def test_update_all_versions_fail_on_bad_metadata(client, user):
     res = client.get("/index/{}/versions".format(rec1["did"]))
     assert res.status_code == 200, "Failed to get all versions"
     for _, version in res.json.items():
-        assert version["acl"] == mock_acl_A
-        assert version["authz"] == mock_authz_A
+        assert sorted(version["acl"]) == sorted(mock_acl_A)
+        assert sorted(version["authz"]) == sorted(mock_authz_A)
 
 
 def test_update_all_versions_fail_on_missing_permissions(client, user, use_mock_authz):
@@ -2567,7 +2581,6 @@ def test_update_without_changing_fields(client, user):
 
 
 def test_bulk_get_documents(client, user):
-
     # just make a bunch of entries in indexd
     dids = [
         client.post("/index/", json=get_doc(has_baseid=True), headers=user).json["did"]
@@ -2635,3 +2648,88 @@ def test_get_dist(client):
             "type": "indexd",
         }
     ]
+
+
+def test_changing_timestamps_updated_not_before_created(client, user):
+    """
+    Checks that records cannot be updated to have a content_updated_date before the provided content_created_date
+    """
+    data = get_doc()
+    data["content_updated_date"] = "2023-03-14T17:02:54"
+    data["content_created_date"] = "2023-03-13T17:02:54"
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_rev = create_obj_resp.json["rev"]
+    update_json = {
+        "content_created_date": "2023-03-15T17:02:54",
+        "content_updated_date": "2022-03-30T17:02:54",
+    }
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 400
+    update_json = {
+        "content_updated_date": "2022-03-30T17:02:54",
+    }
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 400
+
+
+def test_changing_none_timestamps(client, user):
+    """
+    Checks that updates with null values are handled correctly
+    """
+    data = get_doc()
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_rev = create_obj_resp.json["rev"]
+    update_json = {
+        "content_created_date": None,
+        "content_updated_date": None,
+    }
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 200
+
+
+def test_changing_timestamps_no_updated_without_created(client, user):
+    """
+    Checks that records cannot be updated to have a content_updated_date when a content_created_date does not exist
+    for the record and one is not provided in the update.
+    """
+    data = get_doc()
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 200
+    obj_did = create_obj_resp.json["did"]
+    obj_rev = create_obj_resp.json["rev"]
+    update_json = {"content_updated_date": "2022-03-30T17:02:54"}
+    update_obj_resp = client.put(
+        f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
+    )
+    assert update_obj_resp.status_code == 400
+
+
+def test_timestamps_updated_not_before_created(client, user):
+    """
+    Checks that records cannot be created with a content_update_date that is before the content_created_date
+    """
+    data = get_doc()
+    data["content_created_date"] = "2023-03-13T17:02:54"
+    data["content_updated_date"] = "2022-03-14T17:02:54"
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 400
+
+
+def test_timestamps_no_updated_without_created(client, user):
+    """
+    Checks that records cannot be created with a content_update_date without providing a content_created_date
+    """
+    data = get_doc()
+    data["content_updated_date"] = "2022-03-14T17:02:54"
+    create_obj_resp = client.post("/index/", json=data, headers=user)
+    assert create_obj_resp.status_code == 400

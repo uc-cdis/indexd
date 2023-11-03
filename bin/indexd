@@ -20,7 +20,7 @@ def setup_logging(log_levels, log_stream, **kwargs):
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
-    parser.set_defaults(log_levels=[logging.ERROR])
+    parser.set_defaults(log_levels=[logging.INFO])
 
     parser.add_argument(
         "--debug",

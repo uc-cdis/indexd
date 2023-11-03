@@ -1,6 +1,9 @@
-import uuid
-from tests.default_test_settings import settings
-from sqlalchemy import create_engine
+"""
+These are tests for the old migration logic, which is DEPRECATED. It is still supported
+for backwards compatibility, but any new migration should be added using Alembic.
+"""
+
+
 from sqlalchemy.ext.declarative import declarative_base
 import sqlite3
 import tests.util as util
@@ -11,14 +14,10 @@ from indexd.index.drivers.alchemy import (
 )
 
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver, AliasSchemaVersion
-
-from indexd.index.drivers.alchemy import migrate_1, migrate_2
 from indexd.index.drivers.alchemy import (
     CURRENT_SCHEMA_VERSION,
     SCHEMA_MIGRATION_FUNCTIONS,
 )
-from tests.alchemy import SQLAlchemyIndexTestDriver
-from sqlalchemy_utils import database_exists, drop_database
 
 Base = declarative_base()
 
@@ -80,7 +79,7 @@ def update_version_table_for_testing(db, tb_name, val):
         conn.commit()
 
 
-def test_migrate_acls(client, user):
+def test_migrate_acls(client, user, postgres_driver):
     data = {
         "form": "object",
         "size": 123,
@@ -95,7 +94,7 @@ def test_migrate_acls(client, user):
     assert res.status_code == 200
 
     # migrate
-    with settings["config"]["INDEX"]["driver"].session as session:
+    with postgres_driver.session as session:
         migrate_7(session)
 
     # check that the record has been migrated
@@ -202,75 +201,5 @@ def test_migrate_alias():
     return test_migrate_alias_internal
 
 
-def test_migrate_index_versioning(monkeypatch):
-    engine = create_engine(settings["config"]["TEST_DB"])
-    if database_exists(engine.url):
-        drop_database(engine.url)
-
-    driver = SQLAlchemyIndexTestDriver(settings["config"]["TEST_DB"])
-    monkeypatch.setattr("indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION", 2)
-    monkeypatch.setattr(
-        "indexd.index.drivers.alchemy.SCHEMA_MIGRATION_FUNCTIONS",
-        [migrate_1, migrate_2],
-    )
-
-    monkeypatch.setattr("indexd.utils.check_engine_for_migrate", lambda _: True)
-
-    conn = driver.engine.connect()
-    for _ in range(10):
-        did = str(uuid.uuid4())
-        rev = str(uuid.uuid4())[:8]
-        size = 512
-        form = "object"
-        conn.execute(
-            "\
-            INSERT INTO index_record(did, rev, form, size) \
-            VALUES ('{}','{}','{}',{})".format(
-                did, rev, form, size
-            )
-        )
-    conn.execute("commit")
-    conn.close()
-
-    driver = SQLAlchemyIndexDriver(settings["config"]["TEST_DB"])
-    with driver.session as s:
-        v = s.query(IndexSchemaVersion).first()
-        assert v.version == 2
-        s.delete(v)
-
-    Base.metadata.reflect(bind=driver.engine)
-    tables = list(Base.metadata.tables.keys())
-
-    for table in INDEX_TABLES:
-        assert table in tables, "{table} not created".format(table=table)
-
-    conn = driver.engine.connect()
-    for table, schema in INDEX_TABLES.items():
-        cols = conn.execute(
-            "\
-            SELECT column_name, data_type \
-            FROM information_schema.columns \
-            WHERE table_schema = 'public' AND table_name = '{table}'".format(
-                table=table
-            )
-        )
-        assert schema == [i for i in cols]
-
-    vids = conn.execute("SELECT baseid FROM index_record").fetchall()
-
-    for baseid in vids:
-        c = conn.execute(
-            "\
-            SELECT COUNT(*) AS number_rows \
-            FROM base_version \
-            WHERE baseid = '{}';".format(
-                baseid[0]
-            )
-        ).fetchone()[0]
-        assert c == 1
-    conn.close()
-
-
 def test_schema_version():
-
     assert CURRENT_SCHEMA_VERSION == len(SCHEMA_MIGRATION_FUNCTIONS)

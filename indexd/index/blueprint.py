@@ -241,209 +241,10 @@ def get_urls():
     return flask.jsonify(ret), 200
 
 
-@blueprint.route("/index/<path:record>", methods=["GET"])
-def get_index_record(record):
-    """
-    Returns a record.
-    """
-
-    ret = blueprint.index_driver.get_with_nonstrict_prefix(record)
-
-    return flask.jsonify(ret), 200
-
-
-@blueprint.route("/index/", methods=["POST"])
-def post_index_record():
-    """
-    Create a new record.
-    """
-    try:
-        jsonschema.validate(flask.request.json, POST_RECORD_SCHEMA)
-    except jsonschema.ValidationError as err:
-        raise UserError(err)
-
-    authz = flask.request.json.get("authz", [])
-    auth.authorize("create", authz)
-
-    did = flask.request.json.get("did")
-    form = flask.request.json["form"]
-    size = flask.request.json["size"]
-    urls = flask.request.json["urls"]
-    acl = flask.request.json.get("acl", [])
-
-    hashes = flask.request.json["hashes"]
-    file_name = flask.request.json.get("file_name")
-    metadata = flask.request.json.get("metadata")
-    urls_metadata = flask.request.json.get("urls_metadata")
-    version = flask.request.json.get("version")
-    baseid = flask.request.json.get("baseid")
-    uploader = flask.request.json.get("uploader")
-
-    did, rev, baseid = blueprint.index_driver.add(
-        form,
-        did,
-        size=size,
-        file_name=file_name,
-        metadata=metadata,
-        urls_metadata=urls_metadata,
-        version=version,
-        urls=urls,
-        acl=acl,
-        authz=authz,
-        hashes=hashes,
-        baseid=baseid,
-        uploader=uploader,
-    )
-
-    ret = {"did": did, "rev": rev, "baseid": baseid}
-
-    return flask.jsonify(ret), 200
-
-
-@blueprint.route("/index/blank/", methods=["POST"])
-def post_index_blank_record():
-    """
-    Create a blank new record with only uploader and optionally
-    file_name fields filled
-    """
-    body = flask.request.get_json() or {}
-    uploader = body.get("uploader")
-    file_name = body.get("file_name")
-    authz = body.get("authz")
-
-    # authorize done in add_blank_record
-    did, rev, baseid = blueprint.index_driver.add_blank_record(
-        uploader=uploader, file_name=file_name, authz=authz
-    )
-
-    ret = {"did": did, "rev": rev, "baseid": baseid}
-
-    return flask.jsonify(ret), 201
-
-
-@blueprint.route("/index/blank/<path:record>", methods=["POST"])
-def add_index_blank_record_version(record):
-    """
-    Create a new blank version of the record with this GUID.
-    Authn/authz fields carry over from the previous version of the record.
-    Only uploader and optionally file_name fields are filled.
-    Returns the GUID of the new blank version and the baseid common to all versions
-    of the record.
-    """
-    body = flask.request.get_json() or {}
-    new_did = body.get("did")
-    uploader = body.get("uploader")
-    file_name = body.get("file_name")
-    authz = body.get("authz")
-
-    # authorize done in add_blank_version for the existing record's authz
-    did, baseid, rev = blueprint.index_driver.add_blank_version(
-        record, new_did=new_did, uploader=uploader, file_name=file_name, authz=authz
-    )
-
-    ret = {"did": did, "baseid": baseid, "rev": rev}
-
-    return flask.jsonify(ret), 201
-
-
-@blueprint.route("/index/blank/<path:record>", methods=["PUT"])
-def put_index_blank_record(record):
-    """
-    Update a blank record with size, hashes and url
-    """
-    rev = flask.request.args.get("rev")
-
-    body = flask.request.get_json() or {}
-    size = body.get("size")
-    hashes = body.get("hashes")
-    urls = body.get("urls")
-    authz = body.get("authz")
-
-    # authorize done in update_blank_record
-    did, rev, baseid = blueprint.index_driver.update_blank_record(
-        did=record, rev=rev, size=size, hashes=hashes, urls=urls, authz=authz
-    )
-    ret = {"did": did, "rev": rev, "baseid": baseid}
-
-    return flask.jsonify(ret), 200
-
-
-@blueprint.route("/index/<path:record>", methods=["PUT"])
-def put_index_record(record):
-    """
-    Update an existing record.
-    """
-    try:
-        jsonschema.validate(flask.request.json, PUT_RECORD_SCHEMA)
-    except jsonschema.ValidationError as err:
-        raise UserError(err)
-
-    rev = flask.request.args.get("rev")
-
-    # authorize done in update
-    did, baseid, rev = blueprint.index_driver.update(record, rev, flask.request.json)
-
-    ret = {"did": did, "baseid": baseid, "rev": rev}
-
-    return flask.jsonify(ret), 200
-
-
-@blueprint.route("/index/<path:record>", methods=["DELETE"])
-def delete_index_record(record):
-    """
-    Delete an existing record.
-    """
-    rev = flask.request.args.get("rev")
-    if rev is None:
-        raise UserError("no revision specified")
-
-    # authorize done in delete
-    blueprint.index_driver.delete(record, rev)
-
-    return "", 200
-
-
-@blueprint.route("/index/<path:record>", methods=["POST"])
-def add_index_record_version(record):
-    """
-    Add a record version
-    """
-    try:
-        jsonschema.validate(flask.request.json, POST_RECORD_SCHEMA)
-    except jsonschema.ValidationError as err:
-        raise UserError(err)
-
-    new_did = flask.request.json.get("did")
-    form = flask.request.json["form"]
-    size = flask.request.json["size"]
-    urls = flask.request.json["urls"]
-    acl = flask.request.json.get("acl", [])
-    authz = flask.request.json.get("authz", [])
-    hashes = flask.request.json["hashes"]
-    file_name = flask.request.json.get("file_name")
-    metadata = flask.request.json.get("metadata")
-    urls_metadata = flask.request.json.get("urls_metadata")
-    version = flask.request.json.get("version")
-
-    # authorize done in add_version for both the old and new authz
-    did, baseid, rev = blueprint.index_driver.add_version(
-        record,
-        form,
-        new_did=new_did,
-        size=size,
-        urls=urls,
-        acl=acl,
-        authz=authz,
-        file_name=file_name,
-        metadata=metadata,
-        urls_metadata=urls_metadata,
-        version=version,
-        hashes=hashes,
-    )
-
-    ret = {"did": did, "baseid": baseid, "rev": rev}
-
-    return flask.jsonify(ret), 200
+# NOTE: /index/<record>/deeper-route methods are above /index/<record> so that routing
+# prefers these first. Without this ordering, newer versions of the web framework
+# were interpretting index/e383a3aa-316e-4a51-975d-d699eff41bd2/aliases/ as routing
+# to /index/<record> where <record> was "e383a3aa-316e-4a51-975d-d699eff41bd2/aliases/"
 
 
 @blueprint.route("/index/<path:record>/aliases", methods=["GET"])
@@ -458,7 +259,7 @@ def get_aliases(record):
     return flask.jsonify(aliases_payload), 200
 
 
-@blueprint.route("/index/<path:record>/aliases", methods=["POST"])
+@blueprint.route("/index/<path:record>/aliases/", methods=["POST"])
 def append_aliases(record):
     """
     Append one or more aliases to aliases already associated with this
@@ -470,6 +271,7 @@ def append_aliases(record):
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
     except jsonschema.ValidationError as err:
+        # TODO I BELIEVE THIS IS WHERE THE ERROR IS
         logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
 
@@ -561,6 +363,256 @@ def get_latest_index_record_versions(record):
     """
     has_version = flask.request.args.get("has_version", "").lower() == "true"
     ret = blueprint.index_driver.get_latest_version(record, has_version=has_version)
+
+    return flask.jsonify(ret), 200
+
+
+## /index
+
+
+@blueprint.route("/index/<path:record>", methods=["GET"])
+def get_index_record(record):
+    """
+    Returns a record.
+    """
+
+    ret = blueprint.index_driver.get_with_nonstrict_prefix(record)
+
+    return flask.jsonify(ret), 200
+
+
+@blueprint.route("/index/", methods=["POST"])
+def post_index_record():
+    """
+    Create a new record.
+    """
+    try:
+        jsonschema.validate(flask.request.json, POST_RECORD_SCHEMA)
+    except jsonschema.ValidationError as err:
+        raise UserError(err)
+
+    authz = flask.request.json.get("authz", [])
+    auth.authorize("create", authz)
+
+    did = flask.request.json.get("did")
+    form = flask.request.json["form"]
+    size = flask.request.json["size"]
+    urls = flask.request.json["urls"]
+    acl = flask.request.json.get("acl", [])
+
+    hashes = flask.request.json["hashes"]
+    file_name = flask.request.json.get("file_name")
+    metadata = flask.request.json.get("metadata")
+    urls_metadata = flask.request.json.get("urls_metadata")
+    version = flask.request.json.get("version")
+    baseid = flask.request.json.get("baseid")
+    uploader = flask.request.json.get("uploader")
+    description = flask.request.json.get("description")
+    content_created_date = flask.request.json.get("content_created_date")
+    content_updated_date = flask.request.json.get("content_updated_date")
+
+    if content_updated_date is None:
+        content_updated_date = content_created_date
+
+    if content_updated_date is not None and content_created_date is None:
+        raise UserError("Cannot set content_updated_date without content_created_date")
+
+    if content_updated_date is not None and content_created_date is not None:
+        if content_updated_date < content_created_date:
+            raise UserError(
+                "content_updated_date cannot come before content_created_date"
+            )
+
+    did, rev, baseid = blueprint.index_driver.add(
+        form,
+        did,
+        size=size,
+        file_name=file_name,
+        metadata=metadata,
+        urls_metadata=urls_metadata,
+        version=version,
+        urls=urls,
+        acl=acl,
+        authz=authz,
+        hashes=hashes,
+        baseid=baseid,
+        uploader=uploader,
+        description=description,
+        content_created_date=content_created_date,
+        content_updated_date=content_updated_date,
+    )
+
+    ret = {"did": did, "rev": rev, "baseid": baseid}
+
+    return flask.jsonify(ret), 200
+
+
+@blueprint.route("/index/blank/", methods=["POST"])
+def post_index_blank_record():
+    """
+    Create a blank new record with only uploader and optionally
+    file_name fields filled
+    """
+    body = flask.request.get_json() or {}
+    uploader = body.get("uploader")
+    file_name = body.get("file_name")
+    authz = body.get("authz")
+
+    # authorize done in add_blank_record
+    did, rev, baseid = blueprint.index_driver.add_blank_record(
+        uploader=uploader, file_name=file_name, authz=authz
+    )
+
+    ret = {"did": did, "rev": rev, "baseid": baseid}
+
+    return flask.jsonify(ret), 201
+
+
+@blueprint.route("/index/blank/<path:record>", methods=["POST"])
+def add_index_blank_record_version(record):
+    """
+    Create a new blank version of the record with this GUID.
+    Authn/authz fields carry over from the previous version of the record.
+    Only uploader and optionally file_name fields are filled.
+    Returns the GUID of the new blank version and the baseid common to all versions
+    of the record.
+    """
+    body = flask.request.get_json() or {}
+    new_did = body.get("did")
+    uploader = body.get("uploader")
+    file_name = body.get("file_name")
+    authz = body.get("authz")
+
+    # authorize done in add_blank_version for the existing record's authz
+    did, baseid, rev = blueprint.index_driver.add_blank_version(
+        record, new_did=new_did, uploader=uploader, file_name=file_name, authz=authz
+    )
+
+    ret = {"did": did, "baseid": baseid, "rev": rev}
+
+    return flask.jsonify(ret), 201
+
+
+@blueprint.route("/index/blank/<path:record>", methods=["PUT"])
+def put_index_blank_record(record):
+    """
+    Update a blank record with size, hashes and url
+    """
+    rev = flask.request.args.get("rev")
+
+    body = flask.request.get_json() or {}
+    size = body.get("size")
+    hashes = body.get("hashes")
+    urls = body.get("urls")
+    authz = body.get("authz")
+
+    # authorize done in update_blank_record
+    did, rev, baseid = blueprint.index_driver.update_blank_record(
+        did=record, rev=rev, size=size, hashes=hashes, urls=urls, authz=authz
+    )
+    ret = {"did": did, "rev": rev, "baseid": baseid}
+
+    return flask.jsonify(ret), 200
+
+
+@blueprint.route("/index/<path:record>", methods=["PUT"])
+def put_index_record(record):
+    """
+    Update an existing record.
+    """
+    try:
+        jsonschema.validate(flask.request.json, PUT_RECORD_SCHEMA)
+    except jsonschema.ValidationError as err:
+        raise UserError(err)
+
+    rev = flask.request.args.get("rev")
+    json = flask.request.json
+    if (
+        json.get("content_updated_date") is not None
+        and json.get("content_created_date") is not None
+    ):
+        if json["content_updated_date"] < json["content_created_date"]:
+            raise UserError(
+                "content_updated_date cannot come before content_created_date"
+            )
+
+    # authorize done in update
+    did, baseid, rev = blueprint.index_driver.update(record, rev, json)
+
+    ret = {"did": did, "baseid": baseid, "rev": rev}
+
+    return flask.jsonify(ret), 200
+
+
+@blueprint.route("/index/<path:record>", methods=["DELETE"])
+def delete_index_record(record):
+    """
+    Delete an existing record.
+    """
+    rev = flask.request.args.get("rev")
+    if rev is None:
+        raise UserError("no revision specified")
+
+    # authorize done in delete
+    blueprint.index_driver.delete(record, rev)
+
+    return "", 200
+
+
+@blueprint.route("/index/<path:record>", methods=["POST"])
+def add_index_record_version(record):
+    """
+    Add a record version
+    """
+    try:
+        jsonschema.validate(flask.request.json, POST_RECORD_SCHEMA)
+    except jsonschema.ValidationError as err:
+        raise UserError(err)
+
+    new_did = flask.request.json.get("did")
+    form = flask.request.json["form"]
+    size = flask.request.json["size"]
+    urls = flask.request.json["urls"]
+    acl = flask.request.json.get("acl", [])
+    authz = flask.request.json.get("authz", [])
+    hashes = flask.request.json["hashes"]
+    file_name = flask.request.json.get("file_name")
+    metadata = flask.request.json.get("metadata")
+    urls_metadata = flask.request.json.get("urls_metadata")
+    version = flask.request.json.get("version")
+    description = flask.request.json.get("description")
+    content_created_date = flask.request.json.get("content_created_date")
+    content_updated_date = flask.request.json.get("content_updated_date")
+
+    if content_updated_date is None:
+        content_updated_date = content_created_date
+
+    if content_updated_date is not None and content_created_date is not None:
+        if content_updated_date < content_created_date:
+            raise UserError(
+                "content_updated_date cannot come before content_created_date"
+            )
+
+    # authorize done in add_version for both the old and new authz
+    did, baseid, rev = blueprint.index_driver.add_version(
+        record,
+        form,
+        new_did=new_did,
+        size=size,
+        urls=urls,
+        acl=acl,
+        authz=authz,
+        file_name=file_name,
+        metadata=metadata,
+        urls_metadata=urls_metadata,
+        version=version,
+        hashes=hashes,
+        description=description,
+        content_created_date=content_created_date,
+        content_updated_date=content_updated_date,
+    )
+
+    ret = {"did": did, "baseid": baseid, "rev": rev}
 
     return flask.jsonify(ret), 200
 
