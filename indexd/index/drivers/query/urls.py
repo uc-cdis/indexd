@@ -35,7 +35,6 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         fields="did,urls",
         **kwargs
     ):
-
         if kwargs:
             raise UserError(
                 "Unexpected query parameter(s) {}".format(list(kwargs.keys()))
@@ -102,7 +101,6 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         fields="did,urls,rev",
         **kwargs
     ):
-
         if kwargs:
             raise UserError(
                 "Unexpected query parameter(s) {}".format(list(kwargs.keys()))

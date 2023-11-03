@@ -28,7 +28,6 @@ def test_driver_init_does_not_create_records():
     )  # pylint: disable=unused-variable
 
     with sqlite3.connect("auth.sq3") as conn:
-
         count = conn.execute(
             """
             SELECT COUNT(*) FROM auth_record
@@ -46,7 +45,6 @@ def test_driver_auth_accepts_good_creds():
     driver = SQLAlchemyAuthDriver("sqlite:///auth.sq3")
 
     with sqlite3.connect("auth.sq3") as conn:
-
         conn.execute(
             """
             INSERT INTO auth_record VALUES (?,?)
@@ -65,7 +63,6 @@ def test_driver_auth_rejects_bad_creds():
     driver = SQLAlchemyAuthDriver("sqlite:///auth.sq3")
 
     with sqlite3.connect("auth.sq3") as conn:
-
         conn.execute(
             """
             INSERT INTO auth_record VALUES (?, ?)
@@ -88,7 +85,6 @@ def test_driver_auth_returns_user_context():
     driver = SQLAlchemyAuthDriver("sqlite:///auth.sq3")
 
     with sqlite3.connect("auth.sq3") as conn:
-
         conn.execute(
             """
             INSERT INTO auth_record VALUES (?,?)

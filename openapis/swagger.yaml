@@ -41,6 +41,8 @@ tags:
     description: 'Data Repository Service Retrieval Endpoints'
   - name: bundle
     description: 'Bundle endpoints.'
+  - name: GUID
+    description: Endpoints for generation of Gen3 GUIDs
   - name: system
     description: System endpoints
 schemes:
@@ -1099,70 +1101,6 @@ paths:
         - authToken: []
       tags:
         - DRS
-  '/ga4gh/drs/v1/objects/{object_id}/access/{access_id}':
-    get:
-      summary: Get a URL for fetching bytes.
-      description: >-
-        Returns a URL that can be used to fetch the bytes of a DrsObject.
-        This method only needs to be called when using an AccessMethod that contains an access_id
-        (e.g., for servers that use signed URLs for fetching object bytes).
-      operationId: GetAccessURL
-      responses:
-        '200':
-          description: The access URL was found successfully.
-          schema:
-            $ref: '#/definitions/AccessURL'
-        # '202':
-        #   description: >
-        #     The operation is delayed and will continue asynchronously.
-        #     The client should retry this same request after the delay specified by Retry-After header.
-        #   headers:
-        #     Retry-After:
-        #       description: >
-        #         Delay in seconds. The client should retry this same request after waiting for this duration.
-        #         To simplify client response processing, this must be an integral relative time in seconds.
-        #         This value SHOULD represent the minimum duration the client should wait before attempting
-        #         the operation again with a reasonable expectation of success. When it is not feasible
-        #         for the server to determine the actual expected delay, the server may return a
-        #         brief, fixed value instead.
-        #       type: integer
-        #       format: int64
-        '400':
-          description: The request is malformed.
-          schema:
-            $ref: '#/definitions/Error'
-        '401':
-          description: The request is unauthorized.
-          schema:
-            $ref: '#/definitions/Error'
-        '404':
-          description: The requested access URL wasn't found
-          schema:
-            $ref: '#/definitions/Error'
-        '403':
-          description: The requester is not authorized to perform this action.
-          schema:
-            $ref: '#/definitions/Error'
-        '500':
-          description: An unexpected error occurred.
-          schema:
-            $ref: '#/definitions/Error'
-      parameters:
-        - name: object_id
-          in: path
-          required: true
-          type: string
-          description: An id of a DrsObject
-        - name: access_id
-          in: path
-          required: true
-          type: string
-          description: An access_id from the access_methods list of a DrsObject
-      security:
-        - authToken: []
-      tags:
-        - DRS
-      x-swagger-router-controller: ga4gh.drs.server
   '/bundle':
     post:
       tags:
@@ -1391,6 +1329,38 @@ paths:
            $ref: '#/definitions/URLsOutput'
        400:
          description: invalid request parameters
+  '/guid/mint':
+    get:
+      tags:
+        - GUID
+      summary: Get a list of valid GUIDs without actually indexing records
+      operationId: getGUIDs
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: count
+          type: string
+          description: Number of GUIDs to return, default is 1 (note that there is a max of 10k)
+          required: false
+      responses:
+       200:
+         description: successful
+         schema:
+           $ref: '#/definitions/GetGUIDsOutput'
+  '/guid/prefix':
+    get:
+      tags:
+        - GUID
+      summary: Provide prefix used for this instance (if any)
+      operationId: getPrefix
+      produces:
+        - application/json
+      responses:
+       200:
+         description: successful
+         schema:
+           $ref: '#/definitions/GetPrefixOutput'
 
 securityDefinitions:
   basic_auth:
@@ -1404,6 +1374,20 @@ securityDefinitions:
     name: Authorization
     in: header
 definitions:
+  GetGUIDsOutput:
+    type: object
+    properties:
+      guids:
+        type: array
+        items:
+          type: string
+          description: GUIDs
+  GetPrefixOutput:
+    type: object
+    properties:
+      prefix:
+        type: string
+        description: Prefix
   AliasInfo:
       type: object
       properties:
@@ -1479,6 +1463,17 @@ definitions:
           type: string
       hashes:
         $ref: '#/definitions/HashInfo'
+      description:
+        type: string
+        description: optional description of the object
+      content_created_date:
+        type: string
+        format: date-time
+        description: optional creation date and time of the content being indexed
+      content_updated_date:
+        type: string
+        format: date-time
+        description: optional creation date and time of the content being indexed
   BulkInputInfo:
     type: array
     items:
@@ -2366,7 +2361,12 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Checksum'
-
+      description:
+        type: string
+        description: optional description of the object
+      version:
+        type: string
+        description: optional version string of the object
       bundles:
         type: array
         items:

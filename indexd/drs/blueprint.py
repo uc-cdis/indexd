@@ -1,14 +1,53 @@
+import os
+import re
 import flask
 import json
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
+from indexd.utils import reverse_url
 
 blueprint = flask.Blueprint("drs", __name__)
 
 blueprint.config = dict()
 blueprint.index_driver = None
+blueprint.service_info = {}
+
+
+@blueprint.route("/ga4gh/drs/v1/service-info", methods=["GET"])
+def get_drs_service_info():
+    """
+    Returns DRS compliant service information
+    """
+
+    reverse_domain_name = reverse_url(url=os.environ["HOSTNAME"])
+
+    ret = {
+        "id": reverse_domain_name,
+        "name": "DRS System",
+        "version": "1.0.3",
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "drs",
+            "version": "1.0.3",
+        },
+        "organization": {
+            "name": "CTDS",
+            "url": "https://" + os.environ["HOSTNAME"],
+        },
+    }
+
+    if blueprint.service_info:
+        for key, value in blueprint.service_info.items():
+            if key in ret:
+                if isinstance(value, dict):
+                    for inner_key, inner_value in value.items():
+                        ret[key][inner_key] = inner_value
+                else:
+                    ret[key] = value
+
+    return flask.jsonify(ret), 200
 
 
 @blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["GET"])
@@ -64,26 +103,6 @@ def list_drs_records():
     return flask.jsonify(ret), 200
 
 
-@blueprint.route(
-    "/ga4gh/drs/v1/objects/<path:object_id>/access",
-    defaults={"access_id": None},
-    methods=["GET"],
-)
-@blueprint.route(
-    "/ga4gh/drs/v1/objects/<path:object_id>/access/<path:access_id>", methods=["GET"]
-)
-def get_signed_url(object_id, access_id):
-    if not access_id:
-        raise (UserError("Access ID/Protocol is required."))
-    res = flask.current_app.fence_client.get_signed_url_for_object(
-        object_id=object_id, access_id=access_id
-    )
-    if not res:
-        raise IndexNoRecordFound("No signed url found")
-
-    return res, 200
-
-
 def create_drs_uri(did):
     """
     Return ga4gh-compilant drs format uri
@@ -131,21 +150,25 @@ def indexd_to_drs(record, expand=False):
 
     name = record["file_name"] if "file_name" in record else record["name"]
 
-    created_time = (
+    index_created_time = (
         record["created_date"] if "created_date" in record else record["created_time"]
     )
 
     version = (
-        record["rev"]
-        if "rev" in record
-        else record["version"]
+        record["version"]
         if "version" in record
+        else record["rev"]
+        if "rev" in record
         else ""
     )
 
-    updated_date = (
+    index_updated_time = (
         record["updated_date"] if "updated_date" in record else record["updated_time"]
     )
+
+    content_created_date = record.get("content_created_date", "")
+
+    content_updated_date = record.get("content_updated_date", "")
 
     form = record["form"] if "form" in record else "bundle"
 
@@ -154,18 +177,19 @@ def indexd_to_drs(record, expand=False):
     alias = (
         record["alias"]
         if "alias" in record
-        else eval(record["aliases"])
+        else json.loads(record["aliases"])
         if "aliases" in record
         else []
     )
 
     drs_object = {
         "id": did,
-        "description": "",
         "mime_type": "application/json",
         "name": name,
-        "created_time": created_time,
-        "updated_time": updated_date,
+        "index_created_time": index_created_time,
+        "index_updated_time": index_updated_time,
+        "created_time": content_created_date,
+        "updated_time": content_updated_date,
         "size": record["size"],
         "aliases": alias,
         "self_uri": self_uri,
@@ -256,11 +280,18 @@ def bundle_to_drs(record, expand=False, is_content=False):
         aliases = (
             record["alias"]
             if "alias" in record
-            else eval(record["aliases"])
+            else json.loads(record["aliases"])
             if "aliases" in record
             else []
         )
-        version = record["version"] if "version" in record else ""
+        version = (
+            record["version"]
+            if "version" in record
+            else record["rev"]
+            if "rev" in record
+            else ""
+        )
+        # version = record["version"] if "version" in record else ""
         drs_object["checksums"] = parse_checksums(record, drs_object)
 
         created_time = (
@@ -342,3 +373,9 @@ def handle_unexpected_error(err):
 def get_config(setup_state):
     index_config = setup_state.app.config["INDEX"]
     blueprint.index_driver = index_config["driver"]
+
+
+@blueprint.record
+def get_config(setup_state):
+    if "DRS_SERVICE_INFO" in setup_state.app.config:
+        blueprint.service_info = setup_state.app.config["DRS_SERVICE_INFO"]

@@ -29,6 +29,10 @@ dist = environ.get("DIST", None)
 if dist:
     CONFIG["DIST"] = json.loads(dist)
 
+drs_service_info = environ.get("DRS_SERVICE_INFO", None)
+if drs_service_info:
+    CONFIG["DRS_SERVICE_INFO"] = json.loads(drs_service_info)
+
 CONFIG["INDEX"] = {
     "driver": SQLAlchemyIndexDriver(
         "postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}".format(

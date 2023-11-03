@@ -1,5 +1,0 @@
-bin/*
-indexd/*
-poetry.lock
-pyproject.toml
-wsgi.py
