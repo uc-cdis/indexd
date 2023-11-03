@@ -392,7 +392,6 @@ def post_index_record():
         raise UserError(err)
 
     authz = flask.request.json.get("authz", [])
-    logger.info("Checking authorization")
     auth.authorize("create", authz)
 
     did = flask.request.json.get("did")

@@ -102,7 +102,6 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         Returns a dict of user information.
         Raises AutheError otherwise.
         """
-        logger.info(f"Checking username/password={username}/{password}")
         password = self.digest(password)
         with self.session as session:
             query = session.query(AuthRecord)
