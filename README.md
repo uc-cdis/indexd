@@ -176,7 +176,7 @@ The additional usage of the Gen3 Auth services will enable data access through s
 
 If you know the URL of a particular Data GUID resolution service (like Indexd), which is associated with a particular prefix, you can directly access that service to get the relevant record.
 
-Otherwise, you can access a centralized resolver like [dataguid.org](dataguid.org), which will resolve you to the data GUID service associated with the GUID's prefix.
+Otherwise, you can access a centralized resolver like [dataguids.org](dataguids.org), which will resolve you to the data GUID service associated with the GUID's prefix.
 
 Indexd's distributed resolution logic for a given GUID/alias is roughly as follows:
 
