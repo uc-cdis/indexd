@@ -11,4 +11,4 @@ poetry install -vv --no-dev --no-interaction && poetry show -v
 python3 -m pip install cdispyutils
 popd
 
-/dockerrun.sh
+# /dockerrun.sh
