@@ -104,10 +104,8 @@ def get_index(form=None):
 
     validate_hashes(**hashes)
     hashes = hashes if hashes else None
-
     metadata = flask.request.args.getlist("metadata")
     metadata = {k: v for k, v in (x.split(":", 1) for x in metadata)}
-
     acl = flask.request.args.get("acl")
     if acl is not None:
         acl = [] if acl == "null" else acl.split(",")
@@ -154,23 +152,27 @@ def get_index(form=None):
             negate_params=negate_params,
         )
     else:
-        records = blueprint.index_driver.ids(
-            start=start,
-            limit=limit,
-            page=page,
-            size=size,
-            file_name=file_name,
-            version=version,
-            urls=urls,
-            acl=acl,
-            authz=authz,
-            hashes=hashes,
-            uploader=uploader,
-            ids=ids,
-            metadata=metadata,
-            urls_metadata=urls_metadata,
-            negate_params=negate_params,
-        )
+        try:
+            records = blueprint.index_driver.ids(
+                start=start,
+                limit=limit,
+                page=page,
+                size=size,
+                file_name=file_name,
+                version=version,
+                urls=urls,
+                acl=acl,
+                authz=authz,
+                hashes=hashes,
+                uploader=uploader,
+                ids=ids,
+                metadata=metadata,
+                urls_metadata=urls_metadata,
+                negate_params=negate_params,
+            )
+        except Exception as e:
+            print("--------id err--------------------------------")
+            print(e)
 
     base = {
         "ids": ids,
@@ -186,9 +188,16 @@ def get_index(form=None):
         "authz": authz,
         "hashes": hashes,
         "metadata": metadata,
+        "urls_metadata": urls_metadata,
     }
-
-    return flask.jsonify(base), 200
+    try:
+        return flask.jsonify(base), 200
+    except Exception as e:
+        print("------------jsonmiguous- ")
+        print(records)
+        for key, value in base.items():
+            print(key, value, type(value))
+        print(e)
 
 
 @blueprint.route("/urls/", methods=["GET"])
@@ -376,9 +385,13 @@ def get_index_record(record):
     Returns a record.
     """
 
-    ret = blueprint.index_driver.get_with_nonstrict_prefix(record)
+    try:
+        ret = blueprint.index_driver.get_with_nonstrict_prefix(record)
 
-    return flask.jsonify(ret), 200
+        return flask.jsonify(ret), 200
+    except Exception as e:
+        print("-------------GET record----------------")
+        print(e)
 
 
 @blueprint.route("/index/", methods=["POST"])
@@ -537,8 +550,12 @@ def put_index_record(record):
             )
 
     # authorize done in update
-    did, baseid, rev = blueprint.index_driver.update(record, rev, json)
-
+    print("-----------pre driver-----------")
+    try:
+        did, baseid, rev = blueprint.index_driver.update(record, rev, json)
+    except Exception as e:
+        print(e)
+    print("-----------post driver-----------")
     ret = {"did": did, "baseid": baseid, "rev": rev}
 
     return flask.jsonify(ret), 200

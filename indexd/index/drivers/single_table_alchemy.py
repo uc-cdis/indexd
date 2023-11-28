@@ -9,6 +9,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 
+from indexd import auth
+from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
 from indexd.index.drivers.alchemy import IndexSchemaVersion
 from indexd.utils import migrate_database
@@ -21,7 +23,7 @@ class Record(Base):
     Base index record representation.
     """
 
-    __tablename__ = "Record"
+    __tablename__ = "record"
 
     guid = Column(String, primary_key=True)
 
@@ -44,6 +46,60 @@ class Record(Base):
     record_metadata = Column(JSONB)
     url_metadata = Column(JSONB)
     alias = Column(ARRAY(String))
+
+    def to_document_dict(self):
+        """
+        Get the full index document
+        """
+        try:
+            # TODO: some of these fields may not need to be a variable and could directly go to the return object -Binam
+            urls = self.urls
+            acl = self.acl
+            authz = self.authz
+            hashes = self.hashes
+            record_metadata = self.record_metadata
+            url_metadata = self.url_metadata
+            created_date = self.created_date.isoformat()
+            updated_date = self.updated_date.isoformat()
+            content_created_date = (
+                self.content_created_date.isoformat()
+                if self.content_created_date is not None
+                else None
+            )
+            content_updated_date = (
+                self.content_updated_date.isoformat()
+                if self.content_updated_date is not None
+                else None
+            )
+
+            print("----------------------def to doc------------------------")
+            print(url_metadata)
+            print(self.guid)
+
+            return {
+                "did": self.guid,
+                "baseid": self.baseid,
+                "rev": self.rev,
+                "size": self.size,
+                "file_name": self.file_name,
+                "version": self.version,
+                "uploader": self.uploader,
+                "urls": urls,
+                "url_metadata": url_metadata,
+                "acl": acl,
+                "authz": authz,
+                "hashes": hashes,
+                "metadata": record_metadata,
+                "form": self.form,
+                "created_date": created_date,
+                "updated_date": updated_date,
+                "description": self.description,
+                "content_created_date": content_created_date,
+                "content_updated_date": content_updated_date,
+            }
+        except Exception as e:
+            print("---------to doc dict---------")
+            print(e)
 
 
 class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
@@ -101,6 +157,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         ids=None,
         urls_metadata=None,
         negate_params=None,
+        page=None,
     ):
         with self.session as session:
             query = session.query(Record)
@@ -122,33 +179,44 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             if urls:
                 for u in urls:
-                    query = query.filter(Record.urls.contains(u)).all()
+                    query = query.filter(Record.urls == u).all()
 
             if acl:
                 for u in acl:
-                    query = query.filter(Record.acl.contains(u).all())
+                    query = query.filter(Record.acl == u).all()
             elif acl == []:
                 query = query.filter(Record.acl == None)
 
             if authz:
                 for u in authz:
-                    query = query.filter(Record.authz.contains(u)).all()
+                    query = query.filter(Record.authz == u).all()
             elif authz == []:
                 query = query.filter(Record.authz == None)
 
             if hashes:
                 for h, v in hashes.items():
-                    query = query.filter(Record.hashes.contains({h: v}))
+                    query = query.filter(Record.hashes == {h: v})
 
             if metadata:
                 for k, v in metadata.items():
-                    query = query.filter(Record.metadata.contains({k: v}))
+                    query = query.filter(Record.record_metadata[k].astext == v)
 
             if urls_metadata:
+                print("============if urlsmetadata============")
+                print(urls_metadata)
                 for url_key, url_dict in urls_metadata.items():
-                    query = query.filter(Record.urls_metadata.contains(url_key))
+                    query = query.filter(Record.url_metadata.op("?")(url_key))
                     for k, v in url_dict.items():
-                        query = query.filter(Record.urls_metadata.any({k: v}))
+                        print("----------kv ----------")
+                        print(k, v)
+                        # query = query.filter(
+                        #     Record.url_metadata.any(
+                        #        Record.url_metadata.op('->>')(k) == v
+                        #     )
+                        # )
+                        query = query.filter(
+                            Record.url_metadata.op("->>")(k).astext == v
+                        )
 
             if negate_params:
                 query = self._negate_filter(session, query, **negate_params)
@@ -183,6 +251,9 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             if page is not None:
                 query = query.offset(limit * page)
+
+            print("---------ids----------")
+            print(query.statement)
 
             return [i.to_document_dict() for i in query]
 
@@ -236,7 +307,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
     ):
         """
         Creates a new record given size, urls, acl, authz, hashes, metadata,
-        urls_metadata file name and version
+        url_metadata file name and version
         if guid is provided, update the new record with the guid otherwise create it
         """
 
@@ -245,7 +316,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         authz = authz or []
         hashes = hashes or {}
         metadata = metadata or {}
-        urls_metadata = urls_metadata or {}
+        url_metadata = urls_metadata or {}
 
         with self.session as session:
             record = Record()
@@ -279,7 +350,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             record.hashes = hashes
 
-            record.metadata = metadata
+            record.record_metadata = metadata
 
             record.description = description
 
@@ -295,8 +366,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 )
 
             try:
-                checked_urls_metadata = check_urls_metadata(urls_metadata, record)
-                record.url_metadata = checked_urls_metadata
+                checked_url_metadata = check_url_metadata(url_metadata, record)
+                record.url_metadata = checked_url_metadata
 
                 if self.config.get("Add_PREFIX_ALIAS"):
                     self.add_prefix_alias(record, session)
@@ -362,8 +433,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             "urls",
             "acl",
             "authz",
-            "metadata",
-            "urls_metadata",
+            "record_metadata",
+            "url_metadata",
             "content_created_date",
             "content_updated_date",
         ]
@@ -374,7 +445,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record = query.one()
             except NoResultFound:
-                raise NoRecordFound("no record found")
+                raise NoRecordFound("no Record found")
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
@@ -382,7 +453,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 raise RevisionMismatch("Revision mismatch")
 
             # Some operations are dependant on other operations. For example
-            # urls has to be updated before urls_metadata because of schema
+            # urls has to be updated before url_metadata because of schema
             # constraints.
             if "urls" in changing_fields:
                 session.delete(record.urls)
@@ -411,17 +482,17 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 raise
 
             if "metadata" in changing_fields:
-                session.delete(record.metadata)
+                session.delete(record.record_metadata)
 
-                record.metadata = changing_fields["metadata"].items()
+                record.record_metadata = changing_fields["record_metadata"].items()
 
-            if "urls_metadata" in changing_fields:
+            if "url_metadata" in changing_fields:
                 session.delete(record.url_metadata)
 
-                checked_urls_metadata = check_urls_metadata(
-                    changing_fields["urls_metadata"], record
+                checked_url_metadata = check_url_metadata(
+                    changing_fields["url_metadata"], record
                 )
-                record.url_metadata = checked_urls_metadata
+                record.url_metadata = checked_url_metadata
 
             if changing_fields.get("content_created_date") is not None:
                 record.content_created_date = datetime.datetime.fromisoformat(
@@ -430,7 +501,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             if changing_fields.get("content_updated_date") is not None:
                 if record.content_created_date is None:
                     raise UserError(
-                        "Cannot set content_updated_date on record that does not have a content_created_date"
+                        "Cannot set content_updated_date on Record that does not have a content_created_date"
                     )
                 if record.content_created_date > datetime.datetime.fromisoformat(
                     changing_fields["content_updated_date"]
@@ -487,7 +558,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         size=None,
         file_name=None,
         metadata=None,
-        urls_metadata=None,
+        url_metadata=None,
         version=None,
         urls=None,
         acl=None,
@@ -505,7 +576,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         authz = authz or []
         hashes = hashes or {}
         metadata = metadata or {}
-        urls_metadata = urls_metadata or {}
+        url_metadata = url_metadata or {}
 
         with self.session as session:
             query = session.query(Record).filter_by(guid=current_guid)
@@ -520,7 +591,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             auth.authorize("update", [u.resource for u in record.authz] + authz)
 
             baseid = record.baseid
-            record = IndexRecord()
+            record = Record()
             guid = new_guid
             if not guid:
                 guid = str(uuid.uuid4())
@@ -541,8 +612,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record.acl = acl
             record.authz = authz
             record.hashes = hashes
-            record.metadata = metadata
-            record.url_metadata = check_urls_metadata(urls_metadata, record)
+            record.record_metadata = metadata
+            record.url_metadata = check_url_metadata(url_metadata, record)
 
             try:
                 session.add(record)
@@ -675,7 +746,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             )
 
             if has_version:
-                query = query.filter(Record.version.isnot(None))
+                query = query.filter(record.version.isnot(None))
             record = query.first()
             if not record:
                 raise NoRecordFound("no record found")
@@ -694,7 +765,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             return True
 
-    def __contains__(self, guid):
+    def __contains__(self, record):
         """
         Returns True if record is stored by backend.
         Returns False otherwise.
@@ -731,17 +802,15 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             return session.execute(select([func.count()]).select_from(Record)).scalar()
 
 
-def check_urls_metadata(urls_metadata, record):
+def check_url_metadata(url_metadata, record):
     """
     create url metadata record in database
     """
-    print("--------------------------------")
     urls = {u for u in record.urls}
-    print(urls)
-    for url, url_metadata in urls_metadata.items():
+    for url, metadata in url_metadata.items():
         if url not in urls:
-            raise UserError("url {} in urls_metadata does not exist".format(url))
-    return urls_metadata
+            raise UserError("url {} in url_metadata does not exist".format(url))
+    return url_metadata
 
 
 SCHEMA_MIGRATION_FUNCTIONS = []

@@ -1,7 +1,6 @@
 from .index.drivers.alchemy import SQLAlchemyIndexDriver
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
-from .index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
 
 CONFIG = {}
 
@@ -18,7 +17,7 @@ CONFIG["DB_MIGRATION_POSTGRES_LOCK_KEY"] = 100
 # will be created as "<PREFIX><PREFIX><GUID>".
 CONFIG["INDEX"] = {
     "driver": SQLAlchemyIndexDriver(
-        "sqlite:///index.sq3",
+        "postgres://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
         echo=True,
         index_config={
             "DEFAULT_PREFIX": "testprefix:",
@@ -28,7 +27,12 @@ CONFIG["INDEX"] = {
     )
 }
 
-CONFIG["ALIAS"] = {"driver": SQLAlchemyAliasDriver("sqlite:///alias.sq3", echo=True)}
+CONFIG["ALIAS"] = {
+    "driver": SQLAlchemyAliasDriver(
+        "postgres://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+        echo=True,  # pragma: allowlist secret
+    )
+}
 
 
 CONFIG["DIST"] = [
@@ -62,6 +66,8 @@ CONFIG["DRS_SERVICE_INFO"] = {
     },
 }
 
-AUTH = SQLAlchemyAuthDriver("sqlite:///auth.sq3")
+AUTH = SQLAlchemyAuthDriver(
+    "postgres://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+)  # pragma: allowlist secret
 
 settings = {"config": CONFIG, "auth": AUTH}
