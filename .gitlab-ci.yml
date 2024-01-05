@@ -1,13 +1,16 @@
 ---
 include:
   - project: nci-gdc/gitlab-templates
-    ref: 0.3.1
+    ref: 0.5.1
     file:
       - templates/global/full.yaml
       - templates/python/full.yaml
       - templates/common/python.yaml
       - templates/common/docker.yaml
       - templates/deployments/salt-service.yaml
+
+variables:
+  DEPLOY_SERVICE_TAG: $CI_COMMIT_SHA
 
 .services:
   allow_failure: true
