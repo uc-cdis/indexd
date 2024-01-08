@@ -2,23 +2,27 @@ ARG base_version=1.2.0
 ARG registry=quay.io
 
 FROM ${registry}/ncigdc/python38-builder:${base_version} as build
+ARG NAME=indexd
+ARG PIP_INDEX_URL
+ENV PIP_INDEX_URL=$PIP_INDEX_URL
+
+WORKDIR /${NAME}
 
 # Copy only requirements.txt here so Docker can cache the layer with
 # the installed packages if the pins don't change.
-COPY requirements.txt /indexd/
-WORKDIR /indexd
+COPY requirements.txt ./
 RUN pip3 install --no-deps -r requirements.txt
 
 # Now install the code for indexd itself.
-COPY . /indexd
+COPY . .
 RUN pip3 install --no-deps .
 
 
 FROM ${registry}/ncigdc/python38-httpd:${base_version}
 
-LABEL org.opencontainers.image.title="indexd" \
-      org.opencontainers.image.description="indexd container image" \
-      org.opencontainers.image.source="https://github.com/NCI-GDC/indexd" \
+LABEL org.opencontainers.image.title=${NAME} \
+      org.opencontainers.image.description="${NAME} container image" \
+      org.opencontainers.image.source="https://github.com/NCI-GDC/${NAME}" \
       org.opencontainers.image.vendor="NCI GDC"
 
 
