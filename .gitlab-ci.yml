@@ -1,7 +1,7 @@
 ---
 include:
   - project: nci-gdc/gitlab-templates
-    ref: 0.3.1
+    ref: 0.6.2
     file:
       - templates/global/full.yaml
       - templates/python/full.yaml
@@ -9,17 +9,11 @@ include:
       - templates/common/docker.yaml
       - templates/deployments/salt-service.yaml
 
-.services:
-  allow_failure: true
-  stage: deploy
-  when: manual
-  parallel:
-    matrix:
-      - DEPLOY_SERVICE_LIST: [ indexd ]
-
 pre-commit:
   variables:
     PRE_COMMIT_VERSION: 3.4.0
+  except:
+    - tags
 
 tox:
   parallel:
@@ -45,6 +39,8 @@ tox:
     - java -version
     - pip install 'tox < 4'
     - tox -e py
+  except:
+    - tags
 
 release:
   variables:
@@ -57,3 +53,15 @@ release:
     paths:
       - VERSION.txt
     expire_in: 1 week
+
+.deploy-service-with-salt:
+  before_script:
+    - export DEPLOY_SERVICE_TAG=${CI_COMMIT_TAG:-$CI_COMMIT_SHA}
+
+.services:
+  allow_failure: true
+  stage: deploy
+  when: manual
+  parallel:
+    matrix:
+      - DEPLOY_SERVICE_LIST: [ indexd ]
