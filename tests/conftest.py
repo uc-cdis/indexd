@@ -115,12 +115,6 @@ def app():
 
 @pytest.fixture
 def user(app):
-    # app.auth.add("test", "test")
-    # yield {
-    #     "Authorization": ("Basic " + base64.b64encode(b"test:test").decode("ascii")),
-    #     "Content-Type": "application/json",
-    # }
-    # app.auth.delete("test")
     engine = create_engine(POSTGRES_CONNECTION)
     driver = SQLAlchemyAuthDriver(POSTGRES_CONNECTION)
 
@@ -184,8 +178,12 @@ def use_mock_authz(request):
             assert isinstance(allowed_permissions, list)
 
             def mock_authz(method, resources):
+                print("=======mock authz==================")
+                print(resources)
+                print(allowed_permissions)
                 for resource in resources:
                     if (method, resource) not in allowed_permissions:
+                        print("-------------method loop failed-------------")
                         raise AuthError(
                             "Mock indexd.auth.authz: ({},{}) is not one of the allowed permissions: {}".format(
                                 method, resource, allowed_permissions

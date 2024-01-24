@@ -113,12 +113,9 @@ def test_index_list_with_params(
 
     param = {"bucket": {"state": "error", "other": "xxx"}}
 
-    print("====================urls metadata test=====================")
     data_by_url_md = client.get("/index/?urls_metadata=" + json.dumps(param))
     assert data_by_url_md.status_code == 200
     data_list = data_by_url_md.json
-    print("-------data by url--------------")
-    print(data_list)
     assert len(data_list["records"]) == 1
     assert data_list["records"][0]["did"] == rec_1["did"]
     assert data_list["records"][0]["urls_metadata"] == data1["urls_metadata"]
@@ -812,9 +809,7 @@ def test_create_blank_version(client, user, combined_default_and_single_table_se
     )
     original_doc_guid = res.json["did"]
 
-    def assert_acl_authz_and_baseid(
-        acl, authz, baseid, guid, combined_default_and_single_table_settings
-    ):
+    def assert_acl_authz_and_baseid(acl, authz, baseid, guid):
         """
         Helper to GET record with specified guid and assert acl, authz, and
         baseid.
@@ -1417,7 +1412,7 @@ def test_cant_update_inexistent_blank_record(
     assert res.status_code == 404
 
 
-def test_update_urls_metadata(client, user):
+def test_update_urls_metadata(client, user, combined_default_and_single_table_settings):
     data = get_doc(has_urls_metadata=True)
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
@@ -1515,6 +1510,17 @@ def test_urls_metadata_partial_match(
     rec = res.json
 
     ids = {r["did"] for r in rec["records"]}
+
+    print("-----------------the test-------------------")
+    print(ids)
+    print({url_doc_mapping[url]["did"] for url in expected})
+    print("---params---")
+    print(params)
+    r = client.get("/index/")
+    print("----get all-----")
+    print(r.json["records"])
+    print(len(r.json["records"]))
+
     assert ids == {url_doc_mapping[url]["did"] for url in expected}
 
 

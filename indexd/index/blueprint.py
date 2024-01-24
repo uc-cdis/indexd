@@ -152,27 +152,23 @@ def get_index(form=None):
             negate_params=negate_params,
         )
     else:
-        try:
-            records = blueprint.index_driver.ids(
-                start=start,
-                limit=limit,
-                page=page,
-                size=size,
-                file_name=file_name,
-                version=version,
-                urls=urls,
-                acl=acl,
-                authz=authz,
-                hashes=hashes,
-                uploader=uploader,
-                ids=ids,
-                metadata=metadata,
-                urls_metadata=urls_metadata,
-                negate_params=negate_params,
-            )
-        except Exception as e:
-            print("--------id err--------------------------------")
-            print(e)
+        records = blueprint.index_driver.ids(
+            start=start,
+            limit=limit,
+            page=page,
+            size=size,
+            file_name=file_name,
+            version=version,
+            urls=urls,
+            acl=acl,
+            authz=authz,
+            hashes=hashes,
+            uploader=uploader,
+            ids=ids,
+            metadata=metadata,
+            urls_metadata=urls_metadata,
+            negate_params=negate_params,
+        )
 
     base = {
         "ids": ids,
@@ -190,14 +186,7 @@ def get_index(form=None):
         "metadata": metadata,
         "urls_metadata": urls_metadata,
     }
-    try:
-        return flask.jsonify(base), 200
-    except Exception as e:
-        print("------------jsonmiguous- ")
-        print(records)
-        for key, value in base.items():
-            print(key, value, type(value))
-        print(e)
+    return flask.jsonify(base), 200
 
 
 @blueprint.route("/urls/", methods=["GET"])
@@ -384,14 +373,9 @@ def get_index_record(record):
     """
     Returns a record.
     """
+    ret = blueprint.index_driver.get_with_nonstrict_prefix(record)
 
-    try:
-        ret = blueprint.index_driver.get_with_nonstrict_prefix(record)
-
-        return flask.jsonify(ret), 200
-    except Exception as e:
-        print("-------------GET record----------------")
-        print(e)
+    return flask.jsonify(ret), 200
 
 
 @blueprint.route("/index/", methods=["POST"])
@@ -500,7 +484,6 @@ def add_index_blank_record_version(record):
     did, baseid, rev = blueprint.index_driver.add_blank_version(
         record, new_did=new_did, uploader=uploader, file_name=file_name, authz=authz
     )
-
     ret = {"did": did, "baseid": baseid, "rev": rev}
 
     return flask.jsonify(ret), 201
@@ -550,12 +533,7 @@ def put_index_record(record):
             )
 
     # authorize done in update
-    print("-----------pre driver-----------")
-    try:
-        did, baseid, rev = blueprint.index_driver.update(record, rev, json)
-    except Exception as e:
-        print(e)
-    print("-----------post driver-----------")
+    did, baseid, rev = blueprint.index_driver.update(record, rev, json)
     ret = {"did": did, "baseid": baseid, "rev": rev}
 
     return flask.jsonify(ret), 200
@@ -754,7 +732,6 @@ def post_bundle():
             for checksum in flask.request.json.get("checksums")
         }
         validate_hashes(**hashes)
-
     # get bundles/records that already exists and add it to bundle_data
     for bundle in bundles:
         data = get_index_record(bundle)[0]
