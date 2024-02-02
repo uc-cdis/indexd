@@ -21,7 +21,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     packages=find_packages(),
     package_data={
         "index": [
@@ -40,15 +40,15 @@ setup(
         ],
     },
     install_requires=[
-        "flask>=1.1",
-        "jsonschema>3",
+        "flask",
+        "jsonschema",
         "sqlalchemy<1.4",
         "sqlalchemy-utils>=0.32",
-        "psycopg2>=2.7",
-        "cdislogging>=1.0",
+        "psycopg2",
+        "cdislogging",
         "requests",
-        "ddtrace",
-        "importlib-metadata; python_version < '3.8'",
-        "typing-extensions<=4.6.0; python_version < '3.8'",  # solve deps problem for python 3.7
+        # "ddtrace",
+        # "importlib-metadata; python_version < '3.8'",
+        # "typing-extensions<=4.6.0; python_version < '3.8'",  # solve deps problem for python 3.7
     ],
 )
