@@ -217,11 +217,14 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             if urls_metadata:
                 for url_key, url_dict in urls_metadata.items():
+                    matches = ""
                     for k, v in url_dict.items():
+                        matches += '@.{} == "{}" && '.format(k, v)
+                    if matches:
+                        matches = matches.rstrip("&& ")
+                        match_string = "$.* ? ({})".format(matches)
                         query = query.filter(
-                            func.jsonb_path_match(
-                                Record.url_metadata, '$.*.{} == "{}"'.format(k, v)
-                            )
+                            func.jsonb_path_exists(Record.url_metadata, match_string)
                         )
 
             if negate_params:
@@ -918,7 +921,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     # ie file_name, version, etc
                     setattr(record, key, value)
 
-                    record.rev = str(uuid.uuid4())[:8]
+            record.rev = str(uuid.uuid4())[:8]
 
             record.updated_date = datetime.datetime.utcnow()
 
@@ -1151,7 +1154,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             # User requires update permissions for all versions of the record
             all_resources = []
-            all_resources.append([rec.authz] for rec in records)
+            for rec in records:
+                all_resources += rec.authz
             auth.authorize("update", list(all_resources))
 
             ret = []
@@ -1400,6 +1404,55 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound("Multiple bundles found")
 
             session.delete(record)
+
+    def query_urls(
+        self,
+        exclude=None,
+        include=None,
+        versioned=None,
+        offset=0,
+        limit=1000,
+        fields="did,urls",
+        **kwargs,
+    ):
+        if kwargs:
+            raise UserError(
+                "Unexpected query parameter(s) {}".format(list(kwargs.keys()))
+            )
+
+        versioned = (
+            versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
+        )
+
+        with self.driver.session as session:
+            query = session.query(Record.guid, func.string_agg(Record.urls, ","))
+            # add version filter if versioned is not None
+            if versioned is True:  # retrieve only those with a version number
+                query = query.filter(~Record.version.isnot(None))
+            elif versioned is False:  # retrieve only those without a version number
+                query = query.filter(~Record.version.isnot(None))
+
+            query = query.group_by(Record.guid)
+
+            # add url filters
+            if include and exclude:
+                query = query.having(
+                    and_(
+                        ~func.string_agg(Record.urls, ",").contains(exclude),
+                        func.string_agg(Record.urls, ",").contains(include),
+                    )
+                )
+            elif include:
+                query = query.having(func.string_agg(Record.url, ",").contains(include))
+            elif exclude:
+                query = query.having(
+                    ~func.string_agg(Record.url, ",").contains(exclude)
+                )
+            print(query)
+            record_list = (
+                query.order_by(Record.guid.asc()).offset(offset).limit(limit).all()
+            )
+        return self._format_response(fields, record_list)
 
 
 def check_url_metadata(url_metadata, record):

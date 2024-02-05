@@ -73,9 +73,13 @@ def get_alias():
     if limit < 0 or limit > 1024:
         raise UserError("limit must be between 0 and 1024")
 
-    aliases = blueprint.alias_driver.aliases(
-        start=start, limit=limit, size=size, hashes=hashes
-    )
+    try:
+        aliases = blueprint.alias_driver.aliases(
+            start=start, limit=limit, size=size, hashes=hashes
+        )
+    except Exception as e:
+        print("-------------------")
+        print(e)
 
     base = {
         "aliases": aliases,

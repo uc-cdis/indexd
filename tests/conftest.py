@@ -38,6 +38,8 @@ def clear_database():
             "index_record_alias",
             "index_record_metadata",
             "alias_record_hash",
+            "alias_record_host_authority",
+            "alias_record",
             "index_record",
             "drs_bundle_record",
             "base_version",
@@ -121,7 +123,7 @@ def user(app):
     try:
         driver.add("test", "test")
     except Exception as e:
-        print(e)
+        pass
 
     yield {
         "Authorization": ("Basic " + base64.b64encode(b"test:test").decode("ascii")),
@@ -129,11 +131,10 @@ def user(app):
     }
 
     try:
-        driver.add("test", "test")
         driver.delete("test")
     except Exception as e:
-        print("------------user test error --------------------")
-        print(e)
+        pass
+
     engine.dispose()
 
 
@@ -178,12 +179,8 @@ def use_mock_authz(request):
             assert isinstance(allowed_permissions, list)
 
             def mock_authz(method, resources):
-                print("=======mock authz==================")
-                print(resources)
-                print(allowed_permissions)
                 for resource in resources:
                     if (method, resource) not in allowed_permissions:
-                        print("-------------method loop failed-------------")
                         raise AuthError(
                             "Mock indexd.auth.authz: ({},{}) is not one of the allowed permissions: {}".format(
                                 method, resource, allowed_permissions
