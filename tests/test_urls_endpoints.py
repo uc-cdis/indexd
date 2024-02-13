@@ -4,7 +4,7 @@ from tests.test_client import get_doc
 
 
 @pytest.fixture(scope="function")
-def test_data(client, user):
+def test_data(client, user, combined_default_and_single_table_settings):
     system_random = random.SystemRandom()
     url_x_count = system_random.randint(2, 5)
 

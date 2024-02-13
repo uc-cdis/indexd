@@ -18,7 +18,7 @@ from sqlalchemy import (
     TEXT,
     select,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -1424,11 +1424,12 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         )
 
-        with self.driver.session as session:
-            query = session.query(Record.guid, func.string_agg(Record.urls, ","))
+        with self.session as session:
+            query = session.query(Record.guid, Record.urls)
+
             # add version filter if versioned is not None
             if versioned is True:  # retrieve only those with a version number
-                query = query.filter(~Record.version.isnot(None))
+                query = query.filter(Record.version.isnot(None))
             elif versioned is False:  # retrieve only those without a version number
                 query = query.filter(~Record.version.isnot(None))
 
@@ -1438,21 +1439,90 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             if include and exclude:
                 query = query.having(
                     and_(
-                        ~func.string_agg(Record.urls, ",").contains(exclude),
-                        func.string_agg(Record.urls, ",").contains(include),
+                        ~func.array_to_string(Record.urls, ",").contains(exclude),
+                        func.array_to_string(Record.urls, ",").contains(include),
                     )
                 )
             elif include:
-                query = query.having(func.string_agg(Record.url, ",").contains(include))
+                query = query.having(
+                    func.array_to_string(Record.urls, ",").contains(include)
+                )
             elif exclude:
                 query = query.having(
-                    ~func.string_agg(Record.url, ",").contains(exclude)
+                    ~func.array_to_string(Record.urls, ",").contains(exclude)
                 )
-            print(query)
             record_list = (
                 query.order_by(Record.guid.asc()).offset(offset).limit(limit).all()
             )
         return self._format_response(fields, record_list)
+
+    def query_metadata_by_key(
+        self,
+        key,
+        value,
+        url=None,
+        versioned=None,
+        offset=0,
+        limit=1000,
+        fields="did,urls,rev",
+        **kwargs,
+    ):
+        if kwargs:
+            raise UserError(
+                "Unexpected query parameter(s) {}".format(list(kwargs.keys()))
+            )
+
+        versioned = (
+            versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
+        )
+        with self.session as session:
+            query = session.query(Record.guid, Record.urls, Record.rev)
+
+            query = query.filter(
+                func.jsonb_path_exists(
+                    Record.url_metadata, f'$.* ? (@.{key} == "{value}")'
+                )
+            )
+
+            # add version filter if versioned is not None
+            if versioned is True:  # retrieve only those with a version number
+                query = query.filter(Record.version.isnot(None))
+            elif versioned is False:  # retrieve only those without a version number
+                query = query.filter(~Record.version.isnot(None))
+
+            if url:
+                query = query.filter(
+                    func.array_to_string(Record.urls, ",").contains(url)
+                )
+            # [('did', 'url', 'rev')]
+            record_list = (
+                query.order_by(Record.guid.asc()).offset(offset).limit(limit).all()
+            )
+        return self._format_response(fields, record_list)
+
+    @staticmethod
+    def _format_response(requested_fields, record_list):
+        """loops through the query result and removes undesired columns and converts result of urls string_agg to list
+        Args:
+            requested_fields (str): comma separated list of fields to return, if not specified return all fields
+            record_list (list(tuple]): must be of the form [(did, urls, rev)], rev is not required for urls query
+        Returns:
+            list[dict]: list of response dicts
+        """
+        result = []
+        provided_fields_dict = {k: 1 for k in requested_fields.split(",")}
+        for record in record_list:
+            resp_dict = {}
+            if provided_fields_dict.get("did"):
+                resp_dict["did"] = record[0]
+            if provided_fields_dict.get("urls"):
+                resp_dict["urls"] = record[1] if record[1] else []
+
+            # check if record is returned in tuple
+            if provided_fields_dict.get("rev") and len(record) == 3:
+                resp_dict["rev"] = record[2]
+            result.append(resp_dict)
+        return result
 
 
 def check_url_metadata(url_metadata, record):

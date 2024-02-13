@@ -539,7 +539,6 @@ def test_negate_filter_file_name(
     res = client.get("/index/?negate_params=" + json.dumps(negate_param))
     assert res.status_code == 200
     rec = res.json
-    print(rec)
     # assert record returned with proper non-negated file name
     assert len(rec["records"]) == 1
     assert rec["records"][0]["file_name"] == data1["file_name"]
@@ -1374,7 +1373,6 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(
     res = client.get("/index/?uploader=uploader_123")
     assert res.status_code == 200
     rec = res.json
-    print(rec)
     assert len(rec["records"]) == 3
 
     res = client.get("/index/?uploader=uploader_123&acl=read")
@@ -1511,15 +1509,7 @@ def test_urls_metadata_partial_match(
 
     ids = {r["did"] for r in rec["records"]}
 
-    print("-----------------the test-------------------")
-    print(ids)
-    print({url_doc_mapping[url]["did"] for url in expected})
-    print("---params---")
-    print(params)
     r = client.get("/index/")
-    print("----get all-----")
-    print(r.json["records"])
-    print(len(r.json["records"]))
 
     assert ids == {url_doc_mapping[url]["did"] for url in expected}
 

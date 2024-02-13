@@ -152,27 +152,23 @@ def get_index(form=None):
             negate_params=negate_params,
         )
     else:
-        try:
-            records = blueprint.index_driver.ids(
-                start=start,
-                limit=limit,
-                page=page,
-                size=size,
-                file_name=file_name,
-                version=version,
-                urls=urls,
-                acl=acl,
-                authz=authz,
-                hashes=hashes,
-                uploader=uploader,
-                ids=ids,
-                metadata=metadata,
-                urls_metadata=urls_metadata,
-                negate_params=negate_params,
-            )
-        except Exception as e:
-            print("---------------------")
-            print(e)
+        records = blueprint.index_driver.ids(
+            start=start,
+            limit=limit,
+            page=page,
+            size=size,
+            file_name=file_name,
+            version=version,
+            urls=urls,
+            acl=acl,
+            authz=authz,
+            hashes=hashes,
+            uploader=uploader,
+            ids=ids,
+            metadata=metadata,
+            urls_metadata=urls_metadata,
+            negate_params=negate_params,
+        )
 
     base = {
         "ids": ids,
