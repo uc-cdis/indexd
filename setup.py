@@ -1,12 +1,27 @@
+from pathlib import Path
+
 from setuptools import find_packages, setup
+
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="indexd",
-    use_scm_version={
-        "local_scheme": "dirty-tag",
-        "write_to": "indexd/_version.py",
-    },
-    setup_requires=["setuptools_scm<6"],
+    description="Data indexing and tracking service.",
+    author="NCI GDC",
+    author_email="gdc_dev_questions-aaaaae2lhsbell56tlvh3upgoq@cdis.slack.com",
+    url="https://github.com/NCI-GDC/indexd",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    classifiers=[
+        "Framework :: Flask",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    ],
+    python_requires=">=3.7",
     packages=find_packages(),
     package_data={
         "index": [
@@ -21,10 +36,12 @@ setup(
             "pytest-flask",
             "PyYAML",
             "openapi-spec-validator",
+            # jsonschema-spec 0.1.6 depends on typing-extensions<4.6.0
+            "jsonschema-spec>=0.1.6",  # used by openapi-spec-validator and have bug in 0.1.4
         ],
     },
     install_requires=[
-        "flask>=1.1",
+        "flask~=2.2",
         "jsonschema>3",
         "sqlalchemy<1.4",
         "sqlalchemy-utils>=0.32",
@@ -32,6 +49,7 @@ setup(
         "cdislogging>=1.0",
         "requests",
         "ddtrace",
-        "dataclasses; python_version < '3.7'",
+        "importlib-metadata; python_version < '3.8'",
+        "typing-extensions~=4.5.0; python_version < '3.8'",  # solve deps problem for python 3.7
     ],
 )

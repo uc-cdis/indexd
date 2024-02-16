@@ -5,44 +5,50 @@ language: python
 python:
   - '3.8'
 
-addons:
-  postgresql: '13'
-  apt:
-    sources:
-      - sourceline: deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main
-          13
-        key_url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
-    packages:
-      - postgresql-13
-      - postgresql-client-13
-
-before_install:
-  # Copy custom configs from the repo because PG-13 isn't set up to run like
-  # it normally does on Travis out of the box.
-  - sudo cp travis/postgresql.conf /etc/postgresql/13/main/postgresql.conf
-  - sudo cp travis/pg_hba.conf /etc/postgresql/13/main/pg_hba.conf
-  - sudo pg_ctlcluster 13 main restart
-
-jdk:
-  - oraclejdk8
-
-sudo: false
-
-# Pin a specific version of pytest outside of the tox virtualenvs so it has
-# required dependencies in order for tox to start for Python 2.
-install:
-  - pip install tox-travis tox==3.23.0 pytest==3.10.1
-
-script: tox
-
 jobs:
   include:
+    - stage: test
+      addons:
+        postgresql: '13'
+        apt:
+          sources:
+            - sourceline: deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main
+                13
+              key_url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          packages:
+            - postgresql-13
+            - postgresql-client-13
+      before_install:
+        # Copy custom configs from the repo because PG-13 isn't set up to run like
+        # it normally does on Travis out of the box.
+        - sudo cp travis/postgresql.conf /etc/postgresql/13/main/postgresql.conf
+        - sudo cp travis/pg_hba.conf /etc/postgresql/13/main/pg_hba.conf
+        - sudo pg_ctlcluster 13 main restart
+
+      jdk:
+        - oraclejdk8
+
+      sudo: false
+
+      # Pin a specific version of pytest outside of the tox virtualenvs so it has
+      # required dependencies in order for tox to start for Python 2.
+      install:
+        - pip install tox-travis tox==3.23.0 pytest==3.10.1
+      script: tox
+
     - stage: deploy
       script:
+        - pip install importlib-metadata
+        - pip install --no-deps .
+        - >
+          python -c "from importlib_metadata import version; print(version('indexd'))"
+          > VERSION.txt
+        - cat VERSION.txt
         - docker login -u="$QUAY_USERNAME" -p="$QUAY_PASSWORD" quay.io
-        - bash docker.sh
+        - bash docker.sh push
 
 env:
   global:
     - secure: KdI8zRZjFUIahHvRqB/cOrU66kaMDc4okSdLlC9bQRYo4Z9BU2789/7TNsVQQUt7lnCNVO1L5qSbGN96TK76h7wD0w8/esmKP1qMkLuI71AXfYgKRpU+e9CBBZeeelh3uFsPjUTkbGzio3lxLzgQ1w16IfyU0DlLB4IH0gnyIjF/bQN0dxMRnl1gEXw14QfeX5YldqsnyE7Y4wMB/jS4uw02p2BpPXPcq/B/wRAoUYwDRr3EbSH3LcsM17uwhHdBOcC2cQ+yBIGwQIhgboNLLUtJKQEi9GQXgPBOV8R1ju91UU5n7WOQKDXJ+6wjlxVTqZyjxJ3UqEKGqRtYXFMV+DbGZkDLz5gKJSgq9u1qIR7M0l0A4O9plt1tbVXgXGrUeyyWGycMB309mj1CeEKyc+g9LcwiywJNxzwxJZJhUoxL4+lrQbH7O61orgC0+ZyEpdGIN2G8PMIgEtS3gdQfYyxLdnu19hlL6NGZ3uWMrZ+X0b00bmib/q08Rbbc5j2B1vDg5va0yB8q/Du4357MSMe6wljMxqQuVeZfKGslHefV3YCjekmKFC/P2vA/y627Gfsqnd2UIlChSoFkepr/kUrv3RC+TBfH2PnifUSvzSrCUftwQoSQo3oFrMfnNb1AKICA2Tgi0TDFc/F3UaWazqgyu3jU6Pqt4ctnzoazJZo=
     - secure: ViToiRS4/SvlW8DVXJxb0JA1nFfjjhWNL4n9M/q9LiZeFi5R09Zzw/vRPdaXTjunO0mhORo+jjUalC4OUkeC0Ot/RFblXzziF0imtLHJrzS37fEaXu2RiovSn2NKtE1hdER+g56Jh9WTisrEJv50M0TbCa/K/jKsnwVRv44/lAoq1PCrEfNZMlvP4kXgIbh7ddi7roT1uIifNIS+1xCktDW7sSsaz+54G6oM2THxdHd0+CbIlv2d1mABLxnOtBitvgGuXw565E3p0memXXMDZPjGeKrhtp0YoEIbOpmeGq/rj+5rhNbVbEpKpkNkgi+U9cIjiTD02JmlaVHePh9ApbLxndEkJugWZEISsx21jGOj/IpCtgcoOP6uEkkM35gpywK0e1vCnFNNmQOFAzxxdFZJpu3P606uRnhtkJC/2bjoi4i1+f0qJvZTImZ/FtkKqiae6s1WbtBxO/Lm5gNvCAu11GEe1pSmFd20n7OOHrWnjhIYsxGeQ9djOwrclRpL5EaSspjDGI3tXKQSMfcutnIDlR0Q99F3Dtu2Rqr+50cRd3980vyE0VwZENPMndCgCxSm893xOpzUACLJBmFN3/3LIEtxOifHXsp+6XeIpj1iMZHJirkyZW2QZ/ZdFiDqkJ9Bq8hdinx1QSQ1CLsRJz/FvXZJh6gGP/VGUIX4oss=
+    - PIP_INDEX_URL: https://pypi.org/simple

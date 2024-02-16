@@ -2,7 +2,7 @@ import random
 
 import pytest
 
-from tests.test_client import get_doc
+from tests.integration.test_client import get_doc
 
 
 @pytest.fixture(scope="function")

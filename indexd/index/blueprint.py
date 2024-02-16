@@ -3,6 +3,11 @@ import json
 import re
 
 import flask
+
+try:
+    import importlib_metadata
+except ImportError:
+    import importlib.metadata as importlib_metadata
 import jsonschema
 
 from indexd.auth import authorize
@@ -15,7 +20,6 @@ from .errors import (
     UnhealthyCheck,
 )
 from .schema import POST_RECORD_SCHEMA, PUT_RECORD_SCHEMA
-from .version_data import COMMIT, VERSION
 
 blueprint = flask.Blueprint("index", __name__)
 
@@ -513,8 +517,8 @@ def version():
     """
 
     base = {
-        "version": VERSION,
-        "commit": COMMIT,
+        "version": importlib_metadata.version("indexd"),
+        "commit": "deprecated",
     }
 
     return flask.jsonify(base), 200

@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=42", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.isort]
+extend_skip = [".md", ".json"]
+known_first_party = ["indexd"]
+known_third_party = ["swagger_client"]
+py_version = 37
+skip = [".gitignore", ".dockerignore"]
+
+[tool.setuptools_scm]
+local_scheme = "no-local-version"
+write_to = 'indexd/_version.py'

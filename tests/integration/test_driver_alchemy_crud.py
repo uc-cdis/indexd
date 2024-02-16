@@ -7,7 +7,7 @@ import pytest
 from indexd.errors import UserError
 from indexd.index.drivers.alchemy import IndexRecord
 from indexd.index.errors import NoRecordFound, RevisionMismatch
-from tests.util import make_sql_statement
+from tests.integration.util import make_sql_statement
 
 # TODO check if pytest has utilities for meta-programming of tests
 

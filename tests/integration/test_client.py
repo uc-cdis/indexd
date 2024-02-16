@@ -5,8 +5,9 @@ import uuid
 import pytest
 from swagger_client.rest import ApiException
 
+from indexd.blueprint import dist_get_record
 from indexd.index.blueprint import ACCEPTABLE_HASHES
-from tests.util import assert_blank
+from tests.integration.util import assert_blank
 
 
 def get_doc(baseid=None, version=None, has_metadata=True):
@@ -438,6 +439,14 @@ def test_index_get(swg_index_client):
     r2 = swg_index_client.get_index_entry(result.baseid)
     assert r.did == result.did
     assert r2.did == result.did
+
+
+def test_dist_get_record(swg_index_client):
+    data = get_doc(baseid=str(uuid.uuid4()))
+
+    result = swg_index_client.add_index_entry(data)
+    r = dist_get_record(result.did)
+    assert r["did"] == result.did
 
 
 def test_index_prepend_prefix(swg_index_client):

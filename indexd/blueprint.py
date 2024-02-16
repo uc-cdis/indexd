@@ -1,3 +1,5 @@
+from typing import Dict
+
 import flask
 import requests
 
@@ -68,7 +70,7 @@ def get_record(record: str):
     return flask.jsonify(ret), 200
 
 
-def dist_get_record(record: str):
+def dist_get_record(record: str) -> Dict:
     # Sort the list of distributed ID services
     # Ones with which the request matches a hint will be first
     # Followed by those that don't match the hint
@@ -78,14 +80,16 @@ def dist_get_record(record: str):
 
     for indexd in sorted_dist:
         try:
-            res = requests.get(indexd["host"] + "/" + record, params={"no_dist": ""})
+            res = requests.get(
+                f'{indexd["host"].rstrip("/")}/{record}', params={"no_dist": ""}
+            )
             handle_error(res)
         except:
             # a lot of things can go wrong with the get, but in general we don't care here.
             continue
 
         if res:
-            json = res.to_json()
+            json = res.json()
             json["from_index_service"] = {
                 "host": indexd["host"],
                 "name": indexd["name"],

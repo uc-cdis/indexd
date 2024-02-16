@@ -1,10 +1,8 @@
-import hashlib
-
 import pytest
 
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 from indexd.errors import AuthError
-from tests.util import make_sql_statement
+from tests.integration.util import make_sql_statement
 
 USERNAME = "abc"
 PASSWORD = "123"
