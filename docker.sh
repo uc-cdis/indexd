@@ -40,7 +40,7 @@ BUILD_COMMAND=(build \
   -t "$IMAGE_NAME:$GIT_BRANCH" \
   -t "$IMAGE_NAME:$COMMIT")
 
-docker "${BUILD_COMMAND[@]}" .
+docker "${BUILD_COMMAND[@]}" . --progress=plain
 
 if [ "$PARAM" = "push" ]; then
   docker image ls "$IMAGE_NAME"

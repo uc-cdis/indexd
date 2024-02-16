@@ -36,11 +36,12 @@ setup(
             "pytest-flask",
             "PyYAML",
             "openapi-spec-validator",
+            # jsonschema-spec 0.1.6 depends on typing-extensions<4.6.0
             "jsonschema-spec>=0.1.6",  # used by openapi-spec-validator and have bug in 0.1.4
         ],
     },
     install_requires=[
-        "flask>=1.1",
+        "flask~=2.2",
         "jsonschema>3",
         "sqlalchemy<1.4",
         "sqlalchemy-utils>=0.32",
@@ -49,6 +50,6 @@ setup(
         "requests",
         "ddtrace",
         "importlib-metadata; python_version < '3.8'",
-        "typing-extensions<=4.6.0; python_version < '3.8'",  # solve deps problem for python 3.7
+        "typing-extensions~=4.5.0; python_version < '3.8'",  # solve deps problem for python 3.7
     ],
 )
