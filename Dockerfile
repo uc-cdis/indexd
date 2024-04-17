@@ -1,8 +1,8 @@
-ARG base_version=1.2.0
-ARG registry=quay.io
+ARG BASE_VERSION=3.0.1
+ARG REGISTRY=quay.io
 ARG NAME=indexd
 
-FROM ${registry}/ncigdc/python38-builder:${base_version} as build
+FROM ${REGISTRY}/ncigdc/python3.8-builder:${BASE_VERSION} as build
 ARG NAME
 ARG PIP_INDEX_URL
 ENV PIP_INDEX_URL=$PIP_INDEX_URL
@@ -19,7 +19,7 @@ COPY . .
 RUN pip3 install --no-deps .
 
 
-FROM ${registry}/ncigdc/python38-httpd:${base_version}
+FROM ${REGISTRY}/ncigdc/python3.8-httpd:${BASE_VERSION}
 ARG NAME
 
 LABEL org.opencontainers.image.title=${NAME} \
@@ -27,20 +27,19 @@ LABEL org.opencontainers.image.title=${NAME} \
       org.opencontainers.image.source="https://github.com/NCI-GDC/${NAME}" \
       org.opencontainers.image.vendor="NCI GDC"
 
+RUN dnf install -y libpq-15.0
 
 RUN mkdir -p /var/www/${NAME}/ \
-  && chmod 777 /var/www/${NAME} \
-  && a2dissite 000-default
+  && chmod 777 /var/www/${NAME}
 
 COPY wsgi.py /var/www/${NAME}/
-COPY bin/indexd /var/www/${NAME}/
-COPY --from=build /usr/local/lib/python3.8/dist-packages /usr/local/lib/python3.8/dist-packages
+COPY bin/${NAME} /var/www/${NAME}/
+COPY --from=build /venv/lib/python3.8/site-packages /venv/lib/python3.8/site-packages
 
 # Make indexd CLI utilities available for, e.g., DB schema migration.
-COPY --from=build /usr/local/bin/*index* /usr/local/bin/
+COPY --from=build /venv/bin/indexd /venv/bin
+COPY --from=build /venv/bin/index_admin.py /venv/bin
+COPY --from=build /venv/bin/migrate_index.py /venv/bin
 
-RUN ln -sf /dev/stdout /var/log/apache2/access.log \
-  && ln -sf /dev/stdout /var/log/apache2/other_vhosts_access.log\
-  && ln -sf /dev/stderr /var/log/apache2/error.log
 
 WORKDIR /var/www/${NAME}

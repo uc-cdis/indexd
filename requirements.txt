@@ -81,12 +81,11 @@ sqlalchemy==1.3.24
     #   sqlalchemy-utils
 sqlalchemy-utils==0.41.1
     # via indexd (setup.py)
-typing-extensions==4.5.0 ; python_version < "3.8"
+typing-extensions==4.5.0
     # via
     #   cattrs
     #   ddtrace
     #   importlib-metadata
-    #   indexd (setup.py)
     #   jsonschema
 urllib3==2.0.7
     # via requests
