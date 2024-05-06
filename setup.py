@@ -41,9 +41,9 @@ setup(
         ],
     },
     install_requires=[
-        "flask~=2.2",
+        "flask>=2.2",
         "jsonschema>3",
-        "sqlalchemy<1.4",
+        "sqlalchemy<1.4",  # TODO: Unpin sqlalchemy. Pinning is only required when psqlgraph is involved.
         "sqlalchemy-utils>=0.32",
         "psycopg2>=2.7",
         "cdislogging>=1.0",
