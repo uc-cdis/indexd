@@ -7,6 +7,7 @@ Create Date: 2024-05-15 23:06:19.088629
 """
 from alembic import op
 import sqlalchemy as sa
+import os
 
 
 # revision identifiers, used by Alembic.
@@ -24,6 +25,7 @@ def upgrade() -> None:
         sa.Column("total_record_bytes", sa.BIGINT(),
                   autoincrement=False, nullable=False),
     )
+    os.system("python3 ../../indexd/stats_table_fill.py")
 
 
 def downgrade() -> None:
