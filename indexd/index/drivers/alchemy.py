@@ -1849,6 +1849,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             session.delete(record)
 
+    def get_stats(self):
+        with self.session as session:
+            stats = session.query(StatsRecord).first()
+            return (stats.total_record_count, stats.total_record_bytes)
+
 
 def migrate_1(session, **kwargs):
     session.execute(

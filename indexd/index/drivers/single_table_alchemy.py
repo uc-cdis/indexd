@@ -28,7 +28,7 @@ from contextlib import contextmanager
 from indexd import auth
 from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
-from indexd.index.drivers.alchemy import IndexSchemaVersion, DrsBundleRecord, update_stats
+from indexd.index.drivers.alchemy import IndexSchemaVersion, DrsBundleRecord, StatsRecord, update_stats
 from indexd.index.errors import (
     MultipleRecordsFound,
     NoRecordFound,
@@ -1533,6 +1533,11 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     offset).limit(limit).all()
             )
         return self._format_response(fields, record_list)
+
+    def get_stats(self):
+        with self.session as session:
+            stats = session.query(StatsRecord).first()
+            return (stats.total_record_count, stats.total_record_bytes)
 
     @staticmethod
     def _format_response(requested_fields, record_list):
