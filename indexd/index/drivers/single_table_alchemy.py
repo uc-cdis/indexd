@@ -28,7 +28,7 @@ from contextlib import contextmanager
 from indexd import auth
 from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
-from indexd.index.drivers.alchemy import IndexSchemaVersion, DrsBundleRecord
+from indexd.index.drivers.alchemy import IndexSchemaVersion, DrsBundleRecord, update_stats
 from indexd.index.errors import (
     MultipleRecordsFound,
     NoRecordFound,
@@ -224,7 +224,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                         matches = matches.rstrip("&& ")
                         match_string = "$.* ? ({})".format(matches)
                         query = query.filter(
-                            func.jsonb_path_exists(Record.url_metadata, match_string)
+                            func.jsonb_path_exists(
+                                Record.url_metadata, match_string)
                         )
 
             if negate_params:
@@ -327,7 +328,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         if metadata is not None and metadata:
             for k, v in metadata.items():
                 if not v:
-                    query = query.filter(~text(f"record_metadata ? :key")).params(key=k)
+                    query = query.filter(
+                        ~text(f"record_metadata ? :key")).params(key=k)
                 else:
                     query = query.filter(Record.record_metadata[k].astext != v)
 
@@ -358,7 +360,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                                     "url_metadata IS NOT NULL AND url_metadata != '{}'"
                                 ),
                                 ~func.jsonb_path_match(
-                                    Record.url_metadata, '$.*.{} == "{}"'.format(k, v)
+                                    Record.url_metadata, '$.*.{} == "{}"'.format(
+                                        k, v)
                                 ),
                             )
 
@@ -475,7 +478,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 record.content_updated_date = (
                     datetime.datetime.fromisoformat(content_updated_date)
                     if content_updated_date is not None
-                    else record.content_created_date  # Set updated to created if no updated is provided
+                    # Set updated to created if no updated is provided
+                    else record.content_created_date
                 )
 
             try:
@@ -486,6 +490,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     self.add_prefix_alias(record, session)
                 session.add(record)
                 session.commit()
+                update_stats(session, 1, size)
             except IntegrityError:
                 raise MultipleRecordsFound(
                     'guid "{guid}" already exists'.format(guid=record.guid)
@@ -517,7 +522,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 auth.authorize("file_upload", ["/data_file"])
             except AuthError as err:
-                self.logger.error(authz_err_msg.format("file_upload", "/data_file"))
+                self.logger.error(authz_err_msg.format(
+                    "file_upload", "/data_file"))
                 raise
 
         with self.session as session:
@@ -540,6 +546,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             session.add(record)
             session.commit()
+            update_stats(session, 1, 0)
 
             return record.guid, record.rev, record.baseid
 
@@ -562,7 +569,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound("multiple records found")
 
             if record.size or record.hashes:
-                raise UserError("update api is not supported for non-empty record!")
+                raise UserError(
+                    "update api is not supported for non-empty record!")
 
             if rev != record.rev:
                 raise RevisionMismatch("revision mismatch")
@@ -598,7 +606,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 try:
                     auth.authorize("file_upload", ["/data_file"])
                 except AuthError as err:
-                    self.logger.error(authz_err_msg.format("file_upload", "/data_file"))
+                    self.logger.error(authz_err_msg.format(
+                        "file_upload", "/data_file"))
                     raise
 
             record.rev = str(uuid.uuid4())[:8]
@@ -607,7 +616,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             session.add(record)
             session.commit()
-
+            update_stats(session, 0, size)
             return record.guid, record.rev, record.baseid
 
     def add_prefix_alias(self, record, session):
@@ -617,13 +626,17 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         prefix = self.config["DEFAULT_PREFIX"]
         session.add(Record().alias.append(prefix + record.guid))
 
+        # Is this supposed to add to the stats???
+        # update_stats(session, 1, 0)
+
     def get_by_alias(self, alias):
         """
         Gets a record given a record alias
         """
         with self.session as session:
             try:
-                record = session.query(Record).filter(Record.alias.any(alias)).one()
+                record = session.query(Record).filter(
+                    Record.alias.any(alias)).one()
             except NoResultFound:
                 raise NoRecordFound("no record found")
             except MultipleResultsFound:
@@ -763,7 +776,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         Delete one of this DID / GUID's aliases.
         """
         with self.session as session:
-            self.logger.info(f"Trying to delete alias {alias} for did {did}...")
+            self.logger.info(
+                f"Trying to delete alias {alias} for did {did}...")
 
             index_record = get_record_if_exists(did, session)
             if index_record is None:
@@ -919,6 +933,11 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 if key not in composite_fields:
                     # No special logic needed for other updates.
                     # ie file_name, version, etc
+
+                    # update stats for a change in file size
+                    if key == "size":
+                        update_stats(session, 0, value-record.size)
+
                     setattr(record, key, value)
 
             record.rev = str(uuid.uuid4())[:8]
@@ -948,6 +967,9 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 raise RevisionMismatch("revision mismatch")
 
             auth.authorize("delete", [u.resource for u in record.authz])
+
+            size = record.size if record.size != None else 0
+            update_stats(session, -1, -1*size)
 
             session.delete(record)
 
@@ -1019,8 +1041,10 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 session.add(record)
                 session.commit()
+                update_stats(session, 1, size)
             except IntegrityError:
-                raise MultipleRecordsFound("{guid} already exists".format(guid=guid))
+                raise MultipleRecordsFound(
+                    "{guid} already exists".format(guid=guid))
 
             return record.guid, record.baseid, record.rev
 
@@ -1060,7 +1084,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             # handle the edgecase where new_did matches the original doc's guid to
             # prevent sqlalchemy FlushError
             if new_did == old_record.guid:
-                raise MultipleRecordsFound("{guid} already exists".format(guid=new_did))
+                raise MultipleRecordsFound(
+                    "{guid} already exists".format(guid=new_did))
 
             new_record = Record()
             guid = new_did
@@ -1085,8 +1110,10 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 session.add(new_record)
                 session.commit()
+                update_stats(session, 1, 0)
             except IntegrityError:
-                raise MultipleRecordsFound("{guid} already exists".format(guid=guid))
+                raise MultipleRecordsFound(
+                    "{guid} already exists".format(guid=guid))
 
             return new_record.guid, new_record.baseid, new_record.rev
 
@@ -1206,7 +1233,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             try:
-                query = session.execute("SELECT 1")  # pylint: disable=unused-variable
+                query = session.execute(
+                    "SELECT 1")  # pylint: disable=unused-variable
             except Exception:
                 raise UnhealthyCheck()
 
@@ -1421,7 +1449,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             )
 
         versioned = (
-            versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
+            versioned.lower() in ["true", "t", "yes",
+                                  "y"] if versioned else None
         )
 
         with self.session as session:
@@ -1439,8 +1468,10 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             if include and exclude:
                 query = query.having(
                     and_(
-                        ~func.array_to_string(Record.urls, ",").contains(exclude),
-                        func.array_to_string(Record.urls, ",").contains(include),
+                        ~func.array_to_string(
+                            Record.urls, ",").contains(exclude),
+                        func.array_to_string(
+                            Record.urls, ",").contains(include),
                     )
                 )
             elif include:
@@ -1452,7 +1483,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     ~func.array_to_string(Record.urls, ",").contains(exclude)
                 )
             record_list = (
-                query.order_by(Record.guid.asc()).offset(offset).limit(limit).all()
+                query.order_by(Record.guid.asc()).offset(
+                    offset).limit(limit).all()
             )
         return self._format_response(fields, record_list)
 
@@ -1473,7 +1505,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             )
 
         versioned = (
-            versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
+            versioned.lower() in ["true", "t", "yes",
+                                  "y"] if versioned else None
         )
         with self.session as session:
             query = session.query(Record.guid, Record.urls, Record.rev)
@@ -1496,7 +1529,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 )
             # [('did', 'url', 'rev')]
             record_list = (
-                query.order_by(Record.guid.asc()).offset(offset).limit(limit).all()
+                query.order_by(Record.guid.asc()).offset(
+                    offset).limit(limit).all()
             )
         return self._format_response(fields, record_list)
 
@@ -1532,7 +1566,8 @@ def check_url_metadata(url_metadata, record):
     urls = {u for u in record.urls}
     for url, metadata in url_metadata.items():
         if url not in urls:
-            raise UserError("url {} in url_metadata does not exist".format(url))
+            raise UserError(
+                "url {} in url_metadata does not exist".format(url))
     return url_metadata
 
 

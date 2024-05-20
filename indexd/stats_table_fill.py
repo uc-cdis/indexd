@@ -2,22 +2,12 @@ from sqlalchemy import (
     BigInteger,
     Column,
 )
-from .index.drivers.alchemy import Base
+from .index.drivers.alchemy import StatsRecord
 
 try:
     from .local_settings import settings
 except ImportError:
     from .default_settings import settings
-
-
-class StatsRecord(Base):
-    """
-    Stats table row representation.
-    """
-
-    __tablename__ = "stats"
-    total_record_count = Column(BigInteger)
-    total_record_bytes = Column(BigInteger)
 
 
 # Get the index driver
