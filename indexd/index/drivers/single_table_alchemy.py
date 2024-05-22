@@ -1534,10 +1534,27 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             )
         return self._format_response(fields, record_list)
 
-    def get_stats(self):
+    def get_stats(self, month=None, year=None):
+        now = datetime.datetime.now()
+
+        if month == None and year == None:
+            month = now.month
+            year = now.year
+
         with self.session as session:
-            stats = session.query(StatsRecord).first()
-            return (stats.total_record_count, stats.total_record_bytes)
+            try:
+                stats = session.query(StatsRecord).filter(
+                    or_(
+                        and_(
+                            StatsRecord.month <= now.month,
+                            StatsRecord.year == now.year,
+                        ),
+                        StatsRecord.year < now.year,
+                    )
+                ).order_by(StatsRecord.year.desc(), StatsRecord.month.desc()).first()
+                return (stats.total_record_count, stats.total_record_bytes)
+            except:
+                return (None, None)
 
     @staticmethod
     def _format_response(requested_fields, record_list):

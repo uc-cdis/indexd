@@ -24,8 +24,12 @@ def upgrade() -> None:
                   autoincrement=False, nullable=False),
         sa.Column("total_record_bytes", sa.BIGINT(),
                   autoincrement=False, nullable=False),
+        sa.Column("month", sa.INTEGER(),
+                  autoincrement=False, nullable=False),
+        sa.Column("year", sa.INTEGER(),
+                  autoincrement=False, nullable=False),
     )
-    os.system("python3 ../../indexd/stats_table_fill.py")
+    os.system("python3 ../../indexd/stats_table_migration.py")
 
 
 def downgrade() -> None:

@@ -316,6 +316,8 @@ class StatsRecord(Base):
     __tablename__ = "stats"
     total_record_count = Column(BigInteger)
     total_record_bytes = Column(BigInteger)
+    month = Column(Integer)
+    year = Column(Integer)
 
 
 def create_urls_metadata(urls_metadata, record, session):
@@ -341,12 +343,33 @@ def get_record_if_exists(did, session):
 
 
 def update_stats(session, number, size=None):
+    now = datetime.datetime.now()
+
     if not size:
         size = 0
-    query = session.query(StatsRecord).first()
-    if query:
-        query.total_record_count += number
-        query.total_record_bytes += size
+
+    query = session.query(StatsRecord).filter(
+        or_(
+            and_(
+                StatsRecord.month <= now.month,
+                StatsRecord.year == now.year,
+            ),
+            StatsRecord.year < now.year,
+        )
+    ).order_by(StatsRecord.year.desc(), StatsRecord.month.desc())
+
+    record = query.first()
+    if record.month == now.month and record.year == now.year:
+        record.total_record_count += number
+        record.total_record_bytes += size
+        session.commit()
+    else:
+        new_record = StatsRecord()
+        new_record.month = now.month
+        new_record.year = now.year
+        new_record.total_record_bytes = record.total_record_bytes+size
+        new_record.total_record_count = record.total_record_count+number
+        session.add(new_record)
         session.commit()
 
 
@@ -1849,10 +1872,27 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             session.delete(record)
 
-    def get_stats(self):
+    def get_stats(self, month=None, year=None):
+        now = datetime.datetime.now()
+
+        if month == None and year == None:
+            month = now.month
+            year = now.year
+
         with self.session as session:
-            stats = session.query(StatsRecord).first()
-            return (stats.total_record_count, stats.total_record_bytes)
+            try:
+                stats = session.query(StatsRecord).filter(
+                    or_(
+                        and_(
+                            StatsRecord.month <= now.month,
+                            StatsRecord.year == now.year,
+                        ),
+                        StatsRecord.year < now.year,
+                    )
+                ).order_by(StatsRecord.year.desc(), StatsRecord.month.desc()).first()
+                return (stats.total_record_count, stats.total_record_bytes)
+            except:
+                return (None, None)
 
 
 def migrate_1(session, **kwargs):
