@@ -3,7 +3,6 @@ import uuid
 import json
 from contextlib import contextmanager
 from cdislogging import get_logger
-from indexd.indexd.index.drivers import query
 from sqlalchemy import (
     BigInteger,
     Column,
@@ -314,6 +313,7 @@ class StatsRecord(Base):
     """
 
     __tablename__ = "stats"
+    sid = Column(BigInteger, autoincrement=True, primary_key=True)
     total_record_count = Column(BigInteger)
     total_record_bytes = Column(BigInteger)
     month = Column(Integer)
@@ -359,7 +359,8 @@ def update_stats(session, number, size=None):
     ).order_by(StatsRecord.year.desc(), StatsRecord.month.desc())
 
     record = query.first()
-    if record.month == now.month and record.year == now.year:
+
+    if record and record.month == now.month and record.year == now.year:
         record.total_record_count += number
         record.total_record_bytes += size
         session.commit()
@@ -367,8 +368,13 @@ def update_stats(session, number, size=None):
         new_record = StatsRecord()
         new_record.month = now.month
         new_record.year = now.year
-        new_record.total_record_bytes = record.total_record_bytes+size
-        new_record.total_record_count = record.total_record_count+number
+        new_record.total_record_bytes = size
+        new_record.total_record_count = number
+
+        if record:
+            new_record.total_record_bytes += record.total_record_bytes
+            new_record.total_record_count += record.total_record_count
+
         session.add(new_record)
         session.commit()
 

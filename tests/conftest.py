@@ -44,6 +44,7 @@ def clear_database():
             "drs_bundle_record",
             "base_version",
             "record",
+            "stats",
         ]
 
         for table_name in table_delete_order:

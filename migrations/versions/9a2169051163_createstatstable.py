@@ -20,6 +20,7 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "stats",
+        sa.Column("sid", sa.BIGINT(), autoincrement=True, primary_key=True),
         sa.Column("total_record_count", sa.BIGINT(),
                   autoincrement=False, nullable=False),
         sa.Column("total_record_bytes", sa.BIGINT(),

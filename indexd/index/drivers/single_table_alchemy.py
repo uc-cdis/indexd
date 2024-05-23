@@ -426,7 +426,6 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         url_metadata file name and version
         if guid is provided, update the new record with the guid otherwise create it
         """
-
         urls = urls or []
         acl = acl or []
         authz = authz or []
