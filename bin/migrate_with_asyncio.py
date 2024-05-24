@@ -66,7 +66,7 @@ class IndexRecordMigrator:
         self.n_workers = self.thread_pool_size + self.concurrency
 
         self.engine = create_async_engine(
-            f"postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}", echo=True
+            f"postgresql+asyncpg://{usr}:{psw}@{pghost}:{pgport}/{db}", echo=True
         )
         self.async_session = sessionmaker(
             self.engine, expire_on_commit=False, class_=AsyncSession
