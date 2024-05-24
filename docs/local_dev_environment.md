@@ -192,10 +192,10 @@ python3 -m pytest -vv --cov=indexd --cov-report xml --junitxml="test-results.xml
 You may also need to update the [test settings](./tests/default_test_settings.py) with the appropriate database connection information prior to running the tests.
 
 ```python
-settings["config"]["TEST_DB"] = "postgres://{username}:{password}@localhost:{port}/indexd_tests"
+settings["config"]["TEST_DB"] = "postgresql://{username}:{password}@localhost:{port}/indexd_tests"
 ```
 
-> If you are using Azure Postgresql, you will need to include the `username@hostname` for the `username` in the connection string.  You may also need to include support for SSL in the connection string, e.g. `postgres://{username@hostname}:{password}@serverfqdn:{port}/{dbname}?sslmode=require`.
+> If you are using Azure Postgresql, you will need to include the `username@hostname` for the `username` in the connection string.  You may also need to include support for SSL in the connection string, e.g. `postgresql://{username@hostname}:{password}@serverfqdn:{port}/{dbname}?sslmode=require`.
 > Further, you may run into `sqlite` errors; it may be helpful to rename existing local `*.sq3` files before running `pytest`.
 
 ## Administration

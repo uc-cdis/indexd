@@ -20,7 +20,7 @@ from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 
-POSTGRES_CONNECTION = "postgres://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 
 
 def clear_database():

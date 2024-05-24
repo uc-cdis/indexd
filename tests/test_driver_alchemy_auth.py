@@ -13,7 +13,7 @@ from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 USERNAME = "abc"
 PASSWORD = "123"
 DIGESTED = SQLAlchemyAuthDriver.digest(PASSWORD)
-POSTGRES_CONNECTION = "postgres://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 
 # TODO check if pytest has utilities for meta-programming of tests
 
@@ -52,7 +52,7 @@ def test_driver_auth_rejects_bad_creds():
     Test driver rejects bad creds.
     """
     driver = SQLAlchemyAuthDriver(
-        "postgres://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+        "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
     )
 
     engine = create_engine(POSTGRES_CONNECTION)
@@ -74,7 +74,7 @@ def test_driver_auth_returns_user_context():
     Tests driver accepts good creds.
     """
     driver = SQLAlchemyAuthDriver(
-        "postgres://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+        "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
     )
 
     engine = create_engine(POSTGRES_CONNECTION)

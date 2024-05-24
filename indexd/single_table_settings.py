@@ -9,7 +9,7 @@ from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndex
 # will be created as "<PREFIX><PREFIX><GUID>".
 default_settings.settings["config"]["INDEX"] = {
     "driver": SingleTableSQLAlchemyIndexDriver(
-        "postgres://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+        "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
         echo=True,
         index_config={
             "DEFAULT_PREFIX": "testprefix:",

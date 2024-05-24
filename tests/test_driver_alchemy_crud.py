@@ -17,7 +17,7 @@ from datetime import datetime
 
 # TODO check if pytest has utilities for meta-programming of tests
 
-POSTGRES_CONNECTION = "postgres://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 
 
 def test_driver_init_does_not_create_records(

@@ -53,7 +53,7 @@ INDEX_TABLES = {
     ],
 }
 
-POSTGRES_CONNECTION = "postgres://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 
 
 def update_version_table_for_testing(tb_name, val):
