@@ -891,6 +891,17 @@ paths:
       summary: Returns basic information about the records in IndexD
       produces:
         - application/json
+      parameters:
+        - in: body
+          name: month
+          type: integer
+          description: Month for which data is to be returned.  (Either both month and year or neither must be provided)
+          required: false
+        - in: body
+          name: year
+          type: integer
+          description: year for which data is to be returned. (Either both month and year or neither must be provided)
+          required: false
       responses:
         '200':
           description: successful operation
