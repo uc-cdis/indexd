@@ -2,9 +2,19 @@ import argparse
 import json
 import config_helper
 from cdislogging import get_logger
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, DateTime
+from sqlalchemy import (
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    Integer,
+    String,
+    DateTime,
+    func,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker
 import time
 import random
@@ -64,6 +74,7 @@ class IndexRecordMigrator:
         self.buffer_size = 10
         self.batch_size = 1000
         self.n_workers = self.thread_pool_size + self.concurrency
+        self.counter = 0
 
         self.engine = create_async_engine(
             f"postgresql+asyncpg://{usr}:{psw}@{pghost}:{pgport}/{db}", echo=True
@@ -92,21 +103,20 @@ class IndexRecordMigrator:
 
         collector_queue = asyncio.Queue(maxsize=self.n_workers)
         inserter_queue = asyncio.Queue(maxsize=self.buffer_size)
-        # loop = asyncio.get_event_loop()
 
         self.logger.info("Collecting Data from old IndexD Table...")
         offset = 0
-        collecters = loop.create_task(
+        collecters = asyncio.create_task(
             self.collect(collector_queue, self.batch_size, offset)
         )
         self.logger.info("Initializing workers...")
         workers = [
-            loop.create_task(self.worker(j, inserter_queue, collector_queue))
+            asyncio.create_task(self.worker(j, inserter_queue, collector_queue))
             for j in range(self.n_workers)
         ]
         self.logger.info("Inserting Data to new table")
         inserters = [
-            loop.create_task(self.insert_to_db(i, inserter_queue))
+            asyncio.create_task(self.insert_to_db(i, inserter_queue))
             for i in range(self.concurrency)
         ]
 
@@ -125,7 +135,8 @@ class IndexRecordMigrator:
 
     async def collect(self, collector_queue, batch_size, offset):
         """ """
-        while True:
+        while True or self.counter <= 30:
+            records_to_insert = None
             self.logger.info(
                 f"Collecting {offset} - {offset+batch_size} records with collector"
             )
@@ -134,7 +145,9 @@ class IndexRecordMigrator:
                     offset, batch_size
                 )
             except Exception as e:
-                self.logger.error(f"Failed to query old table for offset {offset}")
+                self.logger.error(
+                    f"Failed to query old table for offset {offset} with {e}"
+                )
 
             if not records_to_insert:
                 break
@@ -145,6 +158,7 @@ class IndexRecordMigrator:
                 break
 
             offset += batch_size
+            self.counter += 1
 
             self.logger.info(f"Added {offset} records into the collector queue")
 
@@ -175,7 +189,7 @@ class IndexRecordMigrator:
                     await session.commit()
                     # self.session.bulk_save_objects(bulk_rows)
                 except Exception as e:
-                    self.session.rollback()
+                    session.rollback()
                     if "duplicate key value violates unique constraint" in str(e):
                         self.logger.error(f"Errored at {offset}: {e}")
                     else:
@@ -187,14 +201,11 @@ class IndexRecordMigrator:
 
     async def query_record_with_offset(self, offset, batch_size, retry_limit=4):
         async with self.async_session() as session:
-            stmt = (
-                self.session.query(IndexRecord)
-                .offset(offset)
-                .limit(batch_size)
-                .yield_per(batch_size)
-            )
+            stmt = select(IndexRecord).offset(offset).limit(batch_size)
+            results = await session.execute(stmt)
+            records = results.scalars().all()
             records_to_insert = []
-            for row in stmt:
+            for row in records:
                 tasks = [
                     self.get_index_record_hash(row.did),
                     self.get_urls_record(row.did),
