@@ -109,23 +109,14 @@ class IndexRecordMigrator:
         collecters = asyncio.create_task(
             self.collect(collector_queue, self.batch_size, offset)
         )
-        self.logger.info("Initializing workers...")
-        workers = [
-            asyncio.create_task(self.worker(j, inserter_queue, collector_queue))
-            for j in range(self.n_workers)
-        ]
         self.logger.info("Inserting Data to new table")
         inserters = [
-            asyncio.create_task(self.insert_to_db(i, inserter_queue))
+            asyncio.create_task(self.insert_to_db(i, collector_queue))
             for i in range(self.concurrency)
         ]
 
         await asyncio.gather(collecters)
         await collector_queue.join()
-
-        for w in workers:
-            w.cancel()
-        await asyncio.gather(*workers, return_exceptions=True)
 
         await inserter_queue.join()
 
@@ -135,7 +126,7 @@ class IndexRecordMigrator:
 
     async def collect(self, collector_queue, batch_size, offset):
         """ """
-        while True or self.counter <= 30:
+        while self.counter <= 3:
             records_to_insert = None
             self.logger.info(
                 f"Collecting {offset} - {offset+batch_size} records with collector"
@@ -161,22 +152,6 @@ class IndexRecordMigrator:
             self.counter += 1
 
             self.logger.info(f"Added {offset} records into the collector queue")
-
-    async def worker(self, name, collector_queue, inserter_queue):
-        # Handles the semaphore
-        # while not collector_queue.empty():
-        #     self.logger.info(f"Worker {name} adding records to insert queue")
-        #     bulk_rows = await collector_queue.get()
-        #     print(bulk_rows)
-        #     await inserter_queue.put(bulk_rows)
-        #     collector_queue.task_done()
-        while True:
-            bulk_rows = await collector_queue.get()
-            if bulk_rows is None:
-                break
-            self.logger.info(f"Worker {name} adding records to insert queue")
-            await inserter_queue.put(bulk_rows)
-            collector_queue.task_done()
 
     async def insert_to_db(self, name, inserter_queue):
         async with self.async_session() as session:
