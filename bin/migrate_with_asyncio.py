@@ -1,32 +1,18 @@
+import gc
 import argparse
 import json
 import config_helper
 from cdislogging import get_logger
-from sqlalchemy import (
-    create_engine,
-    MetaData,
-    Table,
-    Column,
-    Integer,
-    String,
-    DateTime,
-    func,
-)
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine, func
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker
 import time
-import random
-import re
 import asyncio
-
-import cProfile
 
 from indexd.index.drivers.alchemy import (
     IndexRecord,
     IndexRecordAuthz,
-    BaseVersion,
     IndexRecordAlias,
     IndexRecordUrl,
     IndexRecordACE,
@@ -45,13 +31,6 @@ def load_json(file_name):
     return config_helper.load_json(file_name, APP_NAME)
 
 
-# @profile
-# def main():
-#     migrator = IndexRecordMigrator()
-#     asyncio.run(migrator.migrate_tables())
-#     return
-
-
 class IndexRecordMigrator:
     def __init__(self, conf_data=None):
         self.logger = get_logger("migrate_single_table", log_level="debug")
@@ -68,30 +47,27 @@ class IndexRecordMigrator:
         pghost = conf_data.get("db_host", "{{db_host}}")
         pgport = 5432
 
-        self.chunk_size = 10
-        self.concurrency = 5
-        self.thread_pool_size = 3
-        self.buffer_size = 10
-        self.batch_size = 1000
-        self.n_workers = self.thread_pool_size + self.concurrency
+        self.auto_job_config = True
+        self.insertion_workers = 10
+        self.batch_size = 200
+        self.collection_workers = 100
         self.counter = 0
+        self.psql_pool_size = 50
+        self.max_overflow = 10
 
         self.engine = create_async_engine(
-            f"postgresql+asyncpg://{usr}:{psw}@{pghost}:{pgport}/{db}", echo=True
+            f"postgresql+asyncpg://{usr}:{psw}@{pghost}:{pgport}/{db}",
+            echo=False,
+            pool_size=self.psql_pool_size,
+            max_overflow=self.max_overflow,
         )
         self.async_session = sessionmaker(
             self.engine, expire_on_commit=False, class_=AsyncSession
         )
 
-        # Base = declarative_base()
-        # Base.metadata.create_all(self.engine)
-        # Session = sessionmaker(bind=self.engine)
-
-        # self.session = Session()
-
     async def init(self):
         async with self.async_session() as session:
-            await session.run_sync(Base.metadata.create_all)
+            await session.run_sync(Record.metadata.create_all)
 
     async def migrate_tables(self):
         self.logger.info("Starting migration job...")
@@ -101,78 +77,106 @@ class IndexRecordMigrator:
             )
             self.logger.info(f"Total records to copy: {self.total_records}")
 
-        collector_queue = asyncio.Queue(maxsize=self.n_workers)
-        inserter_queue = asyncio.Queue(maxsize=self.buffer_size)
+        if (
+            self.total_records - self.batch_size * self.collection_workers
+        ) < 0 or self.auto_job_config:
+            self.collection_workers = int(self.total_records / self.batch_size)
+            # TODO: Change this log later
+            self.logger.info(
+                f"Batch size and number of workers exceeds total records to be copied. Changing number of collector workers to {self.batch_size}"
+            )
+
+        if self.auto_job_config:
+            self.insertion_workers = int(self.collection_workers / 2)
+            self.logger.info(
+                f"Setting number of insertion workers to {self.insertion_workers}."
+            )
+
+        collector_queue = asyncio.Queue(maxsize=self.collection_workers)
+        loop = asyncio.get_event_loop()
 
         self.logger.info("Collecting Data from old IndexD Table...")
-        offset = 0
-        collecters = asyncio.create_task(
-            self.collect(collector_queue, self.batch_size, offset)
-        )
-        self.logger.info("Inserting Data to new table")
-        inserters = [
-            asyncio.create_task(self.insert_to_db(i, collector_queue))
-            for i in range(self.concurrency)
+        collect_tasks = [
+            loop.create_task(
+                self.collect(collector_queue, self.batch_size, i * self.batch_size)
+            )
+            for i in range(self.collection_workers)
         ]
 
-        await asyncio.gather(collecters)
+        self.logger.info("Inserting Data to new table")
+        insert_tasks = [
+            loop.create_task(self.insert_to_db(i, collector_queue))
+            for i in range(self.insertion_workers)
+        ]
+
+        await asyncio.gather(*collect_tasks)
+
         await collector_queue.join()
 
-        await inserter_queue.join()
+        for task in insert_tasks:
+            task.cancel()
 
-        for i in inserters:
-            i.cancel()
-        await asyncio.gather(*inserters, return_exceptions=True)
+        await asyncio.gather(*insert_tasks, return_exceptions=True)
+
+        self.logger.info(
+            f"Migration job completed. {self.counter} records were considered duplicates."
+        )
 
     async def collect(self, collector_queue, batch_size, offset):
-        """ """
-        while self.counter <= 3:
-            records_to_insert = None
+        while offset < self.total_records:
             self.logger.info(
-                f"Collecting {offset} - {offset+batch_size} records with collector"
+                f"Collecting {offset} - {offset + batch_size} records with collector"
             )
             try:
                 records_to_insert = await self.query_record_with_offset(
                     offset, batch_size
                 )
+                if not records_to_insert:
+                    self.logger.info(f"No more records to collect at offset {offset}")
+                    break
             except Exception as e:
                 self.logger.error(
                     f"Failed to query old table for offset {offset} with {e}"
                 )
-
-            if not records_to_insert:
                 break
 
+            self.logger.info(f"Adding records to collector queue at offset {offset}")
             await collector_queue.put(records_to_insert)
 
-            if len(records_to_insert) < batch_size:
-                break
-
             offset += batch_size
-            self.counter += 1
 
-            self.logger.info(f"Added {offset} records into the collector queue")
+        await collector_queue.put(None)
+        self.logger.info(f"Collector finished collecting records.")
 
-    async def insert_to_db(self, name, inserter_queue):
+    async def insert_to_db(self, name, collector_queue):
         async with self.async_session() as session:
             while True:
+                self.logger.info(f"Inserter {name} waiting for records")
+                bulk_rows = await collector_queue.get()
+
+                if bulk_rows is None:
+                    self.logger.info(
+                        f"Inserter {name} didn't receive any records to insert. Killing worker..."
+                    )
+                    break
+
                 self.logger.info(f"Inserter {name} bulk inserting records")
-                bulk_rows = await inserter_queue.get()
                 try:
                     async with session.begin():
                         session.add_all(bulk_rows)
                     await session.commit()
-                    # self.session.bulk_save_objects(bulk_rows)
                 except Exception as e:
-                    session.rollback()
+                    await session.rollback()
                     if "duplicate key value violates unique constraint" in str(e):
-                        self.logger.error(f"Errored at {offset}: {e}")
+                        self.counter += 1
+                        self.logger.error(f"Duplicate key error: {e}")
                     else:
-                        self.logger.error(f"Ran into error at {offset}: {e}")
-                        break
+                        self.logger.error(f"Error inserting records: {e}")
                 finally:
-                    inserter_queue.task_done()
-            self.logger.info("Successfully inserted to new table!")
+                    gc.collect()
+                    collector_queue.task_done()
+
+            self.logger.info(f"Inserter {name} finished")
 
     async def query_record_with_offset(self, offset, batch_size, retry_limit=4):
         async with self.async_session() as session:
@@ -283,7 +287,6 @@ class IndexRecordMigrator:
             return {key: value for key, value in results}
 
     def remove_duplicate_records(self, records, error):
-        # Extract the key value from the error message
         key_value = re.search(r"\(guid\)=\((.*?)\)", str(error)).group(1)
         self.logger.info(f"Removing duplicate record {key_value}")
         for record in records:
@@ -304,7 +307,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     migrator = IndexRecordMigrator(conf_data=args.creds_path)
     asyncio.run(migrator.migrate_tables())
-    # cProfile.run("asyncio.run(migrator.index_record_to_new_table())", filename="profile_results.txt")
     end_time = time.time()
 
     print("Total Time: {}".format(end_time - start_time))
