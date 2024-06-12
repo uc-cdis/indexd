@@ -47,13 +47,13 @@ class IndexRecordMigrator:
         pghost = conf_data.get("db_host", "{{db_host}}")
         pgport = 5432
 
-        self.auto_job_config = True
+        self.auto_job_config = False
         self.insertion_workers = 10
         self.batch_size = 200
         self.collection_workers = 100
         self.counter = 0
-        self.psql_pool_size = 50
-        self.max_overflow = 10
+        self.psql_pool_size = self.collection_workers + self.insertion_workers
+        self.max_overflow = self.insertion_workers
 
         self.engine = create_async_engine(
             f"postgresql+asyncpg://{usr}:{psw}@{pghost}:{pgport}/{db}",
@@ -97,9 +97,7 @@ class IndexRecordMigrator:
 
         self.logger.info("Collecting Data from old IndexD Table...")
         collect_tasks = [
-            loop.create_task(
-                self.collect(collector_queue, self.batch_size, i * self.batch_size)
-            )
+            loop.create_task(self.collect(collector_queue, self.batch_size, i))
             for i in range(self.collection_workers)
         ]
 
@@ -122,7 +120,8 @@ class IndexRecordMigrator:
             f"Migration job completed. {self.counter} records were considered duplicates."
         )
 
-    async def collect(self, collector_queue, batch_size, offset):
+    async def collect(self, collector_queue, batch_size, worker_id):
+        offset = worker_id * batch_size
         while offset < self.total_records:
             self.logger.info(
                 f"Collecting {offset} - {offset + batch_size} records with collector"
@@ -143,10 +142,10 @@ class IndexRecordMigrator:
             self.logger.info(f"Adding records to collector queue at offset {offset}")
             await collector_queue.put(records_to_insert)
 
-            offset += batch_size
+            offset += self.collection_workers * batch_size
 
-        await collector_queue.put(None)
         self.logger.info(f"Collector finished collecting records.")
+        await collector_queue.put(None)
 
     async def insert_to_db(self, name, collector_queue):
         async with self.async_session() as session:
@@ -160,10 +159,19 @@ class IndexRecordMigrator:
                     )
                     break
 
+                if not bulk_rows:
+                    continue
+
                 self.logger.info(f"Inserter {name} bulk inserting records")
                 try:
                     async with session.begin():
-                        session.add_all(bulk_rows)
+                        for record in bulk_rows:
+                            exists = await session.execute(
+                                select(Record).filter_by(guid=record.guid)
+                            )
+                            if not exists.scalar():
+                                session.add(record)
+                        # session.add_all(bulk_rows)
                     await session.commit()
                 except Exception as e:
                     await session.rollback()
@@ -176,7 +184,7 @@ class IndexRecordMigrator:
                     gc.collect()
                     collector_queue.task_done()
 
-            self.logger.info(f"Inserter {name} finished")
+            self.logger.info(f"Inserter {name} finished. Killing Inserter...")
 
     async def query_record_with_offset(self, offset, batch_size, retry_limit=4):
         async with self.async_session() as session:
