@@ -1,7 +1,6 @@
 from os import environ
 import json
 import config_helper
-from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver

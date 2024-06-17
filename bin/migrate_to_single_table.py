@@ -68,7 +68,6 @@ class IndexRecordMigrator:
 
         self.session = Session()
 
-    @profile  # for memory-profiler
     def index_record_to_new_table(self, batch_size=1000, retry_limit=4):
         try:
             total_records = self.session.query(IndexRecord).count()
@@ -92,29 +91,32 @@ class IndexRecordMigrator:
                     alias = self.get_index_record_alias(row.did)
                     metadata = self.get_index_record_metadata(row.did)
 
-                    records_to_insert.append(
-                        Record(
-                            guid=row.did,
-                            baseid=row.baseid,
-                            rev=row.rev,
-                            form=row.form,
-                            size=row.size,
-                            created_date=row.created_date,
-                            updated_date=row.updated_date,
-                            content_created_date=row.content_created_date,
-                            content_updated_date=row.content_updated_date,
-                            file_name=row.file_name,
-                            version=row.version,
-                            uploader=row.uploader,
-                            hashes=hashes,
-                            urls=urls,
-                            url_metadata=url_metadata,
-                            acl=acl,
-                            authz=authz,
-                            alias=alias,
-                            record_metadata=metadata,
+                    try:
+                        records_to_insert.append(
+                            Record(
+                                guid=row.did,
+                                baseid=row.baseid,
+                                rev=row.rev,
+                                form=row.form,
+                                size=row.size,
+                                created_date=row.created_date,
+                                updated_date=row.updated_date,
+                                content_created_date=row.content_created_date,
+                                content_updated_date=row.content_updated_date,
+                                file_name=row.file_name,
+                                version=row.version,
+                                uploader=row.uploader,
+                                hashes=hashes,
+                                urls=urls,
+                                url_metadata=url_metadata,
+                                acl=acl,
+                                authz=authz,
+                                alias=alias,
+                                record_metadata=metadata,
+                            )
                         )
-                    )
+                    except Exception as e:
+                        print(e)
 
                 while len(records_to_insert) > 0:
                     try:
@@ -143,14 +145,15 @@ class IndexRecordMigrator:
             self.session.close()
             self.logger.info("Finished migrating :D")
 
-    def get_record_info(self, did):
-        pass
-
     def get_index_record_hash(self, did):
         try:
-            stmt = self.session.query(
-                IndexRecordHash.hash_type, IndexRecordHash.hash_value
-            ).filter(IndexRecordHash.did == did)
+            stmt = (
+                self.session.query(
+                    IndexRecordHash.hash_type, IndexRecordHash.hash_value
+                )
+                .filter(IndexRecordHash.did == did)
+                .all()
+            )
             res = {hash_type: hash_value for hash_type, hash_value in stmt}
             return res
 
@@ -159,10 +162,12 @@ class IndexRecordMigrator:
 
     def get_urls_record(self, did):
         try:
-            stmt = self.session.query(IndexRecordUrl.url).filter(
-                IndexRecordUrl.did == did
+            stmt = (
+                self.session.query(IndexRecordUrl.url)
+                .filter(IndexRecordUrl.did == did)
+                .all()
             )
-            res = [url for url in stmt]
+            res = [u.url for u in stmt]
             return res
 
         except Exception as e:
@@ -170,11 +175,15 @@ class IndexRecordMigrator:
 
     def get_urls_metadata(self, did):
         try:
-            stmt = self.session.query(
-                IndexRecordUrlMetadata.url,
-                IndexRecordUrlMetadata.key,
-                IndexRecordUrlMetadata.value,
-            ).filter(IndexRecordUrlMetadata.did == did)
+            stmt = (
+                self.session.query(
+                    IndexRecordUrlMetadata.url,
+                    IndexRecordUrlMetadata.key,
+                    IndexRecordUrlMetadata.value,
+                )
+                .filter(IndexRecordUrlMetadata.did == did)
+                .all()
+            )
             res = {url: {key: value} for url, key, value in stmt}
             return res
         except Exception as e:
@@ -182,28 +191,34 @@ class IndexRecordMigrator:
 
     def get_index_record_ace(self, did):
         try:
-            stmt = self.session.query(IndexRecordACE.ace).filter(
-                IndexRecordACE.did == did
+            stmt = (
+                self.session.query(IndexRecordACE.ace)
+                .filter(IndexRecordACE.did == did)
+                .all()
             )
-            res = [ace for ace in stmt]
+            res = [a.ace for a in stmt]
             return res
         except Exception as e:
             self.logger.error(f"Error with ace for {did}: {e}")
 
     def get_index_record_authz(self, did):
         try:
-            stmt = self.session.query(IndexRecordAuthz.resource).filter(
-                IndexRecordAuthz.did == did
+            stmt = (
+                self.session.query(IndexRecordAuthz.resource)
+                .filter(IndexRecordAuthz.did == did)
+                .all()
             )
-            res = [resource for resource in stmt]
+            res = [r.resource for r in stmt]
             return res
         except Exception as e:
             self.logger.error(f"Error with authz for {did}: {e}")
 
     def get_index_record_alias(self, did):
         try:
-            stmt = self.session.query(IndexRecordAlias.name).filter(
-                IndexRecordAlias.did == did
+            stmt = (
+                self.session.query(IndexRecordAlias.name)
+                .filter(IndexRecordAlias.did == did)
+                .all()
             )
             res = [row.name for row in stmt]
             return res
@@ -212,8 +227,10 @@ class IndexRecordMigrator:
 
     def get_index_record_metadata(self, did):
         try:
-            stmt = self.session.query(IndexRecordMetadata).filter(
-                IndexRecordMetadata.did == did
+            stmt = (
+                self.session.query(IndexRecordMetadata)
+                .filter(IndexRecordMetadata.did == did)
+                .all()
             )
             res = {row.key: row.value for row in stmt}
             return res

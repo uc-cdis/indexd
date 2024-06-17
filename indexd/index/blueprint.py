@@ -104,6 +104,7 @@ def get_index(form=None):
 
     validate_hashes(**hashes)
     hashes = hashes if hashes else None
+
     metadata = flask.request.args.getlist("metadata")
     metadata = {k: v for k, v in (x.split(":", 1) for x in metadata)}
     acl = flask.request.args.get("acl")
