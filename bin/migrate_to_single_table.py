@@ -71,14 +71,28 @@ class IndexRecordMigrator:
     def index_record_to_new_table(self, batch_size=1000, retry_limit=4):
         try:
             total_records = self.session.query(IndexRecord).count()
+            last_seen_guid = None
+            count = 0
 
-            for offset in range(0, total_records, batch_size):
-                stmt = (
-                    self.session.query(IndexRecord)
-                    .offset(offset)
-                    .limit(batch_size)
-                    .yield_per(batch_size)
-                )
+            while True:
+                if last_seen_guid == None:
+                    stmt = (
+                        self.session.query(IndexRecord)
+                        .order_by(IndexRecord.did)
+                        .limit(batch_size)
+                        .all()
+                    )
+                else:
+                    stmt = (
+                        self.session.query(IndexRecord)
+                        .order_by(IndexRecord.did)
+                        .filter(IndexRecord.did > last_seen_guid)
+                        .limit(batch_size)
+                        .all()
+                    )
+
+                if stmt == None:
+                    break
 
                 records_to_insert = []
 
@@ -91,55 +105,50 @@ class IndexRecordMigrator:
                     alias = self.get_index_record_alias(row.did)
                     metadata = self.get_index_record_metadata(row.did)
 
-                    try:
-                        records_to_insert.append(
-                            Record(
-                                guid=row.did,
-                                baseid=row.baseid,
-                                rev=row.rev,
-                                form=row.form,
-                                size=row.size,
-                                created_date=row.created_date,
-                                updated_date=row.updated_date,
-                                content_created_date=row.content_created_date,
-                                content_updated_date=row.content_updated_date,
-                                file_name=row.file_name,
-                                version=row.version,
-                                uploader=row.uploader,
-                                hashes=hashes,
-                                urls=urls,
-                                url_metadata=url_metadata,
-                                acl=acl,
-                                authz=authz,
-                                alias=alias,
-                                record_metadata=metadata,
-                            )
+                    records_to_insert.append(
+                        Record(
+                            guid=row.did,
+                            baseid=row.baseid,
+                            rev=row.rev,
+                            form=row.form,
+                            size=row.size,
+                            created_date=row.created_date,
+                            updated_date=row.updated_date,
+                            content_created_date=row.content_created_date,
+                            content_updated_date=row.content_updated_date,
+                            file_name=row.file_name,
+                            version=row.version,
+                            uploader=row.uploader,
+                            hashes=hashes,
+                            urls=urls,
+                            url_metadata=url_metadata,
+                            acl=acl,
+                            authz=authz,
+                            alias=alias,
+                            record_metadata=metadata,
                         )
-                    except Exception as e:
-                        print(e)
+                    )
+
+                last_seen_guid = stmt[-1].did
 
                 while len(records_to_insert) > 0:
                     try:
                         self.session.bulk_save_objects(records_to_insert)
                         self.session.commit()
+                        count += len(records_to_insert)
+                        self.logger.info(
+                            f"Done processing {count}/{total_records} records. {(count * 100)/total_records}%"
+                        )
                         break
                     except Exception as e:
                         self.session.rollback()
                         if "duplicate key value violates unique constraint" in str(e):
-                            self.logger.error(f"Errored at {offset}: {e}")
                             records_to_insert = self.remove_duplicate_records(
                                 records_to_insert, e
                             )
-                        else:
-                            self.logger.error(f"Ran into error at {offset}: {e}")
-                            break
-                self.logger.info(
-                    f"Inserted {offset} records out of {total_records}. Progress: {(offset*100)/total_records}%"
-                )
-
         except Exception as e:
             self.session.rollback()
-            self.logger.error(f"Errored at {offset}: {e}")
+            self.logger.error(f"Error in migration: {e}")
 
         finally:
             self.session.close()
