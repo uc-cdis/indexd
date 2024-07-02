@@ -24,11 +24,14 @@ POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_test
 
 
 def clear_database():
+    """
+    Clean up test data from unit test
+    """
     engine = create_engine(POSTGRES_CONNECTION)
 
     with engine.connect() as conn:
-        # Clear the Index records
         index_driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+        # IndexD table needs to be delete in this order to avoid foreign key constraint error
         table_delete_order = [
             "index_record_url_metadata",
             "index_record_url",
@@ -67,6 +70,9 @@ def clear_database():
 
 @pytest.fixture(scope="function", params=["default_settings", "single_table_settings"])
 def combined_default_and_single_table_settings(request):
+    """
+    Fixture to run a unit test with both multi-table and single-table driver
+    """
     from indexd import default_settings
     from tests import default_test_settings
 

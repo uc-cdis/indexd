@@ -2,6 +2,9 @@ from alembic.config import main as alembic_main
 
 
 def test_upgrade(postgres_driver):
+    """
+    Make sure single table migration created record table and has the correct schema.
+    """
     conn = postgres_driver.engine.connect()
 
     # state before migration
@@ -41,6 +44,9 @@ def test_upgrade(postgres_driver):
 
 
 def test_downgrade(postgres_driver):
+    """
+    Test downgrade to before single table. record table should not exist before this upgrade
+    """
     conn = postgres_driver.engine.connect()
     alembic_main(["--raiseerr", "downgrade", "a72f117515c5"])
 

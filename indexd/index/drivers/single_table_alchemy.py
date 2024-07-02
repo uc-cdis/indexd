@@ -52,12 +52,12 @@ class Record(Base):
     baseid = Column(String, index=True)
     rev = Column(String)
     form = Column(String)
-    size = Column(BigInteger, index=True)
+    size = Column(BigInteger)
     created_date = Column(DateTime, default=datetime.datetime.utcnow)
     updated_date = Column(DateTime, default=datetime.datetime.utcnow)
-    file_name = Column(String, index=True)
-    version = Column(String, index=True)
-    uploader = Column(String, index=True)
+    file_name = Column(String)
+    version = Column(String)
+    uploader = Column(String)
     description = Column(String)
     content_created_date = Column(DateTime)
     content_updated_date = Column(DateTime)
@@ -73,15 +73,8 @@ class Record(Base):
         """
         Get the full index document
         """
-        # TODO: some of these fields may not need to be a variable and could directly go to the return object -Binam
-        urls = self.urls
         acl = self.acl or []
         authz = self.authz or []
-        hashes = self.hashes
-        record_metadata = self.record_metadata
-        url_metadata = self.url_metadata
-        created_date = self.created_date.isoformat()
-        updated_date = self.updated_date.isoformat()
         content_created_date = (
             self.content_created_date.isoformat()
             if self.content_created_date is not None
@@ -101,15 +94,15 @@ class Record(Base):
             "file_name": self.file_name,
             "version": self.version,
             "uploader": self.uploader,
-            "urls": urls,
-            "urls_metadata": url_metadata,
+            "urls": self.urls,
+            "urls_metadata": self.url_metadata,
             "acl": acl,
             "authz": authz,
-            "hashes": hashes,
-            "metadata": record_metadata,
+            "hashes": self.hashes,
+            "metadata": self.record_metadata,
             "form": self.form,
-            "created_date": created_date,
-            "updated_date": updated_date,
+            "created_date": self.created_date.isoformat(),
+            "updated_date": self.updated_date.isoformat(),
             "description": self.description,
             "content_created_date": content_created_date,
             "content_updated_date": content_updated_date,
@@ -124,20 +117,6 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
 
-    def migrate_index_database(self):
-        """
-        This migration logic is DEPRECATED. It is still supported for backwards compatibility,
-        but any new migration should be added using Alembic.
-
-        migrate index database to match CURRENT_SCHEMA_VERSION
-        """
-        migrate_database(
-            driver=self,
-            migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
-            current_schema_version=CURRENT_SCHEMA_VERSION,
-            model=IndexSchemaVersion,
-        )
-
     @property
     @contextmanager
     def session(self):
@@ -145,6 +124,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         Provide a transactional scope around a series of operations.
         """
         session = self.Session()
+        # return session.begin()
 
         try:
             yield session
@@ -173,6 +153,9 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         negate_params=None,
         page=None,
     ):
+        """
+        Returns list of records stored by the backend.
+        """
         with self.session as session:
             query = session.query(Record)
 
