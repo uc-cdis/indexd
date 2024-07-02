@@ -38,10 +38,7 @@ def load_json(file_name):
 
 def main():
     args = parse_args()
-    try:
-        migrator = IndexRecordMigrator(conf_data=args.creds_path)
-    except Exception as e:
-        logger.error(f"Set up failed: {e}")
+    migrator = IndexRecordMigrator(conf_data=args.creds_path)
     migrator.index_record_to_new_table()
     return
 
