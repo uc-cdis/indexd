@@ -1,23 +1,18 @@
 """
-to run: python migrate_to_single_table.py "/dir/containing/db_creds"
+to run: python migrate_to_single_table.py --creds-path /dir/containing/db_creds --start-did <guid>
 """
 import argparse
 import json
-import config_helper
+import bin.config_helper as config_helper
 from cdislogging import get_logger
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, DateTime
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import time
-import random
 import re
-
-import cProfile
 
 from indexd.index.drivers.alchemy import (
     IndexRecord,
     IndexRecordAuthz,
-    BaseVersion,
     IndexRecordAlias,
     IndexRecordUrl,
     IndexRecordACE,
@@ -75,10 +70,12 @@ class IndexRecordMigrator:
         pghost = conf_data.get("db_host", "{{db_host}}")
         pgport = 5432
 
-        engine = create_engine(
-            f"postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}"
-        )
-
+        try:
+            engine = create_engine(
+                f"postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}"
+            )
+        except Exception as e:
+            print(e)
         Base = declarative_base()
         Base.metadata.create_all(engine)
         Session = sessionmaker(bind=engine)
@@ -121,7 +118,6 @@ class IndexRecordMigrator:
                     authz = self.get_index_record_authz(record.did)
                     alias = self.get_index_record_alias(record.did)
                     metadata = self.get_index_record_metadata(record.did)
-
                     records_to_insert.append(
                         Record(
                             guid=record.did,
@@ -145,9 +141,6 @@ class IndexRecordMigrator:
                             record_metadata=metadata,
                         )
                     )
-
-                last_seen_guid = records[-1].did
-
                 while records_to_insert:
                     try:
                         self.session.bulk_save_objects(records_to_insert)
@@ -163,12 +156,25 @@ class IndexRecordMigrator:
                             records_to_insert = self.remove_duplicate_records(
                                 records_to_insert, e
                             )
+                last_seen_guid = records[-1].did
         except Exception as e:
             self.session.rollback()
-            self.logger.error(f"Error in migration: {e}")
-
+            self.logger.error(
+                f"Error in migration: {e}. Last seen guid: {last_seen_guid}. Please "
+            )
         finally:
             self.session.close()
+            new_total_records = self.session.query(Record).count()
+            self.logger.info(f"Number of records in old table: {total_records}")
+            self.logger.info(f"Number of records in new table: {new_total_records}")
+            if total_records == new_total_records:
+                self.logger.info(
+                    "Number of records in the new table matches the number of records in old table"
+                )
+            else:
+                self.logger.info(
+                    "Number of records in the new table DOES NOT MATCH the number of records in old table. Check logs to see if there are records that were not migrated"
+                )
             self.logger.info("Finished migrating :D")
 
     def get_index_record_hash(self, did):
@@ -264,7 +270,7 @@ class IndexRecordMigrator:
                 .filter(IndexRecordMetadata.did == did)
                 .all()
             )
-            res = [row.name for row in stmt]
+            res = {key: value for key, value in stmt}
             return res
         except Exception as e:
             self.logger.error(f"Error with alias for did {did}: {e}")

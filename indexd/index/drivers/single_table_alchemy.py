@@ -464,9 +464,9 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 checked_url_metadata = check_url_metadata(url_metadata, record)
                 record.url_metadata = checked_url_metadata
-
-                if self.config.get("Add_PREFIX_ALIAS"):
-                    self.add_prefix_alias(record, session)
+                if self.config.get("ADD_PREFIX_ALIAS"):
+                    prefix = self.config["DEFAULT_PREFIX"]
+                    record.alias = list(set([prefix + record.guid]))
                 session.add(record)
                 session.commit()
             except IntegrityError:
@@ -592,13 +592,6 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             session.commit()
 
             return record.guid, record.rev, record.baseid
-
-    def add_prefix_alias(self, record, session):
-        """
-        Create a index alias with the alias as {prefix:did}
-        """
-        prefix = self.config["DEFAULT_PREFIX"]
-        session.add(Record().alias.append(prefix + record.guid))
 
     def get_by_alias(self, alias):
         """
