@@ -1,7 +1,6 @@
 {
     "db_host": "localhost",
     "db_username": "postgres",
-    "db_password": "postgres", // pragma: allowlist secret
     "db_database": "indexd_tests",
     "fence_database": "fence_db"
-  }
+}
