@@ -82,7 +82,10 @@ class IndexRecordMigrator:
 
         self.session = Session()
 
-    def index_record_to_new_table(self, batch_size=1000, retry_limit=4):
+    def index_record_to_new_table(self, batch_size=1000):
+        """
+        Collect records from index_record table, collect additional info from multiple tables and bulk insert to new record table.
+        """
         try:
             total_records = self.session.query(IndexRecord).count()
             last_seen_guid = None
@@ -178,6 +181,9 @@ class IndexRecordMigrator:
             self.logger.info("Finished migrating :D")
 
     def get_index_record_hash(self, did):
+        """
+        Get the index record hash for the given did and return correctly formatted value
+        """
         try:
             stmt = (
                 self.session.query(
@@ -193,6 +199,9 @@ class IndexRecordMigrator:
             self.logger.error(f"Error with hash for {did}: {e}")
 
     def get_urls_record(self, did):
+        """
+        Get the urls record for the given did and return correctly formatted value
+        """
         try:
             stmt = (
                 self.session.query(IndexRecordUrl.url)
@@ -205,6 +214,9 @@ class IndexRecordMigrator:
             self.logger.error(f"Error with urls for {did}: {e}")
 
     def get_urls_metadata(self, did):
+        """
+        Get the urls metadata for the given did and return correctly formatted value
+        """
         try:
             stmt = (
                 self.session.query(
@@ -221,6 +233,9 @@ class IndexRecordMigrator:
             self.logger.error(f"Error with url metadata for {did}: {e}")
 
     def get_index_record_ace(self, did):
+        """
+        Get the index record ace for the given did and return correctly formatted value
+        """
         try:
             stmt = (
                 self.session.query(IndexRecordACE.ace)
@@ -233,6 +248,9 @@ class IndexRecordMigrator:
             self.logger.error(f"Error with ace for did {did}: {e}")
 
     def get_index_record_authz(self, did):
+        """
+        Get the index record authz for the given did and return the correctly formatted value
+        """
         try:
             stmt = (
                 self.session.query(IndexRecordAuthz.resource)
@@ -245,6 +263,9 @@ class IndexRecordMigrator:
             self.logger.error(f"Error with authz: {e}")
 
     def get_index_record_alias(self, did):
+        """
+        Get the index record alias for the given did and return the correctly formatted
+        """
         try:
             stmt = (
                 self.session.query(IndexRecordAlias.name)
@@ -261,6 +282,9 @@ class IndexRecordMigrator:
             self.logger.error(f"Error with alias: {e}")
 
     def get_index_record_metadata(self, did):
+        """
+        Get the index record metadata for the given did and return the correctly fortmatted value
+        """
         try:
             stmt = (
                 self.session.query(
@@ -276,6 +300,9 @@ class IndexRecordMigrator:
             self.logger.error(f"Error with alias for did {did}: {e}")
 
     def remove_duplicate_records(self, records, error):
+        """
+        Remove duplicate records from the bulk insert records list
+        """
         # Extract the key value from the error message
         key_value = re.search(r"\(guid\)=\((.*?)\)", str(error))
         key_value = key_value.group(1)

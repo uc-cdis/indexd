@@ -87,6 +87,9 @@ def test_index_record_to_new_table():
 
 
 def test_get_index_record_hash():
+    """
+    Test get_index_record_hash from IndexRecordMigrator returns the correct format
+    """
     index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_index_record_hash(did)
@@ -94,6 +97,9 @@ def test_get_index_record_hash():
 
 
 def test_get_urls_record():
+    """
+    Test get_urls_record from IndexRecordMigrator returns the correct format
+    """
     index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_urls_record(did)
@@ -101,6 +107,9 @@ def test_get_urls_record():
 
 
 def test_get_urls_metadata():
+    """
+    Test get_urls_metadata from IndexRecordMigrator returns the correct format
+    """
     index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_urls_metadata(did)
@@ -111,6 +120,9 @@ def test_get_urls_metadata():
 
 
 def test_get_index_record_ace():
+    """
+    Test get_index_record_ace from IndexRecordMigrator returns the correct format
+    """
     index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_index_record_ace(did)
@@ -118,6 +130,9 @@ def test_get_index_record_ace():
 
 
 def test_get_index_record_authz():
+    """
+    Test get_index_record_authz from IndexRecordMigrator returns the correct format
+    """
     index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_index_record_authz(did)
@@ -125,6 +140,9 @@ def test_get_index_record_authz():
 
 
 def test_get_index_record_metadata():
+    """
+    Test get_index_record_metadata from IndexRecordMigrator returns the correct format
+    """
     index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_index_record_metadata(did)
