@@ -1,14 +1,10 @@
-import datetime
-import pytest
 import random
-import json
 import uuid
 
 from sqlalchemy import create_engine
-from unittest.mock import patch, MagicMock, mock_open
 
-from bin.migrate_to_single_table import IndexRecordMigrator, parse_args, main
-from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver, IndexRecord
+from bin.migrate_to_single_table import IndexRecordMigrator
+from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
 
 POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
