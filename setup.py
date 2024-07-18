@@ -47,7 +47,7 @@ setup(
         "psycopg2>=2.7",
         "cdislogging>=1.0",
         "requests",
-        "ddtrace",
+        "ddtrace>=2.9.1",
         "importlib-metadata>=1.4; python_version < '3.8'",
         # jsonschema-spec 0.1.6 depends on typing-extensions<4.6.0
         "typing-extensions<4.6.0",
