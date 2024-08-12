@@ -49,7 +49,7 @@ FROM base
 COPY --from=builder /venv /venv
 COPY --from=builder /$appname /$appname
 
-# install nginx
+# Install nginx
 RUN yum install nginx -y
 
 RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
