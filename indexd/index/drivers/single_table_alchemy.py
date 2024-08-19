@@ -124,8 +124,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         Provide a transactional scope around a series of operations.
         """
         session = self.Session()
-        # return session.begin()
-
+        session.begin()
         try:
             yield session
             session.commit()

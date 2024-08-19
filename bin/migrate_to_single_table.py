@@ -2,11 +2,13 @@
 to run: python migrate_to_single_table.py --creds-path /dir/containing/db_creds --start-did <guid>
 """
 import argparse
+import backoff
 import json
 import bin.config_helper as config_helper
 from cdislogging import get_logger
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 import re
 
@@ -21,6 +23,7 @@ from indexd.index.drivers.alchemy import (
     IndexRecordHash,
 )
 from indexd.index.drivers.single_table_alchemy import Record
+from indexd.index.errors import MultipleRecordsFound
 
 APP_NAME = "indexd"
 
@@ -34,7 +37,9 @@ def load_json(file_name):
 def main():
     args = parse_args()
     migrator = IndexRecordMigrator(conf_data=args.creds_path)
-    migrator.index_record_to_new_table()
+    migrator.index_record_to_new_table(
+        offset=args.offset, last_seen_guid=args.start_did
+    )
     return
 
 
@@ -48,8 +53,15 @@ def parse_args():
     )
     parser.add_argument(
         "--start-did",
+        dest="start_did",
         help="did to start at",
-        default=False,
+        default=None,
+    )
+    parser.add_argument(
+        "--start-offset",
+        dest="start_offset",
+        help="offset to start at",
+        default=None,
     )
     return parser.parse_args()
 
@@ -75,20 +87,21 @@ class IndexRecordMigrator:
                 f"postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}"
             )
         except Exception as e:
-            print(e)
+            self.logger.error(f"Failed to connect to postgres: {e}")
         Base = declarative_base()
         Base.metadata.create_all(engine)
         Session = sessionmaker(bind=engine)
 
         self.session = Session()
 
-    def index_record_to_new_table(self, batch_size=1000):
+    def index_record_to_new_table(
+        self, batch_size=1000, offset=None, last_seen_guid=None
+    ):
         """
         Collect records from index_record table, collect additional info from multiple tables and bulk insert to new record table.
         """
         try:
-            total_records = self.session.query(IndexRecord).count()
-            last_seen_guid = None
+            self.total_records = self.session.query(IndexRecord).count()
             count = 0
 
             while True:
@@ -96,6 +109,14 @@ class IndexRecordMigrator:
                     records = (
                         self.session.query(IndexRecord)
                         .order_by(IndexRecord.did)
+                        .limit(batch_size)
+                        .all()
+                    )
+                elif offset is not None:
+                    records = (
+                        self.session.query(IndexRecord)
+                        .order_by(IndexRecord.did)
+                        .offset(offset - 1)
                         .limit(batch_size)
                         .all()
                     )
@@ -111,66 +132,23 @@ class IndexRecordMigrator:
                 if not records:
                     break
 
-                records_to_insert = []
+                records_to_insert = self.get_info_from_mult_tables(records)
 
-                for record in records:
-                    hashes = self.get_index_record_hash(record.did)
-                    urls = self.get_urls_record(record.did)
-                    url_metadata = self.get_urls_metadata(record.did)
-                    acl = self.get_index_record_ace(record.did)
-                    authz = self.get_index_record_authz(record.did)
-                    alias = self.get_index_record_alias(record.did)
-                    metadata = self.get_index_record_metadata(record.did)
-                    records_to_insert.append(
-                        Record(
-                            guid=record.did,
-                            baseid=record.baseid,
-                            rev=record.rev,
-                            form=record.form,
-                            size=record.size,
-                            created_date=record.created_date,
-                            updated_date=record.updated_date,
-                            content_created_date=record.content_created_date,
-                            content_updated_date=record.content_updated_date,
-                            file_name=record.file_name,
-                            version=record.version,
-                            uploader=record.uploader,
-                            hashes=hashes,
-                            urls=urls,
-                            url_metadata=url_metadata,
-                            acl=acl,
-                            authz=authz,
-                            alias=alias,
-                            record_metadata=metadata,
-                        )
-                    )
-                while records_to_insert:
-                    try:
-                        self.session.bulk_save_objects(records_to_insert)
-                        self.session.commit()
-                        count += len(records_to_insert)
-                        self.logger.info(
-                            f"Done processing {count}/{total_records} records. {(count * 100)/total_records}%"
-                        )
-                        break
-                    except Exception as e:
-                        self.session.rollback()
-                        if "duplicate key value violates unique constraint" in str(e):
-                            records_to_insert = self.remove_duplicate_records(
-                                records_to_insert, e
-                            )
+                self.bulk_insert_records(records_to_insert)
+
                 last_seen_guid = records[-1].did
+
         except Exception as e:
             self.session.rollback()
             self.logger.error(
-                f"Error in migration: {e}. Last seen guid: {last_seen_guid}. Please "
+                f"Error in migration: {e}. Last seen guid: {last_seen_guid} at position: {count}."
             )
         finally:
             self.session.close()
             new_total_records = self.session.query(Record).count()
-            self.logger.info(f"Number of records in old table: {total_records}")
+            self.logger.info(f"Number of records in old table: {self.total_records}")
             self.logger.info(f"Number of records in new table: {new_total_records}")
-            if total_records == new_total_records:
+            if self.total_records == new_total_records:
                 self.logger.info(
                     "Number of records in the new table matches the number of records in old table"
                 )
@@ -179,6 +157,73 @@ class IndexRecordMigrator:
                     "Number of records in the new table DOES NOT MATCH the number of records in old table. Check logs to see if there are records that were not migrated"
                 )
             self.logger.info("Finished migrating :D")
+
+    @backoff.on_exception(
+        backoff.expo, Exception, max_tries=5, max_time=60, jitter=backoff.full_jitter
+    )
+    def bulk_insert_records(self, records_to_insert):
+        """
+        bulk insert records into the new Record table
+        Args:
+            records_to_insert (list): List of Record objects
+        """
+        try:
+            self.session.bulk_save_objects(records_to_insert)
+            self.session.commit()
+            count += len(records_to_insert)
+            self.logger.info(
+                f"Done processing {count}/{self.total_records} records. {(count * 100)/self.total_records}%"
+            )
+        except IntegrityError:
+            self.session.rollback()
+            self.logger.error(f"Duplicate record found for records {records_to_insert}")
+        except Exception as e:
+            self.session.rollback()
+            self.logger.error(f"Error bulk insert for records at {count} records")
+
+    def get_info_from_mult_tables(self, records):
+        """
+        Collect records from multiple tables from old multi table infrastructure and create a list of records to insert into the new single table infrastructure
+
+        Args:
+            records (list): list of IndexRecord objects
+
+        Returns:
+            records_to_insert (list): List of Record objects
+        """
+        records_to_insert = []
+        for record in records:
+            hashes = self.get_index_record_hash(record.did)
+            urls = self.get_urls_record(record.did)
+            url_metadata = self.get_urls_metadata(record.did)
+            acl = self.get_index_record_ace(record.did)
+            authz = self.get_index_record_authz(record.did)
+            alias = self.get_index_record_alias(record.did)
+            metadata = self.get_index_record_metadata(record.did)
+            records_to_insert.append(
+                Record(
+                    guid=record.did,
+                    baseid=record.baseid,
+                    rev=record.rev,
+                    form=record.form,
+                    size=record.size,
+                    created_date=record.created_date,
+                    updated_date=record.updated_date,
+                    content_created_date=record.content_created_date,
+                    content_updated_date=record.content_updated_date,
+                    file_name=record.file_name,
+                    version=record.version,
+                    uploader=record.uploader,
+                    hashes=hashes,
+                    urls=urls,
+                    url_metadata=url_metadata,
+                    acl=acl,
+                    authz=authz,
+                    alias=alias,
+                    record_metadata=metadata,
+                )
+            )
+        return records_to_insert
 
     def get_index_record_hash(self, did):
         """

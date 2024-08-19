@@ -7,7 +7,6 @@ import mock
 from unittest.mock import patch
 
 # indexd_server and indexd_client is needed as fixtures
-# from cdisutilstest.code.indexd_fixture import clear_database
 from gen3authz.client.arborist.client import ArboristClient
 
 from indexd import get_app
