@@ -102,7 +102,7 @@ class IndexRecordMigrator:
         """
         try:
             self.total_records = self.session.query(IndexRecord).count()
-            count = 0
+            self.count = 0
 
             while True:
                 if last_seen_guid is None:
@@ -141,7 +141,7 @@ class IndexRecordMigrator:
         except Exception as e:
             self.session.rollback()
             self.logger.error(
-                f"Error in migration: {e}. Last seen guid: {last_seen_guid} at position: {count}."
+                f"Error in migration: {e}. Last seen guid: {last_seen_guid} at position: {self.count}."
             )
         finally:
             self.session.close()
@@ -170,16 +170,16 @@ class IndexRecordMigrator:
         try:
             self.session.bulk_save_objects(records_to_insert)
             self.session.commit()
-            count += len(records_to_insert)
+            self.count += len(records_to_insert)
             self.logger.info(
-                f"Done processing {count}/{self.total_records} records. {(count * 100)/self.total_records}%"
+                f"Done processing {self.count}/{self.total_records} records. {(self.count * 100)/self.total_records}%"
             )
-        except IntegrityError:
+        except IntegrityError as e:
             self.session.rollback()
-            self.logger.error(f"Duplicate record found for records {records_to_insert}")
+            self.logger.error(f"Duplicate record found for records {e}")
         except Exception as e:
             self.session.rollback()
-            self.logger.error(f"Error bulk insert for records at {count} records")
+            self.logger.error(f"Error bulk insert for records at {self.count} records")
 
     def get_info_from_mult_tables(self, records):
         """
