@@ -132,7 +132,15 @@ class IndexRecordMigrator:
                 if not records:
                     break
 
-                records_to_insert = self.get_info_from_mult_tables(records)
+                try:
+                    records_to_insert = self.get_info_from_mult_tables(records)
+                except Exception as e:
+                    raise Exception(
+                        f"""
+                                    Could not insert records with {e} at offset {offset} with the last seen guid {last_seen_guid}. Please re-run the job with the following command
+                                    gen3 job run indexd-single-table-migration-job --start-did {last_seen_guid}
+                                    """
+                    )
 
                 self.bulk_insert_records(records_to_insert)
 
