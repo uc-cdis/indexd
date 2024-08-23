@@ -17,7 +17,7 @@ cattrs==23.1.2
     # via ddtrace
 cdislogging==1.1.1
     # via indexd (setup.py)
-certifi==2024.2.2
+certifi==2024.7.4
     # via requests
 charset-normalizer==3.3.2
     # via requests

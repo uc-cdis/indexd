@@ -33,9 +33,11 @@ tox:
     POSTGRES_USER: test
     POSTGRES_PASSWORD: test
     POSTGRES_HOST_AUTH_METHOD: trust
+    BASE_CONTAINER_VERSION: 3.0.6
   script:
     - mkdir -p /usr/share/man/man1
     - dnf -y install java-11-amazon-corretto-headless
+    - dnf upgrade wget
     - java -version
     - pip install 'tox < 4'
     - tox -e py
