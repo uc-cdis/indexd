@@ -229,6 +229,9 @@ class IndexRecordMigrator:
             )
         return records_to_insert
 
+    @backoff.on_exception(
+        backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
+    )
     def get_index_record_hash(self, did):
         """
         Get the index record hash for the given did and return correctly formatted value
@@ -245,8 +248,11 @@ class IndexRecordMigrator:
             res = {hash_type: hash_value for hash_type, hash_value in stmt}
             return res
         except Exception as e:
-            self.logger.error(f"Error with hash for {did}: {e}")
+            raise Exception(f"Error with hash for {did}: {e}")
 
+    @backoff.on_exception(
+        backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
+    )
     def get_urls_record(self, did):
         """
         Get the urls record for the given did and return correctly formatted value
@@ -260,8 +266,11 @@ class IndexRecordMigrator:
             res = [u.url for u in stmt]
             return res
         except Exception as e:
-            self.logger.error(f"Error with urls for {did}: {e}")
+            raise Exception(f"Error with urls for {did}: {e}")
 
+    @backoff.on_exception(
+        backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
+    )
     def get_urls_metadata(self, did):
         """
         Get the urls metadata for the given did and return correctly formatted value
@@ -279,8 +288,11 @@ class IndexRecordMigrator:
             res = {url: {key: value} for url, key, value in stmt}
             return res
         except Exception as e:
-            self.logger.error(f"Error with url metadata for {did}: {e}")
+            raise Exception(f"Error with url metadata for {did}: {e}")
 
+    @backoff.on_exception(
+        backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
+    )
     def get_index_record_ace(self, did):
         """
         Get the index record ace for the given did and return correctly formatted value
@@ -294,8 +306,11 @@ class IndexRecordMigrator:
             res = [a.ace for a in stmt]
             return res
         except Exception as e:
-            self.logger.error(f"Error with ace for did {did}: {e}")
+            raise Exception(f"Error with ace for did {did}: {e}")
 
+    @backoff.on_exception(
+        backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
+    )
     def get_index_record_authz(self, did):
         """
         Get the index record authz for the given did and return the correctly formatted value
@@ -309,8 +324,11 @@ class IndexRecordMigrator:
             res = [r.resource for r in stmt]
             return res
         except Exception as e:
-            self.logger.error(f"Error with authz: {e}")
+            raise Exception(f"Error with authz: {e}")
 
+    @backoff.on_exception(
+        backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
+    )
     def get_index_record_alias(self, did):
         """
         Get the index record alias for the given did and return the correctly formatted
@@ -328,8 +346,11 @@ class IndexRecordMigrator:
                 res[did].append(name)
             return res
         except Exception as e:
-            self.logger.error(f"Error with alias: {e}")
+            raise Exception(f"Error with alias: {e}")
 
+    @backoff.on_exception(
+        backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
+    )
     def get_index_record_metadata(self, did):
         """
         Get the index record metadata for the given did and return the correctly fortmatted value
@@ -346,22 +367,7 @@ class IndexRecordMigrator:
             res = {key: value for key, value in stmt}
             return res
         except Exception as e:
-            self.logger.error(f"Error with alias for did {did}: {e}")
-
-    def remove_duplicate_records(self, records, error):
-        """
-        Remove duplicate records from the bulk insert records list
-        """
-        # Extract the key value from the error message
-        key_value = re.search(r"\(guid\)=\((.*?)\)", str(error))
-        key_value = key_value.group(1)
-        self.logger.info(f"Removing duplicate record {key_value}")
-        for record in records:
-            if key_value == str(record.guid):
-                records.remove(record)
-                break
-
-        return records
+            raise Exception(f"Error with alias for did {did}: {e}")
 
 
 if __name__ == "__main__":
