@@ -12,6 +12,7 @@ include = [
 [tool.poetry.dependencies]
 python = "3.9.*"
 alembic = "^1.9.4"
+asyncpg = "^0.29.0"
 authutils = "^6.0.0"
 cdislogging = "^1.0.0"
 cdiserrors =  "^1.0.0"
@@ -26,7 +27,6 @@ psycopg2 = "^2.7"
 sqlalchemy = "^1.4.0"
 sqlalchemy-utils = "^0.37.3"
 PyYAML = "^5.4"
-asyncpg = "^0.29.0"
 
 
 [tool.poetry.dev-dependencies]
