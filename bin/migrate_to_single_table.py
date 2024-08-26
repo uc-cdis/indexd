@@ -137,11 +137,7 @@ class IndexRecordMigrator:
                     self.bulk_insert_records(records_to_insert)
                 except Exception as e:
                     raise Exception(
-                        f"""
-                                    Failed with error {e}
-                                    Please re-run the job with the following command
-                                    gen3 job run indexd-single-table-migration-job --start-did {last_seen_guid}
-                                    """
+                        f"Could not insert records with {e} at offset {offset} with the last seen guid {last_seen_guid}. Please re-run the job with the following --start-did {last_seen_guid}"
                     )
 
                 last_seen_guid = records[-1].did
