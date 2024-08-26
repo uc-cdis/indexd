@@ -2206,6 +2206,8 @@ def test_create_index_version(client, user, combined_default_and_single_table_se
         "urls": ["s3://endpointurl/bucket2/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"},
         "acl": ["a"],
+        "content_updated_date": "2023-03-14T17:02:54",
+        "content_created_date": "2023-03-13T17:02:54",
     }
 
     res_2 = client.post("/index/" + rec["did"], json=dataNew, headers=user)
