@@ -70,7 +70,7 @@ def test_index_record_to_new_table():
     """
     Test index_record_to_new_table copies records from old tables to new record table.
     """
-    index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
+    index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     n_records = 100
     create_record(n_records)
     index_record_migrator.index_record_to_new_table(batch_size=10)
@@ -86,7 +86,7 @@ def test_get_index_record_hash():
     """
     Test get_index_record_hash from IndexRecordMigrator returns the correct format
     """
-    index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
+    index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_index_record_hash(did)
     assert result == {"md5": "some_md5", "sha1": "some_sha1"}
@@ -96,7 +96,7 @@ def test_get_urls_record():
     """
     Test get_urls_record from IndexRecordMigrator returns the correct format
     """
-    index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
+    index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_urls_record(did)
     assert result == ["s3://bucket/data.json", "gs://bucket/data.txt"]
@@ -106,7 +106,7 @@ def test_get_urls_metadata():
     """
     Test get_urls_metadata from IndexRecordMigrator returns the correct format
     """
-    index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
+    index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_urls_metadata(did)
     assert result == {
@@ -119,7 +119,7 @@ def test_get_index_record_ace():
     """
     Test get_index_record_ace from IndexRecordMigrator returns the correct format
     """
-    index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
+    index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_index_record_ace(did)
     assert type(result) == list
@@ -129,7 +129,7 @@ def test_get_index_record_authz():
     """
     Test get_index_record_authz from IndexRecordMigrator returns the correct format
     """
-    index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
+    index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_index_record_authz(did)
     assert type(result) == list
@@ -139,7 +139,7 @@ def test_get_index_record_metadata():
     """
     Test get_index_record_metadata from IndexRecordMigrator returns the correct format
     """
-    index_record_migrator = IndexRecordMigrator(conf_data="tests/test_creds.json")
+    index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_index_record_metadata(did)
     assert result == {
