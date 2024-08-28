@@ -36,7 +36,7 @@ def load_json(file_name):
 
 def main():
     args = parse_args()
-    migrator = IndexRecordMigrator(conf_data=args.creds_path)
+    migrator = IndexRecordMigrator(creds_file=args.creds_file)
     migrator.index_record_to_new_table(
         offset=args.start_offset, last_seen_guid=args.start_did
     )
@@ -48,8 +48,9 @@ def parse_args():
         description="Migrate data from old indexd database to new single table database"
     )
     parser.add_argument(
-        "--creds-path",
-        help="Path to the creds file for the database you're trying to copy data from multi-table to single records table. Defaults to original indexd database creds from the indexd block in the creds.json file.",
+        "--creds-file",
+        dest="creds_file",
+        help="file to the creds file for the database you're trying to copy data from multi-table to single records table. Defaults to original indexd database creds from the indexd block in the creds.json file.",
     )
     parser.add_argument(
         "--start-did",
@@ -67,14 +68,10 @@ def parse_args():
 
 
 class IndexRecordMigrator:
-    def __init__(self, conf_data=None):
+    def __init__(self, creds_file=None):
         self.logger = get_logger("migrate_single_table", log_level="debug")
 
-        if conf_data:
-            with open(conf_data, "r") as reader:
-                conf_data = json.load(reader)
-        else:
-            conf_data = load_json("creds.json")
+        conf_data = load_json(creds_file) if creds_file else load_json("creds.json")
 
         usr = conf_data.get("db_username", "{{db_username}}")
         db = conf_data.get("db_database", "{{db_database}}")
