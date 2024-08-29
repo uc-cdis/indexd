@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-poetry run pytest -vv --cov=indexd --cov-report xml tests --cov-append
+poetry run pytest -vv --cov=indexd --cov-append --cov-report xml tests
