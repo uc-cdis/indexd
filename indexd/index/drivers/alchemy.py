@@ -676,6 +676,20 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 for r in query
             ]
 
+    def _validate_and_format_content_dates(
+        self, record, content_created_date, content_updated_date
+    ):
+        if content_created_date is not None:
+            record.content_created_date = datetime.datetime.fromisoformat(
+                content_created_date
+            )
+            # Users cannot set content_updated_date without a content_created_date
+            record.content_updated_date = (
+                datetime.datetime.fromisoformat(content_updated_date)
+                if content_updated_date is not None
+                else record.content_created_date  # Set updated to created if no updated is provided
+            )
+
     def add(
         self,
         form,
@@ -755,16 +769,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record.description = description
 
-            if content_created_date is not None:
-                record.content_created_date = datetime.datetime.fromisoformat(
-                    content_created_date
-                )
-                # Users cannot set content_updated_date without a content_created_date
-                record.content_updated_date = (
-                    datetime.datetime.fromisoformat(content_updated_date)
-                    if content_updated_date is not None
-                    else record.content_created_date  # Set updated to created if no updated is provided
-                )
+            self._validate_and_format_content_dates(
+                record=record,
+                content_created_date=content_created_date,
+                content_updated_date=content_updated_date,
+            )
 
             session.merge(base_version)
 
@@ -1383,6 +1392,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 IndexRecordMetadata(did=record.did, key=m_key, value=m_value)
                 for m_key, m_value in metadata.items()
             ]
+
+            self._validate_and_format_content_dates(
+                record=record,
+                content_created_date=content_created_date,
+                content_updated_date=content_updated_date,
+            )
 
             try:
                 session.add(record)

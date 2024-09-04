@@ -1,6 +1,6 @@
 # TL;DR
 
-[Swagger](https://swagger.io/getting-started-with-swagger-i-what-is-swagger/) specification of indexd's REST API
+[Swagger](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/uc-cdis/indexd/master/openapis/swagger.yaml) specification of indexd's REST API
 
 ## Swagger Tools
 
