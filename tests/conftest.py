@@ -72,11 +72,12 @@ def combined_default_and_single_table_settings(request):
     """
     Fixture to run a unit test with both multi-table and single-table driver
     """
-    from indexd import default_settings
-    from tests import default_test_settings
 
     # Load the default settings
     if request.param == "default_settings":
+        from indexd import default_settings
+        from tests import default_test_settings
+
         importlib.reload(default_settings)
         default_settings.settings = {
             **default_settings.settings,
@@ -90,7 +91,6 @@ def combined_default_and_single_table_settings(request):
 
         importlib.reload(single_table_settings)
         single_table_settings.settings = {
-            **default_test_settings.settings,
             **single_table_settings.settings,
         }
         yield get_app(single_table_settings.settings)

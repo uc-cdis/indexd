@@ -35,7 +35,6 @@ from indexd.index.errors import (
     RevisionMismatch,
     UnhealthyCheck,
 )
-from indexd.utils import migrate_database
 
 Base = declarative_base()
 

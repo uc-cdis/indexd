@@ -1,5 +1,6 @@
 import flask
 import json
+
 import tests.conftest
 import requests
 import responses
@@ -86,21 +87,35 @@ def test_drs_get(client, user, combined_default_and_single_table_settings):
 
 def test_drs_get_no_default(client, user, combined_default_and_single_table_settings):
     # Change default index driver settings to use no prefix
-    settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = None
-    settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = False
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "DEFAULT_PREFIX"
+    ] = None
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "PREPEND_PREFIX"
+    ] = False
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "ADD_PREFIX_ALIAS"
+    ] = False
 
     data = get_doc()
-    did = "ad8f4658-6acd-4f96-0dd8-3709890c959f"
-    data["did"] = did
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
+    did = res_1.json["did"]
+    assert "testprefix:" not in did
     res_2 = client.get("/ga4gh/drs/v1/objects/" + did)
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["self_uri"] == "drs://" + did
 
-    settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = "testprefix:"
-    settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "DEFAULT_PREFIX"
+    ] = "testprefix:"
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "PREPEND_PREFIX"
+    ] = True
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "ADD_PREFIX_ALIAS"
+    ] = True
 
 
 def verify_timestamps(expected_doc, did, client, has_updated_date=True):
