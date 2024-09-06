@@ -77,4 +77,4 @@ RUN source /venv/bin/activate
 ENV PYTHONUNBUFFERED=1 \
     PYTHONIOENCODING=UTF-8
 
-CMD ["/indexd/dockerrun.bash"]
+CMD ["/bin/bash", "-c", "/indexd/dockerrun.bash"]
