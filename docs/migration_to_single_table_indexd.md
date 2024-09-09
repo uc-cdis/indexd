@@ -33,14 +33,14 @@ b. Using the information from above, run `gen3 psql $g3Farmserver -c "alter user
 After updating the cloud-auto script, run `gen3 roll indexd`
 
 ## B. Run Database Migration
-Added a new migration job in cloud-automation, `indexd-single-table-migration-job.yaml`
+Run the cloud-automation migration job, `indexd-single-table-migration-job.yaml`
 
 To run:
 ```
     gen3 job run indexd-single-table-migration-job
 ```
 
-**If a job stops in the middle of migration** for any reason, the job should return the last worked on. You can take the last seen guid and re-run the job with the `START_DID` parameter:
+**If a job stops in the middle of migration** for any reason, the job should return the last seen guid; re-run the job with the `START_DID` parameter:
 
 ```
     gen3 job run indexd-single-table-migration-job START_DID <guid>
@@ -69,7 +69,7 @@ Change the config `CONFIG[“INDEX”]`
 ```
     from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
 
-    USE_SINGLE_TABLE = False
+    USE_SINGLE_TABLE = True
 
     if USE_SINGLE_TABLE is True:
         CONFIG["INDEX"] = {

@@ -995,13 +995,19 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record.file_name = file_name
             record.version = version
             record.description = description
-            record.content_created_date = content_created_date
-            record.content_updated_date = content_updated_date
             record.urls = urls
             record.acl = acl
             record.authz = authz
             record.hashes = hashes
             record.record_metadata = metadata
+
+            self._validate_and_format_content_dates(
+                record=record,
+                content_created_date=content_created_date,
+                content_updated_date=content_updated_date,
+            )
+            record.content_created_date = content_created_date
+            record.content_updated_date = content_updated_date
 
             check_url_metadata(urls_metadata, record)
             record.url_metadata = urls_metadata
@@ -1011,12 +1017,6 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound("{guid} already exists".format(guid=guid))
-
-            self._validate_and_format_content_dates(
-                record=record,
-                content_created_date=content_created_date,
-                content_updated_date=content_updated_date,
-            )
 
             return record.guid, record.baseid, record.rev
 
