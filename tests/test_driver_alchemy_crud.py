@@ -20,16 +20,13 @@ from datetime import datetime
 POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 
 
-def test_driver_init_does_not_create_records(
-    combined_default_and_single_table_settings,
-):
+def test_driver_init_does_not_create_records():
     """
     Tests for creation of records after driver init.
     Tests driver init does not have unexpected side-effects.
     """
 
     engine = create_engine(POSTGRES_CONNECTION)
-    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
     with engine.connect() as conn:
         result = conn.execute("SELECT COUNT(*) FROM index_record")
@@ -38,16 +35,13 @@ def test_driver_init_does_not_create_records(
         assert count == 0, "driver created records upon initialization"
 
 
-def test_driver_init_does_not_create_record_urls(
-    combined_default_and_single_table_settings,
-):
+def test_driver_init_does_not_create_record_urls():
     """
     Tests for creation of urls after driver init.
     Tests driver init does not have unexpected side-effects.
     """
 
     engine = create_engine(POSTGRES_CONNECTION)
-    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
     with engine.connect() as conn:
         result = conn.execute("SELECT COUNT(*) FROM index_record_url")
@@ -56,16 +50,13 @@ def test_driver_init_does_not_create_record_urls(
         assert count == 0, "driver created records urls upon initilization"
 
 
-def test_driver_init_does_not_create_record_hashes(
-    combined_default_and_single_table_settings,
-):
+def test_driver_init_does_not_create_record_hashes():
     """
     Tests for creation of hashes after driver init.
     Tests driver init does not have unexpected side-effects.
     """
 
     engine = create_engine(POSTGRES_CONNECTION)
-    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
     with engine.connect() as conn:
         result = conn.execute("SELECT COUNT(*) FROM index_record_hash")
@@ -74,7 +65,7 @@ def test_driver_init_does_not_create_record_hashes(
         assert count == 0, "driver created records hashes upon initilization"
 
 
-def test_driver_add_object_record(combined_default_and_single_table_settings):
+def test_driver_add_object_record():
     """
     Tests creation of a record.
     """
@@ -103,7 +94,7 @@ def test_driver_add_object_record(combined_default_and_single_table_settings):
         assert record[4] is None, "record size non-null"
 
 
-def test_driver_add_bundle_record(combined_default_and_single_table_settings):
+def test_driver_add_bundle_record():
     """
     Tests creation of a record.
     """
@@ -125,7 +116,7 @@ def test_driver_add_bundle_record(combined_default_and_single_table_settings):
         assert len(result) == 10
 
 
-def test_driver_add_container_record(combined_default_and_single_table_settings):
+def test_driver_add_container_record():
     """
     Tests creation of a record.
     """
@@ -157,7 +148,7 @@ def test_driver_add_container_record(combined_default_and_single_table_settings)
         assert record[4] == None, "record size non-null"
 
 
-def test_driver_add_bundles_record(combined_default_and_single_table_settings):
+def test_driver_add_bundles_record():
     """
     Tests creation of a record.
     """
@@ -187,7 +178,7 @@ def test_driver_add_bundles_record(combined_default_and_single_table_settings):
         assert record[3], "record updated date not populated"
 
 
-def test_driver_add_multipart_record(combined_default_and_single_table_settings):
+def test_driver_add_multipart_record():
     """
     Tests creation of a record.
     """
@@ -219,7 +210,7 @@ def test_driver_add_multipart_record(combined_default_and_single_table_settings)
         assert record[4] == None, "record size non-null"
 
 
-def test_driver_add_with_valid_did(combined_default_and_single_table_settings):
+def test_driver_add_with_valid_did():
     """
     Tests creation of a record with given valid did.
     """
@@ -232,7 +223,7 @@ def test_driver_add_with_valid_did(combined_default_and_single_table_settings):
         assert s.query(IndexRecord).first().did == did
 
 
-def test_driver_add_with_duplicate_did(combined_default_and_single_table_settings):
+def test_driver_add_with_duplicate_did():
     """
     Tests creation of a record with duplicate did.
     """
@@ -246,7 +237,7 @@ def test_driver_add_with_duplicate_did(combined_default_and_single_table_setting
         driver.add(form, did=did)
 
 
-def test_driver_add_multiple_records(combined_default_and_single_table_settings):
+def test_driver_add_multiple_records():
     """
     Tests creation of a record.
     """
@@ -280,7 +271,7 @@ def test_driver_add_multiple_records(combined_default_and_single_table_settings)
             assert record[4] == None, "record size non-null"
 
 
-def test_driver_add_with_size(combined_default_and_single_table_settings):
+def test_driver_add_with_size():
     """
     Tests creation of a record with size.
     """
@@ -311,7 +302,7 @@ def test_driver_add_with_size(combined_default_and_single_table_settings):
         assert size == new_size, "record size mismatch"
 
 
-def test_driver_add_with_urls(combined_default_and_single_table_settings):
+def test_driver_add_with_urls():
     """
     Tests creation of a record with urls.
     """
@@ -352,7 +343,7 @@ def test_driver_add_with_urls(combined_default_and_single_table_settings):
         assert urls == new_urls, "record urls mismatch"
 
 
-def test_driver_add_with_filename(combined_default_and_single_table_settings):
+def test_driver_add_with_filename():
     """
     Tests creation of a record with filename.
     """
@@ -365,7 +356,7 @@ def test_driver_add_with_filename(combined_default_and_single_table_settings):
         assert s.query(IndexRecord).first().file_name == "abc"
 
 
-def test_driver_add_with_version(combined_default_and_single_table_settings):
+def test_driver_add_with_version():
     """
     Tests creation of a record with version string.
     """
@@ -378,7 +369,7 @@ def test_driver_add_with_version(combined_default_and_single_table_settings):
         assert s.query(IndexRecord).first().version == "ver_123"
 
 
-def test_driver_add_with_hashes(combined_default_and_single_table_settings):
+def test_driver_add_with_hashes():
     """
     Tests creation of a record with hashes.
     """
@@ -420,7 +411,7 @@ def test_driver_add_with_hashes(combined_default_and_single_table_settings):
         assert hashes == new_hashes, "record hashes mismatch"
 
 
-def test_driver_get_record(combined_default_and_single_table_settings):
+def test_driver_get_record():
     """
     Tests retrieval of a record.
     """
@@ -472,7 +463,7 @@ def test_driver_get_record(combined_default_and_single_table_settings):
         ), "updated date does not match"
 
 
-def test_driver_get_fails_with_no_records(combined_default_and_single_table_settings):
+def test_driver_get_fails_with_no_records():
     """
     Tests retrieval of a record fails if there are no records.
     """
@@ -482,9 +473,7 @@ def test_driver_get_fails_with_no_records(combined_default_and_single_table_sett
         driver.get("some_record_that_does_not_exist")
 
 
-def test_driver_nonstrict_get_without_prefix(
-    combined_default_and_single_table_settings,
-):
+def test_driver_nonstrict_get_without_prefix():
     """
     Tests retrieval of a record when a default prefix is set, but no prefix is supplied by the request.
     """
@@ -545,7 +534,7 @@ def test_driver_nonstrict_get_without_prefix(
         ), "updated date does not match"
 
 
-def test_driver_nonstrict_get_with_prefix(combined_default_and_single_table_settings):
+def test_driver_nonstrict_get_with_prefix():
     """
     Tests retrieval of a record when a default prefix is set and supplied by the request,
     but records are stored without prefixes.
@@ -607,9 +596,7 @@ def test_driver_nonstrict_get_with_prefix(combined_default_and_single_table_sett
         ), "updated date does not match"
 
 
-def test_driver_nonstrict_get_with_incorrect_prefix(
-    combined_default_and_single_table_settings,
-):
+def test_driver_nonstrict_get_with_incorrect_prefix():
     """
     Tests retrieval of a record fails if default prefix is set and request uses a different prefix with same uuid
     """
@@ -646,9 +633,7 @@ def test_driver_nonstrict_get_with_incorrect_prefix(
             driver.get_with_nonstrict_prefix("wrongprefix/" + did)
 
 
-def test_driver_nonstrict_get_with_no_default_prefix(
-    combined_default_and_single_table_settings,
-):
+def test_driver_nonstrict_get_with_no_default_prefix():
     """
     Tests retrieval of a record fails as expected if no default prefix is set
     """
@@ -665,7 +650,7 @@ def test_driver_nonstrict_get_with_no_default_prefix(
         driver.get_with_nonstrict_prefix("fake_id_without_prefix")
 
 
-def test_driver_get_latest_version(combined_default_and_single_table_settings):
+def test_driver_get_latest_version():
     """
     Tests retrieval of the lattest record version
     """
@@ -722,9 +707,7 @@ def test_driver_get_latest_version(combined_default_and_single_table_settings):
         ), "updated date does not match"
 
 
-def test_driver_get_latest_version_with_no_record(
-    combined_default_and_single_table_settings,
-):
+def test_driver_get_latest_version_with_no_record():
     """
     Tests retrieval of the lattest record version
     """
@@ -756,7 +739,7 @@ def test_driver_get_latest_version_with_no_record(
             driver.get_latest_version("some base version")
 
 
-def test_driver_get_all_versions(combined_default_and_single_table_settings):
+def test_driver_get_all_versions():
     """
     Tests retrieval of the lattest record version
     """
@@ -830,9 +813,7 @@ def test_driver_get_all_versions(combined_default_and_single_table_settings):
             ), "updated date does not match"
 
 
-def test_driver_get_all_versions_with_no_record(
-    combined_default_and_single_table_settings,
-):
+def test_driver_get_all_versions_with_no_record():
     """
     Tests retrieval of the lattest record version
     """
@@ -862,7 +843,7 @@ def test_driver_get_all_versions_with_no_record(
             driver.get_all_versions("some baseid")
 
 
-def test_driver_get_fails_with_invalid_id(combined_default_and_single_table_settings):
+def test_driver_get_fails_with_invalid_id():
     """
     Tests retrieval of a record fails if the record id is not found.
     """
@@ -890,7 +871,9 @@ def test_driver_get_fails_with_invalid_id(combined_default_and_single_table_sett
             driver.get("some_record_that_does_not_exist")
 
 
-def test_driver_update_record(skip_authz, combined_default_and_single_table_settings):
+def test_driver_update_record(
+    skip_authz,
+):
     _test_driver_update_record()
 
 
@@ -964,9 +947,7 @@ def _test_driver_update_record():
         assert version == new_version, "version does not match"
 
 
-def test_driver_update_fails_with_no_records(
-    combined_default_and_single_table_settings,
-):
+def test_driver_update_fails_with_no_records():
     """
     Tests updating a record fails if there are no records.
     """
@@ -978,9 +959,7 @@ def test_driver_update_fails_with_no_records(
         )
 
 
-def test_driver_update_fails_with_invalid_id(
-    combined_default_and_single_table_settings,
-):
+def test_driver_update_fails_with_invalid_id():
     """
     Tests updating a record fails if the record id is not found.
     """
@@ -1008,9 +987,7 @@ def test_driver_update_fails_with_invalid_id(
             driver.update("some_record_that_does_not_exist", "some_record_version", rev)
 
 
-def test_driver_update_fails_with_invalid_rev(
-    combined_default_and_single_table_settings,
-):
+def test_driver_update_fails_with_invalid_rev():
     """
     Tests updating a record fails if the record rev is not invalid.
     """
@@ -1038,7 +1015,9 @@ def test_driver_update_fails_with_invalid_rev(
             driver.update(did, baseid, "some_revision")
 
 
-def test_driver_delete_record(skip_authz, combined_default_and_single_table_settings):
+def test_driver_delete_record(
+    skip_authz,
+):
     _test_driver_delete_record()
 
 
@@ -1077,9 +1056,7 @@ def _test_driver_delete_record():
         assert count == 0, "records remain after deletion"
 
 
-def test_driver_delete_fails_with_no_records(
-    combined_default_and_single_table_settings,
-):
+def test_driver_delete_fails_with_no_records():
     """
     Tests deletion of a record fails if there are no records.
     """
@@ -1089,9 +1066,7 @@ def test_driver_delete_fails_with_no_records(
         driver.delete("some_record_that_does_not_exist", "some_revision")
 
 
-def test_driver_delete_fails_with_invalid_id(
-    combined_default_and_single_table_settings,
-):
+def test_driver_delete_fails_with_invalid_id():
     """
     Tests deletion of a record fails if the record id is not found.
     """
@@ -1119,9 +1094,7 @@ def test_driver_delete_fails_with_invalid_id(
             driver.delete("some_record_that_does_not_exist", rev)
 
 
-def test_driver_delete_fails_with_invalid_rev(
-    combined_default_and_single_table_settings,
-):
+def test_driver_delete_fails_with_invalid_rev():
     """
     Tests deletion of a record fails if the record rev is not invalid.
     """
@@ -1149,7 +1122,7 @@ def test_driver_delete_fails_with_invalid_rev(
             driver.delete(did, "some_revision")
 
 
-def test_driver_get_bundle(combined_default_and_single_table_settings):
+def test_driver_get_bundle():
     """
     Tests retrieval of a record.
     """

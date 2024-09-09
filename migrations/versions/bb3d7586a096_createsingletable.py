@@ -17,6 +17,7 @@ branch_labels = None
 depends_on = None
 
 
+# TODO: We need another migration that clears up old tables
 def upgrade() -> None:
     op.create_table(
         "record",

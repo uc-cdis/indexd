@@ -212,6 +212,12 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 query = self._negate_filter(session, query, **negate_params)
 
             if page is not None:
+                # order by updated date so newly added stuff is
+                # at the end (reduce risk that a new records ends up in a page
+                # earlier on) and allows for some logic to check for newly added records
+                # (e.g. parallelly processing from beginning -> middle and ending -> middle
+                #       and as a final step, checking the "ending"+1 to see if there are
+                #       new records).
                 query = query.order_by(Record.updated_date)
             else:
                 query = query.order_by(Record.guid)
@@ -380,6 +386,20 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             return return_urls
 
+    def _validate_and_format_content_dates(
+        self, record, content_created_date, content_updated_date
+    ):
+        if content_created_date is not None:
+            record.content_created_date = datetime.datetime.fromisoformat(
+                content_created_date
+            )
+            # Users cannot set content_updated_date without a content_created_date
+            record.content_updated_date = (
+                datetime.datetime.fromisoformat(content_updated_date)
+                if content_updated_date is not None
+                else record.content_created_date  # Set updated to created if no updated is provided
+            )
+
     def add(
         self,
         form,
@@ -448,20 +468,14 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             record.description = description
 
-            if content_created_date is not None:
-                record.content_created_date = datetime.datetime.fromisoformat(
-                    content_created_date
-                )
-                # Users cannot set content_updated_date without a content_created_date
-                record.content_updated_date = (
-                    datetime.datetime.fromisoformat(content_updated_date)
-                    if content_updated_date is not None
-                    else record.content_created_date  # Set updated to created if no updated is provided
-                )
-
+            self._validate_and_format_content_dates(
+                record=record,
+                content_created_date=content_created_date,
+                content_updated_date=content_updated_date,
+            )
             try:
-                checked_url_metadata = check_url_metadata(url_metadata, record)
-                record.url_metadata = checked_url_metadata
+                check_url_metadata(url_metadata, record)
+                record.url_metadata = url_metadata
                 if self.config.get("ADD_PREFIX_ALIAS"):
                     prefix = self.config["DEFAULT_PREFIX"]
                     record.alias = list(set([prefix + record.guid]))
@@ -471,6 +485,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound(
                     'guid "{guid}" already exists'.format(guid=record.guid)
                 )
+            except Exception as e:
+                print(e)
 
             return record.guid, record.rev, record.baseid
 
@@ -568,7 +584,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 except AuthError as err:
                     self.logger.error(
                         authz_err_msg.format("update", all_authz)
-                        + " Falling back to 'file_uplaod' on '/data_file'."
+                        + " Falling back to 'file_upload' on '/data_file'."
                     )
 
                 record.authz = set(authz)
@@ -687,7 +703,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 query = session.query(Record).filter(Record.guid == did)
                 record = query.one()
-                # delete this GUID's aliases and add new aliases
+                # delete this GUID's aliases
                 record.alias = aliases
                 session.commit()
                 self.logger.info(
@@ -864,10 +880,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 record.record_metadata = changing_fields["metadata"]
 
             if "urls_metadata" in changing_fields:
-                checked_url_metadata = check_url_metadata(
-                    changing_fields["urls_metadata"], record
-                )
-                record.url_metadata = checked_url_metadata
+                check_url_metadata(changing_fields["urls_metadata"], record)
+                record.url_metadata = changing_fields["urls_metadata"]
 
             if changing_fields.get("content_created_date") is not None:
                 record.content_created_date = datetime.datetime.fromisoformat(
@@ -988,13 +1002,21 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record.authz = authz
             record.hashes = hashes
             record.record_metadata = metadata
-            record.url_metadata = check_url_metadata(urls_metadata, record)
+
+            check_url_metadata(urls_metadata, record)
+            record.url_metadata = urls_metadata
 
             try:
                 session.add(record)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound("{guid} already exists".format(guid=guid))
+
+            self._validate_and_format_content_dates(
+                record=record,
+                content_created_date=content_created_date,
+                content_updated_date=content_updated_date,
+            )
 
             return record.guid, record.baseid, record.rev
 
@@ -1045,7 +1067,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             new_record.guid = guid
             new_record.baseid = old_record.baseid
-            new_record.rev = str(uuid.uuid4())
+            new_record.rev = str(uuid.uuid4())[:8]
             new_record.file_name = old_record.file_name
             new_record.uploader = old_record.uploader
 
@@ -1504,10 +1526,9 @@ def check_url_metadata(url_metadata, record):
     create url metadata record in database
     """
     urls = {u for u in record.urls}
-    for url, metadata in url_metadata.items():
-        if url not in urls:
+    for url in url_metadata.items():
+        if url[0] not in urls:
             raise UserError("url {} in url_metadata does not exist".format(url))
-    return url_metadata
 
 
 def get_record_if_exists(did, session):
@@ -1516,7 +1537,3 @@ def get_record_if_exists(did, session):
     If no record found, returns None.
     """
     return session.query(Record).filter(Record.guid == did).first()
-
-
-SCHEMA_MIGRATION_FUNCTIONS = []
-CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)

@@ -12,7 +12,6 @@ include = [
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
 alembic = "^1.9.4"
-asyncpg = "^0.29.0"
 authutils = "^6.0.0"
 cdislogging = "^1.0.0"
 cdiserrors =  "^1.0.0"
@@ -30,7 +29,6 @@ PyYAML = ">=5.3,<7"
 
 
 [tool.poetry.dev-dependencies]
-cdisutilstest = {git = "https://github.com/uc-cdis/cdisutils-test", rev = "1.0.0"}
 coveralls = "^3.0.1"
 mock = "^4.0.2"
 pytest = "^6.2.4"
