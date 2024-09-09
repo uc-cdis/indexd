@@ -86,4 +86,4 @@ AUTH = SQLAlchemyAuthDriver(
     arborist="http://localhost/",
 )
 
-settings = {"config": CONFIG, "auth": AUTH}
+settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE}
