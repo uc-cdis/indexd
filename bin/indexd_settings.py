@@ -25,7 +25,7 @@ CONFIG = {}
 
 CONFIG["JSONIFY_PRETTYPRINT_REGULAR"] = False
 
-DATABASE_FORMAT = ""
+USE_SINGLE_TABLE = False
 
 dist = environ.get("DIST", None)
 if dist:
@@ -35,7 +35,7 @@ drs_service_info = environ.get("DRS_SERVICE_INFO", None)
 if drs_service_info:
     CONFIG["DRS_SERVICE_INFO"] = json.loads(drs_service_info)
 
-if DATABASE_FORMAT.lower == "single_table":
+if USE_SINGLE_TABLE is True:
     CONFIG["INDEX"] = {
         "driver": SingleTableSQLAlchemyIndexDriver(
             "postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
