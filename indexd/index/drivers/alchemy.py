@@ -676,7 +676,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 for r in query
             ]
 
-    def _validate_and_format_content_dates(
+    def _validate_and_set_content_dates(
         self, record, content_created_date, content_updated_date
     ):
         if content_created_date is not None:
@@ -769,7 +769,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record.description = description
 
-            self._validate_and_format_content_dates(
+            self._validate_and_set_content_dates(
                 record=record,
                 content_created_date=content_created_date,
                 content_updated_date=content_updated_date,
@@ -1371,8 +1371,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.file_name = file_name
             record.version = version
             record.description = description
-            record.content_created_date = content_created_date
-            record.content_updated_date = content_updated_date
 
             record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
 
@@ -1393,7 +1391,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 for m_key, m_value in metadata.items()
             ]
 
-            self._validate_and_format_content_dates(
+            self._validate_and_set_content_dates(
                 record=record,
                 content_created_date=content_created_date,
                 content_updated_date=content_updated_date,

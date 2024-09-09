@@ -1,7 +1,7 @@
 # Running Data Migration for Single Table Indexd
 
 ## A. Prepare Database and Configuration
-1. **Deploy the version of IndexD** that contains Single Table Indexd. Alembic, used for database migration, should create a new table named `records` in the IndexD database. Note that this is a database migration and NOT a data migration.
+1. **Deploy the version of IndexD** that contains Single Table Indexd. Alembic, used for database migrations, should create a new table named `records` in the IndexD database. Note that this is a database migration and NOT a data migration.
 2. **Create clone database:**
 ```
     # create a new database
@@ -16,7 +16,7 @@ a. Run `gen3 db creds indexd`
 
 b. Using the information from above, run `gen3 psql $g3Farmserver -c "alter user $username createdb;"`
 
-3. **Update credentials:** After Creating the backup database, update the `Gen3Secrets/creds.json` to include the credentials for the new database. Add a new block named `indexd_new` with the credentials for the new database. Copy configuration from indexd. Run `gen3 kube-setup-secrets` creates the secrets in kube secrets. The new database can be accessed by using `gen3 psql indexd_new`
+3. **Update credentials:** After Creating the backup database, update the `Gen3Secrets/creds.json` to include the credentials for the new database. Add a new block named `indexd_new` with the credentials for the new database. Copy configuration from indexd. Run `gen3 kube-setup-secrets` to create the secrets in kube secrets. The new database can be accessed by using `gen3 psql indexd_new`
 
 4. **Update cloud automation script:** `~/cloud-automation/kube/services/indexd/indexd-deploy.yaml`
 ```

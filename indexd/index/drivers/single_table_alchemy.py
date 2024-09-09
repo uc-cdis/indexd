@@ -386,7 +386,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             return return_urls
 
-    def _validate_and_format_content_dates(
+    def _validate_and_set_content_dates(
         self, record, content_created_date, content_updated_date
     ):
         if content_created_date is not None:
@@ -468,7 +468,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             record.description = description
 
-            self._validate_and_format_content_dates(
+            self._validate_and_set_content_dates(
                 record=record,
                 content_created_date=content_created_date,
                 content_updated_date=content_updated_date,
@@ -1001,13 +1001,11 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record.hashes = hashes
             record.record_metadata = metadata
 
-            self._validate_and_format_content_dates(
+            self._validate_and_set_content_dates(
                 record=record,
                 content_created_date=content_created_date,
                 content_updated_date=content_updated_date,
             )
-            record.content_created_date = content_created_date
-            record.content_updated_date = content_updated_date
 
             check_url_metadata(urls_metadata, record)
             record.url_metadata = urls_metadata
@@ -1526,8 +1524,8 @@ def check_url_metadata(url_metadata, record):
     create url metadata record in database
     """
     urls = {u for u in record.urls}
-    for url in url_metadata.items():
-        if url[0] not in urls:
+    for url in url_metadata:
+        if url not in urls:
             raise UserError("url {} in url_metadata does not exist".format(url))
 
 
