@@ -51,5 +51,6 @@ setup(
         # jsonschema-spec 0.1.6 depends on typing-extensions<4.6.0
         "typing-extensions<4.6.0",
         "zipp>=3.19.1",  # pinned for DEV-2842 (POAM)
+        "werkzeug>=3.0.3",  # pinned for DEV-2704 (POAM)
     ],
 )
