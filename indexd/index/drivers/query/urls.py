@@ -80,7 +80,6 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 query = query.having(
                     ~q_func["string_agg"](IndexRecordUrl.url, ",").contains(exclude)
                 )
-            print(query)
             # [('did', 'urls')]
             record_list = (
                 query.order_by(IndexRecordUrl.did.asc())

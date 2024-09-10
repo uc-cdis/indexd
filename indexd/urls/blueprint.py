@@ -5,6 +5,7 @@ from flask.json import jsonify
 
 from indexd.errors import UserError
 from indexd.index.drivers.query.urls import AlchemyURLsQueryDriver
+from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
 
 
 blueprint = Blueprint("urls", __name__)
@@ -71,7 +72,11 @@ def query_metadata():
 def pre_config(state):
     driver = state.app.config["INDEX"]["driver"]
     blueprint.logger = state.app.logger
-    blueprint.driver = AlchemyURLsQueryDriver(driver)
+    blueprint.driver = (
+        driver
+        if type(driver) == SingleTableSQLAlchemyIndexDriver
+        else AlchemyURLsQueryDriver(driver)
+    )
 
 
 @blueprint.errorhandler(UserError)

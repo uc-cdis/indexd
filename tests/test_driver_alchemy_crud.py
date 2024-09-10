@@ -1,7 +1,7 @@
 import uuid
-import sqlite3
 
 import pytest
+from sqlalchemy import create_engine
 
 import tests.util as util
 
@@ -17,78 +17,67 @@ from datetime import datetime
 
 # TODO check if pytest has utilities for meta-programming of tests
 
+POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 
-@util.removes("index.sq3")
+
 def test_driver_init_does_not_create_records():
     """
     Tests for creation of records after driver init.
     Tests driver init does not have unexpected side-effects.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
-        count = conn.execute(
-            """
-            SELECT COUNT(*) FROM index_record
-        """
-        ).fetchone()[0]
+    engine = create_engine(POSTGRES_CONNECTION)
 
-        assert count == 0, "driver created records upon initilization"
+    with engine.connect() as conn:
+        result = conn.execute("SELECT COUNT(*) FROM index_record")
+        count = result.scalar()
+
+        assert count == 0, "driver created records upon initialization"
 
 
-@util.removes("index.sq3")
 def test_driver_init_does_not_create_record_urls():
     """
     Tests for creation of urls after driver init.
     Tests driver init does not have unexpected side-effects.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
-        count = conn.execute(
-            """
-            SELECT COUNT(*) FROM index_record_url
-        """
-        ).fetchone()[0]
+    engine = create_engine(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
+        result = conn.execute("SELECT COUNT(*) FROM index_record_url")
+        count = result.scalar()
 
         assert count == 0, "driver created records urls upon initilization"
 
 
-@util.removes("index.sq3")
 def test_driver_init_does_not_create_record_hashes():
     """
     Tests for creation of hashes after driver init.
     Tests driver init does not have unexpected side-effects.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver(
-            "sqlite:///index.sq3"
-        )  # pylint: disable=unused-variable
 
-        count = conn.execute(
-            """
-            SELECT COUNT(*) FROM index_record_hash
-        """
-        ).fetchone()[0]
+    engine = create_engine(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
+        result = conn.execute("SELECT COUNT(*) FROM index_record_hash")
+        count = result.scalar()
 
         assert count == 0, "driver created records hashes upon initilization"
 
 
-@util.removes("index.sq3")
 def test_driver_add_object_record():
     """
     Tests creation of a record.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
         driver.add("object")
 
-        count = conn.execute(
-            """
-            SELECT COUNT(*) FROM index_record
-        """
-        ).fetchone()[0]
+        result = conn.execute("SELECT COUNT(*) FROM index_record")
+        count = result.scalar()
 
         assert count == 1, "driver did not create record"
 
@@ -105,42 +94,37 @@ def test_driver_add_object_record():
         assert record[4] is None, "record size non-null"
 
 
-@util.removes("index.sq3")
 def test_driver_add_bundle_record():
     """
     Tests creation of a record.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
         driver.add_blank_bundle()
 
-        count = conn.execute(
-            """
-            SELECT COUNT(*) FROM drs_bundle_record
-        """
-        ).fetchone()[0]
+        result = conn.execute("SELECT COUNT(*) FROM drs_bundle_record")
+        count = result.scalar()
 
         assert count == 1, "driver did not create record"
 
-        record = conn.execute(
-            """
-            SELECT * FROM drs_bundle_record
-        """
-        ).fetchone()
+        result = conn.execute("SELECT * FROM drs_bundle_record").fetchone()
 
-        assert record != None
-        assert len(record) == 10
+        assert result != None
+        assert len(result) == 10
 
 
-@util.removes("index.sq3")
 def test_driver_add_container_record():
     """
     Tests creation of a record.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
         driver.add("container")
 
         count = conn.execute(
@@ -164,14 +148,14 @@ def test_driver_add_container_record():
         assert record[4] == None, "record size non-null"
 
 
-@util.removes("index.sq3")
 def test_driver_add_bundles_record():
     """
     Tests creation of a record.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+    with engine.connect() as conn:
         driver.add_bundle(name="bundle")
 
         count = conn.execute(
@@ -194,14 +178,15 @@ def test_driver_add_bundles_record():
         assert record[3], "record updated date not populated"
 
 
-@util.removes("index.sq3")
 def test_driver_add_multipart_record():
     """
     Tests creation of a record.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
         driver.add("multipart")
 
         count = conn.execute(
@@ -225,12 +210,11 @@ def test_driver_add_multipart_record():
         assert record[4] == None, "record size non-null"
 
 
-@util.removes("index.sq3")
 def test_driver_add_with_valid_did():
     """
     Tests creation of a record with given valid did.
     """
-    driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
     form = "object"
     did = "3d313755-cbb4-4b08-899d-7bbac1f6e67d"
@@ -239,12 +223,11 @@ def test_driver_add_with_valid_did():
         assert s.query(IndexRecord).first().did == did
 
 
-@util.removes("index.sq3")
 def test_driver_add_with_duplicate_did():
     """
     Tests creation of a record with duplicate did.
     """
-    driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
     form = "object"
     did = "3d313755-cbb4-4b08-899d-7bbac1f6e67d"
@@ -254,14 +237,14 @@ def test_driver_add_with_duplicate_did():
         driver.add(form, did=did)
 
 
-@util.removes("index.sq3")
 def test_driver_add_multiple_records():
     """
     Tests creation of a record.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
+    with engine.connect() as conn:
         driver.add("object")
         driver.add("object")
         driver.add("object")
@@ -288,14 +271,14 @@ def test_driver_add_multiple_records():
             assert record[4] == None, "record size non-null"
 
 
-@util.removes("index.sq3")
 def test_driver_add_with_size():
     """
     Tests creation of a record with size.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
+    with engine.connect() as conn:
         form = "object"
         size = 512
 
@@ -319,14 +302,14 @@ def test_driver_add_with_size():
         assert size == new_size, "record size mismatch"
 
 
-@util.removes("index.sq3")
 def test_driver_add_with_urls():
     """
     Tests creation of a record with urls.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
+    with engine.connect() as conn:
         form = "object"
         urls = ["a", "b", "c"]
 
@@ -360,12 +343,11 @@ def test_driver_add_with_urls():
         assert urls == new_urls, "record urls mismatch"
 
 
-@util.removes("index.sq3")
 def test_driver_add_with_filename():
     """
     Tests creation of a record with filename.
     """
-    driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
     form = "object"
     file_name = "abc"
@@ -374,12 +356,11 @@ def test_driver_add_with_filename():
         assert s.query(IndexRecord).first().file_name == "abc"
 
 
-@util.removes("index.sq3")
 def test_driver_add_with_version():
     """
     Tests creation of a record with version string.
     """
-    driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
     form = "object"
     version = "ver_123"
@@ -388,14 +369,15 @@ def test_driver_add_with_version():
         assert s.query(IndexRecord).first().version == "ver_123"
 
 
-@util.removes("index.sq3")
 def test_driver_add_with_hashes():
     """
     Tests creation of a record with hashes.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
         form = "object"
         hashes = {"a": "1", "b": "2", "c": "3"}
 
@@ -429,31 +411,30 @@ def test_driver_add_with_hashes():
         assert hashes == new_hashes, "record hashes mismatch"
 
 
-@util.removes("index.sq3")
 def test_driver_get_record():
     """
     Tests retrieval of a record.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
 
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
         did = str(uuid.uuid4())
         baseid = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         size = 512
         form = "object"
-        baseid = str(uuid.uuid4())
         created_date = datetime.now()
         updated_date = datetime.now()
         description = "a description"
         content_created_date = datetime.now()
         content_updated_date = datetime.now()
 
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
+
         conn.execute(
-            """
-            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES (?,?,?,?,?,?,?,?,?,?)
-        """,
-            (
+            "INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES ('{}','{}','{}','{}','{}','{}','{}','{}','{}','{}')".format(
                 did,
                 baseid,
                 rev,
@@ -464,10 +445,8 @@ def test_driver_get_record():
                 content_created_date,
                 content_updated_date,
                 description,
-            ),
+            )
         )
-
-        conn.commit()
 
         record = driver.get(did)
 
@@ -484,48 +463,49 @@ def test_driver_get_record():
         ), "updated date does not match"
 
 
-@util.removes("index.sq3")
 def test_driver_get_fails_with_no_records():
     """
     Tests retrieval of a record fails if there are no records.
     """
-    driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
     with pytest.raises(NoRecordFound):
         driver.get("some_record_that_does_not_exist")
 
 
-@util.removes("index.sq3")
 def test_driver_nonstrict_get_without_prefix():
     """
     Tests retrieval of a record when a default prefix is set, but no prefix is supplied by the request.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver(
-            "sqlite:///index.sq3",
-            index_config={
-                "DEFAULT_PREFIX": "testprefix/",
-                "PREPEND_PREFIX": True,
-                "ADD_PREFIX_ALIAS": False,
-            },
-        )
 
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(
+        POSTGRES_CONNECTION,
+        index_config={
+            "DEFAULT_PREFIX": "testprefix/",
+            "PREPEND_PREFIX": True,
+            "ADD_PREFIX_ALIAS": False,
+        },
+    )
+
+    with engine.connect() as conn:
         did = str(uuid.uuid4())
         baseid = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         size = 512
         form = "object"
-        baseid = str(uuid.uuid4())
         created_date = datetime.now()
         updated_date = datetime.now()
         content_created_date = datetime.now()
         content_updated_date = datetime.now()
         description = "a description"
+
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
+
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES (?,?,?,?,?,?,?,?,?,?)
-        """,
-            (
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES ('{}','{}','{}','{}','{}','{}','{}','{}','{}','{}')
+        """.format(
                 "testprefix/" + did,
                 baseid,
                 rev,
@@ -538,8 +518,6 @@ def test_driver_nonstrict_get_without_prefix():
                 description,
             ),
         )
-
-        conn.commit()
 
         record = driver.get_with_nonstrict_prefix(did)
 
@@ -556,22 +534,22 @@ def test_driver_nonstrict_get_without_prefix():
         ), "updated date does not match"
 
 
-@util.removes("index.sq3")
 def test_driver_nonstrict_get_with_prefix():
     """
     Tests retrieval of a record when a default prefix is set and supplied by the request,
     but records are stored without prefixes.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver(
-            "sqlite:///index.sq3",
-            index_config={
-                "DEFAULT_PREFIX": "testprefix/",
-                "PREPEND_PREFIX": False,
-                "ADD_PREFIX_ALIAS": True,
-            },
-        )
 
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(
+        POSTGRES_CONNECTION,
+        index_config={
+            "DEFAULT_PREFIX": "testprefix/",
+            "PREPEND_PREFIX": False,
+            "ADD_PREFIX_ALIAS": True,
+        },
+    )
+    with engine.connect() as conn:
         did = str(uuid.uuid4())
         baseid = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
@@ -583,11 +561,13 @@ def test_driver_nonstrict_get_with_prefix():
         description = "a description"
         content_created_date = datetime.now()
         content_updated_date = datetime.now()
+
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
+
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES (?,?,?,?,?,?,?,?,?,?)
-        """,
-            (
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES ('{}','{}','{}','{}','{}','{}','{}','{}','{}','{}')
+        """.format(
                 did,
                 baseid,
                 rev,
@@ -600,8 +580,6 @@ def test_driver_nonstrict_get_with_prefix():
                 description,
             ),
         )
-
-        conn.commit()
 
         record = driver.get_with_nonstrict_prefix("testprefix/" + did)
 
@@ -618,21 +596,20 @@ def test_driver_nonstrict_get_with_prefix():
         ), "updated date does not match"
 
 
-@util.removes("index.sq3")
 def test_driver_nonstrict_get_with_incorrect_prefix():
     """
     Tests retrieval of a record fails if default prefix is set and request uses a different prefix with same uuid
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver(
-            "sqlite:///index.sq3",
-            index_config={
-                "DEFAULT_PREFIX": "testprefix/",
-                "PREPEND_PREFIX": True,
-                "ADD_PREFIX_ALIAS": False,
-            },
-        )
-
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(
+        POSTGRES_CONNECTION,
+        index_config={
+            "DEFAULT_PREFIX": "testprefix/",
+            "PREPEND_PREFIX": True,
+            "ADD_PREFIX_ALIAS": False,
+        },
+    )
+    with engine.connect() as conn:
         did = str(uuid.uuid4())
         baseid = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
@@ -642,26 +619,26 @@ def test_driver_nonstrict_get_with_incorrect_prefix():
         created_date = datetime.now()
         updated_date = datetime.now()
 
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
+
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
-        """,
-            ("testprefix/" + did, baseid, rev, form, size, created_date, updated_date),
+            INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES ('{}','{}','{}','{}','{}','{}','{}')
+        """.format(
+                "testprefix/" + did, baseid, rev, form, size, created_date, updated_date
+            ),
         )
-
-        conn.commit()
 
         with pytest.raises(NoRecordFound):
             driver.get_with_nonstrict_prefix("wrongprefix/" + did)
 
 
-@util.removes("index.sq3")
 def test_driver_nonstrict_get_with_no_default_prefix():
     """
     Tests retrieval of a record fails as expected if no default prefix is set
     """
     driver = SQLAlchemyIndexDriver(
-        "sqlite:///index.sq3",
+        POSTGRES_CONNECTION,
         index_config={
             "DEFAULT_PREFIX": None,
             "PREPEND_PREFIX": False,
@@ -673,13 +650,14 @@ def test_driver_nonstrict_get_with_no_default_prefix():
         driver.get_with_nonstrict_prefix("fake_id_without_prefix")
 
 
-@util.removes("index.sq3")
 def test_driver_get_latest_version():
     """
     Tests retrieval of the lattest record version
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
         baseid = str(uuid.uuid4())
 
         for _ in range(10):
@@ -693,11 +671,15 @@ def test_driver_get_latest_version():
             description = "a description"
             content_created_date = datetime.now()
             content_updated_date = datetime.now()
+
+            conn.execute(
+                "INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid)
+            )
+
             conn.execute(
                 """
-                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES (?,?,?,?,?,?,?,?,?,?)
-            """,
-                (
+                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) VALUES ('{}','{}','{}','{}','{}','{}','{}','{}','{}','{}')
+            """.format(
                     did,
                     baseid,
                     rev,
@@ -710,8 +692,6 @@ def test_driver_get_latest_version():
                     description,
                 ),
             )
-
-            conn.commit()
 
         record = driver.get_latest_version(did)
 
@@ -727,14 +707,14 @@ def test_driver_get_latest_version():
         ), "updated date does not match"
 
 
-@util.removes("index.sq3")
 def test_driver_get_latest_version_with_no_record():
     """
     Tests retrieval of the lattest record version
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
+    with engine.connect() as conn:
         for _ in range(10):
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
@@ -744,25 +724,29 @@ def test_driver_get_latest_version_with_no_record():
             dt = datetime.now()
 
             conn.execute(
-                """
-                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES (?,?,?,?,?,?,?)
-            """,
-                (did, baseid, rev, form, size, dt, dt),
+                "INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid)
             )
 
-            conn.commit()
+            conn.execute(
+                """
+                INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date) VALUES ('{}','{}','{}','{}','{}','{}','{}')
+            """.format(
+                    did, baseid, rev, form, size, dt, dt
+                ),
+            )
 
         with pytest.raises(NoRecordFound):
             driver.get_latest_version("some base version")
 
 
-@util.removes("index.sq3")
 def test_driver_get_all_versions():
     """
     Tests retrieval of the lattest record version
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
         baseid = str(uuid.uuid4())
 
         NUMBER_OF_RECORD = 3
@@ -774,6 +758,9 @@ def test_driver_get_all_versions():
         content_created_dates = []
         content_updated_dates = []
         descriptions = []
+
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
+
         for _ in range(NUMBER_OF_RECORD):
             did = str(uuid.uuid4())
             rev = str(uuid.uuid4())[:8]
@@ -790,12 +777,12 @@ def test_driver_get_all_versions():
             updated_dates.append(updated_date)
             content_created_dates.append(content_created_date)
             descriptions.append(description)
+
             conn.execute(
                 """
                 INSERT INTO index_record(did, baseid, rev, form, size, created_date, updated_date, content_created_date, content_updated_date, description) \
-                    VALUES (?,?,?,?,?,?,?,?,?,?)
-            """,
-                (
+                    VALUES ('{}','{}','{}','{}','{}','{}','{}','{}','{}','{}')
+            """.format(
                     did,
                     baseid,
                     rev,
@@ -808,8 +795,6 @@ def test_driver_get_all_versions():
                     description,
                 ),
             )
-
-        conn.commit()
 
         records = driver.get_all_versions(did)
         assert len(records) == NUMBER_OF_RECORD, "the number of records does not match"
@@ -828,14 +813,17 @@ def test_driver_get_all_versions():
             ), "updated date does not match"
 
 
-@util.removes("index.sq3")
 def test_driver_get_all_versions_with_no_record():
     """
     Tests retrieval of the lattest record version
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
         baseid = str(uuid.uuid4())
+
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
 
         for _ in range(3):
             did = str(uuid.uuid4())
@@ -845,68 +833,73 @@ def test_driver_get_all_versions_with_no_record():
 
             conn.execute(
                 """
-                INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
-            """,
-                (did, baseid, rev, form, size),
+                INSERT INTO index_record(did, baseid, rev, form, size) VALUES ('{}','{}','{}','{}','{}')
+            """.format(
+                    did, baseid, rev, form, size
+                ),
             )
-
-        conn.commit()
 
         with pytest.raises(NoRecordFound):
             driver.get_all_versions("some baseid")
 
 
-@util.removes("index.sq3")
 def test_driver_get_fails_with_invalid_id():
     """
     Tests retrieval of a record fails if the record id is not found.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
+    with engine.connect() as conn:
         did = str(uuid.uuid4())
         baseid = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         form = "object"
+        size = 512
+
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
 
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
-        """,
-            (did, baseid, rev, form, None),
+            INSERT INTO index_record(did, baseid, rev, form, size) VALUES ('{}','{}','{}','{}','{}')
+        """.format(
+                did, baseid, rev, form, size
+            ),
         )
-
-        conn.commit()
 
         with pytest.raises(NoRecordFound):
             driver.get("some_record_that_does_not_exist")
 
 
-def test_driver_update_record(skip_authz):
+def test_driver_update_record(
+    skip_authz,
+):
     _test_driver_update_record()
 
 
-@util.removes("index.sq3")
 def _test_driver_update_record():
     """
     Tests updating of a record.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
+    with engine.connect() as conn:
         did = str(uuid.uuid4())
         baseid = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         form = "object"
+        size = 512
+
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
 
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
-        """,
-            (did, baseid, rev, form, None),
+            INSERT INTO index_record(did, baseid, rev, form, size) VALUES ('{}','{}','{}','{}','{}')
+        """.format(
+                did, baseid, rev, form, size
+            ),
         )
-
-        conn.commit()
 
         # update_size = 256
         update_urls = ["a", "b", "c"]
@@ -954,12 +947,11 @@ def _test_driver_update_record():
         assert version == new_version, "version does not match"
 
 
-@util.removes("index.sq3")
 def test_driver_update_fails_with_no_records():
     """
     Tests updating a record fails if there are no records.
     """
-    driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
     with pytest.raises(NoRecordFound):
         driver.update(
@@ -967,83 +959,91 @@ def test_driver_update_fails_with_no_records():
         )
 
 
-@util.removes("index.sq3")
 def test_driver_update_fails_with_invalid_id():
     """
     Tests updating a record fails if the record id is not found.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
+    with engine.connect() as conn:
         did = str(uuid.uuid4())
         baseid = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         form = "object"
+        size = 512
+
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
 
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
-        """,
-            (did, baseid, rev, form, None),
+            INSERT INTO index_record(did, baseid, rev, form, size) VALUES ('{}','{}','{}','{}','{}')
+        """.format(
+                did, baseid, rev, form, size
+            ),
         )
-
-        conn.commit()
 
         with pytest.raises(NoRecordFound):
             driver.update("some_record_that_does_not_exist", "some_record_version", rev)
 
 
-@util.removes("index.sq3")
 def test_driver_update_fails_with_invalid_rev():
     """
     Tests updating a record fails if the record rev is not invalid.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
+    with engine.connect() as conn:
         did = str(uuid.uuid4())
         baseid = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         form = "object"
+        size = 512
+
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
 
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
-        """,
-            (did, baseid, rev, form, None),
+            INSERT INTO index_record(did, baseid, rev, form, size) VALUES ('{}','{}','{}','{}','{}')
+        """.format(
+                did, baseid, rev, form, size
+            ),
         )
-
-        conn.commit()
 
         with pytest.raises(RevisionMismatch):
             driver.update(did, baseid, "some_revision")
 
 
-def test_driver_delete_record(skip_authz):
+def test_driver_delete_record(
+    skip_authz,
+):
     _test_driver_delete_record()
 
 
-@util.removes("index.sq3")
 def _test_driver_delete_record():
     """
     Tests deletion of a record.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
+    with engine.connect() as conn:
         did = str(uuid.uuid4())
         baseid = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         form = "object"
+        size = 512
+
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
 
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
-        """,
-            (did, baseid, rev, form, None),
+            INSERT INTO index_record(did, baseid, rev, form, size) VALUES ('{}','{}','{}','{}','{}')
+        """.format(
+                did, baseid, rev, form, size
+            ),
         )
-
-        conn.commit()
 
         driver.delete(did, rev)
 
@@ -1056,91 +1056,94 @@ def _test_driver_delete_record():
         assert count == 0, "records remain after deletion"
 
 
-@util.removes("index.sq3")
 def test_driver_delete_fails_with_no_records():
     """
     Tests deletion of a record fails if there are no records.
     """
-    driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
     with pytest.raises(NoRecordFound):
         driver.delete("some_record_that_does_not_exist", "some_revision")
 
 
-@util.removes("index.sq3")
 def test_driver_delete_fails_with_invalid_id():
     """
     Tests deletion of a record fails if the record id is not found.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
+    with engine.connect() as conn:
         did = str(uuid.uuid4())
         baseid = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         form = "object"
+        size = 512
+
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
 
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
-        """,
-            (did, baseid, rev, form, None),
+            INSERT INTO index_record(did, baseid, rev, form, size) VALUES ('{}','{}','{}','{}','{}')
+        """.format(
+                did, baseid, rev, form, size
+            ),
         )
-
-        conn.commit()
 
         with pytest.raises(NoRecordFound):
             driver.delete("some_record_that_does_not_exist", rev)
 
 
-@util.removes("index.sq3")
 def test_driver_delete_fails_with_invalid_rev():
     """
     Tests deletion of a record fails if the record rev is not invalid.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
+    with engine.connect() as conn:
         did = str(uuid.uuid4())
         baseid = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         form = "object"
+        size = 512
+
+        conn.execute("INSERT INTO base_version(baseid) VALUES ('{}')".format(baseid))
 
         conn.execute(
             """
-            INSERT INTO index_record(did, baseid, rev, form, size) VALUES (?,?,?,?,?)
-        """,
-            (did, baseid, rev, form, None),
+            INSERT INTO index_record(did, baseid, rev, form, size) VALUES ('{}','{}','{}','{}','{}')
+        """.format(
+                did, baseid, rev, form, size
+            ),
         )
-
-        conn.commit()
 
         with pytest.raises(RevisionMismatch):
             driver.delete(did, "some_revision")
 
 
-@util.removes("index.sq3")
 def test_driver_get_bundle():
     """
     Tests retrieval of a record.
     """
-    with sqlite3.connect("index.sq3") as conn:
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
+    with engine.connect() as conn:
         bundle_id = str(uuid.uuid4())
         checksum = "iuhd91h9ufh928jidsoajh9du328"
         size = 512
         name = "object"
         created_time = updated_time = datetime.now()
-        bundle_data = "{'bundle_data': [{'access_methods': [{'access_id': 's3', 'access_url': {'url': 's3://endpointurl/bucket/key'}, 'region': '', 'type': 's3'}], 'aliases': [], 'checksums': [{'checksum': '8b9942cf415384b27cadf1f4d2d682e5', 'type': 'md5'}], 'contents': [], 'created_time': '2020-04-23T21:42:36.506404', 'description': '', 'id': 'testprefix:7e677693-9da3-455a-b51c-03467d5498b0', 'mime_type': 'application/json', 'name': None, 'self_uri': 'drs://fictitious-commons.io/testprefix:7e677693-9da3-455a-b51c-03467d5498b0', 'size': 123, 'updated_time': '2020-04-23T21:42:36.506410', 'version': '3c995667'}], 'bundle_id': '1ff381ef-55c7-42b9-b33f-81ac0689d131', 'checksum': '65b464c1aea98176ef2fa38e8b6b9fc7', 'created_time': '2020-04-23T21:42:36.564808', 'name': 'test_bundle', 'size': 123, 'updated_time': '2020-04-23T21:42:36.564819'}"
+        bundle_data = '{"bundle_data": [{"access_methods": [{"access_id": "s3", "access_url": {"url": "s3://endpointurl/bucket/key"}, "region": "", "type": "s3"}], "aliases": [], "checksums": [{"checksum": "8b9942cf415384b27cadf1f4d2d682e5", "type": "md5"}], "contents": [], "created_time": "2020-04-23T21:42:36.506404", "description": "", "id": "testprefix:7e677693-9da3-455a-b51c-03467d5498b0", "mime_type": "application/json", "name": None, "self_uri": "drs://fictitious-commons.io/testprefix:7e677693-9da3-455a-b51c-03467d5498b0", "size": 123, "updated_time": "2020-04-23T21:42:36.506410", "version": "3c995667"}], "bundle_id": "1ff381ef-55c7-42b9-b33f-81ac0689d131", "checksum": "65b464c1aea98176ef2fa38e8b6b9fc7", "created_time": "2020-04-23T21:42:36.564808", "name": "test_bundle", "size": 123, "updated_time": "2020-04-23T21:42:36.564819"}'
+
         conn.execute(
             """
-            INSERT INTO drs_bundle_record(bundle_id, name, checksum, size, bundle_data, created_time, updated_time) VALUES (?,?,?,?,?,?,?)
-        """,
-            (bundle_id, name, checksum, size, bundle_data, created_time, updated_time),
+            INSERT INTO drs_bundle_record(bundle_id, name, checksum, size, bundle_data, created_time, updated_time) VALUES ('{}','{}','{}','{}','{}','{}','{}')
+        """.format(
+                bundle_id, name, checksum, size, bundle_data, created_time, updated_time
+            ),
         )
-
-        conn.commit()
 
         record = driver.get_bundle(bundle_id)
 

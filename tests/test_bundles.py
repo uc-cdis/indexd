@@ -47,7 +47,7 @@ def create_index(client, user, add_bundle=False):
     return did_list, rec1
 
 
-def test_bundle_post(client, user):
+def test_bundle_post(client, user, combined_default_and_single_table_settings):
     """
     Bundle 1
         +-object1
@@ -59,7 +59,9 @@ def test_bundle_post(client, user):
     assert res2.status_code == 200
 
 
-def test_bundle_get_post_with_optional_fields(client, user):
+def test_bundle_get_post_with_optional_fields(
+    client, user, combined_default_and_single_table_settings
+):
     """
     Bundle 1
         +-object1
@@ -109,7 +111,9 @@ def test_bundle_get_post_with_optional_fields(client, user):
         assert "aliases" not in content
 
 
-def test_bundle_post_self_reference(client, user):
+def test_bundle_post_self_reference(
+    client, user, combined_default_and_single_table_settings
+):
     """
     Make sure this doesnt exist
     Bundle 1
@@ -127,7 +131,9 @@ def test_bundle_post_self_reference(client, user):
     assert res2.status_code == 400
 
 
-def test_bundle_post_defined_size_checksum(client, user):
+def test_bundle_post_defined_size_checksum(
+    client, user, combined_default_and_single_table_settings
+):
     did_list, _ = create_index(client, user)
     bundle_id = str(uuid.uuid4)
     data = {
@@ -141,7 +147,9 @@ def test_bundle_post_defined_size_checksum(client, user):
     assert res2.status_code == 200
 
 
-def test_bundle_post_different_checksum_types(client, user):
+def test_bundle_post_different_checksum_types(
+    client, user, combined_default_and_single_table_settings
+):
     did_list, _ = create_index(client, user)
     bundle_id = str(uuid.uuid4)
     data = {
@@ -162,7 +170,9 @@ def test_bundle_post_different_checksum_types(client, user):
     }
 
 
-def test_bundle_post_multiple_checksum_types(client, user):
+def test_bundle_post_multiple_checksum_types(
+    client, user, combined_default_and_single_table_settings
+):
     did_list, _ = create_index(client, user)
     bundle_id = str(uuid.uuid4)
     data = {
@@ -193,7 +203,9 @@ def test_bundle_post_multiple_checksum_types(client, user):
         ]
 
 
-def test_bundle_post_checksum_with_incorrect_schema(client, user):
+def test_bundle_post_checksum_with_incorrect_schema(
+    client, user, combined_default_and_single_table_settings
+):
     did_list, _ = create_index(client, user)
     bundle_id = str(uuid.uuid4)
 
@@ -222,7 +234,9 @@ def test_bundle_post_checksum_with_incorrect_schema(client, user):
     assert res.status_code == 404
 
 
-def test_bundle_bundle_data_not_found(client, user):
+def test_bundle_bundle_data_not_found(
+    client, user, combined_default_and_single_table_settings
+):
     bundle_id = str(uuid.uuid4)
     data = {
         "name": "test_bundle",
@@ -235,7 +249,9 @@ def test_bundle_bundle_data_not_found(client, user):
     assert res2.status_code == 404
 
 
-def test_post_drs_no_duplicate_bundles(client, user):
+def test_post_drs_no_duplicate_bundles(
+    client, user, combined_default_and_single_table_settings
+):
     did_list, _ = create_index(client, user)
 
     data = get_bundle_doc(bundles=[did_list[0], did_list[0], did_list[0]])
@@ -243,13 +259,17 @@ def test_post_drs_no_duplicate_bundles(client, user):
     assert res2.status_code == 400
 
 
-def test_bundle_post_invalid_input(client, user):
+def test_bundle_post_invalid_input(
+    client, user, combined_default_and_single_table_settings
+):
     data = {}
     res2 = client.post("/bundle/", json=data, headers=user)
     assert res2.status_code == 400
 
 
-def test_bundle_post_no_bundle_data(client, user):
+def test_bundle_post_no_bundle_data(
+    client, user, combined_default_and_single_table_settings
+):
     data = {
         "name": "test_bundle",
         "bundles": [],
@@ -259,7 +279,7 @@ def test_bundle_post_no_bundle_data(client, user):
     assert res2.json["error"] == "Bundle data required."
 
 
-def test_bundle_get(client, user):
+def test_bundle_get(client, user, combined_default_and_single_table_settings):
     """
     Post with bundle_id and get.
     Bundle1
@@ -286,7 +306,7 @@ def test_bundle_get(client, user):
     assert rec2["size"] == 123
 
 
-def test_bundle_get_form_type(client, user):
+def test_bundle_get_form_type(client, user, combined_default_and_single_table_settings):
     """
     form = object when object
     form = bundle when bundle
@@ -308,7 +328,9 @@ def test_bundle_get_form_type(client, user):
     assert rec2["form"] == "bundle"
 
 
-def test_bundle_get_no_bundle_id(client, user):
+def test_bundle_get_no_bundle_id(
+    client, user, combined_default_and_single_table_settings
+):
     did_list, _ = create_index(client, user)
     bundle_id = str(uuid.uuid4())
     data = get_bundle_doc(did_list, bundle_id=bundle_id)
@@ -320,7 +342,9 @@ def test_bundle_get_no_bundle_id(client, user):
     assert res2.status_code == 404
 
 
-def test_bundle_get_expand_false(client, user):
+def test_bundle_get_expand_false(
+    client, user, combined_default_and_single_table_settings
+):
     did_list, rec = create_index(client, user)
     res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"])
 
@@ -338,7 +362,9 @@ def test_bundle_get_expand_false(client, user):
     assert "bundle_data" not in rec2
 
 
-def test_redirect_to_bundle_from_index(client, user):
+def test_redirect_to_bundle_from_index(
+    client, user, combined_default_and_single_table_settings
+):
     did_list, _ = create_index(client, user)
     bundle_id = str(uuid.uuid4())
     data = get_bundle_doc(did_list, bundle_id=bundle_id)
@@ -353,7 +379,9 @@ def test_redirect_to_bundle_from_index(client, user):
     assert res3.status_code == 200
 
 
-def test_bundle_from_drs_endpoint(client, user):
+def test_bundle_from_drs_endpoint(
+    client, user, combined_default_and_single_table_settings
+):
     did_list, _ = create_index(client, user)
     bundle_id = str(uuid.uuid4())
     data = get_bundle_doc(did_list, bundle_id=bundle_id)
@@ -368,7 +396,7 @@ def test_bundle_from_drs_endpoint(client, user):
     assert res3.status_code == 200
 
 
-def test_get_bundle_list(client, user):
+def test_get_bundle_list(client, user, combined_default_and_single_table_settings):
     """
     bundle1
         +-object1
@@ -411,7 +439,7 @@ def test_get_bundle_list(client, user):
     assert len(rec5["records"]) == n_records + n_bundles
 
 
-def test_multiple_bundle_data(client, user):
+def test_multiple_bundle_data(client, user, combined_default_and_single_table_settings):
     """
     bundle1
         +-object1
@@ -441,7 +469,7 @@ def test_multiple_bundle_data(client, user):
         assert data["id"] in did_list
 
 
-def test_bundle_delete(client, user):
+def test_bundle_delete(client, user, combined_default_and_single_table_settings):
     n_records = 6
     n_delete = 2
     bundle_ids = []
@@ -471,18 +499,24 @@ def test_bundle_delete(client, user):
     assert len(rec3["records"]) == n_records - n_delete
 
 
-def test_bundle_delete_invalid_bundle_id(client, user):
+def test_bundle_delete_invalid_bundle_id(
+    client, user, combined_default_and_single_table_settings
+):
     bundle_id = "12938hd981h123hd18hd80h028"
     res = client.delete("/bundle/" + bundle_id, headers=user)
     assert res.status_code == 404
 
 
-def test_bundle_delete_no_bundle_id(client, user):
+def test_bundle_delete_no_bundle_id(
+    client, user, combined_default_and_single_table_settings
+):
     res = client.delete("/bundle/", headers=user)
     assert res.status_code == 405
 
 
-def test_bundle_data_bundle_and_index(client, user):
+def test_bundle_data_bundle_and_index(
+    client, user, combined_default_and_single_table_settings
+):
     """
     bundle_main
         +-bundle1
@@ -521,7 +555,7 @@ def test_bundle_data_bundle_and_index(client, user):
     assert rec3["size"] == len(rec3["contents"]) * 123
 
 
-def test_nested_bundle_data(client, user):
+def test_nested_bundle_data(client, user, combined_default_and_single_table_settings):
     """
     bundle1
         +-bundle2
@@ -557,7 +591,9 @@ def test_nested_bundle_data(client, user):
         rec3 = rec3[key][0]
 
 
-def test_bundle_no_bundle_name(client, user):
+def test_bundle_no_bundle_name(
+    client, user, combined_default_and_single_table_settings
+):
     did_list, _ = create_index(client, user)
     bundle_id = str(uuid.uuid4())
 
@@ -632,7 +668,9 @@ def content_validation(contents):
     return True
 
 
-def test_get_drs_expand_contents_default(client, user):
+def test_get_drs_expand_contents_default(
+    client, user, combined_default_and_single_table_settings
+):
     bundle_id = build_bundle(client, user)
     res = client.get("/bundle/" + bundle_id)
     assert res.status_code == 200
@@ -645,7 +683,9 @@ def test_get_drs_expand_contents_default(client, user):
     assert len(contents) == 3
 
 
-def test_get_drs_expand_contents_false(client, user):
+def test_get_drs_expand_contents_false(
+    client, user, combined_default_and_single_table_settings
+):
     bundle_id = build_bundle(client, user)
     res = client.get("/bundle/" + bundle_id)
     assert res.status_code == 200
@@ -658,7 +698,9 @@ def test_get_drs_expand_contents_false(client, user):
     assert len(contents) == 0
 
 
-def test_get_drs_expand_contents_true(client, user):
+def test_get_drs_expand_contents_true(
+    client, user, combined_default_and_single_table_settings
+):
     bundle_id = build_bundle(client, user)
     res = client.get("/bundle/" + bundle_id)
     assert res.status_code == 200

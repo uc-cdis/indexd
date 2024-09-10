@@ -104,10 +104,8 @@ def get_index(form=None):
 
     validate_hashes(**hashes)
     hashes = hashes if hashes else None
-
     metadata = flask.request.args.getlist("metadata")
     metadata = {k: v for k, v in (x.split(":", 1) for x in metadata)}
-
     acl = flask.request.args.get("acl")
     if acl is not None:
         acl = [] if acl == "null" else acl.split(",")
@@ -186,8 +184,8 @@ def get_index(form=None):
         "authz": authz,
         "hashes": hashes,
         "metadata": metadata,
+        "urls_metadata": urls_metadata,
     }
-
     return flask.jsonify(base), 200
 
 
@@ -375,7 +373,6 @@ def get_index_record(record):
     """
     Returns a record.
     """
-
     ret = blueprint.index_driver.get_with_nonstrict_prefix(record)
 
     return flask.jsonify(ret), 200
@@ -487,7 +484,6 @@ def add_index_blank_record_version(record):
     did, baseid, rev = blueprint.index_driver.add_blank_version(
         record, new_did=new_did, uploader=uploader, file_name=file_name, authz=authz
     )
-
     ret = {"did": did, "baseid": baseid, "rev": rev}
 
     return flask.jsonify(ret), 201
@@ -538,7 +534,6 @@ def put_index_record(record):
 
     # authorize done in update
     did, baseid, rev = blueprint.index_driver.update(record, rev, json)
-
     ret = {"did": did, "baseid": baseid, "rev": rev}
 
     return flask.jsonify(ret), 200
@@ -737,7 +732,6 @@ def post_bundle():
             for checksum in flask.request.json.get("checksums")
         }
         validate_hashes(**hashes)
-
     # get bundles/records that already exists and add it to bundle_data
     for bundle in bundles:
         data = get_index_record(bundle)[0]
