@@ -35,6 +35,7 @@ from indexd.index.errors import (
     RevisionMismatch,
     UnhealthyCheck,
 )
+from indexd.utils import migrate_database
 
 Base = declarative_base()
 
@@ -115,6 +116,20 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         self.config = index_config or {}
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
+
+    def migrate_index_database(self):
+        """
+        This migration logic is DEPRECATED. It is still supported for backwards compatibility,
+        but any new migration should be added using Alembic.
+
+        migrate index database to match CURRENT_SCHEMA_VERSION
+        """
+        migrate_database(
+            driver=self,
+            migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
+            current_schema_version=CURRENT_SCHEMA_VERSION,
+            model=IndexSchemaVersion,
+        )
 
     @property
     @contextmanager
