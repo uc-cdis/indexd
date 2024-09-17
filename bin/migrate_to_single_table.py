@@ -1,5 +1,5 @@
 """
-to run: python migrate_to_single_table.py --creds-path /dir/containing/db_creds --start-did <guid>
+to run: python migrate_to_single_table.py --creds-file /dir/containing/db_creds --start-did <guid>
 """
 import argparse
 import backoff
