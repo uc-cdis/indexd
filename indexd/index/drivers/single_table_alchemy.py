@@ -576,7 +576,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             if authz:
                 # if an authz is provided, ensure that user can actually
                 # create/update for that resource (old authz and new authz)
-                old_authz = [u for u in record.authz] if record.authz else []
+                old_authz = record.authz if record.authz else []
                 all_authz = old_authz + authz
                 try:
                     auth.authorize("update", all_authz)
@@ -935,7 +935,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch("revision mismatch")
 
-            auth.authorize("delete", [u for u in record.authz])
+            auth.authorize("delete", record.authz)
 
             session.delete(record)
 
@@ -977,7 +977,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
-            auth.authorize("update", [u for u in record.authz] + authz)
+            auth.authorize("update", record.authz + authz)
 
             baseid = record.baseid
             record = Record()
