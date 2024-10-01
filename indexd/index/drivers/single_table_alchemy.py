@@ -651,7 +651,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization
             try:
-                resources = [u.resource for u in index_record.authz]
+                resources = [u for u in index_record.authz]
                 auth.authorize("update", resources)
             except AuthError as err:
                 self.logger.warning(
@@ -692,7 +692,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization
             try:
-                resources = [u.resource for u in index_record.authz]
+                resources = [u for u in index_record.authz]
                 auth.authorize("update", resources)
             except AuthError as err:
                 self.logger.warning(
@@ -732,7 +732,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization
             try:
-                resources = [u.resource for u in index_record.authz]
+                resources = [u for u in index_record.authz]
                 auth.authorize("delete", resources)
             except AuthError as err:
                 self.logger.warning(
@@ -762,7 +762,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization
             try:
-                resources = [u.resource for u in index_record.authz]
+                resources = [u for u in index_record.authz]
                 auth.authorize("delete", resources)
             except AuthError as err:
                 self.logger.warning(
@@ -935,7 +935,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch("revision mismatch")
 
-            auth.authorize("delete", [u.resource for u in record.authz])
+            auth.authorize("delete", [u for u in record.authz])
 
             session.delete(record)
 
