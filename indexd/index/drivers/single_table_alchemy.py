@@ -651,7 +651,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization
             try:
-                resources = [u for u in index_record.authz]
+                resources = index_record.authz
                 auth.authorize("update", resources)
             except AuthError as err:
                 self.logger.warning(
@@ -692,7 +692,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization
             try:
-                resources = [u for u in index_record.authz]
+                resources = index_record.authz
                 auth.authorize("update", resources)
             except AuthError as err:
                 self.logger.warning(
@@ -732,7 +732,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization
             try:
-                resources = [u for u in index_record.authz]
+                resources = index_record.authz
                 auth.authorize("delete", resources)
             except AuthError as err:
                 self.logger.warning(
@@ -762,7 +762,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization
             try:
-                resources = [u for u in index_record.authz]
+                resources = index_record.authz
                 auth.authorize("delete", resources)
             except AuthError as err:
                 self.logger.warning(
