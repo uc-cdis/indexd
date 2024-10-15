@@ -1,6 +1,16 @@
 [build-system]
-requires = ["setuptools>=42", "wheel", "setuptools_scm"]
+requires = ["setuptools>=61", "wheel", "setuptools_scm>=7", "versionista==1.1.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.coverage.html]
+title = "indexd coverage report"
+directory = "docs/htmlcov"
+show_contexts = true
+
+[tool.coverage.run]
+branch = true
+context = "unit tests"
+source = ["indexd"]
 
 [tool.isort]
 extend_skip = [".md", ".json"]
@@ -9,6 +19,33 @@ known_third_party = ["swagger_client"]
 py_version = 37
 skip = [".gitignore", ".dockerignore"]
 
+[tool.pytest.ini_options]
+minversion = 6.0
+python_files = "test_*.py"
+python_functions = "test_*"
+# Silence warning by opting in to use pytest 6's new default value
+junit_family = "xunit2"
+junit_logging = "system-out"
+console_output_style = "classic"
+log_cli_level = "INFO"
+log_level = "INFO"
+log_cli = "true"
+log_auto_indent = "true"
+addopts = [
+  "-rlv --color=true -p no:ddtrace -p no:ddtrace.pytest_bdd"
+]
+norecursedirs = [
+  ".git",
+  ".tox",
+  "dist",
+  "build",
+  "swagger_client"
+]
+testpaths = [
+  "tests/unit",
+  "tests/integration"
+]
+
 [tool.setuptools_scm]
-local_scheme = "no-local-version"
-write_to = 'indexd/_version.py'
+local_scheme = "versionista-local-format"
+version_scheme = "versionista-format"

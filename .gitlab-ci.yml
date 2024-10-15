@@ -1,24 +1,19 @@
 ---
 include:
   - project: nci-gdc/gitlab-templates
-    ref: 0.7.8
+    ref: master
     file:
-      - templates/global/full.yaml
-      - templates/python/full.yaml
-      - templates/common/python.yaml
-      - templates/common/docker.yaml
-      - templates/deployments/salt-service.yaml
+      - templates/artifacts/python-docker-service.yaml
 
-pre-commit:
-  variables:
-    PRE_COMMIT_VERSION: 3.4.0
-  except:
-    - tags
+variables:
+  SERVICE_NAME: indexd
+  LANGUAGE_VERSION: python3.8
+  BASE_CONTAINER_VERSION: 3.0.7
 
 tox:
   parallel:
     matrix:
-      - BUILD_PY_VERSION: [python3.8, python3.9, python3.10]
+      - LANGUAGE_VERSION: [python3.8, python3.9, python3.10]
   services:
     - name: docker.osdc.io/ncigdc/ci-postgres-13:${BASE_CONTAINER_VERSION}
       alias: postgres
@@ -33,32 +28,13 @@ tox:
     POSTGRES_USER: test
     POSTGRES_PASSWORD: test
     POSTGRES_HOST_AUTH_METHOD: trust
-    BASE_CONTAINER_VERSION: 3.0.6
   script:
     - mkdir -p /usr/share/man/man1
     - dnf -y install java-11-amazon-corretto-headless
     - dnf upgrade wget
     - java -version
-    - pip install 'tox < 4'
+    - pip install 'tox > 4'
     - tox -e py
-  except:
-    - tags
-
-release:
-  variables:
-    RELEASE_PY_VERSION: python3.8
-  before_script:
-    - git fetch --unshallow || true
-    - |
-      if [ ${CI_COMMIT_TAG+x} ]; then
-        export TWINE_REPOSITORY_URL=https://nexus.osdc.io/repository/pypi-releases/
-      fi
-  after_script:
-    - python setup.py --version > VERSION.txt
-  artifacts:
-    paths:
-      - VERSION.txt
-    expire_in: 1 week
 
 .deploy-service-with-salt:
   before_script:

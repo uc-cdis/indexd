@@ -92,3 +92,5 @@ swagger-codegen-cli.jar
 
 # Helm
 helm/*.tgz
+results.xml
+report.xml
