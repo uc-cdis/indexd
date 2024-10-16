@@ -1,128 +1,79 @@
 import datetime
 import uuid
-import json
-from contextlib import contextmanager
+
 from cdislogging import get_logger
 from sqlalchemy import (
-    BigInteger,
     Column,
-    DateTime,
-    ForeignKey,
-    ForeignKeyConstraint,
-    Index,
-    Integer,
     String,
-    Text,
-    and_,
+    ForeignKey,
+    BigInteger,
+    DateTime,
+    ARRAY,
     func,
     or_,
+    text,
+    not_,
+    and_,
+    cast,
+    TEXT,
     select,
 )
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import joinedload, relationship, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
+from contextlib import contextmanager
 
 from indexd import auth
 from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
+from indexd.index.drivers.alchemy import IndexSchemaVersion, DrsBundleRecord
 from indexd.index.errors import (
     MultipleRecordsFound,
     NoRecordFound,
     RevisionMismatch,
     UnhealthyCheck,
 )
-from indexd.utils import migrate_database
 
 Base = declarative_base()
 
 
-class BaseVersion(Base):
-    """
-    Base index record version representation.
-    """
-
-    __tablename__ = "base_version"
-
-    baseid = Column(String, primary_key=True)
-    dids = relationship(
-        "IndexRecord", backref="base_version", cascade="all, delete-orphan"
-    )
-
-
-class IndexSchemaVersion(Base):
-    """
-    This migration logic is DEPRECATED. It is still supported for backwards compatibility,
-    but any new migration should be added using Alembic.
-
-    Table to track current database's schema version
-    """
-
-    __tablename__ = "index_schema_version"
-    version = Column(Integer, default=0, primary_key=True)
-
-
-class IndexRecord(Base):
+class Record(Base):
     """
     Base index record representation.
     """
 
-    __tablename__ = "index_record"
+    __tablename__ = "record"
 
-    did = Column(String, primary_key=True)
+    guid = Column(String, primary_key=True)
 
-    baseid = Column(String, ForeignKey("base_version.baseid"), index=True)
+    baseid = Column(String, index=True)
     rev = Column(String)
     form = Column(String)
-    size = Column(BigInteger, index=True)
+    size = Column(BigInteger)
     created_date = Column(DateTime, default=datetime.datetime.utcnow)
     updated_date = Column(DateTime, default=datetime.datetime.utcnow)
-    file_name = Column(String, index=True)
-    version = Column(String, index=True)
-    uploader = Column(String, index=True)
+    file_name = Column(String)
+    version = Column(String)
+    uploader = Column(String)
     description = Column(String)
     content_created_date = Column(DateTime)
     content_updated_date = Column(DateTime)
-
-    urls = relationship(
-        "IndexRecordUrl", backref="index_record", cascade="all, delete-orphan"
-    )
-
-    acl = relationship(
-        "IndexRecordACE", backref="index_record", cascade="all, delete-orphan"
-    )
-
-    authz = relationship(
-        "IndexRecordAuthz", backref="index_record", cascade="all, delete-orphan"
-    )
-
-    hashes = relationship(
-        "IndexRecordHash", backref="index_record", cascade="all, delete-orphan"
-    )
-
-    index_metadata = relationship(
-        "IndexRecordMetadata", backref="index_record", cascade="all, delete-orphan"
-    )
-
-    aliases = relationship(
-        "IndexRecordAlias", backref="index_record", cascade="all, delete-orphan"
-    )
+    hashes = Column(JSONB)
+    acl = Column(ARRAY(String))
+    authz = Column(ARRAY(String))
+    urls = Column(ARRAY(String))
+    record_metadata = Column(JSONB)
+    url_metadata = Column(JSONB)
+    alias = Column(ARRAY(String))
 
     def to_document_dict(self):
         """
         Get the full index document
         """
-        urls = [u.url for u in self.urls]
-        acl = [u.ace for u in self.acl]
-        authz = [u.resource for u in self.authz]
-        hashes = {h.hash_type: h.hash_value for h in self.hashes}
-        metadata = {m.key: m.value for m in self.index_metadata}
-
-        urls_metadata = {
-            u.url: {m.key: m.value for m in u.url_metadata} for u in self.urls
-        }
-        created_date = self.created_date.isoformat()
-        updated_date = self.updated_date.isoformat()
+        acl = self.acl or []
+        authz = self.authz or []
         content_created_date = (
             self.content_created_date.isoformat()
             if self.content_created_date is not None
@@ -130,231 +81,40 @@ class IndexRecord(Base):
         )
         content_updated_date = (
             self.content_updated_date.isoformat()
-            if self.content_created_date is not None
+            if self.content_updated_date is not None
             else None
         )
 
         return {
-            "did": self.did,
+            "did": self.guid,
             "baseid": self.baseid,
             "rev": self.rev,
             "size": self.size,
             "file_name": self.file_name,
             "version": self.version,
             "uploader": self.uploader,
-            "urls": urls,
-            "urls_metadata": urls_metadata,
+            "urls": self.urls,
+            "urls_metadata": self.url_metadata,
             "acl": acl,
             "authz": authz,
-            "hashes": hashes,
-            "metadata": metadata,
+            "hashes": self.hashes,
+            "metadata": self.record_metadata,
             "form": self.form,
-            "created_date": created_date,
-            "updated_date": updated_date,
+            "created_date": self.created_date.isoformat(),
+            "updated_date": self.updated_date.isoformat(),
             "description": self.description,
             "content_created_date": content_created_date,
             "content_updated_date": content_updated_date,
         }
 
 
-class IndexRecordAlias(Base):
-    """
-    Alias attached to index record
-    """
-
-    __tablename__ = "index_record_alias"
-
-    did = Column(String, ForeignKey("index_record.did"), primary_key=True)
-    name = Column(String, primary_key=True, unique=True)
-
-    __table_args__ = (
-        Index("index_record_alias_idx", "did"),
-        Index("index_record_alias_name", "name"),
-    )
-
-
-class IndexRecordUrl(Base):
-    """
-    Base index record url representation.
-    """
-
-    __tablename__ = "index_record_url"
-
-    did = Column(String, ForeignKey("index_record.did"), primary_key=True)
-    url = Column(String, primary_key=True)
-
-    url_metadata = relationship(
-        "IndexRecordUrlMetadata",
-        backref="index_record_url",
-        cascade="all, delete-orphan",
-    )
-    __table_args__ = (Index("index_record_url_idx", "did"),)
-
-
-class IndexRecordACE(Base):
-    """
-    index record access control entry representation.
-    """
-
-    __tablename__ = "index_record_ace"
-
-    did = Column(String, ForeignKey("index_record.did"), primary_key=True)
-    # access control entry
-    ace = Column(String, primary_key=True)
-
-    __table_args__ = (Index("index_record_ace_idx", "did"),)
-
-
-class IndexRecordAuthz(Base):
-    """
-    index record access control (authz) entry representation.
-    """
-
-    __tablename__ = "index_record_authz"
-
-    did = Column(String, ForeignKey("index_record.did"), primary_key=True)
-    resource = Column(String, primary_key=True)
-
-    __table_args__ = (Index("index_record_authz_idx", "did"),)
-
-
-class IndexRecordMetadata(Base):
-    """
-    Metadata attached to index document
-    """
-
-    __tablename__ = "index_record_metadata"
-    key = Column(String, primary_key=True)
-    did = Column(String, ForeignKey("index_record.did"), primary_key=True)
-    value = Column(String)
-    __table_args__ = (Index("index_record_metadata_idx", "did"),)
-
-
-class IndexRecordUrlMetadata(Base):
-    """
-    Metadata attached to url
-    """
-
-    __tablename__ = "index_record_url_metadata"
-    key = Column(String, primary_key=True)
-    url = Column(String, primary_key=True)
-    did = Column(String, index=True, primary_key=True)
-    value = Column(String)
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["did", "url"], ["index_record_url.did", "index_record_url.url"]
-        ),
-        Index("index_record_url_metadata_idx", "did"),
-    )
-
-
-class IndexRecordHash(Base):
-    """
-    Base index record hash representation.
-    """
-
-    __tablename__ = "index_record_hash"
-
-    did = Column(String, ForeignKey("index_record.did"), primary_key=True)
-    hash_type = Column(String, primary_key=True)
-    hash_value = Column(String)
-    __table_args__ = (
-        Index("index_record_hash_idx", "did"),
-        Index("index_record_hash_type_value_idx", "hash_value", "hash_type"),
-    )
-
-
-class DrsBundleRecord(Base):
-    """
-    DRS bundle record representation.
-    """
-
-    __tablename__ = "drs_bundle_record"
-
-    bundle_id = Column(String, primary_key=True)
-    name = Column(String)
-    created_time = Column(DateTime, default=datetime.datetime.utcnow)
-    updated_time = Column(DateTime, default=datetime.datetime.utcnow)
-    checksum = Column(String)  # db `checksum` => object `checksums`
-    size = Column(BigInteger)
-    bundle_data = Column(Text)
-    description = Column(Text)
-    version = Column(String)
-    aliases = Column(String)
-
-    def to_document_dict(self, expand=False):
-        """
-        Get the full bundle document
-        expand: True to include bundle_data
-        """
-        ret = {
-            "id": self.bundle_id,
-            "name": self.name,
-            "created_time": self.created_time.isoformat(),
-            "updated_time": self.updated_time.isoformat(),
-            "checksum": self.checksum,
-            "size": self.size,
-            "form": "bundle",
-            "version": self.version,
-            "description": self.description,
-            "aliases": self.aliases,
-        }
-
-        if expand:
-            bundle_data = json.loads(self.bundle_data)
-            ret["bundle_data"] = bundle_data
-
-        return ret
-
-
-def create_urls_metadata(urls_metadata, record, session):
-    """
-    create url metadata record in database
-    """
-    urls = {u.url for u in record.urls}
-    for url, url_metadata in urls_metadata.items():
-        if url not in urls:
-            raise UserError("url {} in urls_metadata does not exist".format(url))
-        for k, v in url_metadata.items():
-            session.add(IndexRecordUrlMetadata(url=url, key=k, value=v, did=record.did))
-
-
-def get_record_if_exists(did, session):
-    """
-    Searches for a record with this did and returns it.
-    If no record found, returns None.
-    """
-    return session.query(IndexRecord).filter(IndexRecord.did == did).first()
-
-
-class SQLAlchemyIndexDriver(IndexDriverABC):
-    """
-    SQLAlchemy implementation of index driver.
-    """
-
+class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
     def __init__(self, conn, logger=None, index_config=None, **config):
-        """
-        Initialize the SQLAlchemy database driver.
-        """
         super().__init__(conn, **config)
         self.logger = logger or get_logger("SQLAlchemyIndexDriver")
         self.config = index_config or {}
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
-
-    def migrate_index_database(self):
-        """
-        This migration logic is DEPRECATED. It is still supported for backwards compatibility,
-        but any new migration should be added using Alembic.
-
-        migrate index database to match CURRENT_SCHEMA_VERSION
-        """
-        migrate_database(
-            driver=self,
-            migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
-            current_schema_version=CURRENT_SCHEMA_VERSION,
-            model=IndexSchemaVersion,
-        )
 
     @property
     @contextmanager
@@ -363,7 +123,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Provide a transactional scope around a series of operations.
         """
         session = self.Session()
-
+        session.begin()
         try:
             yield session
             session.commit()
@@ -376,7 +136,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     def ids(
         self,
         limit=100,
-        page=None,
         start=None,
         size=None,
         urls=None,
@@ -390,110 +149,67 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         ids=None,
         urls_metadata=None,
         negate_params=None,
+        page=None,
     ):
         """
         Returns list of records stored by the backend.
         """
         with self.session as session:
-            query = session.query(IndexRecord)
-
-            # Enable joinedload on all relationships so that we won't have to
-            # do a bunch of selects when we assemble our response.
-            query = query.options(
-                joinedload(IndexRecord.urls).joinedload(IndexRecordUrl.url_metadata)
-            )
-            query = query.options(joinedload(IndexRecord.acl))
-            query = query.options(joinedload(IndexRecord.authz))
-            query = query.options(joinedload(IndexRecord.hashes))
-            query = query.options(joinedload(IndexRecord.index_metadata))
-            query = query.options(joinedload(IndexRecord.aliases))
+            query = session.query(Record)
 
             if start is not None:
-                query = query.filter(IndexRecord.did > start)
+                query = query.filter(Record.guid > start)
 
             if size is not None:
-                query = query.filter(IndexRecord.size == size)
+                query = query.filter(Record.size == size)
 
             if file_name is not None:
-                query = query.filter(IndexRecord.file_name == file_name)
+                query = query.filter(Record.file_name == file_name)
 
             if version is not None:
-                query = query.filter(IndexRecord.version == version)
+                query = query.filter(Record.version == version)
 
             if uploader is not None:
-                query = query.filter(IndexRecord.uploader == uploader)
+                query = query.filter(Record.uploader == uploader)
 
-            # filter records that have ALL the URLs
             if urls:
                 for u in urls:
-                    sub = session.query(IndexRecordUrl.did).filter(
-                        IndexRecordUrl.url == u
-                    )
-                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
+                    query = query.filter(Record.urls.any(u))
 
-            # filter records that have ALL the ACL elements
             if acl:
                 for u in acl:
-                    sub = session.query(IndexRecordACE.did).filter(
-                        IndexRecordACE.ace == u
-                    )
-                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
+                    query = query.filter(Record.acl.any(u))
             elif acl == []:
-                query = query.filter(IndexRecord.acl == None)
+                query = query.filter(Record.acl == None)
 
-            # filter records that have ALL the authz elements
             if authz:
                 for u in authz:
-                    sub = session.query(IndexRecordAuthz.did).filter(
-                        IndexRecordAuthz.resource == u
-                    )
-                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
+                    query = query.filter(Record.authz.any(u))
             elif authz == []:
-                query = query.filter(IndexRecord.authz == None)
+                query = query.filter(Record.authz == None)
 
             if hashes:
                 for h, v in hashes.items():
-                    sub = session.query(IndexRecordHash.did)
-                    sub = sub.filter(
-                        and_(
-                            IndexRecordHash.hash_type == h,
-                            IndexRecordHash.hash_value == v,
-                        )
-                    )
-                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
+                    query = query.filter(Record.hashes == {h: v})
 
             if metadata:
                 for k, v in metadata.items():
-                    sub = session.query(IndexRecordMetadata.did)
-                    sub = sub.filter(
-                        and_(
-                            IndexRecordMetadata.key == k, IndexRecordMetadata.value == v
-                        )
-                    )
-                    query = query.filter(IndexRecord.did.in_(sub.subquery()))
+                    query = query.filter(Record.record_metadata[k].astext == v)
 
             if urls_metadata:
-                query = query.join(IndexRecord.urls).join(IndexRecordUrl.url_metadata)
                 for url_key, url_dict in urls_metadata.items():
-                    query = query.filter(IndexRecordUrlMetadata.url.contains(url_key))
+                    matches = ""
                     for k, v in url_dict.items():
+                        matches += '@.{} == "{}" && '.format(k, v)
+                    if matches:
+                        matches = matches.rstrip("&& ")
+                        match_string = "$.* ? ({})".format(matches)
                         query = query.filter(
-                            IndexRecordUrl.url_metadata.any(
-                                and_(
-                                    IndexRecordUrlMetadata.key == k,
-                                    IndexRecordUrlMetadata.value == v,
-                                )
-                            )
+                            func.jsonb_path_exists(Record.url_metadata, match_string)
                         )
 
             if negate_params:
                 query = self._negate_filter(session, query, **negate_params)
-
-            # joining url metadata will have duplicate results
-            # url or acl doesn't have duplicate results for current filter
-            # so we don't need to select distinct for these cases
-            if urls_metadata or negate_params:
-                query = query.distinct(IndexRecord.did)
 
             if page is not None:
                 # order by updated date so newly added stuff is
@@ -502,9 +218,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 # (e.g. parallelly processing from beginning -> middle and ending -> middle
                 #       and as a final step, checking the "ending"+1 to see if there are
                 #       new records).
-                query = query.order_by(IndexRecord.updated_date)
+                query = query.order_by(Record.updated_date)
             else:
-                query = query.order_by(IndexRecord.did)
+                query = query.order_by(Record.guid)
 
             if ids:
                 DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
@@ -514,8 +230,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 if not DEFAULT_PREFIX:
                     self.logger.info("NO DEFAULT_PREFIX")
                 else:
-                    subquery = query.filter(IndexRecord.did.in_(ids))
-                    found_ids = [i.did for i in subquery]
+                    subquery = query.filter(Record.guid.in_(ids))
+                    found_ids = [i.guid for i in subquery]
 
                     for i in ids:
                         if i not in found_ids:
@@ -525,9 +241,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                                 stripped = i.split(DEFAULT_PREFIX, 1)[1]
                                 new_ids.append(stripped)
 
-                query = query.filter(IndexRecord.did.in_(found_ids + new_ids))
+                query = query.filter(Record.guid.in_(found_ids + new_ids))
             else:
-                # only apply limit when ids is not provided
                 query = query.limit(limit)
 
             if page is not None:
@@ -571,110 +286,105 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             Database query
         """
         if file_name is not None:
-            query = query.filter(IndexRecord.file_name != file_name)
+            query = query.filter(Record.file_name != file_name)
 
         if version is not None:
-            query = query.filter(IndexRecord.version != version)
+            query = query.filter(Record.version != version)
 
         if urls is not None and urls:
-            query = query.join(IndexRecord.urls)
             for u in urls:
-                query = query.filter(~IndexRecord.urls.any(IndexRecordUrl.url == u))
+                query = query.filter(not_(Record.urls.any(u)))
 
         if acl is not None and acl:
-            query = query.join(IndexRecord.acl)
             for u in acl:
-                query = query.filter(~IndexRecord.acl.any(IndexRecordACE.ace == u))
+                query = query.filter(
+                    Record.acl.isnot(None),
+                    func.array_length(Record.acl, 1) > 0,
+                    not_(Record.acl.any(u)),
+                )
 
         if authz is not None and authz:
-            query = query.join(IndexRecord.authz)
             for u in authz:
                 query = query.filter(
-                    ~IndexRecord.authz.any(IndexRecordAuthz.resource == u)
+                    Record.authz.isnot(None),
+                    func.array_length(Record.authz, 1) > 0,
+                    not_(Record.authz.any(u)),
                 )
 
         if metadata is not None and metadata:
             for k, v in metadata.items():
                 if not v:
-                    query = query.filter(
-                        ~IndexRecord.index_metadata.any(IndexRecordMetadata.key == k)
-                    )
+                    query = query.filter(~text(f"record_metadata ? :key")).params(key=k)
                 else:
-                    sub = session.query(IndexRecordMetadata.did)
-                    sub = sub.filter(
-                        and_(
-                            IndexRecordMetadata.key == k, IndexRecordMetadata.value == v
-                        )
-                    )
-                    query = query.filter(~IndexRecord.did.in_(sub.subquery()))
+                    query = query.filter(Record.record_metadata[k].astext != v)
 
         if urls_metadata is not None and urls_metadata:
-            query = query.join(IndexRecord.urls).join(IndexRecordUrl.url_metadata)
             for url_key, url_dict in urls_metadata.items():
                 if not url_dict:
-                    query = query.filter(~IndexRecordUrlMetadata.url.contains(url_key))
+                    query = query.filter(
+                        ~text(
+                            f"EXISTS (SELECT 1 FROM UNNEST(urls) AS element WHERE element LIKE '%{url_key}%')"
+                        )
+                    )
+                    query = query.filter(
+                        ~text(
+                            f"EXISTS (SELECT 1 FROM jsonb_object_keys(url_metadata) AS key WHERE key LIKE '%{url_key}%')"
+                        )
+                    )
                 else:
                     for k, v in url_dict.items():
                         if not v:
-                            query = query.filter(
-                                ~IndexRecordUrl.url_metadata.any(
-                                    and_(
-                                        IndexRecordUrlMetadata.key == k,
-                                        IndexRecordUrlMetadata.url.contains(url_key),
-                                    )
+                            query = session.query(Record).filter(
+                                text(
+                                    f"EXISTS (SELECT 1 FROM jsonb_each_text(url_metadata) AS x WHERE x.value LIKE '%{k}%')"
                                 )
                             )
                         else:
-                            sub = session.query(IndexRecordUrlMetadata.did)
-                            sub = sub.filter(
-                                and_(
-                                    IndexRecordUrlMetadata.url.contains(url_key),
-                                    IndexRecordUrlMetadata.key == k,
-                                    IndexRecordUrlMetadata.value == v,
-                                )
+                            query = query.filter(
+                                text(
+                                    "url_metadata IS NOT NULL AND url_metadata != '{}'"
+                                ),
+                                ~func.jsonb_path_match(
+                                    Record.url_metadata, '$.*.{} == "{}"'.format(k, v)
+                                ),
                             )
-                            query = query.filter(~IndexRecord.did.in_(sub.subquery()))
+
         return query
 
     def get_urls(self, size=None, hashes=None, ids=None, start=0, limit=100):
         """
-        Returns a list of urls matching supplied size/hashes/dids.
+        Returns a list of urls matching supplied size/hashes/guids.
         """
         if size is None and hashes is None and ids is None:
             raise UserError("Please provide size/hashes/ids to filter")
 
         with self.session as session:
-            query = session.query(IndexRecordUrl)
+            query = session.query(Record)
 
-            query = query.join(IndexRecordUrl.index_record)
             if size:
-                query = query.filter(IndexRecord.size == size)
+                query = query.filter(Record.size == size)
             if hashes:
                 for h, v in hashes.items():
-                    # Select subset that matches given hash.
-                    sub = session.query(IndexRecordHash.did)
-                    sub = sub.filter(
-                        and_(
-                            IndexRecordHash.hash_type == h,
-                            IndexRecordHash.hash_value == v,
-                        )
-                    )
-
-                    # Filter anything that does not match.
-                    query = query.filter(IndexRecordUrl.did.in_(sub.subquery()))
+                    query = query.filter(Record.hashes.contains({h: v}))
             if ids:
-                query = query.filter(IndexRecordUrl.did.in_(ids))
+                query = query.filter(Record.guid.in_(ids))
             # Remove duplicates.
             query = query.distinct()
 
             # Return only specified window.
             query = query.offset(start)
             query = query.limit(limit)
+            return_urls = []
+            for r in query:
+                for url, values in r.url_metadata.items():
+                    return_urls.append(
+                        {
+                            "url": url,
+                            "metadata": values,
+                        }
+                    )
 
-            return [
-                {"url": r.url, "metadata": {m.key: m.value for m in r.url_metadata}}
-                for r in query
-            ]
+            return return_urls
 
     def _validate_and_set_content_dates(
         self, record, content_created_date, content_updated_date
@@ -693,7 +403,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     def add(
         self,
         form,
-        did=None,
+        guid=None,
         size=None,
         file_name=None,
         metadata=None,
@@ -711,36 +421,34 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     ):
         """
         Creates a new record given size, urls, acl, authz, hashes, metadata,
-        urls_metadata file name and version
-        if did is provided, update the new record with the did otherwise create it
+        url_metadata file name and version
+        if guid is provided, update the new record with the guid otherwise create it
         """
+
         urls = urls or []
         acl = acl or []
         authz = authz or []
         hashes = hashes or {}
         metadata = metadata or {}
-        urls_metadata = urls_metadata or {}
+        url_metadata = urls_metadata or {}
 
         with self.session as session:
-            record = IndexRecord()
+            record = Record()
 
-            base_version = BaseVersion()
             if not baseid:
                 baseid = str(uuid.uuid4())
-
-            base_version.baseid = baseid
 
             record.baseid = baseid
             record.file_name = file_name
             record.version = version
 
-            if did:
-                record.did = did
+            if guid:
+                record.guid = guid
             else:
-                new_did = str(uuid.uuid4())
+                new_guid = str(uuid.uuid4())
                 if self.config.get("PREPEND_PREFIX"):
-                    new_did = self.config["DEFAULT_PREFIX"] + new_did
-                record.did = new_did
+                    new_guid = self.config["DEFAULT_PREFIX"] + new_guid
+                record.guid = new_guid
 
             record.rev = str(uuid.uuid4())[:8]
 
@@ -748,24 +456,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record.uploader = uploader
 
-            record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
+            record.urls = list(set(urls))
 
-            record.acl = [IndexRecordACE(did=record.did, ace=ace) for ace in set(acl)]
+            record.acl = list(set(acl))
 
-            record.authz = [
-                IndexRecordAuthz(did=record.did, resource=resource)
-                for resource in set(authz)
-            ]
+            record.authz = list(set(authz))
 
-            record.hashes = [
-                IndexRecordHash(did=record.did, hash_type=h, hash_value=v)
-                for h, v in hashes.items()
-            ]
+            record.hashes = hashes
 
-            record.index_metadata = [
-                IndexRecordMetadata(did=record.did, key=m_key, value=m_value)
-                for m_key, m_value in metadata.items()
-            ]
+            record.record_metadata = metadata
 
             record.description = description
 
@@ -774,22 +473,22 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 content_created_date=content_created_date,
                 content_updated_date=content_updated_date,
             )
-
-            session.merge(base_version)
-
             try:
-                session.add(record)
-                create_urls_metadata(urls_metadata, record, session)
-
+                check_url_metadata(url_metadata, record)
+                record.url_metadata = url_metadata
                 if self.config.get("ADD_PREFIX_ALIAS"):
-                    self.add_prefix_alias(record, session)
+                    prefix = self.config["DEFAULT_PREFIX"]
+                    record.alias = list(set([prefix + record.guid]))
+                session.add(record)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound(
-                    'did "{did}" already exists'.format(did=record.did)
+                    'guid "{guid}" already exists'.format(guid=record.guid)
                 )
+            except Exception as e:
+                print(e)
 
-            return record.did, record.rev, record.baseid
+            return record.guid, record.rev, record.baseid
 
     def add_blank_record(self, uploader, file_name=None, authz=None):
         """
@@ -819,53 +518,27 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise
 
         with self.session as session:
-            record = IndexRecord()
-            base_version = BaseVersion()
+            record = Record()
 
             did = str(uuid.uuid4())
             baseid = str(uuid.uuid4())
             if self.config.get("PREPEND_PREFIX"):
                 did = self.config["DEFAULT_PREFIX"] + did
 
-            record.did = did
-            base_version.baseid = baseid
+            record.guid = did
+            record.baseid = baseid
 
             record.rev = str(uuid.uuid4())[:8]
             record.baseid = baseid
             record.uploader = uploader
             record.file_name = file_name
 
-            if authz:
-                record.authz = [
-                    IndexRecordAuthz(did=record.did, resource=resource)
-                    for resource in set(authz)
-                ]
+            record.authz = authz
 
-            session.add(base_version)
             session.add(record)
             session.commit()
 
-            return record.did, record.rev, record.baseid
-
-    def add_blank_bundle(self):
-        """
-        Create a new blank record with only uploader and optionally
-        file_name fields filled
-        """
-        with self.session as session:
-            record = DrsBundleRecord()
-            base_version = BaseVersion()
-
-            bundle_id = str(uuid.uuid4())
-
-            record.bundle_id = bundle_id
-            base_version.baseid = bundle_id
-
-            session.add(base_version)
-            session.add(record)
-            session.commit()
-
-            return record.bundle_id
+            return record.guid, record.rev, record.baseid
 
     def update_blank_record(self, did, rev, size, hashes, urls, authz=None):
         """
@@ -876,7 +549,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         urls = urls or []
 
         with self.session as session:
-            query = session.query(IndexRecord).filter(IndexRecord.did == did)
+            query = session.query(Record).filter(Record.guid == did)
 
             try:
                 record = query.one()
@@ -892,18 +565,18 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise RevisionMismatch("revision mismatch")
 
             record.size = size
-            record.hashes = [
-                IndexRecordHash(did=record.did, hash_type=h, hash_value=v)
-                for h, v in hashes.items()
-            ]
-            record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
+
+            record.hashes = hashes
+
+            record.urls = list(set(urls))
 
             authorized = False
             authz_err_msg = "Auth error when attempting to update a blank record. User must have '{}' access on '{}' for service 'indexd'."
+
             if authz:
                 # if an authz is provided, ensure that user can actually
                 # create/update for that resource (old authz and new authz)
-                old_authz = [u.resource for u in record.authz]
+                old_authz = record.authz if record.authz else []
                 all_authz = old_authz + authz
                 try:
                     auth.authorize("update", all_authz)
@@ -914,10 +587,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                         + " Falling back to 'file_upload' on '/data_file'."
                     )
 
-                record.authz = [
-                    IndexRecordAuthz(did=record.did, resource=resource)
-                    for resource in set(authz)
-                ]
+                record.authz = set(authz)
 
             if not authorized:
                 # either no 'authz' was provided, or user doesn't have
@@ -930,20 +600,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record.rev = str(uuid.uuid4())[:8]
 
-            record.updated_date = datetime.datetime.utcnow()
+            record.updated_data = datetime.datetime.utcnow()
 
             session.add(record)
             session.commit()
 
-            return record.did, record.rev, record.baseid
-
-    def add_prefix_alias(self, record, session):
-        """
-        Create a index alias with the alias as {prefix:did}
-        """
-        prefix = self.config["DEFAULT_PREFIX"]
-        alias = IndexRecordAlias(did=record.did, name=prefix + record.did)
-        session.add(alias)
+            return record.guid, record.rev, record.baseid
 
     def get_by_alias(self, alias):
         """
@@ -951,16 +613,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             try:
-                record = (
-                    session.query(IndexRecord)
-                    .filter(IndexRecord.aliases.any(name=alias))
-                    .one()
-                )
+                record = session.query(Record).filter(Record.alias.any(alias)).one()
             except NoResultFound:
                 raise NoRecordFound("no record found")
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
-            return record.to_document_dict()
+            return record.to_document_dict
 
     def get_aliases_for_did(self, did):
         """
@@ -974,8 +632,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 self.logger.warning(f"No record found for did {did}")
                 raise NoRecordFound(did)
 
-            query = session.query(IndexRecordAlias).filter(IndexRecordAlias.did == did)
-            return [i.name for i in query]
+            query = session.query(Record).filter(Record.guid == did)
+            return [i.alias for i in query]
 
     def append_aliases_for_did(self, aliases, did):
         """
@@ -993,7 +651,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization
             try:
-                resources = [u.resource for u in index_record.authz]
+                resources = index_record.authz
                 auth.authorize("update", resources)
             except AuthError as err:
                 self.logger.warning(
@@ -1002,11 +660,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise err
 
             # add new aliases
-            index_record_aliases = [
-                IndexRecordAlias(did=did, name=alias) for alias in aliases
-            ]
+            query = session.query(Record).filter(Record.guid == did)
+            record = query.one()
+
             try:
-                session.add_all(index_record_aliases)
+                record.alias = record.alias + aliases
                 session.commit()
             except IntegrityError as err:
                 # One or more aliases in request were non-unique
@@ -1034,7 +692,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization
             try:
-                resources = [u.resource for u in index_record.authz]
+                resources = index_record.authz
                 auth.authorize("update", resources)
             except AuthError as err:
                 self.logger.warning(
@@ -1043,15 +701,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise err
 
             try:
+                query = session.query(Record).filter(Record.guid == did)
+                record = query.one()
                 # delete this GUID's aliases
-                session.query(IndexRecordAlias).filter(
-                    IndexRecordAlias.did == did
-                ).delete(synchronize_session="evaluate")
-                # add new aliases
-                index_record_aliases = [
-                    IndexRecordAlias(did=did, name=alias) for alias in aliases
-                ]
-                session.add_all(index_record_aliases)
+                record.alias = aliases
                 session.commit()
                 self.logger.info(
                     f"Replaced aliases for did {did} with new aliases {aliases}"
@@ -1079,7 +732,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization
             try:
-                resources = [u.resource for u in index_record.authz]
+                resources = index_record.authz
                 auth.authorize("delete", resources)
             except AuthError as err:
                 self.logger.warning(
@@ -1087,10 +740,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 )
                 raise err
 
-            # delete all aliases
-            session.query(IndexRecordAlias).filter(IndexRecordAlias.did == did).delete(
-                synchronize_session="evaluate"
-            )
+            query = session.query(Record).filter(Record.guid == did)
+            record = query.one()
+            # delete this GUID's aliases and add new aliases
+            record.alias = []
+            session.commit()
 
             self.logger.info(f"Deleted all aliases for did {did}.")
 
@@ -1108,7 +762,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization
             try:
-                resources = [u.resource for u in index_record.authz]
+                resources = index_record.authz
                 auth.authorize("delete", resources)
             except AuthError as err:
                 self.logger.warning(
@@ -1116,42 +770,40 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 )
                 raise err
 
+            query = session.query(Record).filter(Record.guid == did)
+            record = query.one()
             # delete just this alias
-            num_rows_deleted = (
-                session.query(IndexRecordAlias)
-                .filter(IndexRecordAlias.did == did, IndexRecordAlias.name == alias)
-                .delete(synchronize_session="evaluate")
-            )
-
-            if num_rows_deleted == 0:
+            if alias in record.alias:
+                record.alias.remove(alias)
+                session.commit()
+            else:
                 self.logger.warning(f"No alias {alias} found for did {did}")
                 raise NoRecordFound(alias)
 
             self.logger.info(f"Deleted alias {alias} for did {did}.")
 
-    def get(self, did, expand=True):
+    def get(self, guid, expand=True):
         """
         Gets a record given the record id or baseid.
         If the given id is a baseid, it will return the latest version
         """
         with self.session as session:
-            query = session.query(IndexRecord)
+            query = session.query(Record)
             query = query.filter(
-                or_(IndexRecord.did == did, IndexRecord.baseid == did)
-            ).order_by(IndexRecord.created_date.desc())
+                or_(Record.guid == guid, Record.baseid == guid)
+            ).order_by(Record.created_date.desc())
 
             record = query.first()
             if record is None:
                 try:
-                    record = self.get_bundle(bundle_id=did, expand=expand)
+                    record = self.get_bundle(bundle_id=guid, expand=expand)
                     return record
                 except NoRecordFound:
-                    # overwrite the "no bundle found" message
                     raise NoRecordFound("no record found")
 
             return record.to_document_dict()
 
-    def get_with_nonstrict_prefix(self, did, expand=True):
+    def get_with_nonstrict_prefix(self, guid, expand=True):
         """
         Attempt to retrieve a record both with and without a prefix.
         Proxies 'get' with provided id.
@@ -1159,16 +811,16 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         If not found and id has no prefix, attempt with default prefix prepended.
         """
         try:
-            record = self.get(did, expand=expand)
+            record = self.get(guid, expand=expand)
         except NoRecordFound as e:
             DEFAULT_PREFIX = self.config.get("DEFAULT_PREFIX")
             if not DEFAULT_PREFIX:
                 raise e
 
-            if not did.startswith(DEFAULT_PREFIX):
-                record = self.get(DEFAULT_PREFIX + did, expand=expand)
+            if not guid.startswith(DEFAULT_PREFIX):
+                record = self.get(DEFAULT_PREFIX + guid, expand=expand)
             else:
-                stripped = did.split(DEFAULT_PREFIX, 1)[1]
+                stripped = guid.split(DEFAULT_PREFIX, 1)[1]
                 record = self.get(stripped, expand=expand)
 
         return record
@@ -1183,58 +835,39 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             "urls",
             "acl",
             "authz",
-            "metadata",
-            "urls_metadata",
+            "record_metadata",
+            "url_metadata",
             "content_created_date",
             "content_updated_date",
         ]
 
         with self.session as session:
-            query = session.query(IndexRecord).filter(IndexRecord.did == did)
+            query = session.query(Record).filter(Record.guid == did)
 
             try:
                 record = query.one()
             except NoResultFound:
-                raise NoRecordFound("no record found")
+                raise NoRecordFound("no Record found")
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
             if rev != record.rev:
-                raise RevisionMismatch("revision mismatch")
+                raise RevisionMismatch("Revision mismatch")
 
             # Some operations are dependant on other operations. For example
-            # urls has to be updated before urls_metadata because of schema
+            # urls has to be updated before url_metadata because of schema
             # constraints.
             if "urls" in changing_fields:
-                for url in record.urls:
-                    session.delete(url)
-
-                record.urls = [
-                    IndexRecordUrl(did=record.did, url=url)
-                    for url in changing_fields["urls"]
-                ]
+                record.urls = list(set(changing_fields["urls"]))
 
             if "acl" in changing_fields:
-                for ace in record.acl:
-                    session.delete(ace)
+                record.acl = list(set(changing_fields["acl"]))
 
-                record.acl = [
-                    IndexRecordACE(did=record.did, ace=ace)
-                    for ace in set(changing_fields["acl"])
-                ]
-
-            all_authz = [u.resource for u in record.authz]
+            all_authz = list(set(record.authz)) if record.authz else []
             if "authz" in changing_fields:
                 new_authz = list(set(changing_fields["authz"]))
                 all_authz += new_authz
-
-                for resource in record.authz:
-                    session.delete(resource)
-
-                record.authz = [
-                    IndexRecordAuthz(did=record.did, resource=resource)
-                    for resource in new_authz
-                ]
+                record.authz = new_authz
 
             # authorization check: `update` access on old AND new resources
             try:
@@ -1244,20 +877,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise
 
             if "metadata" in changing_fields:
-                for md_record in record.index_metadata:
-                    session.delete(md_record)
-
-                record.index_metadata = [
-                    IndexRecordMetadata(did=record.did, key=m_key, value=m_value)
-                    for m_key, m_value in changing_fields["metadata"].items()
-                ]
+                record.record_metadata = changing_fields["metadata"]
 
             if "urls_metadata" in changing_fields:
-                for url in record.urls:
-                    for url_metadata in url.url_metadata:
-                        session.delete(url_metadata)
-
-                create_urls_metadata(changing_fields["urls_metadata"], record, session)
+                check_url_metadata(changing_fields["urls_metadata"], record)
+                record.url_metadata = changing_fields["urls_metadata"]
 
             if changing_fields.get("content_created_date") is not None:
                 record.content_created_date = datetime.datetime.fromisoformat(
@@ -1266,7 +890,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if changing_fields.get("content_updated_date") is not None:
                 if record.content_created_date is None:
                     raise UserError(
-                        "Cannot set content_updated_date on record that does not have a content_created_date"
+                        "Cannot set content_updated_date on Record that does not have a content_created_date"
                     )
                 if record.content_created_date > datetime.datetime.fromisoformat(
                     changing_fields["content_updated_date"]
@@ -1291,15 +915,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             session.add(record)
 
-            return record.did, record.baseid, record.rev
+            return record.guid, record.baseid, record.rev
 
-    def delete(self, did, rev):
+    def delete(self, guid, rev):
         """
         Removes record if stored by backend.
         """
         with self.session as session:
-            query = session.query(IndexRecord)
-            query = query.filter(IndexRecord.did == did)
+            query = session.query(Record)
+            query = query.filter(Record.guid == guid)
 
             try:
                 record = query.one()
@@ -1311,13 +935,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch("revision mismatch")
 
-            auth.authorize("delete", [u.resource for u in record.authz])
+            auth.authorize("delete", record.authz)
 
             session.delete(record)
 
     def add_version(
         self,
-        current_did,
+        current_guid,
         form,
         new_did=None,
         size=None,
@@ -1334,7 +958,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         content_updated_date=None,
     ):
         """
-        Add a record version given did
+        Add a record version given guid
         """
         urls = urls or []
         acl = acl or []
@@ -1344,7 +968,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         urls_metadata = urls_metadata or {}
 
         with self.session as session:
-            query = session.query(IndexRecord).filter_by(did=current_did)
+            query = session.query(Record).filter_by(guid=current_guid)
 
             try:
                 record = query.one()
@@ -1353,17 +977,17 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
-            auth.authorize("update", [u.resource for u in record.authz] + authz)
+            auth.authorize("update", record.authz + authz)
 
             baseid = record.baseid
-            record = IndexRecord()
-            did = new_did
-            if not did:
-                did = str(uuid.uuid4())
+            record = Record()
+            guid = new_did
+            if not guid:
+                guid = str(uuid.uuid4())
                 if self.config.get("PREPEND_PREFIX"):
-                    did = self.config["DEFAULT_PREFIX"] + did
+                    guid = self.config["DEFAULT_PREFIX"] + guid
 
-            record.did = did
+            record.guid = guid
             record.baseid = baseid
             record.rev = str(uuid.uuid4())[:8]
             record.form = form
@@ -1371,25 +995,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.file_name = file_name
             record.version = version
             record.description = description
-
-            record.urls = [IndexRecordUrl(did=record.did, url=url) for url in urls]
-
-            record.acl = [IndexRecordACE(did=record.did, ace=ace) for ace in set(acl)]
-
-            record.authz = [
-                IndexRecordAuthz(did=record.did, resource=resource)
-                for resource in set(authz)
-            ]
-
-            record.hashes = [
-                IndexRecordHash(did=record.did, hash_type=h, hash_value=v)
-                for h, v in hashes.items()
-            ]
-
-            record.index_metadata = [
-                IndexRecordMetadata(did=record.did, key=m_key, value=m_value)
-                for m_key, m_value in metadata.items()
-            ]
+            record.urls = urls
+            record.acl = acl
+            record.authz = authz
+            record.hashes = hashes
+            record.record_metadata = metadata
 
             self._validate_and_set_content_dates(
                 record=record,
@@ -1397,17 +1007,19 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 content_updated_date=content_updated_date,
             )
 
+            check_url_metadata(urls_metadata, record)
+            record.url_metadata = urls_metadata
+
             try:
                 session.add(record)
-                create_urls_metadata(urls_metadata, record, session)
                 session.commit()
             except IntegrityError:
-                raise MultipleRecordsFound("{did} already exists".format(did=did))
+                raise MultipleRecordsFound("{guid} already exists".format(guid=guid))
 
-            return record.did, record.baseid, record.rev
+            return record.guid, record.baseid, record.rev
 
     def add_blank_version(
-        self, current_did, new_did=None, file_name=None, uploader=None, authz=None
+        self, current_guid, new_did=None, file_name=None, uploader=None, authz=None
     ):
         """
         Add a blank record version given did.
@@ -1423,7 +1035,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise
 
         with self.session as session:
-            query = session.query(IndexRecord).filter_by(did=current_did)
+            query = session.query(Record).filter_by(guid=current_guid)
 
             try:
                 old_record = query.one()
@@ -1432,95 +1044,60 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
-            old_authz = [u.resource for u in old_record.authz]
+            old_authz = old_record.authz
             try:
                 auth.authorize("update", old_authz)
             except AuthError as err:
                 self.logger.error(authz_err_msg.format("update", old_authz))
                 raise
 
-            # handle the edgecase where new_did matches the original doc's did to
+            # handle the edgecase where new_did matches the original doc's guid to
             # prevent sqlalchemy FlushError
-            if new_did == old_record.did:
-                raise MultipleRecordsFound("{did} already exists".format(did=new_did))
+            if new_did == old_record.guid:
+                raise MultipleRecordsFound("{guid} already exists".format(guid=new_did))
 
-            new_record = IndexRecord()
-            did = new_did
-            if not did:
-                did = str(uuid.uuid4())
-                if self.config.get("PREPEND_PREFIX"):
-                    did = self.config["DEFAULT_PREFIX"] + did
+            new_record = Record()
+            guid = new_did
+            if not guid:
+                guid = str(uuid.uuid4())
+                if self.config.get("PEPREND_PREFIX"):
+                    guid = self.config["DEFAULT_PREFIX"] + guid
 
-            new_record.did = did
+            new_record.guid = guid
             new_record.baseid = old_record.baseid
             new_record.rev = str(uuid.uuid4())[:8]
-            new_record.file_name = file_name
-            new_record.uploader = uploader
+            new_record.file_name = old_record.file_name
+            new_record.uploader = old_record.uploader
 
             new_record.acl = []
             if not authz:
                 authz = old_authz
-                old_acl = [u.ace for u in old_record.acl]
-                new_record.acl = [
-                    IndexRecordACE(did=did, ace=ace) for ace in set(old_acl)
-                ]
-            new_record.authz = [
-                IndexRecordAuthz(did=did, resource=resource) for resource in set(authz)
-            ]
+                old_acl = old_record.acl
+                new_record.acl = old_acl
+            new_record.authz = authz
 
             try:
                 session.add(new_record)
                 session.commit()
             except IntegrityError:
-                raise MultipleRecordsFound("{did} already exists".format(did=did))
+                raise MultipleRecordsFound("{guid} already exists".format(guid=guid))
 
-            return new_record.did, new_record.baseid, new_record.rev
+            return new_record.guid, new_record.baseid, new_record.rev
 
-    def get_all_versions(self, did):
+    def get_all_versions(self, guid):
         """
         Get all record versions (in order of creation) given DID
         """
         ret = dict()
         with self.session as session:
-            query = session.query(IndexRecord)
-            query = query.filter(IndexRecord.did == did)
+            query = session.query(Record)
+            query = query.filter(Record.guid == guid)
 
             try:
                 record = query.one()
                 baseid = record.baseid
             except NoResultFound:
-                record = session.query(BaseVersion).filter_by(baseid=did).first()
-                if not record:
-                    raise NoRecordFound("no record found")
-                else:
-                    baseid = record.baseid
-            except MultipleResultsFound:
-                raise MultipleRecordsFound("multiple records found")
-
-            query = session.query(IndexRecord)
-            records = (
-                query.filter(IndexRecord.baseid == baseid)
-                .order_by(IndexRecord.created_date.asc())
-                .all()
-            )
-
-            for idx, record in enumerate(records):
-                ret[idx] = record.to_document_dict()
-
-        return ret
-
-    def update_all_versions(self, did, acl=None, authz=None):
-        """
-        Update all record versions with new acl and authz
-        """
-        with self.session as session:
-            query = session.query(IndexRecord).filter_by(did=did)
-
-            try:
-                record = query.one()
-                baseid = record.baseid
-            except NoResultFound:
-                record = session.query(BaseVersion).filter_by(baseid=did).first()
+                record = session.query(Record).filter_by(baseid=guid).first()
                 if not record:
                     raise NoRecordFound("no record found")
                 else:
@@ -1529,58 +1106,88 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound("multiple records found")
 
             # Find all versions of this record
-            query = session.query(IndexRecord)
+            query = session.query(Record)
             records = (
-                query.filter(IndexRecord.baseid == baseid)
-                .order_by(IndexRecord.created_date.asc())
+                query.filter(Record.baseid == baseid)
+                .order_by(Record.created_date.asc())
                 .all()
             )
 
-            # User requires update permissions for all versions of the record
-            all_resources = {r.resource for rec in records for r in rec.authz}
-            auth.authorize("update", list(all_resources))
+            for idx, record in enumerate(records):
+                ret[idx] = record.to_document_dict()
 
-            ret = []
-            # Update fields for all versions
-            for record in records:
-                if acl:
-                    record.acl = [
-                        IndexRecordACE(did=record.did, ace=ace) for ace in set(acl)
-                    ]
-                if authz:
-                    record.authz = [
-                        IndexRecordAuthz(did=record.did, resource=resource)
-                        for resource in set(authz)
-                    ]
-                record.rev = str(uuid.uuid4())[:8]
-                ret.append(
-                    {"did": record.did, "baseid": record.baseid, "rev": record.rev}
-                )
-            session.commit()
-            return ret
+        return ret
 
-    def get_latest_version(self, did, has_version=None):
+    def update_all_versions(self, guid, acl=None, authz=None):
         """
-        Get the lattest record version given did
+        Update all record versions with new acl and authz
         """
         with self.session as session:
-            query = session.query(IndexRecord)
-            query = query.filter(IndexRecord.did == did)
+            query = session.query(Record)
+            query = query.filter(Record.guid == guid)
 
             try:
                 record = query.one()
                 baseid = record.baseid
             except NoResultFound:
-                baseid = did
+                record = session.query(Record).filter_by(baseid=guid).first()
+                if not record:
+                    raise NoRecordFound("no record found")
+                else:
+                    baseid = record.baseid
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
-            query = session.query(IndexRecord)
-            query = query.filter(IndexRecord.baseid == baseid).order_by(
-                IndexRecord.created_date.desc()
+            # Find all versions of this record
+            query = session.query(Record)
+            records = (
+                query.filter(Record.baseid == baseid)
+                .order_by(Record.created_date.asc())
+                .all()
             )
+
+            # User requires update permissions for all versions of the record
+            all_resources = []
+            for rec in records:
+                all_resources += rec.authz
+            auth.authorize("update", list(all_resources))
+
+            ret = []
+            # Update fields for all versions
+            for record in records:
+                record.acl = set(acl) if acl else None
+                record.authz = set(authz) if authz else None
+
+                record.rev = str(uuid.uuid4())[:8]
+                ret.append(
+                    {"did": record.guid, "baseid": record.baseid, "rev": record.rev}
+                )
+            session.commit()
+            return ret
+
+    def get_latest_version(self, guid, has_version=None):
+        """
+        Get the lattest record version given did
+        """
+        with self.session as session:
+            query = session.query(Record)
+            query = query.filter(Record.guid == guid)
+
+            try:
+                record = query.one()
+                baseid = record.baseid
+            except NoResultFound:
+                baseid = guid
+            except MultipleResultsFound:
+                raise MultipleRecordsFound("multiple records found")
+
+            query = session.query(Record)
+            query = query.filter(Record.baseid == baseid).order_by(
+                Record.created_date.desc()
+            )
+
             if has_version:
-                query = query.filter(IndexRecord.version.isnot(None))
+                query = query.filter(Record.version.isnot(None))
             record = query.first()
             if not record:
                 raise NoRecordFound("no record found")
@@ -1605,8 +1212,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Returns False otherwise.
         """
         with self.session as session:
-            query = session.query(IndexRecord)
-            query = query.filter(IndexRecord.did == record)
+            query = session.query(Record)
+            query = query.filter(Record.guid == record)
 
             return query.exists()
 
@@ -1615,7 +1222,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Iterator over unique records stored by backend.
         """
         with self.session as session:
-            for i in session.query(IndexRecord):
+            for i in session.query(Record):
                 yield i.did
 
     def totalbytes(self):
@@ -1623,7 +1230,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Total number of bytes of data represented in the index.
         """
         with self.session as session:
-            result = session.execute(select([func.sum(IndexRecord.size)])).scalar()
+            result = session.execute(select([func.sum(Record.size)])).scalar()
             if result is None:
                 return 0
             return int(result)
@@ -1633,9 +1240,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Number of unique records stored by backend.
         """
         with self.session as session:
-            return session.execute(
-                select([func.count()]).select_from(IndexRecord)
-            ).scalar()
+            return session.execute(select([func.count()]).select_from(Record)).scalar()
 
     def add_bundle(
         self,
@@ -1794,213 +1399,139 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             session.delete(record)
 
-
-def migrate_1(session, **kwargs):
-    session.execute(
-        "ALTER TABLE {} ALTER COLUMN size TYPE bigint;".format(
-            IndexRecord.__tablename__
-        )
-    )
-
-
-def migrate_2(session, **kwargs):
-    """
-    Migrate db from version 1 -> 2
-    Add a base_id (new random uuid), created_date and updated_date to all records
-    """
-    try:
-        session.execute(
-            "ALTER TABLE {} \
-                ADD COLUMN baseid VARCHAR DEFAULT NULL, \
-                ADD COLUMN created_date TIMESTAMP DEFAULT NOW(), \
-                ADD COLUMN updated_date TIMESTAMP DEFAULT NOW()".format(
-                IndexRecord.__tablename__
+    def query_urls(
+        self,
+        exclude=None,
+        include=None,
+        versioned=None,
+        offset=0,
+        limit=1000,
+        fields="did,urls",
+        **kwargs,
+    ):
+        if kwargs:
+            raise UserError(
+                "Unexpected query parameter(s) {}".format(list(kwargs.keys()))
             )
+
+        versioned = (
+            versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         )
-    except ProgrammingError:
-        session.rollback()
-    session.commit()
 
-    count = session.execute(
-        "SELECT COUNT(*) FROM {};".format(IndexRecord.__tablename__)
-    ).fetchone()[0]
+        with self.session as session:
+            query = session.query(Record.guid, Record.urls)
 
-    # create tmp_index_record table for fast retrival
-    try:
-        session.execute(
-            "CREATE TABLE tmp_index_record AS SELECT did, ROW_NUMBER() OVER (ORDER BY did) AS RowNumber \
-            FROM {}".format(
-                IndexRecord.__tablename__
+            # add version filter if versioned is not None
+            if versioned is True:  # retrieve only those with a version number
+                query = query.filter(Record.version.isnot(None))
+            elif versioned is False:  # retrieve only those without a version number
+                query = query.filter(~Record.version.isnot(None))
+
+            query = query.group_by(Record.guid)
+
+            # add url filters
+            if include and exclude:
+                query = query.having(
+                    and_(
+                        ~func.array_to_string(Record.urls, ",").contains(exclude),
+                        func.array_to_string(Record.urls, ",").contains(include),
+                    )
+                )
+            elif include:
+                query = query.having(
+                    func.array_to_string(Record.urls, ",").contains(include)
+                )
+            elif exclude:
+                query = query.having(
+                    ~func.array_to_string(Record.urls, ",").contains(exclude)
+                )
+            record_list = (
+                query.order_by(Record.guid.asc()).offset(offset).limit(limit).all()
             )
-        )
-    except ProgrammingError:
-        session.rollback()
+        return self._format_response(fields, record_list)
 
-    for loop in range(count):
-        baseid = str(uuid.uuid4())
-        session.execute(
-            "UPDATE index_record SET baseid = '{}'\
-             WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {});".format(
-                baseid, loop + 1
+    def query_metadata_by_key(
+        self,
+        key,
+        value,
+        url=None,
+        versioned=None,
+        offset=0,
+        limit=1000,
+        fields="did,urls,rev",
+        **kwargs,
+    ):
+        if kwargs:
+            raise UserError(
+                "Unexpected query parameter(s) {}".format(list(kwargs.keys()))
             )
+
+        versioned = (
+            versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         )
-        session.execute(
-            "INSERT INTO {}(baseid) VALUES('{}');".format(
-                BaseVersion.__tablename__, baseid
+        with self.session as session:
+            query = session.query(Record.guid, Record.urls, Record.rev)
+
+            query = query.filter(
+                func.jsonb_path_exists(
+                    Record.url_metadata, f'$.* ? (@.{key} == "{value}")'
+                )
             )
-        )
 
-    session.execute(
-        "ALTER TABLE {} \
-         ADD CONSTRAINT baseid_FK FOREIGN KEY (baseid) references base_version(baseid);".format(
-            IndexRecord.__tablename__
-        )
-    )
+            # add version filter if versioned is not None
+            if versioned is True:  # retrieve only those with a version number
+                query = query.filter(Record.version.isnot(None))
+            elif versioned is False:  # retrieve only those without a version number
+                query = query.filter(~Record.version.isnot(None))
 
-    # drop tmp table
-    session.execute("DROP TABLE IF EXISTS tmp_index_record;")
+            if url:
+                query = query.filter(
+                    func.array_to_string(Record.urls, ",").contains(url)
+                )
+            # [('did', 'url', 'rev')]
+            record_list = (
+                query.order_by(Record.guid.asc()).offset(offset).limit(limit).all()
+            )
+        return self._format_response(fields, record_list)
+
+    @staticmethod
+    def _format_response(requested_fields, record_list):
+        """loops through the query result and removes undesired columns and converts result of urls string_agg to list
+        Args:
+            requested_fields (str): comma separated list of fields to return, if not specified return all fields
+            record_list (list(tuple]): must be of the form [(did, urls, rev)], rev is not required for urls query
+        Returns:
+            list[dict]: list of response dicts
+        """
+        result = []
+        provided_fields_dict = {k: 1 for k in requested_fields.split(",")}
+        for record in record_list:
+            resp_dict = {}
+            if provided_fields_dict.get("did"):
+                resp_dict["did"] = record[0]
+            if provided_fields_dict.get("urls"):
+                resp_dict["urls"] = record[1] if record[1] else []
+
+            # check if record is returned in tuple
+            if provided_fields_dict.get("rev") and len(record) == 3:
+                resp_dict["rev"] = record[2]
+            result.append(resp_dict)
+        return result
 
 
-def migrate_3(session, **kwargs):
-    session.execute(
-        "ALTER TABLE {} ADD COLUMN file_name VARCHAR;".format(IndexRecord.__tablename__)
-    )
-
-    session.execute(
-        "x INDEX {tb}__file_name_idx ON {tb} ( file_name )".format(
-            tb=IndexRecord.__tablename__
-        )
-    )
-
-
-def migrate_4(session, **kwargs):
-    session.execute(
-        "ALTER TABLE {} ADD COLUMN version VARCHAR;".format(IndexRecord.__tablename__)
-    )
-
-    session.execute(
-        "CREATE INDEX {tb}__version_idx ON {tb} ( version )".format(
-            tb=IndexRecord.__tablename__
-        )
-    )
-
-
-def migrate_5(session, **kwargs):
+def check_url_metadata(url_metadata, record):
     """
-    Create Index did on IndexRecordUrl, IndexRecordMetadata and
-    IndexRecordUrlMetadata tables
+    create url metadata record in database
     """
-    session.execute(
-        "CREATE INDEX {tb}_idx ON {tb} ( did )".format(tb=IndexRecordUrl.__tablename__)
-    )
-
-    session.execute(
-        "CREATE INDEX {tb}_idx ON {tb} ( did )".format(tb=IndexRecordHash.__tablename__)
-    )
-
-    session.execute(
-        "CREATE INDEX {tb}_idx ON {tb} ( did )".format(
-            tb=IndexRecordMetadata.__tablename__
-        )
-    )
-
-    session.execute(
-        "CREATE INDEX {tb}_idx ON {tb} ( did )".format(
-            tb=IndexRecordUrlMetadata.__tablename__
-        )
-    )
+    urls = {u for u in record.urls}
+    for url in url_metadata:
+        if url not in urls:
+            raise UserError("url {} in url_metadata does not exist".format(url))
 
 
-def migrate_6(session, **kwargs):
-    pass
-
-
-def migrate_7(session, **kwargs):
-    existing_acls = (
-        session.query(IndexRecordMetadata).filter_by(key="acls").yield_per(1000)
-    )
-    for metadata in existing_acls:
-        acl = metadata.value.split(",")
-        for ace in acl:
-            entry = IndexRecordACE(did=metadata.did, ace=ace)
-            session.add(entry)
-            session.delete(metadata)
-
-
-def migrate_8(session, **kwargs):
+def get_record_if_exists(did, session):
     """
-    create index on IndexRecord.baseid
+    Searches for a record with this did and returns it.
+    If no record found, returns None.
     """
-    session.execute(
-        "CREATE INDEX ix_{tb}_baseid ON {tb} ( baseid )".format(
-            tb=IndexRecord.__tablename__
-        )
-    )
-
-
-def migrate_9(session, **kwargs):
-    """
-    create index on IndexRecordHash.hash_value
-    create index on IndexRecord.size
-    """
-    session.execute(
-        "CREATE INDEX ix_{tb}_size ON {tb} ( size )".format(
-            tb=IndexRecord.__tablename__
-        )
-    )
-
-    session.execute(
-        "CREATE INDEX index_record_hash_type_value_idx ON {tb} ( hash_value, hash_type )".format(
-            tb=IndexRecordHash.__tablename__
-        )
-    )
-
-
-def migrate_10(session, **kwargs):
-    session.execute(
-        "ALTER TABLE {} ADD COLUMN uploader VARCHAR;".format(IndexRecord.__tablename__)
-    )
-
-    session.execute(
-        "CREATE INDEX {tb}__uploader_idx ON {tb} ( uploader )".format(
-            tb=IndexRecord.__tablename__
-        )
-    )
-
-
-def migrate_11(session, **kwargs):
-    session.execute(
-        "ALTER TABLE {} ADD COLUMN rbac VARCHAR;".format(IndexRecord.__tablename__)
-    )
-
-
-def migrate_12(session, **kwargs):
-    session.execute(
-        "ALTER TABLE {} DROP COLUMN rbac;".format(IndexRecord.__tablename__)
-    )
-
-
-def migrate_13(session, **kwargs):
-    session.execute(
-        "ALTER TABLE {} ADD UNIQUE ( name )".format(IndexRecordAlias.__tablename__)
-    )
-
-
-# ordered schema migration functions that the index should correspond to
-# CURRENT_SCHEMA_VERSION - 1 when it's written
-SCHEMA_MIGRATION_FUNCTIONS = [
-    migrate_1,
-    migrate_2,
-    migrate_3,
-    migrate_4,
-    migrate_5,
-    migrate_6,
-    migrate_7,
-    migrate_8,
-    migrate_9,
-    migrate_10,
-    migrate_11,
-    migrate_12,
-    migrate_13,
-]
-CURRENT_SCHEMA_VERSION = len(SCHEMA_MIGRATION_FUNCTIONS)
+    return session.query(Record).filter(Record.guid == did).first()

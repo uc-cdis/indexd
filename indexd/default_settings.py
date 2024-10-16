@@ -1,6 +1,8 @@
 from .index.drivers.alchemy import SQLAlchemyIndexDriver
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
+from .index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
+
 
 CONFIG = {}
 
@@ -9,25 +11,45 @@ AUTO_MIGRATE = True
 # Key to lock the database during migrations
 CONFIG["DB_MIGRATION_POSTGRES_LOCK_KEY"] = 100
 
+USE_SINGLE_TABLE = False
+
 # - DEFAULT_PREFIX: prefix to be prepended.
 # - PREPEND_PREFIX: the prefix is preprended to the generated GUID when a
 #   new record is created WITHOUT a provided GUID.
 # - ADD_PREFIX_ALIAS: aliases are created for new records - "<PREFIX><GUID>".
 # Do NOT set both ADD_PREFIX_ALIAS and PREPEND_PREFIX to True, or aliases
 # will be created as "<PREFIX><PREFIX><GUID>".
-CONFIG["INDEX"] = {
-    "driver": SQLAlchemyIndexDriver(
-        "sqlite:///index.sq3",
+if USE_SINGLE_TABLE is True:
+    CONFIG["INDEX"] = {
+        "driver": SingleTableSQLAlchemyIndexDriver(
+            "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+            echo=True,
+            index_config={
+                "DEFAULT_PREFIX": "testprefix:",
+                "PREPEND_PREFIX": True,
+                "ADD_PREFIX_ALIAS": False,
+            },
+        )
+    }
+else:
+    CONFIG["INDEX"] = {
+        "driver": SQLAlchemyIndexDriver(
+            "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+            echo=True,
+            index_config={
+                "DEFAULT_PREFIX": "testprefix:",
+                "PREPEND_PREFIX": True,
+                "ADD_PREFIX_ALIAS": False,
+            },
+        )
+    }
+
+CONFIG["ALIAS"] = {
+    "driver": SQLAlchemyAliasDriver(
+        "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
         echo=True,
-        index_config={
-            "DEFAULT_PREFIX": "testprefix:",
-            "PREPEND_PREFIX": True,
-            "ADD_PREFIX_ALIAS": False,
-        },
     )
 }
-
-CONFIG["ALIAS"] = {"driver": SQLAlchemyAliasDriver("sqlite:///alias.sq3", echo=True)}
 
 
 CONFIG["DIST"] = [
@@ -61,6 +83,8 @@ CONFIG["DRS_SERVICE_INFO"] = {
     },
 }
 
-AUTH = SQLAlchemyAuthDriver("sqlite:///auth.sq3")
+AUTH = SQLAlchemyAuthDriver(
+    "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+)
 
-settings = {"config": CONFIG, "auth": AUTH}
+settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE}

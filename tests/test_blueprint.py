@@ -13,9 +13,17 @@ from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 
 DIST_CONFIG = []
 
-INDEX_CONFIG = {"driver": SQLAlchemyIndexDriver("sqlite:///index.sq3")}
+INDEX_CONFIG = {
+    "driver": SQLAlchemyIndexDriver(
+        "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+    )
+}
 
-ALIAS_CONFIG = {"driver": SQLAlchemyAliasDriver("sqlite:///alias.sq3")}
+ALIAS_CONFIG = {
+    "driver": SQLAlchemyAliasDriver(
+        "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+    )
+}
 
 
 @util.removes("index.sq3")

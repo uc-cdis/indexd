@@ -1,5 +1,6 @@
 import flask
 import json
+
 import tests.conftest
 import requests
 import responses
@@ -65,7 +66,7 @@ def get_bundle(client, user, has_description=True):
     return bundle
 
 
-def test_drs_get(client, user):
+def test_drs_get(client, user, combined_default_and_single_table_settings):
     data = get_doc()
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
@@ -84,23 +85,37 @@ def test_drs_get(client, user):
     assert "contents" not in rec_2
 
 
-def test_drs_get_no_default(client, user):
+def test_drs_get_no_default(client, user, combined_default_and_single_table_settings):
     # Change default index driver settings to use no prefix
-    settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = None
-    settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = False
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "DEFAULT_PREFIX"
+    ] = None
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "PREPEND_PREFIX"
+    ] = False
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "ADD_PREFIX_ALIAS"
+    ] = False
 
     data = get_doc()
-    did = "ad8f4658-6acd-4f96-0dd8-3709890c959f"
-    data["did"] = did
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
+    did = res_1.json["did"]
+    assert "testprefix:" not in did
     res_2 = client.get("/ga4gh/drs/v1/objects/" + did)
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["self_uri"] == "drs://" + did
 
-    settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = "testprefix:"
-    settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "DEFAULT_PREFIX"
+    ] = "testprefix:"
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "PREPEND_PREFIX"
+    ] = True
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "ADD_PREFIX_ALIAS"
+    ] = True
 
 
 def verify_timestamps(expected_doc, did, client, has_updated_date=True):
@@ -130,7 +145,7 @@ def verify_timestamps(expected_doc, did, client, has_updated_date=True):
     assert drs_resp.json["index_updated_time"] == record_resp.json["updated_date"]
 
 
-def test_timestamps(client, user):
+def test_timestamps(client, user, combined_default_and_single_table_settings):
     data = get_doc()
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
@@ -138,7 +153,7 @@ def test_timestamps(client, user):
     verify_timestamps(data, obj_did, client)
 
 
-def test_changing_timestamps(client, user):
+def test_changing_timestamps(client, user, combined_default_and_single_table_settings):
     data = get_doc()
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
@@ -156,7 +171,9 @@ def test_changing_timestamps(client, user):
     verify_timestamps(update_json, update_obj_did, client)
 
 
-def test_timestamps_updated_sets_to_created(client, user):
+def test_timestamps_updated_sets_to_created(
+    client, user, combined_default_and_single_table_settings
+):
     """
     Checks that content_updated_date is set to content_created_date when none is provided.
     """
@@ -167,7 +184,7 @@ def test_timestamps_updated_sets_to_created(client, user):
     verify_timestamps(data, obj_did, client, has_updated_date=False)
 
 
-def test_timestamps_none(client, user):
+def test_timestamps_none(client, user, combined_default_and_single_table_settings):
     data = get_doc(has_content_updated_date=False, has_content_created_date=False)
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
@@ -184,7 +201,7 @@ def test_timestamps_none(client, user):
     assert drs_resp.json["index_updated_time"] == record_resp.json["updated_date"]
 
 
-def test_drs_get_description(client, user):
+def test_drs_get_description(client, user, combined_default_and_single_table_settings):
     data = get_doc(has_description=True)
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
@@ -195,7 +212,9 @@ def test_drs_get_description(client, user):
     assert rec_2["description"] == data["description"]
 
 
-def test_drs_changing_description(client, user):
+def test_drs_changing_description(
+    client, user, combined_default_and_single_table_settings
+):
     data = get_doc(has_description=True)
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
@@ -214,7 +233,9 @@ def test_drs_changing_description(client, user):
     assert drs_rec["description"] == update_json["description"]
 
 
-def test_drs_get_no_description(client, user):
+def test_drs_get_no_description(
+    client, user, combined_default_and_single_table_settings
+):
     data = get_doc(has_description=False)
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
@@ -225,7 +246,7 @@ def test_drs_get_no_description(client, user):
     assert rec_2["description"] is None
 
 
-def test_drs_get_bundle(client, user):
+def test_drs_get_bundle(client, user, combined_default_and_single_table_settings):
     bundle = get_bundle(client, user)
     bundle_res = client.post("/bundle/", json=bundle, headers=user)
     assert bundle_res.status_code == 200
@@ -235,7 +256,9 @@ def test_drs_get_bundle(client, user):
     assert drs_res.json["description"] == bundle["description"]
 
 
-def test_drs_get_bundle_no_description(client, user):
+def test_drs_get_bundle_no_description(
+    client, user, combined_default_and_single_table_settings
+):
     bundle = get_bundle(client, user, has_description=False)
     bundle_res = client.post("/bundle/", json=bundle, headers=user)
     assert bundle_res.status_code == 200
@@ -245,7 +268,9 @@ def test_drs_get_bundle_no_description(client, user):
     assert drs_res.json["description"] is ""
 
 
-def test_drs_multiple_endpointurl(client, user):
+def test_drs_multiple_endpointurl(
+    client, user, combined_default_and_single_table_settings
+):
     object_urls = {
         "sftp": "sftp://endpointurl/bucket/key",
         "ftp": "ftp://endpointurl/bucket/key",
@@ -267,7 +292,7 @@ def test_drs_multiple_endpointurl(client, user):
         assert url["access_url"]["url"] == object_urls[protocol]
 
 
-def test_drs_list(client, user):
+def test_drs_list(client, user, combined_default_and_single_table_settings):
     record_length = 7
     data = get_doc()
     submitted_guids = []
@@ -296,14 +321,18 @@ def test_drs_list(client, user):
     assert len(rec_4["drs_objects"]) == record_length
 
 
-def test_get_drs_record_not_found(client, user):
+def test_get_drs_record_not_found(
+    client, user, combined_default_and_single_table_settings
+):
     # test exception raised at nonexistent
     fake_did = "testprefix:d96bab16-c4e1-44ac-923a-04328b6fe78f"
     res = client.get("/ga4gh/drs/v1/objects/" + fake_did)
     assert res.status_code == 404
 
 
-def test_get_drs_with_encoded_slash(client, user):
+def test_get_drs_with_encoded_slash(
+    client, user, combined_default_and_single_table_settings
+):
     data = get_doc()
     data["did"] = "testprefix:ed8f4658-6acd-4f96-9dd8-3709890c959e"
     res_1 = client.post("/index/", json=data, headers=user)
@@ -322,7 +351,7 @@ def test_get_drs_with_encoded_slash(client, user):
     assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
 
 
-def test_drs_service_info_endpoint(client):
+def test_drs_service_info_endpoint(client, combined_default_and_single_table_settings):
     """
     Test drs service endpoint with drs service info friendly distribution information
     """
@@ -349,7 +378,9 @@ def test_drs_service_info_endpoint(client):
     assert res.json == expected_info
 
 
-def test_drs_service_info_no_information_configured(client):
+def test_drs_service_info_no_information_configured(
+    client, combined_default_and_single_table_settings
+):
     """
     Test drs service info endpoint when dist is not configured in the indexd config file
     """

@@ -5,6 +5,7 @@ for backwards compatibility, but any new migration should be added using Alembic
 
 
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine
 import sqlite3
 import tests.util as util
 from indexd.index.drivers.alchemy import (
@@ -52,9 +53,12 @@ INDEX_TABLES = {
     ],
 }
 
+POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 
-def update_version_table_for_testing(db, tb_name, val):
-    with sqlite3.connect(db) as conn:
+
+def update_version_table_for_testing(tb_name, val):
+    engine = create_engine(POSTGRES_CONNECTION)
+    with engine.connect() as conn:
         conn.execute(
             """\
             CREATE TABLE IF NOT EXISTS {} (version INT)\
@@ -76,7 +80,6 @@ def update_version_table_for_testing(db, tb_name, val):
                 tb_name, val
             )
         )
-        conn.commit()
 
 
 def test_migrate_acls(client, user, postgres_driver):
@@ -105,7 +108,6 @@ def test_migrate_acls(client, user, postgres_driver):
     assert rec["metadata"] == {}
 
 
-@util.removes("index.sq3")
 def test_migrate_index():
     def test_migrate_index_internal(monkeypatch):
         called = []
@@ -121,8 +123,8 @@ def test_migrate_index():
             [mock_migrate, mock_migrate],
         )
 
-        update_version_table_for_testing("index.sq3", "index_schema_version", 0)
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+        update_version_table_for_testing("index_schema_version", 0)
+        driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
         assert len(called) == 2
         with driver.session as s:
@@ -133,7 +135,6 @@ def test_migrate_index():
     return test_migrate_index_internal
 
 
-@util.removes("index.sq3")
 def test_migrate_index_only_diff():
     def test_migrate_index_only_diff_internal(monkeypatch):
         called = []
@@ -153,9 +154,9 @@ def test_migrate_index_only_diff():
             [mock_migrate, mock_migrate_2],
         )
 
-        update_version_table_for_testing("index.sq3", "index_schema_version", 0)
+        update_version_table_for_testing("index_schema_version", 0)
 
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+        driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
         assert len(called) == 1
         assert len(called_2) == 0
 
@@ -163,8 +164,8 @@ def test_migrate_index_only_diff():
         called_2 = []
         monkeypatch.setattr("indexd.index.drivers.alchemy.CURRENT_SCHEMA_VERSION", 2)
 
-        update_version_table_for_testing("index.sq3", "index_schema_version", 1)
-        driver = SQLAlchemyIndexDriver("sqlite:///index.sq3")
+        update_version_table_for_testing("index_schema_version", 1)
+        driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
         assert len(called) == 0
         assert len(called_2) == 1
 
@@ -175,7 +176,6 @@ def test_migrate_index_only_diff():
     return test_migrate_index_only_diff_internal
 
 
-@util.removes("alias.sq3")
 def test_migrate_alias():
     def test_migrate_alias_internal(monkeypatch):
         called = []
@@ -190,9 +190,9 @@ def test_migrate_alias():
 
         monkeypatch.setattr("indexd.utils.check_engine_for_migrate", lambda _: True)
 
-        update_version_table_for_testing("alias.sq3", "alias_schema_version", 0)
+        update_version_table_for_testing("alias_schema_version", 0)
 
-        driver = SQLAlchemyAliasDriver("sqlite:///alias.sq3")
+        driver = SQLAlchemyAliasDriver(POSTGRES_CONNECTION)
         assert len(called) == 1
         with driver.session as s:
             v = s.query(AliasSchemaVersion).first()
