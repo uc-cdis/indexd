@@ -12,8 +12,8 @@ services:
       - "5432:5432"
 
   python:
-    # image: python:3.9
-    image: indexd-oct22:latest
+    image: quay.io/cdis/indexd:feat_GPE-788
+    platform: linux/amd64
     volumes:
       - .:/app
     working_dir: /app
