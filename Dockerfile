@@ -1,6 +1,6 @@
 ARG AZLINUX_BASE_VERSION=master
 
-## For local development
+# For local development
 # FROM quay.io/cdis/python-nginx-al2:feat_python-nginx AS base
 
 FROM 707767160287.dkr.ecr.us-east-1.amazonaws.com/gen3/python-nginx-al2:feat_python-nginx AS base
