@@ -23,7 +23,7 @@ COPY --chown=gen3:gen3 . /$appname
 COPY --chown=gen3:gen3 ./deployment/wsgi/wsgi.py /$appname/wsgi.py
 
 # Run poetry again so this app itself gets installed too
-RUN poetry install --without dev --no-interaction
+RUN poetry install --only main --no-interaction
 
 RUN git config --global --add safe.directory /${appname} && COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" > /$appname/version_data.py \
     && VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >> /$appname/version_data.py
