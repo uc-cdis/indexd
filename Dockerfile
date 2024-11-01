@@ -3,8 +3,6 @@ ARG AZLINUX_BASE_VERSION=master
 # Base stage with python-build-base
 FROM quay.io/cdis/python-nginx-al:${AZLINUX_BASE_VERSION} AS base
 
-# FROM 707767160287.dkr.ecr.us-east-1.amazonaws.com/gen3/python-build-base:${AZLINUX_BASE_VERSION} AS base
-
 ENV appname=indexd
 
 WORKDIR /${appname}
