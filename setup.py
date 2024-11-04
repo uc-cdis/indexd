@@ -45,12 +45,12 @@ setup(
         "sqlalchemy-utils>=0.32",
         "psycopg2>=2.7",
         "cdislogging>=1.0",
-        "requests>=2.32.2",  # pinned for DEV-2844 (POAM)
+        "requests>=2.32.2",
         "ddtrace>=2.9.1",
         "importlib-metadata>=1.4",
         # jsonschema-spec 0.1.6 depends on typing-extensions<4.6.0
         "typing-extensions<4.6.0",
-        "zipp>=3.19.1",  # pinned for DEV-2842 (POAM)
-        "werkzeug>=3.0.3",  # pinned for DEV-2704 (POAM)
+        "zipp>=3.19.1",
+        "werkzeug>=3.0.6",
     ],
 )
