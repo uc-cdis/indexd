@@ -46,4 +46,4 @@ RUN COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >$appname/index/v
 # directory where the app can find Alembic files
 WORKDIR /indexd
 
-CMD /dockerrun.sh
+CMD ["/dockerrun.sh"]

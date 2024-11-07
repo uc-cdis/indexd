@@ -1,10 +1,10 @@
 from os import environ
 import json
 import config_helper
-from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
-
+from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
+from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
 APP_NAME = "indexd"
 
@@ -23,6 +23,8 @@ pgport = 5432
 index_config = conf_data.get("index_config")
 CONFIG = {}
 
+USE_SINGLE_TABLE = False
+
 CONFIG["JSONIFY_PRETTYPRINT_REGULAR"] = False
 
 dist = environ.get("DIST", None)
@@ -33,18 +35,33 @@ drs_service_info = environ.get("DRS_SERVICE_INFO", None)
 if drs_service_info:
     CONFIG["DRS_SERVICE_INFO"] = json.loads(drs_service_info)
 
-CONFIG["INDEX"] = {
-    "driver": SQLAlchemyIndexDriver(
-        "postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
-            usr=usr,
-            psw=psw,
-            pghost=pghost,
-            pgport=pgport,
-            db=db,
+if USE_SINGLE_TABLE is True:
+    CONFIG["INDEX"] = {
+        "driver": SingleTableSQLAlchemyIndexDriver(
+            "postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
+                usr=usr,
+                psw=psw,
+                pghost=pghost,
+                pgport=pgport,
+                db=db,
+            ),
+            index_config=index_config,
         ),
-        index_config=index_config,
-    ),
-}
+    }
+else:
+    CONFIG["INDEX"] = {
+        "driver": SQLAlchemyIndexDriver(
+            "postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
+                usr=usr,
+                psw=psw,
+                pghost=pghost,
+                pgport=pgport,
+                db=db,
+            ),
+            index_config=index_config,
+        ),
+    }
+
 
 CONFIG["ALIAS"] = {
     "driver": SQLAlchemyAliasDriver(
@@ -69,4 +86,4 @@ AUTH = SQLAlchemyAuthDriver(
     arborist="http://arborist-service/",
 )
 
-settings = {"config": CONFIG, "auth": AUTH}
+settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE}

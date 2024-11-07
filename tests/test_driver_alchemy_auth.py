@@ -1,7 +1,7 @@
-import sqlite3
 import hashlib
 
 import pytest
+from sqlalchemy import create_engine
 
 import tests.util as util
 
@@ -13,61 +13,53 @@ from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 USERNAME = "abc"
 PASSWORD = "123"
 DIGESTED = SQLAlchemyAuthDriver.digest(PASSWORD)
+POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 
 # TODO check if pytest has utilities for meta-programming of tests
 
 
-@util.removes("auth.sq3")
 def test_driver_init_does_not_create_records():
     """
     Tests for creation of records after driver init.
     Tests driver init does not have unexpected side-effects.
     """
-    driver = SQLAlchemyAuthDriver(
-        "sqlite:///auth.sq3"
-    )  # pylint: disable=unused-variable
 
-    with sqlite3.connect("auth.sq3") as conn:
-        count = conn.execute(
-            """
-            SELECT COUNT(*) FROM auth_record
-        """
-        ).fetchone()[0]
+    engine = create_engine(POSTGRES_CONNECTION)
+    with engine.connect() as conn:
+        result = conn.execute("SELECT COUNT(*) FROM auth_record")
+        count = result.scalar()
 
         assert count == 0, "driver created records upon initilization"
 
 
-@util.removes("auth.sq3")
 def test_driver_auth_accepts_good_creds():
     """
     Tests driver accepts good creds.
     """
-    driver = SQLAlchemyAuthDriver("sqlite:///auth.sq3")
 
-    with sqlite3.connect("auth.sq3") as conn:
-        conn.execute(
-            """
-            INSERT INTO auth_record VALUES (?,?)
-        """,
-            (USERNAME, DIGESTED),
+    driver = SQLAlchemyAuthDriver(POSTGRES_CONNECTION)
+    engine = create_engine(POSTGRES_CONNECTION)
+    with engine.connect() as conn:
+        result = conn.execute(
+            "INSERT INTO auth_record VALUES ('{}', '{}')".format(USERNAME, DIGESTED)
         )
 
     driver.auth(USERNAME, PASSWORD)
 
 
-@util.removes("auth.sq3")
 def test_driver_auth_rejects_bad_creds():
     """
     Test driver rejects bad creds.
     """
-    driver = SQLAlchemyAuthDriver("sqlite:///auth.sq3")
+    driver = SQLAlchemyAuthDriver(
+        "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+    )
 
-    with sqlite3.connect("auth.sq3") as conn:
-        conn.execute(
-            """
-            INSERT INTO auth_record VALUES (?, ?)
-        """,
-            (USERNAME, DIGESTED),
+    engine = create_engine(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
+        result = conn.execute(
+            "INSERT INTO auth_record VALUES ('{}', '{}')".format(USERNAME, DIGESTED)
         )
 
     with pytest.raises(AuthError):
@@ -77,19 +69,19 @@ def test_driver_auth_rejects_bad_creds():
         driver.auth("invalid_" + USERNAME, PASSWORD)
 
 
-@util.removes("auth.sq3")
 def test_driver_auth_returns_user_context():
     """
     Tests driver accepts good creds.
     """
-    driver = SQLAlchemyAuthDriver("sqlite:///auth.sq3")
+    driver = SQLAlchemyAuthDriver(
+        "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+    )
 
-    with sqlite3.connect("auth.sq3") as conn:
-        conn.execute(
-            """
-            INSERT INTO auth_record VALUES (?,?)
-        """,
-            (USERNAME, DIGESTED),
+    engine = create_engine(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
+        result = conn.execute(
+            "INSERT INTO auth_record VALUES ('{}', '{}')".format(USERNAME, DIGESTED)
         )
 
     user = driver.auth(USERNAME, PASSWORD)

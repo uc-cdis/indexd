@@ -2,22 +2,135 @@ import base64
 import importlib
 import pytest
 import requests
+from sqlalchemy import create_engine
 import mock
 from unittest.mock import patch
 
+from cdislogging import get_logger
+
 # indexd_server and indexd_client is needed as fixtures
-from cdisutilstest.code.indexd_fixture import clear_database
 from gen3authz.client.arborist.client import ArboristClient
 
 from indexd import get_app
 from indexd import auth
 from indexd.auth.errors import AuthError
-from tests import default_test_settings
+from indexd.index.drivers.alchemy import Base as index_base
+from indexd.auth.drivers.alchemy import Base as auth_base
+from indexd.alias.drivers.alchemy import Base as alias_base
+from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
+from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
+from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
+from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
+
+
+POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+
+logger = get_logger(__name__, log_level="info")
+
+
+def clear_database():
+    """
+    Clean up test data from unit test
+    """
+    engine = create_engine(POSTGRES_CONNECTION)
+
+    with engine.connect() as conn:
+        index_driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+        # IndexD table needs to be delete in this order to avoid foreign key constraint error
+        table_delete_order = [
+            "index_record_url_metadata",
+            "index_record_url",
+            "index_record_hash",
+            "index_record_authz",
+            "index_record_ace",
+            "index_record_alias",
+            "index_record_metadata",
+            "alias_record_hash",
+            "alias_record_host_authority",
+            "alias_record",
+            "index_record",
+            "drs_bundle_record",
+            "base_version",
+            "record",
+        ]
+
+        for table_name in table_delete_order:
+            delete_statement = f"DELETE FROM {table_name}"
+            conn.execute(delete_statement)
+
+        # Clear the Alias records
+        alias_driver = SQLAlchemyAliasDriver(POSTGRES_CONNECTION)
+        for model in alias_base.__subclasses__():
+            table = model.__table__
+            delete_statement = table.delete()
+            conn.execute(delete_statement)
+
+        # Clear the Auth records
+        auth_driver = SQLAlchemyAuthDriver(POSTGRES_CONNECTION)
+        for model in auth_base.__subclasses__():
+            table = model.__table__
+            delete_statement = table.delete()
+            conn.execute(delete_statement)
+
+
+@pytest.fixture(scope="function", params=["default_settings", "single_table_settings"])
+def combined_default_and_single_table_settings(request):
+    """
+    Fixture to run a unit test with both multi-table and single-table driver
+    """
+
+    # Load the default settings
+    from indexd import default_settings
+    from tests import default_test_settings
+
+    importlib.reload(default_settings)
+    importlib.reload(default_test_settings)
+
+    if request.param == "default_settings":
+        default_settings.settings["use_single_table"] = False
+        default_settings.settings["config"]["INDEX"] = {
+            "driver": SQLAlchemyIndexDriver(
+                "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+                echo=True,
+                index_config={
+                    "DEFAULT_PREFIX": "testprefix:",
+                    "PREPEND_PREFIX": True,
+                    "ADD_PREFIX_ALIAS": False,
+                },
+            )
+        }
+
+    # Load the single-table settings
+    elif request.param == "single_table_settings":
+        default_settings.settings["use_single_table"] = True
+        default_settings.settings["config"]["INDEX"] = {
+            "driver": SingleTableSQLAlchemyIndexDriver(
+                "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+                echo=True,
+                index_config={
+                    "DEFAULT_PREFIX": "testprefix:",
+                    "PREPEND_PREFIX": True,
+                    "ADD_PREFIX_ALIAS": False,
+                },
+            )
+        }
+
+    default_settings.settings = {
+        **default_settings.settings,
+        **default_test_settings.settings,
+    }
+    yield get_app(default_settings.settings)
+
+    try:
+        clear_database()
+    except Exception as e:
+        logger.error(f"Failed to clear database with error {e}")
 
 
 @pytest.fixture(scope="function", autouse=True)
 def app():
     from indexd import default_settings
+    from tests import default_test_settings
 
     importlib.reload(default_settings)
     default_settings.settings = {
@@ -29,18 +142,30 @@ def app():
 
     try:
         clear_database()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to clear database with error {e}")
 
 
 @pytest.fixture
 def user(app):
-    app.auth.add("test", "test")
+    engine = create_engine(POSTGRES_CONNECTION)
+    driver = SQLAlchemyAuthDriver(POSTGRES_CONNECTION)
+    try:
+        driver.add("test", "test")
+    except Exception as e:
+        logger.error(f"Failed to add test users with error {e}")
+
     yield {
         "Authorization": ("Basic " + base64.b64encode(b"test:test").decode("ascii")),
         "Content-Type": "application/json",
     }
-    app.auth.delete("test")
+
+    try:
+        driver.delete("test")
+    except Exception as e:
+        logger.error(f"Failed to delete test user with error {e}")
+
+    engine.dispose()
 
 
 @pytest.fixture
