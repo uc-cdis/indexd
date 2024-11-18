@@ -21,12 +21,12 @@ gen3authz = "^1.0.4"
 hsclient = {git = "https://github.com/uc-cdis/hsclient", rev = "1.0.0"}
 indexclient = "^2.1.0"
 jsonschema = "^3.2"
+psycopg2-binary = ">=2.7"
+gunicorn = ">=22.0.0"
 flask = "^2.3.3"
-psycopg2 = "^2.7"
 sqlalchemy = "^1.4.0"
 sqlalchemy-utils = "^0.37.3"
 PyYAML = ">=5.3,<7"
-
 
 [tool.poetry.dev-dependencies]
 coveralls = "^3.0.1"
