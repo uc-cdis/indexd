@@ -15,7 +15,7 @@ from .index.blueprint import blueprint as indexd_index_blueprint
 
 def app_init(app, settings=None):
     app.logger.addHandler(cdislogging.get_stream_handler())
-    ddtrace.patch_all()
+    ddtrace.patch_all(logging=True)
     if not settings:
         from .default_settings import settings
     app.config.update(settings["config"])
