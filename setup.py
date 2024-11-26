@@ -54,5 +54,6 @@ setup(
         "werkzeug>=3.0.6",
         "gunicorn>=23.0.0",
         "setproctitle>=1.3.4",
+        "JSON-log-formatter>=1.1",
     ],
 )

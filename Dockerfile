@@ -38,7 +38,8 @@ RUN dnf install -y libpq-15.0 && \
     chmod 777 /var/www/${SERVICE_NAME}
 
 COPY wsgi.py /var/www/${SERVICE_NAME}/
-COPY wsgi.py /var/www/gdcapi/wsgi.py
+COPY wsgi.py /var/www/${SERVICE_NAME}/wsgi.py
+COPY gunicorn.py /var/www/${SERVICE_NAME}/gunicorn.py
 COPY --from=build /venv/lib/${PYTHON_VERSION}/site-packages /venv/lib/${PYTHON_VERSION}/site-packages
 
 # Make indexd CLI utilities available for, e.g., DB schema migration.
@@ -51,11 +52,7 @@ COPY --from=build /venv/bin/migrate_index.py /venv/bin
 WORKDIR /var/www/${SERVICE_NAME}
 EXPOSE 80 80
 CMD [ "/venv/bin/gunicorn", \
-      "--bind", "0.0.0.0:80", \
-      "--workers", "4", \
-      "--log-level", "info", \
-      "--error-logfile", "/dev/stderr", \
-      "--access-logfile", "/dev/stdout", \
+      "-c", "gunicorn.py", \
       "wsgi" ]
 
 RUN chown -R app:app /venv /var/www/${SERVICE_NAME}

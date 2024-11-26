@@ -41,6 +41,8 @@ itsdangerous==2.1.2
     # via flask
 jinja2==3.1.4
     # via flask
+json-log-formatter==1.1
+    # via indexd (setup.py)
 jsonschema==4.17.3
     # via indexd (setup.py)
 markupsafe==2.1.5
