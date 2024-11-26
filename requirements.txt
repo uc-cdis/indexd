@@ -7,13 +7,8 @@
 --index-url https://nexus.osdc.io/repository/pypi-gdc-releases/simple
 
 attrs==23.2.0
-    # via
-    #   cattrs
-    #   ddtrace
-    #   jsonschema
+    # via jsonschema
 bytecode==0.13.0
-    # via ddtrace
-cattrs==23.1.2
     # via ddtrace
 cdislogging==1.1.1
     # via indexd (setup.py)
@@ -23,17 +18,15 @@ charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via flask
-ddsketch==3.0.1
-    # via ddtrace
-ddtrace==2.9.2
+ddtrace==2.17.1
     # via indexd (setup.py)
 deprecated==1.2.14
     # via opentelemetry-api
 envier==0.5.1
     # via ddtrace
-exceptiongroup==1.2.1
-    # via cattrs
 flask==2.2.5
+    # via indexd (setup.py)
+gunicorn==23.0.0
     # via indexd (setup.py)
 idna==3.7
     # via requests
@@ -56,6 +49,8 @@ markupsafe==2.1.5
     #   werkzeug
 opentelemetry-api==1.22.0
     # via ddtrace
+packaging==24.2
+    # via gunicorn
 pkgutil-resolve-name==1.3.10
     # via jsonschema
 protobuf==4.24.4
@@ -66,10 +61,8 @@ pyrsistent==0.19.3
     # via jsonschema
 requests==2.32.3
     # via indexd (setup.py)
-six==1.16.0
-    # via
-    #   ddsketch
-    #   ddtrace
+setproctitle==1.3.4
+    # via indexd (setup.py)
 sqlalchemy==1.3.24
     # via
     #   indexd (setup.py)
@@ -78,7 +71,6 @@ sqlalchemy-utils==0.41.2
     # via indexd (setup.py)
 typing-extensions==4.5.0
     # via
-    #   cattrs
     #   ddtrace
     #   indexd (setup.py)
 urllib3==2.0.7
@@ -88,7 +80,9 @@ werkzeug==3.0.6
     #   flask
     #   indexd (setup.py)
 wrapt==1.16.0
-    # via deprecated
+    # via
+    #   ddtrace
+    #   deprecated
 xmltodict==0.13.0
     # via ddtrace
 zipp==3.20.1

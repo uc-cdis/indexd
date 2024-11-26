@@ -46,11 +46,13 @@ setup(
         "psycopg2>=2.7",
         "cdislogging>=1.0",
         "requests>=2.32.2",
-        "ddtrace>=2.9.1",
+        "ddtrace>=2.15.1",
         "importlib-metadata>=1.4",
         # jsonschema-spec 0.1.6 depends on typing-extensions<4.6.0
         "typing-extensions<4.6.0",
         "zipp>=3.19.1",
         "werkzeug>=3.0.6",
+        "gunicorn>=23.0.0",
+        "setproctitle>=1.3.4",
     ],
 )

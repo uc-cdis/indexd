@@ -1,5 +1,4 @@
-# syntax=docker/dockerfile:1.0-experimental
-
+# syntax=docker/dockerfile:1
 ARG BASE_VERSION=3.0.7
 ARG REGISTRY=docker.osdc.io
 ARG SERVICE_NAME=indexd
@@ -14,11 +13,11 @@ WORKDIR /${SERVICE_NAME}
 
 COPY . .
 RUN pip install --upgrade setuptools pip \
-    && pip install versionista>=1.1.0 \
+    && pip install versionista>=1.1.0 --extra-index-url https://nexus.osdc.io/repository/pypi-gdc-releases/simple \
     && python3 -m setuptools_scm \
     && pip install --no-deps -r requirements.txt .
 
-FROM ${REGISTRY}/ncigdc/${PYTHON_VERSION}-httpd:${BASE_VERSION}
+FROM ${REGISTRY}/ncigdc/${PYTHON_VERSION}:${BASE_VERSION}
 ARG NAME
 ARG PYTHON_VERSION
 ARG SERVICE_NAME
@@ -34,18 +33,31 @@ LABEL org.opencontainers.image.title="${SERVICE_NAME}" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}"
 
-RUN dnf install -y libpq-15.0
-
-RUN mkdir -p /var/www/${SERVICE_NAME}/ \
-  && chmod 777 /var/www/${SERVICE_NAME}
+RUN dnf install -y libpq-15.0 && \
+    mkdir -p /var/www/${SERVICE_NAME}/ && \
+    chmod 777 /var/www/${SERVICE_NAME}
 
 COPY wsgi.py /var/www/${SERVICE_NAME}/
+COPY wsgi.py /var/www/gdcapi/wsgi.py
 COPY --from=build /venv/lib/${PYTHON_VERSION}/site-packages /venv/lib/${PYTHON_VERSION}/site-packages
 
 # Make indexd CLI utilities available for, e.g., DB schema migration.
 COPY --from=build /venv/bin/indexd /venv/bin
+COPY --from=build /venv/bin /venv/bin
 COPY --from=build /venv/bin/index_admin.py /venv/bin
 COPY --from=build /venv/bin/migrate_index.py /venv/bin
 
 
 WORKDIR /var/www/${SERVICE_NAME}
+EXPOSE 80 80
+CMD [ "/venv/bin/gunicorn", \
+      "--bind", "0.0.0.0:80", \
+      "--workers", "4", \
+      "--log-level", "info", \
+      "--error-logfile", "/dev/stderr", \
+      "--access-logfile", "/dev/stdout", \
+      "wsgi" ]
+
+RUN chown -R app:app /venv /var/www/${SERVICE_NAME}
+
+USER app:app
