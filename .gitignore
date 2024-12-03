@@ -94,3 +94,5 @@ swagger-codegen-cli.jar
 helm/*.tgz
 results.xml
 report.xml
+
+.odo
