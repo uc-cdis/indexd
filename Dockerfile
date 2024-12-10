@@ -40,6 +40,7 @@ RUN mkdir -p /var/www/${SERVICE_NAME}/ \
   && chmod 777 /var/www/${SERVICE_NAME}
 
 COPY wsgi.py /var/www/${SERVICE_NAME}/
+COPY .docker/indexd.conf /etc/httpd/conf.d/indexd.conf
 COPY --from=build /venv/lib/${PYTHON_VERSION}/site-packages /venv/lib/${PYTHON_VERSION}/site-packages
 
 # Make indexd CLI utilities available for, e.g., DB schema migration.
