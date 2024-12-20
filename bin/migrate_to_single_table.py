@@ -36,7 +36,9 @@ def load_json(file_name):
 
 def main():
     args = parse_args()
-    migrator = IndexRecordMigrator(creds_file=args.creds_file)
+    migrator = IndexRecordMigrator(
+        creds_file=args.creds_file, batch_size=args.batch_size
+    )
     migrator.index_record_to_new_table(
         offset=args.start_offset, last_seen_guid=args.start_did
     )
@@ -61,14 +63,22 @@ def parse_args():
     parser.add_argument(
         "--start-offset",
         dest="start_offset",
+        type=int,
         help="offset to start at",
         default=None,
+    )
+    parser.add_argument(
+        "--batch-size",
+        dest="batch_size",
+        help="number of records to batch select from source table (default: 1000)",
+        type=int,
+        default=1000,
     )
     return parser.parse_args()
 
 
 class IndexRecordMigrator:
-    def __init__(self, creds_file=None):
+    def __init__(self, creds_file=None, batch_size=None):
         self.logger = get_logger("migrate_single_table", log_level="debug")
 
         conf_data = load_json(creds_file) if creds_file else load_json("creds.json")
@@ -78,6 +88,7 @@ class IndexRecordMigrator:
         psw = conf_data.get("db_password", "{{db_password}}")
         pghost = conf_data.get("db_host", "{{db_host}}")
         pgport = 5432
+        self.batch_size = batch_size
 
         try:
             engine = create_engine(
@@ -91,9 +102,7 @@ class IndexRecordMigrator:
 
         self.session = Session()
 
-    def index_record_to_new_table(
-        self, batch_size=1000, offset=None, last_seen_guid=None
-    ):
+    def index_record_to_new_table(self, offset=None, last_seen_guid=None):
         """
         Collect records from index_record table, collect additional info from multiple tables and bulk insert to new record table.
         """
@@ -106,7 +115,7 @@ class IndexRecordMigrator:
                     records = (
                         self.session.query(IndexRecord)
                         .order_by(IndexRecord.did)
-                        .limit(batch_size)
+                        .limit(self.batch_size)
                         .all()
                     )
                 elif offset is not None:
@@ -114,15 +123,16 @@ class IndexRecordMigrator:
                         self.session.query(IndexRecord)
                         .order_by(IndexRecord.did)
                         .offset(offset - 1)
-                        .limit(batch_size)
+                        .limit(self.batch_size)
                         .all()
                     )
                 else:
+                    self.logger.info(f"Start guid set to: {last_seen_guid}")
                     records = (
                         self.session.query(IndexRecord)
                         .order_by(IndexRecord.did)
                         .filter(IndexRecord.did > last_seen_guid)
-                        .limit(batch_size)
+                        .limit(self.batch_size)
                         .all()
                     )
 

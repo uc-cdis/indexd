@@ -70,10 +70,12 @@ def test_index_record_to_new_table():
     """
     Test index_record_to_new_table copies records from old tables to new record table.
     """
-    index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
+    index_record_migrator = IndexRecordMigrator(
+        creds_file="tests/test_creds.json", batch_size=10
+    )
     n_records = 100
     create_record(n_records)
-    index_record_migrator.index_record_to_new_table(batch_size=10)
+    index_record_migrator.index_record_to_new_table()
 
     engine = create_engine(POSTGRES_CONNECTION)
     with engine.connect() as conn:
