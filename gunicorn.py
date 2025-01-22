@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import os
 import sys
 from typing import Dict
 
@@ -27,7 +28,7 @@ import json_log_formatter
 #
 
 bind = "0.0.0.0:80"
-backlog = 2048
+backlog = os.getenv("GUNICORN_BACKLOG", 2048)
 
 #
 # Worker processes
@@ -57,6 +58,13 @@ backlog = 2048
 #
 #       A positive integer generally set to around 1000.
 #
+#   threads - The number of worker threads for handling requests.
+#       Run each worker with the specified number of threads.
+#
+#       A positive integer generally in the 2-4 x $(NUM_CORES) range.
+#       You’ll  want to vary this a bit to find the best for your particular application’s work load.
+#       This setting only affects the Gthread worker type.
+#
 #   timeout - If a worker does not notify the master process in this
 #       number of seconds it is killed and a new worker is spawned
 #       to replace it.
@@ -73,11 +81,16 @@ backlog = 2048
 #       A positive integer. Generally set in the 1-5 seconds range.
 #
 
-workers = 1
-worker_class = "sync"
-worker_connections = 1000
-timeout = 30
-keepalive = 2
+workers = os.getenv("GUNICORN_WORKERS", 3)
+worker_class = os.getenv("GUNICORN_WORKER_CLASS", "sync")
+worker_connections = os.getenv("GUNICORN_WORKER_CONNECTIONS", 1000)
+threads = os.getenv("GUNICORN_THREADS", 1)
+timeout = os.getenv("GUNICORN_TIMEOUT", 30)
+graceful_timeout = os.getenv("GUNICORN_GRACEFUL_TIMEOUT", 30)
+keepalive = os.getenv("GUNICORN_KEEPALIVE", 2)
+
+max_requests = os.getenv("GUNICORN_MAX_REQUESTS", 0)
+max_requests_jitter = os.getenv("GUNICORN_MAX_REQUESTS_JITTER", 0)
 
 #
 # Server mechanics
@@ -127,6 +140,7 @@ umask = 0o27
 user = "app"
 group = "app"
 tmp_upload_dir = None
+worker_tmp_dir = "/dev/shm"
 
 #
 #   Logging
@@ -149,9 +163,9 @@ class JsonRequestFormatter(json_log_formatter.JSONFormatter):
     def json_record(
         self,
         message: str,
-        extra: Dict[str, str | int | float],
+        extra: dict[str, str | int | float],
         record: logging.LogRecord,
-    ) -> Dict[str, str | int | float]:
+    ) -> dict[str, str | int | float]:
         # Convert the log record to a JSON object.
         # See https://docs.gunicorn.org/en/stable/settings.html#access-log-format
 
