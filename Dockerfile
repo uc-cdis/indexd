@@ -37,7 +37,6 @@ RUN dnf install -y libpq-15.0 && \
     mkdir -p /var/www/${SERVICE_NAME}/ && \
     chmod 777 /var/www/${SERVICE_NAME}
 
-COPY wsgi.py /var/www/${SERVICE_NAME}/
 COPY wsgi.py /var/www/${SERVICE_NAME}/wsgi.py
 COPY gunicorn.py /var/www/${SERVICE_NAME}/gunicorn.py
 COPY --from=build /venv/lib/${PYTHON_VERSION}/site-packages /venv/lib/${PYTHON_VERSION}/site-packages
