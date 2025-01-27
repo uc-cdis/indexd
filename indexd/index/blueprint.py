@@ -681,7 +681,7 @@ def compute_checksum(checksums):
     checksums.sort()
     checksum = "".join(checksums)
     return {
-        "checksum": hashlib.md5(checksum.encode("utf-8")).hexdigest(),
+        "checksum": hashlib.md5(checksum.encode("utf-8"), usedforsecurity=False).hexdigest(),
         "type": "md5",
     }
 
