@@ -1,5 +1,5 @@
 POST_RECORD_SCHEMA = {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "additionalProperties": False,
     "description": "Create a new index from hash & size",
@@ -70,7 +70,7 @@ POST_RECORD_SCHEMA = {
 }
 
 PUT_RECORD_SCHEMA = {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "additionalProperties": False,
     "description": "Update an index",

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.0-experimental
 
-ARG BASE_VERSION=3.0.7
+ARG BASE_VERSION=3.0.9
 ARG REGISTRY=docker.osdc.io
 ARG SERVICE_NAME=indexd
 ARG PYTHON_VERSION=python3.8
@@ -34,10 +34,9 @@ LABEL org.opencontainers.image.title="${SERVICE_NAME}" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}"
 
-RUN dnf install -y libpq-15.0
-
-RUN mkdir -p /var/www/${SERVICE_NAME}/ \
-  && chmod 777 /var/www/${SERVICE_NAME}
+RUN dnf install -y libpq-15.0 \
+    && mkdir -p /var/www/${SERVICE_NAME}/ \
+    && chmod 777 /var/www/${SERVICE_NAME}
 
 COPY wsgi.py /var/www/${SERVICE_NAME}/
 COPY .docker/indexd.conf /etc/httpd/conf.d/indexd.conf

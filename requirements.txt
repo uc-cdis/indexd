@@ -6,92 +6,96 @@
 #
 --index-url https://nexus.osdc.io/repository/pypi-gdc-releases/simple
 
-attrs==23.2.0
+attrs==25.1.0
     # via
-    #   cattrs
-    #   ddtrace
     #   jsonschema
-bytecode==0.13.0
-    # via ddtrace
-cattrs==23.1.2
+    #   referencing
+blinker==1.8.2
+    # via flask
+bytecode==0.16.1
     # via ddtrace
 cdislogging==1.1.1
     # via indexd (setup.py)
-certifi==2024.7.4
+certifi==2024.12.14
     # via requests
-charset-normalizer==3.3.2
+charset-normalizer==3.4.1
     # via requests
-click==8.1.7
+click==8.1.8
     # via flask
-ddsketch==3.0.1
-    # via ddtrace
-ddtrace==2.9.2
+ddtrace==2.20.0
     # via indexd (setup.py)
-deprecated==1.2.14
+deprecated==1.2.18
     # via opentelemetry-api
-envier==0.5.1
+envier==0.6.1
     # via ddtrace
-exceptiongroup==1.2.1
-    # via cattrs
-flask==2.2.5
+flask==3.0.3
     # via indexd (setup.py)
-idna==3.7
+idna==3.10
     # via requests
-importlib-metadata==6.11.0
+importlib-metadata==8.5.0
     # via
     #   flask
     #   indexd (setup.py)
     #   opentelemetry-api
-importlib-resources==5.12.0
-    # via jsonschema
-itsdangerous==2.1.2
+importlib-resources==6.1.3
+    # via
+    #   indexd (setup.py)
+    #   jsonschema
+    #   jsonschema-specifications
+itsdangerous==2.2.0
     # via flask
-jinja2==3.1.4
+jinja2==3.1.5
     # via flask
-jsonschema==4.17.3
+jsonschema==4.23.0
     # via indexd (setup.py)
+jsonschema-specifications==2023.12.1
+    # via jsonschema
 markupsafe==2.1.5
     # via
     #   jinja2
     #   werkzeug
-opentelemetry-api==1.22.0
+opentelemetry-api==1.29.0
     # via ddtrace
 pkgutil-resolve-name==1.3.10
     # via jsonschema
-protobuf==4.24.4
+protobuf==5.29.3
     # via ddtrace
-psycopg2==2.9.9
+psycopg2==2.9.10
     # via indexd (setup.py)
-pyrsistent==0.19.3
-    # via jsonschema
+referencing==0.35.1
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
 requests==2.32.3
     # via indexd (setup.py)
-six==1.16.0
+rpds-py==0.20.1
     # via
-    #   ddsketch
-    #   ddtrace
+    #   jsonschema
+    #   referencing
 sqlalchemy==1.3.24
     # via
     #   indexd (setup.py)
     #   sqlalchemy-utils
 sqlalchemy-utils==0.41.2
     # via indexd (setup.py)
-typing-extensions==4.5.0
+typing-extensions==4.12.2
     # via
-    #   cattrs
+    #   bytecode
     #   ddtrace
     #   indexd (setup.py)
-urllib3==2.0.7
+urllib3==2.2.3
     # via requests
 werkzeug==3.0.6
     # via
     #   flask
     #   indexd (setup.py)
-wrapt==1.16.0
-    # via deprecated
-xmltodict==0.13.0
+wrapt==1.17.2
+    # via
+    #   ddtrace
+    #   deprecated
+xmltodict==0.14.2
     # via ddtrace
-zipp==3.20.1
+zipp==3.20.2
     # via
     #   importlib-metadata
     #   importlib-resources

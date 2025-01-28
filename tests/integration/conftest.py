@@ -156,9 +156,10 @@ def indexd_server():
     port = INDEXD_TEST_PORT
     debug = False
     t = threading.Thread(
-        target=app.run, kwargs={"host": hostname, "port": port, "debug": debug}
+        target=app.run,
+        daemon=True,
+        kwargs={"host": hostname, "port": port, "debug": debug},
     )
-    t.setDaemon(True)
     t.start()
     wait_for_indexd_alive(port)
     yield MockServer(port=port)
