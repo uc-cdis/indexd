@@ -40,7 +40,7 @@ def main():
         creds_file=args.creds_file, batch_size=args.batch_size
     )
     migrator.index_record_to_new_table(
-        offset=args.start_offset, last_seen_guid=args.start_did
+        offset=int(args.start_offset), last_seen_guid=args.start_did
     )
     return
 
