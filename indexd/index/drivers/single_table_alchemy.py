@@ -84,6 +84,7 @@ class Record(Base):
             if self.content_updated_date is not None
             else None
         )
+        urls_metadata = generate_url_metadata(self.url_metadata, self.urls)
 
         return {
             "did": self.guid,
@@ -94,7 +95,7 @@ class Record(Base):
             "version": self.version,
             "uploader": self.uploader,
             "urls": self.urls,
-            "urls_metadata": self.url_metadata,
+            "urls_metadata": urls_metadata,
             "acl": acl,
             "authz": authz,
             "hashes": self.hashes,
@@ -1527,6 +1528,20 @@ def check_url_metadata(url_metadata, record):
     for url in url_metadata:
         if url not in urls:
             raise UserError("url {} in url_metadata does not exist".format(url))
+
+
+def generate_url_metadata(record_url_metadata, urls):
+    """
+    Genrates url_metadata for an indexd record. Pulls urls information from urls if urls_metadata is empty.
+
+    Args:
+        record_url_metadata (dict): urls metadata for an indexd record
+        urls (list): list of urls of an indexd record
+    """
+    for url in urls:
+        if url not in record_url_metadata:
+            record_url_metadata[url] = {}
+    return record_url_metadata
 
 
 def get_record_if_exists(did, session):
