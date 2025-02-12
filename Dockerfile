@@ -33,7 +33,7 @@ LABEL org.opencontainers.image.title="${SERVICE_NAME}" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}"
 
-RUN dnf install -y libpq-15.0 && \
+RUN dnf install -y libpq-15.0 nano && \
     mkdir -p /var/www/${SERVICE_NAME}/ && \
     chmod 777 /var/www/${SERVICE_NAME}
 
@@ -49,7 +49,7 @@ COPY --from=build /venv/bin/migrate_index.py /venv/bin
 
 
 WORKDIR /var/www/${SERVICE_NAME}
-EXPOSE 80 80
+EXPOSE 80 443
 CMD [ "/venv/bin/gunicorn", \
       "wsgi" ]
 
