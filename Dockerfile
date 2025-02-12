@@ -50,7 +50,8 @@ COPY --from=build /venv/bin/migrate_index.py /venv/bin
 
 WORKDIR /var/www/${SERVICE_NAME}
 EXPOSE 80 443
-CMD [ "/venv/bin/gunicorn", \
+CMD [ "ddtrace-run", \
+      "/venv/bin/gunicorn", \
       "wsgi" ]
 
 RUN chown -R app:app /venv /var/www/${SERVICE_NAME}
