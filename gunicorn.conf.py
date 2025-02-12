@@ -85,8 +85,8 @@ workers = os.getenv("GUNICORN_WORKERS", 3)
 worker_class = os.getenv("GUNICORN_WORKER_CLASS", "sync")
 worker_connections = os.getenv("GUNICORN_WORKER_CONNECTIONS", 1000)
 threads = os.getenv("GUNICORN_THREADS", 1)
-timeout = os.getenv("GUNICORN_TIMEOUT", 30)
-graceful_timeout = os.getenv("GUNICORN_GRACEFUL_TIMEOUT", 30)
+timeout = os.getenv("GUNICORN_TIMEOUT", 600)
+graceful_timeout = os.getenv("GUNICORN_GRACEFUL_TIMEOUT", 600)
 keepalive = os.getenv("GUNICORN_KEEPALIVE", 2)
 
 max_requests = os.getenv("GUNICORN_MAX_REQUESTS", 0)
@@ -177,15 +177,19 @@ class JsonRequestFormatter(json_log_formatter.JSONFormatter):
             url += f"?{record.args['q']}"
 
         return dict(
-            remote_ip=record.args["h"],
+            timestamp=response_time.isoformat(),
+            status_code=str(record.args["s"]),
+            remote_addr=record.args["h"],
             method=record.args["m"],
             path=url,
-            status=str(record.args["s"]),
-            time=response_time.isoformat(),
+            query=record.args["q"],
+            remote_user=record.args["u"],
+            duration_in_ms=record.args["M"],
+            protocol=record.args["H"],
             user_agent=record.args["a"],
             referer=record.args["f"],
-            duration_in_ms=record.args["M"],
             pid=record.args["p"],
+            x_forwarded_for=record.args["{x-forwarded-for}i"],
         )
 
 
