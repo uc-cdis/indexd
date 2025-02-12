@@ -82,9 +82,9 @@ backlog = os.getenv("GUNICORN_BACKLOG", 2048)
 #
 
 workers = os.getenv("GUNICORN_WORKERS", 3)
-worker_class = os.getenv("GUNICORN_WORKER_CLASS", "sync")
+worker_class = os.getenv("GUNICORN_WORKER_CLASS", "gthread")
 worker_connections = os.getenv("GUNICORN_WORKER_CONNECTIONS", 1000)
-threads = os.getenv("GUNICORN_THREADS", 1)
+threads = os.getenv("GUNICORN_THREADS", 2)
 timeout = os.getenv("GUNICORN_TIMEOUT", 600)
 graceful_timeout = os.getenv("GUNICORN_GRACEFUL_TIMEOUT", 600)
 keepalive = os.getenv("GUNICORN_KEEPALIVE", 2)
