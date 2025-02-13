@@ -33,7 +33,7 @@ LABEL org.opencontainers.image.title="${SERVICE_NAME}" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}"
 
-RUN dnf install -y libpq-15.0 nano && \
+RUN dnf install -y libpq-15.0 && \
     mkdir -p /var/www/${SERVICE_NAME}/ && \
     chmod 777 /var/www/${SERVICE_NAME}
 
