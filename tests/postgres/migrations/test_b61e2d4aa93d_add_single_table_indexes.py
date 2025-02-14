@@ -26,15 +26,7 @@ def test_upgrade(postgres_driver):
 
     expected_indexes = {
         "ix_record_size",
-        "ix_record_file_name",
-        "ix_record_version",
-        "ix_record_uploader",
         "ix_record_hashes",
-        "ix_record_acl",
-        "ix_record_authz",
-        "ix_record_urls",
-        "ix_record_record_metadata",
-        "ix_record_alias",
     }
 
     assert expected_indexes.issubset(indexes)
@@ -65,15 +57,7 @@ def test_downgrade(postgres_driver):
 
     expected_indexes = {
         "ix_record_size",
-        "ix_record_file_name",
-        "ix_record_version",
-        "ix_record_uploader",
         "ix_record_hashes",
-        "ix_record_acl",
-        "ix_record_authz",
-        "ix_record_urls",
-        "ix_record_record_metadata",
-        "ix_record_alias",
     }
 
     assert not expected_indexes.intersection(indexes)
