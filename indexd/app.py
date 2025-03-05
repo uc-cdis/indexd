@@ -4,8 +4,6 @@ import sys
 import cdislogging
 import ddtrace
 import flask
-from ddtrace import tracer
-from ddtrace.filters import FilterRequestsOnUrl
 
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
@@ -16,13 +14,6 @@ from .index.blueprint import blueprint as indexd_index_blueprint
 
 
 def app_init(app, settings=None):
-    tracer.configure(
-        settings={
-            "FILTERS": [
-                FilterRequestsOnUrl(r"http://.*/_status"),
-            ],
-        }
-    )
     app.logger.addHandler(cdislogging.get_stream_handler())
     ddtrace.patch_all(logging=True)
     if not settings:
