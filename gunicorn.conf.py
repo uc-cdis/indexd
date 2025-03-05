@@ -177,19 +177,23 @@ class JsonRequestFormatter(json_log_formatter.JSONFormatter):
             url += f"?{record.args['q']}"
 
         return dict(
-            timestamp=response_time.isoformat(),
-            status_code=str(record.args["s"]),
-            remote_addr=record.args["h"],
-            method=record.args["m"],
+            ts=response_time.isoformat(),
             path=url,
             query=record.args["q"],
+            http=dict(
+                status_code=str(record.args["s"]),
+                method=record.args["m"],
+                response_body_bytes=record.args["b"],
+                user_agent=record.args["a"],
+                referer=record.args["f"],
+                x_forwarded_for=record.args["{x-forwarded-for}i"],
+            ),
+            remote_addr=record.args["h"],
             remote_user=record.args["u"],
-            duration_in_ms=record.args["M"],
             protocol=record.args["H"],
-            user_agent=record.args["a"],
-            referer=record.args["f"],
-            pid=record.args["p"],
-            x_forwarded_for=record.args["{x-forwarded-for}i"],
+            duration_in_ms=record.args["M"],
+            traceparent=record.args["{traceparent}i"],
+            tracestate=record.args["{tracestate}i"],
         )
 
 

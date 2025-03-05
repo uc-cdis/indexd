@@ -41,7 +41,7 @@ setup(
         "psycopg2>=2.7",
         "cdislogging>=1.0",
         "requests>=2.32.2",
-        "ddtrace>=2.15.1",
+        "ddtrace~=3.0",
         "importlib-metadata>=1.4",
         "typing-extensions",
         "zipp>=3.19.1",
