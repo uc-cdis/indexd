@@ -1538,6 +1538,8 @@ def generate_url_metadata(record_url_metadata, urls):
         record_url_metadata (dict): urls metadata for an indexd record
         urls (list): list of urls of an indexd record
     """
+    urls = urls or []
+    record_url_metadata = record_url_metadata or {}
     for url in urls:
         if url not in record_url_metadata:
             record_url_metadata[url] = {}
