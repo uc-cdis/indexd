@@ -42,7 +42,6 @@ COPY gunicorn.conf.py /var/www/${SERVICE_NAME}/gunicorn.conf.py
 COPY --from=build /venv/lib/${PYTHON_VERSION}/site-packages /venv/lib/${PYTHON_VERSION}/site-packages
 
 # Make indexd CLI utilities available for, e.g., DB schema migration.
-COPY --from=build /venv/bin/indexd /venv/bin
 COPY --from=build /venv/bin /venv/bin
 COPY --from=build /venv/bin/index_admin.py /venv/bin
 COPY --from=build /venv/bin/migrate_index.py /venv/bin
