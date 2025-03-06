@@ -2846,3 +2846,45 @@ def test_timestamps_no_updated_without_created(
     data["content_updated_date"] = "2022-03-14T17:02:54"
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 400
+
+
+def test_check_urls_metadata(client, user, combined_default_and_single_table_settings):
+    """
+    Checks that the urls_metadata field has the same url keys as the urls
+    """
+    data = get_doc()
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    did = rec["did"]
+
+    res = client.get("/index/" + did, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    urls = rec["urls"]
+
+    assert len(rec["urls_metadata"]) == len(rec["urls"])
+
+    for key in rec["urls_metadata"]:
+        assert key in urls
+
+
+def test_check_urls_metadata_partially_missing_metadata(
+    client, user, combined_default_and_single_table_settings
+):
+    data = get_doc(has_urls_metadata=True)
+    data["urls"].append("s3://new-data/location.txt")
+    res = client.post("/index", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    did = rec["did"]
+
+    res = client.get("/index/" + did, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    urls = rec["urls"]
+
+    assert len(rec["urls_metadata"]) == len(rec["urls"])
+
+    for key in rec["urls_metadata"]:
+        assert key in urls
