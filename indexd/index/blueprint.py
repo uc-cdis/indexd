@@ -3,7 +3,7 @@ import json
 import flask
 import hashlib
 import jsonschema
-from .version_data import VERSION, COMMIT
+from ..version_data import VERSION, COMMIT
 
 from indexd import auth
 
@@ -681,7 +681,9 @@ def compute_checksum(checksums):
     checksums.sort()
     checksum = "".join(checksums)
     return {
-        "checksum": hashlib.md5(checksum.encode("utf-8"), usedforsecurity=False).hexdigest(),
+        "checksum": hashlib.md5(
+            checksum.encode("utf-8"), usedforsecurity=False
+        ).hexdigest(),
         "type": "md5",
     }
 
