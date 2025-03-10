@@ -33,6 +33,8 @@ FROM base
 
 COPY --from=builder /${appname} /${appname}
 
+RUN dnf -y install vim
+
 # Switch to non-root user 'gen3' for the serving process
 USER gen3
 
