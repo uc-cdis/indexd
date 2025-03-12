@@ -1,6 +1,6 @@
 import abc
 
-from ..driver_base import SQLAlchemyDriverBase
+from indexd.driver_base import SQLAlchemyDriverBase
 
 
 class IndexDriverABC(SQLAlchemyDriverBase):

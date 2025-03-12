@@ -5,15 +5,14 @@ import cdislogging
 import ddtrace
 import flask
 
+from indexd.alias.blueprint import blueprint as indexd_alias_blueprint
+from indexd.blueprint import blueprint as cross_blueprint
+from indexd.bulk.blueprint import blueprint as indexd_bulk_blueprint
+from indexd.index.blueprint import blueprint as indexd_index_blueprint
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
-from .alias.blueprint import blueprint as indexd_alias_blueprint
-from .blueprint import blueprint as cross_blueprint
-from .bulk.blueprint import blueprint as indexd_bulk_blueprint
-from .index.blueprint import blueprint as indexd_index_blueprint
 
-
-def app_init(app, settings=None):
+def app_init(app: flask.Flask, settings=None):
     app.logger.addHandler(cdislogging.get_stream_handler())
     ddtrace.patch_all()
     if not settings:
@@ -28,7 +27,7 @@ def app_init(app, settings=None):
 
 
 def get_app():
-    app = flask.Flask("indexd")
+    app = flask.Flask(__name__)
 
     if "INDEXD_SETTINGS" in os.environ:
         sys.path.append(os.environ["INDEXD_SETTINGS"])

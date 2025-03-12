@@ -1,10 +1,12 @@
 import json
+import logging
 
 import flask
 
 from indexd.errors import UserError
 from indexd.index.drivers.query.urls import AlchemyURLsQueryDriver
 
+logger = logging.getLogger(__name__)
 blueprint = flask.Blueprint("urls", __name__)
 
 
@@ -100,7 +102,7 @@ def query_metadata():
 @blueprint.record
 def pre_config(state):
     driver = state.app.config["INDEX"]["driver"]
-    blueprint.logger = state.app.logger
+    blueprint.logger = logger
     blueprint.driver = AlchemyURLsQueryDriver(driver)
 
 

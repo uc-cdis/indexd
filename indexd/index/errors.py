@@ -4,37 +4,37 @@ class BaseIndexError(Exception):
     """
 
 
-class NoRecordFound(BaseIndexError):
+class NoRecordFoundError(BaseIndexError):
     """
     No record error.
     """
 
 
-class MultipleRecordsFound(BaseIndexError):
+class MultipleRecordsFoundError(BaseIndexError):
     """
-    Multiple recordss error.
+    Multiple records error.
     """
 
 
-class RevisionMismatch(BaseIndexError):
+class RevisionMismatchError(BaseIndexError):
     """
     Revision mismatch.
     """
 
 
-class UnhealthyCheck(BaseIndexError):
+class UnhealthyCheckError(BaseIndexError):
     """
     Health check failed.
     """
 
 
-class AddExistedColumn(BaseIndexError):
+class AddExistedColumnError(BaseIndexError):
     """
     Existed column error.
     """
 
 
-class AddExistedTable(BaseIndexError):
+class AddExistedTableError(BaseIndexError):
     """
     Existed table error.
     """

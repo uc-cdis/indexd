@@ -1,4 +1,3 @@
-import json
 import uuid
 from contextlib import contextmanager
 
@@ -8,10 +7,13 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
-from indexd import alias
 from indexd.alias.driver import AliasDriverABC
-from indexd.alias.errors import MultipleRecordsFound, NoRecordFound, RevisionMismatch
-from indexd.index.errors import UnhealthyCheck
+from indexd.alias.errors import (
+    MultipleRecordsFoundError,
+    NoRecordFoundError,
+    RevisionMismatchError,
+)
+from indexd.index.errors import UnhealthyCheckError
 from indexd.utils import init_schema_version, is_empty_database, migrate_database
 
 Base = declarative_base()
@@ -123,7 +125,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             try:
                 session.execute("SELECT 1")
             except Exception:
-                raise UnhealthyCheck()
+                raise UnhealthyCheckError()
 
             return True
 
@@ -193,15 +195,15 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
 
             try:
                 record = query.one()
-            except NoResultFound as err:
+            except NoResultFound:
                 record = AliasRecord()
-            except MultipleResultsFound as err:
-                raise MultipleRecordsFound("multiple records found")
+            except MultipleResultsFound:
+                raise MultipleRecordsFoundError("multiple records found")
 
             record.name = name
 
             if rev is not None and record.rev and rev != record.rev:
-                raise RevisionMismatch("revision mismatch")
+                raise RevisionMismatchError("revision mismatch")
 
             if size is not None:
                 record.size = size
@@ -250,10 +252,10 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
 
             try:
                 record = query.one()
-            except NoResultFound as err:
-                raise NoRecordFound("no record found")
-            except MultipleResultsFound as err:
-                raise MultipleRecordsFound("multiple records found")
+            except NoResultFound:
+                raise NoRecordFoundError("no record found")
+            except MultipleResultsFound:
+                raise MultipleRecordsFoundError("multiple records found")
 
             rev = record.rev
 
@@ -287,13 +289,13 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
 
             try:
                 record = query.one()
-            except NoResultFound as err:
-                raise NoRecordFound("no record found")
-            except MultipleResultsFound as err:
-                raise MultipleRecordsFound("multiple records found")
+            except NoResultFound:
+                raise NoRecordFoundError("no record found")
+            except MultipleResultsFound:
+                raise MultipleRecordsFoundError("multiple records found")
 
             if rev is not None and rev != record.rev:
-                raise RevisionMismatch("revision mismatch")
+                raise RevisionMismatchError("revision mismatch")
 
             session.delete(record)
 

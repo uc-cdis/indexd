@@ -4,19 +4,19 @@ class BaseAliasError(Exception):
     """
 
 
-class NoRecordFound(BaseAliasError):
+class NoRecordFoundError(BaseAliasError):
     """
     No record error.
     """
 
 
-class MultipleRecordsFound(BaseAliasError):
+class MultipleRecordsFoundError(BaseAliasError):
     """
     Multiple recordss error.
     """
 
 
-class RevisionMismatch(BaseAliasError):
+class RevisionMismatchError(BaseAliasError):
     """
     Revision mismatch.
     """

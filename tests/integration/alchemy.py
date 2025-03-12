@@ -9,10 +9,6 @@ Base = declarative_base()
 CURRENT_SCHEMA_VERSION = 2
 
 
-Base = declarative_base()
-CURRENT_SCHEMA_VERSION = 2
-
-
 class IndexRecord(Base):
     """
     Base index record representation.

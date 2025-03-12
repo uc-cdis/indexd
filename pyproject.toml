@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "wheel", "setuptools_scm>=7", "versionista==1.1.0"]
+requires = ["setuptools>=61", "wheel", "setuptools_scm>=7", "versionista>=1.1.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.coverage.html]
@@ -11,13 +11,6 @@ show_contexts = true
 branch = true
 context = "unit tests"
 source = ["indexd"]
-
-[tool.isort]
-extend_skip = [".md", ".json"]
-known_first_party = ["indexd"]
-known_third_party = ["swagger_client"]
-py_version = 37
-skip = [".gitignore", ".dockerignore"]
 
 [tool.pytest.ini_options]
 minversion = 6.0
@@ -32,7 +25,7 @@ log_level = "INFO"
 log_cli = "true"
 log_auto_indent = "true"
 addopts = [
-  "-rlv --color=true -p no:ddtrace -p no:ddtrace.pytest_bdd"
+  "-rvlFE --color=true -p no:ddtrace -p no:ddtrace.pytest_bdd"
 ]
 norecursedirs = [
   ".git",
@@ -45,6 +38,33 @@ testpaths = [
   "tests/unit",
   "tests/integration"
 ]
+
+[tool.ruff]
+line-length = 88 # black's default
+src = ["indexd", "tests"]
+target-version = "py38"
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+# see https://docs.astral.sh/ruff/rules/
+select = [
+  "E", # pydocstyle errors
+  "F", # pyflakes
+  "I", # isort
+  "N", # pep8 naming
+  "RUF", # ruff specific rules
+  "UP", # pyupgrade
+  "W" # pydocstyle warnings
+]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["indexd"]
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
 
 [tool.setuptools_scm]
 local_scheme = "versionista-local-format"

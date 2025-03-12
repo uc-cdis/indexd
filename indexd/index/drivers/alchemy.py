@@ -1,9 +1,9 @@
 import copy
 import datetime
+import logging
 import uuid
 from contextlib import contextmanager
 
-from cdislogging import get_logger
 from sqlalchemy import (
     BigInteger,
     Column,
@@ -26,16 +26,16 @@ from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd.errors import UserError
-from indexd.index.blueprint import separate_metadata
 from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import (
-    MultipleRecordsFound,
-    NoRecordFound,
-    RevisionMismatch,
-    UnhealthyCheck,
+    MultipleRecordsFoundError,
+    NoRecordFoundError,
+    RevisionMismatchError,
+    UnhealthyCheckError,
 )
 from indexd.utils import init_schema_version, is_empty_database, migrate_database
 
+logger = logging.getLogger(__name__)
 Base = declarative_base()
 
 
@@ -299,7 +299,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Initialize the SQLAlchemy database driver.
         """
         super().__init__(conn, **config)
-        self.logger = logger or get_logger(__name__ + "." + self.__class__.__name__)
         self.config = index_config or {}
 
         Base.metadata.bind = self.engine
@@ -400,7 +399,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 for u in acl:
                     query = query.filter(IndexRecordACE.ace == u)
             elif acl == []:
-                query = query.filter(IndexRecord.acl == None)
+                query = query.filter(~IndexRecord.acl.any())
 
             if hashes:
                 for h, v in hashes.items():
@@ -773,15 +772,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record = query.one()
             except NoResultFound:
-                raise NoRecordFound("no record found")
+                raise NoRecordFoundError("no record found")
             except MultipleResultsFound:
-                raise MultipleRecordsFound("multiple records found")
+                raise MultipleRecordsFoundError("multiple records found")
 
             if record.size or record.hashes:
                 raise UserError("update api is not supported for non-empty record!")
 
             if rev != record.rev:
-                raise RevisionMismatch("revision mismatch")
+                raise RevisionMismatchError("revision mismatch")
 
             record.size = size
             record.hashes = [
@@ -823,9 +822,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     .one()
                 )
             except NoResultFound:
-                raise NoRecordFound("no record found")
+                raise NoRecordFoundError("no record found")
             except MultipleResultsFound:
-                raise MultipleRecordsFound("multiple records found")
+                raise MultipleRecordsFoundError("multiple records found")
             return record.to_document_dict()
 
     def get_aliases_for_did(self, did):
@@ -849,7 +848,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             record = query.first()
             if record is None:
-                raise NoRecordFound("no record found")
+                raise NoRecordFoundError("no record found")
             return record.to_document_dict()
 
     def update(self, did, rev, changing_fields):
@@ -865,14 +864,14 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record = query.one()
             except NoResultFound:
-                raise NoRecordFound("no record found")
+                raise NoRecordFoundError("no record found")
             except MultipleResultsFound:
-                raise MultipleRecordsFound("multiple records found")
+                raise MultipleRecordsFoundError("multiple records found")
 
             if rev != record.rev:
-                raise RevisionMismatch("revision mismatch")
+                raise RevisionMismatchError("revision mismatch")
 
-            # Some operations might become dependant on other operations based
+            # Some operations might become dependent on other operations based
             # on future schema constraints.
             if "acl" in changing_fields:
                 for ace in record.acl:
@@ -929,12 +928,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record = query.one()
             except NoResultFound:
-                raise NoRecordFound("no record found")
+                raise NoRecordFoundError("no record found")
             except MultipleResultsFound:
-                raise MultipleRecordsFound("multiple records found")
+                raise MultipleRecordsFoundError("multiple records found")
 
             if rev != record.rev:
-                raise RevisionMismatch("revision mismatch")
+                raise RevisionMismatchError("revision mismatch")
 
             session.delete(record)
 
@@ -968,9 +967,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record = query.one()
             except NoResultFound:
-                raise NoRecordFound("no record found")
+                raise NoRecordFoundError("no record found")
             except MultipleResultsFound:
-                raise MultipleRecordsFound("multiple records found")
+                raise MultipleRecordsFoundError("multiple records found")
 
             baseid = record.baseid
             record = IndexRecord()
@@ -1038,11 +1037,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except NoResultFound:
                 record = session.query(IndexRecord).filter_by(baseid=did).first()
                 if not record:
-                    raise NoRecordFound("no record found")
+                    raise NoRecordFoundError("no record found")
                 else:
                     baseid = record.baseid
             except MultipleResultsFound:
-                raise MultipleRecordsFound("multiple records found")
+                raise MultipleRecordsFoundError("multiple records found")
 
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.baseid == baseid)
@@ -1081,7 +1080,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             except NoResultFound:
                 baseid = did
             except MultipleResultsFound:
-                raise MultipleRecordsFound("multiple records found")
+                raise MultipleRecordsFoundError("multiple records found")
 
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.baseid == baseid).order_by(
@@ -1098,7 +1097,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 )
             record = query.first()
             if not record:
-                raise NoRecordFound("no record found")
+                raise NoRecordFoundError("no record found")
 
             return record.to_document_dict()
 
@@ -1156,7 +1155,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 session.execute("SELECT 1")
             except Exception:
-                raise UnhealthyCheck()
+                raise UnhealthyCheckError()
 
             return True
 
@@ -1258,10 +1257,8 @@ def migrate_2(session, **kwargs):
     for loop in range(count):
         baseid = str(uuid.uuid4())
         session.execute(
-            "UPDATE index_record SET baseid = '{}'\
-             WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {})".format(
-                baseid, loop + 1
-            )
+            f"UPDATE index_record SET baseid = '{baseid}'\
+             WHERE did =  (SELECT did FROM tmp_index_record WHERE RowNumber = {loop + 1})"
         )
         session.execute(f"INSERT INTO base_version(baseid) VALUES('{baseid}')")
 
@@ -1298,19 +1295,15 @@ def migrate_5(session, **kwargs):
     session.execute("CREATE INDEX index_record_url_idx ON index_record_url ( did )")
 
     session.execute(
-        "CREATE INDEX {tb}_idx ON {tb} ( did )".format(tb=IndexRecordHash.__tablename__)
+        f"CREATE INDEX {IndexRecordHash.__tablename__}_idx ON {IndexRecordHash.__tablename__} ( did )"
     )
 
     session.execute(
-        "CREATE INDEX {tb}_idx ON {tb} ( did )".format(
-            tb=IndexRecordMetadata.__tablename__
-        )
+        f"CREATE INDEX {IndexRecordMetadata.__tablename__}_idx ON {IndexRecordMetadata.__tablename__} ( did )"
     )
 
     session.execute(
-        "CREATE INDEX {tb}_idx ON {tb} ( did )".format(
-            tb=IndexRecordUrlMetadata.__tablename__
-        )
+        f"CREATE INDEX {IndexRecordUrlMetadata.__tablename__}_idx ON {IndexRecordUrlMetadata.__tablename__} ( did )"
     )
 
 
@@ -1345,9 +1338,7 @@ def migrate_9(session, **kwargs):
     session.execute("CREATE INDEX ix_index_record_size ON index_record ( size )")
 
     session.execute(
-        "CREATE INDEX index_record_hash_type_value_idx ON {tb} ( hash_value, hash_type )".format(
-            tb=IndexRecordHash.__tablename__
-        )
+        f"CREATE INDEX index_record_hash_type_value_idx ON {IndexRecordHash.__tablename__} ( hash_value, hash_type )"
     )
 
 
@@ -1388,92 +1379,80 @@ def migrate_12(session, **kwargs):
 
         # metadata migration to jsonb
         session.execute(
-            """
+            f"""
             UPDATE index_record r
             SET index_metadata = m.meta
             FROM (
                 SELECT did, CAST(json_object_agg(key, value) AS JSONB) AS meta
                 FROM index_record_metadata
-                WHERE key <> 'release_number' AND did>='{}' AND did<'{}'
+                WHERE key <> 'release_number' AND did>='{from_chunk}' AND did<'{to_chunk}'
                 GROUP BY did
             ) AS m
             WHERE r.did=m.did
-        """.format(
-                from_chunk, to_chunk
-            )
+        """
         )
 
         session.execute(
-            """
+            f"""
             UPDATE index_record r
             SET release_number = re.release_number
             FROM (
                 SELECT did, value as release_number
                 FROM index_record_metadata
-                WHERE key = 'release_number' AND did>='{}' AND did<'{}'
+                WHERE key = 'release_number' AND did>='{from_chunk}' AND did<'{to_chunk}'
             ) AS re
             WHERE r.did=re.did
-        """.format(
-                from_chunk, to_chunk
-            )
+        """
         )
 
         # urls metadata migration to jsonb
         session.execute(
-            """
+            f"""
             INSERT INTO index_record_url_metadata_jsonb (did, url)
             SELECT did, url
             FROM index_record_url
-            WHERE did>='{}' AND did<'{}'
-        """.format(
-                from_chunk, to_chunk
-            )
+            WHERE did>='{from_chunk}' AND did<'{to_chunk}'
+        """
         )
 
         session.execute(
-            """
+            f"""
             UPDATE index_record_url_metadata_jsonb as main
             SET urls_metadata = um.meta
             FROM (
                 SELECT did, url, CAST(json_object_agg(key, value) AS JSONB) AS meta
                 FROM index_record_url_metadata
-                WHERE key NOT IN ('type', 'state') AND did>='{}' AND did<'{}'
+                WHERE key NOT IN ('type', 'state') AND did>='{from_chunk}' AND did<'{to_chunk}'
                 GROUP BY did, url
             ) AS um
             WHERE main.did=um.did and main.url=um.url
-        """.format(
-                from_chunk, to_chunk
-            )
+        """
         )
 
         session.execute(
-            """
+            f"""
             UPDATE index_record_url_metadata_jsonb as main
             SET "type" = t.type
             FROM (
                 SELECT did, url, value AS type
                 FROM index_record_url_metadata
-                WHERE key = 'type' AND did>='{}' AND did<'{}'
+                WHERE key = 'type' AND did>='{from_chunk}' AND did<'{to_chunk}'
             ) AS t
             WHERE main.did=t.did and main.url=t.url
-        """.format(
-                from_chunk, to_chunk
-            )
+        """
         )
 
         session.execute(
-            """
+            f"""
             UPDATE index_record_url_metadata_jsonb as main
             SET state = s.state
             FROM (
                 SELECT did, url, value AS state
                 FROM index_record_url_metadata
-                WHERE key = 'state' AND did>='{}' AND did<'{}'
+                WHERE key = 'state' AND did>='{from_chunk}' AND did<'{to_chunk}'
             ) AS s
             WHERE main.did=s.did and main.url=s.url
-        """.format(
-                from_chunk, to_chunk
-            )
+        """
         )
 
 

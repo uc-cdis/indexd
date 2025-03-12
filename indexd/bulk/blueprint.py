@@ -1,11 +1,12 @@
 """Bulk operations for indexd"""
+
 import json
 
 import flask
 from sqlalchemy.orm import joinedload
 
 from indexd.errors import UserError
-from indexd.index.drivers.alchemy import IndexRecord, IndexRecordUrlMetadataJsonb
+from indexd.index.drivers.alchemy import IndexRecord
 
 blueprint = flask.Blueprint("bulk", __name__)
 

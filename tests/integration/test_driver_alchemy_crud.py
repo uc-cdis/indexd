@@ -6,7 +6,7 @@ import pytest
 
 from indexd.errors import UserError
 from indexd.index.drivers.alchemy import IndexRecord
-from indexd.index.errors import NoRecordFound, RevisionMismatch
+from indexd.index.errors import NoRecordFoundError, RevisionMismatchError
 from tests.integration.util import make_sql_statement
 
 # TODO check if pytest has utilities for meta-programming of tests
@@ -75,7 +75,7 @@ def test_driver_init_does_not_create_record_urls(index_driver, database_conn):
     """
     ).fetchone()[0]
 
-    assert count == 0, "driver created records urls upon initilization"
+    assert count == 0, "driver created records urls upon initialization"
 
 
 def test_driver_init_does_not_create_record_hashes(index_driver, database_conn):
@@ -90,7 +90,7 @@ def test_driver_init_does_not_create_record_hashes(index_driver, database_conn):
     """
     ).fetchone()[0]
 
-    assert count == 0, "driver created records hashes upon initilization"
+    assert count == 0, "driver created records hashes upon initialization"
 
 
 def test_driver_add_object_record(index_driver, database_conn):
@@ -174,7 +174,7 @@ def test_driver_add_multipart_record(index_driver, database_conn):
     assert record[1], "record baseid not populated"
     assert record[2], "record rev not populated"
     assert record[3] == "multipart", "record form is not multipart"
-    assert record[4] == None, "record size non-null"
+    assert record[4] is None, "record size non-null"
 
 
 def test_driver_add_with_valid_did(index_driver):
@@ -229,7 +229,7 @@ def test_driver_add_multiple_records(index_driver, database_conn):
         assert record[1], "record baseid not populated"
         assert record[2], "record rev not populated"
         assert record[3] == "object", "record form is not object"
-        assert record[4] == None, "record size non-null"
+        assert record[4] is None, "record size non-null"
 
 
 def test_driver_add_with_size(index_driver, database_conn):
@@ -393,19 +393,19 @@ def test_driver_get_record(index_driver, database_conn):
     assert record["rev"] == rev, "record revision does not match"
     assert record["size"] == size, "record size does not match"
     assert record["form"] == form, "record form does not match"
-    assert (
-        record["created_date"] == created_date.isoformat()
-    ), "created date does not match"
-    assert (
-        record["updated_date"] == updated_date.isoformat()
-    ), "updated date does not match"
+    assert record["created_date"] == created_date.isoformat(), (
+        "created date does not match"
+    )
+    assert record["updated_date"] == updated_date.isoformat(), (
+        "updated date does not match"
+    )
 
 
 def test_driver_get_fails_with_no_records(index_driver):
     """
     Tests retrieval of a record fails if there are no records.
     """
-    with pytest.raises(NoRecordFound):
+    with pytest.raises(NoRecordFoundError):
         index_driver.get("some_record_that_does_not_exist")
 
 
@@ -439,12 +439,12 @@ def test_driver_get_latest_version(index_driver, database_conn):
     assert record["rev"] == rev, "record revision does not match"
     assert record["size"] == size, "record size does not match"
     assert record["form"] == form, "record form does not match"
-    assert (
-        record["created_date"] == created_date.isoformat()
-    ), "created date does not match"
-    assert (
-        record["updated_date"] == updated_date.isoformat()
-    ), "updated date does not match"
+    assert record["created_date"] == created_date.isoformat(), (
+        "created date does not match"
+    )
+    assert record["updated_date"] == updated_date.isoformat(), (
+        "updated date does not match"
+    )
 
 
 def test_driver_get_latest_version_with_no_record(index_driver, database_conn):
@@ -468,7 +468,7 @@ def test_driver_get_latest_version_with_no_record(index_driver, database_conn):
             )
         )
 
-    with pytest.raises(NoRecordFound):
+    with pytest.raises(NoRecordFoundError):
         index_driver.get_latest_version("some base version")
 
 
@@ -517,9 +517,9 @@ def test_driver_get_latest_version_exclude_deleted(index_driver, database_conn):
 
     assert record["baseid"] == baseid, "record baseid does not match"
     assert record["did"] != did, "record did matches deleted record"
-    assert (
-        record["did"] == non_deleted_did
-    ), "record id does not match non-deleted record"
+    assert record["did"] == non_deleted_did, (
+        "record id does not match non-deleted record"
+    )
 
 
 def test_driver_get_all_version(index_driver, database_conn):
@@ -528,11 +528,11 @@ def test_driver_get_all_version(index_driver, database_conn):
     """
     baseid = str(uuid.uuid4())
 
-    NUMBER_OF_RECORD = 3
+    number_of_record = 3
 
     given_records = {}
 
-    for _ in range(NUMBER_OF_RECORD):
+    for _ in range(number_of_record):
         did = str(uuid.uuid4())
         rev = str(uuid.uuid4())[:8]
         size = 512
@@ -559,20 +559,20 @@ def test_driver_get_all_version(index_driver, database_conn):
         )
 
     records = index_driver.get_all_versions(did)
-    assert len(records) == NUMBER_OF_RECORD, "the number of records does not match"
+    assert len(records) == number_of_record, "the number of records does not match"
 
-    for i in range(NUMBER_OF_RECORD):
+    for i in range(number_of_record):
         record = records[i]
         given_record = given_records[record["did"]]
         assert record["rev"] == given_record["rev"], "record revision does not match"
         assert record["size"] == given_record["size"], "record size does not match"
         assert record["form"] == given_record["form"], "record form does not match"
-        assert (
-            record["created_date"] == given_record["created_date"].isoformat()
-        ), "created date does not match"
-        assert (
-            record["updated_date"] == given_record["updated_date"].isoformat()
-        ), "updated date does not match"
+        assert record["created_date"] == given_record["created_date"].isoformat(), (
+            "created date does not match"
+        )
+        assert record["updated_date"] == given_record["updated_date"].isoformat(), (
+            "updated date does not match"
+        )
 
 
 def test_driver_get_all_version_with_no_record(index_driver, database_conn):
@@ -596,7 +596,7 @@ def test_driver_get_all_version_with_no_record(index_driver, database_conn):
             )
         )
 
-    with pytest.raises(NoRecordFound):
+    with pytest.raises(NoRecordFoundError):
         index_driver.get_all_versions("some baseid")
 
 
@@ -645,12 +645,12 @@ def test_driver_get_all_version_exclude_deleted(index_driver, database_conn):
 
     records = index_driver.get_all_versions(did, exclude_deleted=True)
     assert len(records) == len(non_deleted_dids), "the number of records does not match"
-    assert all(
-        [doc["baseid"] == baseid for doc in records.values()]
-    ), "record baseid does not match"
-    assert {doc["did"] for doc in records.values()} == set(
-        non_deleted_dids
-    ), "record did does not match"
+    assert all([doc["baseid"] == baseid for doc in records.values()]), (
+        "record baseid does not match"
+    )
+    assert {doc["did"] for doc in records.values()} == set(non_deleted_dids), (
+        "record did does not match"
+    )
 
 
 def test_driver_get_fails_with_invalid_id(index_driver, database_conn):
@@ -659,7 +659,7 @@ def test_driver_get_fails_with_invalid_id(index_driver, database_conn):
     """
 
     insert_base_data(database_conn)
-    with pytest.raises(NoRecordFound):
+    with pytest.raises(NoRecordFoundError):
         index_driver.get("some_record_that_does_not_exist")
 
 
@@ -831,7 +831,7 @@ def test_driver_update_fails_with_no_records(index_driver):
     """
     Tests updating a record fails if there are no records.
     """
-    with pytest.raises(NoRecordFound):
+    with pytest.raises(NoRecordFoundError):
         index_driver.update(
             "some_record_that_does_not_exist", "some_base_version", "some_revision"
         )
@@ -855,7 +855,7 @@ def test_driver_update_fails_with_invalid_id(index_driver, database_conn):
         )
     )
 
-    with pytest.raises(NoRecordFound):
+    with pytest.raises(NoRecordFoundError):
         index_driver.update(
             "some_record_that_does_not_exist", "some_record_version", rev
         )
@@ -880,7 +880,7 @@ def test_driver_update_fails_with_invalid_rev(index_driver, database_conn):
         )
     )
 
-    with pytest.raises(RevisionMismatch):
+    with pytest.raises(RevisionMismatchError):
         index_driver.update(did, baseid, "some_revision")
 
 
@@ -917,7 +917,7 @@ def test_driver_delete_fails_with_no_records(index_driver):
     """
     Tests deletion of a record fails if there are no records.
     """
-    with pytest.raises(NoRecordFound):
+    with pytest.raises(NoRecordFoundError):
         index_driver.delete("some_record_that_does_not_exist", "some_revision")
 
 
@@ -940,7 +940,7 @@ def test_driver_delete_fails_with_invalid_id(index_driver, database_conn):
         )
     )
 
-    with pytest.raises(NoRecordFound):
+    with pytest.raises(NoRecordFoundError):
         index_driver.delete("some_record_that_does_not_exist", rev)
 
 
@@ -962,7 +962,7 @@ def test_driver_delete_fails_with_invalid_rev(index_driver, database_conn):
         )
     )
 
-    with pytest.raises(RevisionMismatch):
+    with pytest.raises(RevisionMismatchError):
         index_driver.delete(did, "some_revision")
 
 
@@ -1019,12 +1019,12 @@ def test_driver_bulk_get_latest_versions_exclude_deleted(index_driver, database_
     # get latest non-deleted records from the list of deleted dids
     records = index_driver.bulk_get_latest_versions(deleted_dids, exclude_deleted=True)
     assert len(records) == len(non_deleted_dids), "the number of records does not match"
-    assert {record["baseid"] for record in records} == set(
-        baseids.keys()
-    ), "one ore more baseid does not match"
-    assert {record["did"] for record in records} == set(
-        non_deleted_dids
-    ), "one or more non-deleted record missing"
-    assert all(
-        record["did"] not in deleted_dids for record in records
-    ), "one or more deleted record returned"
+    assert {record["baseid"] for record in records} == set(baseids.keys()), (
+        "one ore more baseid does not match"
+    )
+    assert {record["did"] for record in records} == set(non_deleted_dids), (
+        "one or more non-deleted record missing"
+    )
+    assert all(record["did"] not in deleted_dids for record in records), (
+        "one or more deleted record returned"
+    )

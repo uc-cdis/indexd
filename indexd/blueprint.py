@@ -3,9 +3,10 @@ from typing import Dict
 import flask
 import requests
 
-from indexd.alias.errors import NoRecordFound as AliasNoRecordFound
-from indexd.errors import AuthError, UserError
-from indexd.index.errors import NoRecordFound as IndexNoRecordFound
+from indexd.alias.errors import NoRecordFoundError as AliasNoRecordFound
+from indexd.auth import AuthError
+from indexd.errors import UserError
+from indexd.index.errors import NoRecordFoundError as IndexNoRecordFound
 from indexd.utils import handle_error, hint_match
 
 blueprint = flask.Blueprint("cross", __name__)
@@ -81,10 +82,10 @@ def dist_get_record(record: str) -> Dict:
     for indexd in sorted_dist:
         try:
             res = requests.get(
-                f'{indexd["host"].rstrip("/")}/{record}', params={"no_dist": ""}
+                f"{indexd['host'].rstrip('/')}/{record}", params={"no_dist": ""}
             )
             handle_error(res)
-        except:
+        except Exception:
             # a lot of things can go wrong with the get, but in general we don't care here.
             continue
 
@@ -110,7 +111,7 @@ def handle_auth_error(err):
 
 
 @blueprint.errorhandler(AliasNoRecordFound)
-def handle_no_record_error(err):
+def handle_no_alias_error(err):
     return flask.jsonify(error=str(err)), 404
 
 

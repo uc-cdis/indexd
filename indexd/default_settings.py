@@ -1,9 +1,9 @@
 import logging
 import os
 
-from .alias.drivers.alchemy import SQLAlchemyAliasDriver
-from .auth.drivers.alchemy import SQLAlchemyAuthDriver
-from .index.drivers.alchemy import SQLAlchemyIndexDriver
+from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
+from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
+from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
 logger = logging.getLogger(__name__)
 CONFIG = {"JSONIFY_PRETTYPRINT_REGULAR": False}

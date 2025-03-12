@@ -67,11 +67,7 @@ def try_drop_test_data(
     if not drop_db:
         return
 
-    engine = create_engine(
-        "postgresql://{user}@{host}/{name}".format(
-            user=root_auth, host=host, name=database
-        )
-    )
+    engine = create_engine(f"postgresql://{root_auth}@{host}/{database}")
 
     if sqlalchemy_utils.database_exists(engine.url):
         sqlalchemy_utils.drop_database(engine.url)
@@ -118,15 +114,10 @@ def setup_database(
 
     if not no_user:
         try:
-            user_stmt = "CREATE USER {user} WITH PASSWORD '{password}'".format(
-                user=user, password=password
-            )
+            user_stmt = f"CREATE USER {user} WITH PASSWORD '{password}'"
             conn.execute(user_stmt)
 
-            perm_stmt = (
-                "GRANT ALL PRIVILEGES ON DATABASE {database} to {password}"
-                "".format(database=database, password=password)
-            )
+            perm_stmt = f"GRANT ALL PRIVILEGES ON DATABASE {database} to {password}"
             conn.execute(perm_stmt)
             conn.execute("commit")
         except Exception as e:
@@ -188,9 +179,7 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
 
     if not check_engine_for_migrate(driver.engine) and need_migrate:
         logger.error(
-            "Engine {} does not support alter, skip migration".format(
-                driver.engine.dialect.name
-            )
+            f"Engine {driver.engine.dialect.name} does not support alter, skip migration"
         )
         return
     for f in migrate_functions[db_schema_version:current_schema_version]:
@@ -198,9 +187,7 @@ def migrate_database(driver, migrate_functions, current_schema_version, model):
             schema_version = s.query(model).first()
             schema_version.version += 1
             logger.debug(
-                "migrating {} schema to {}".format(
-                    driver.__class__.__name__, schema_version.version
-                )
+                f"migrating {driver.__class__.__name__} schema to {schema_version.version}"
             )
 
             f(engine=driver.engine, session=s)

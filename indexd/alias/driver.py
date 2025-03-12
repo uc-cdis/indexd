@@ -1,6 +1,6 @@
 import abc
 
-from ..driver_base import SQLAlchemyDriverBase
+from indexd.driver_base import SQLAlchemyDriverBase
 
 
 class AliasDriverABC(SQLAlchemyDriverBase):
@@ -33,7 +33,7 @@ class AliasDriverABC(SQLAlchemyDriverBase):
         metadata=None,
         host_authorities=[],
         keeper_authority=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Update or insert alias record.

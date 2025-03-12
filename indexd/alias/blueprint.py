@@ -3,11 +3,14 @@ import re
 import flask
 import jsonschema
 
-from indexd.auth import authorize
-from indexd.errors import AuthError, UserError
-
-from .errors import MultipleRecordsFound, NoRecordFound, RevisionMismatch
-from .schema import PUT_RECORD_SCHEMA
+from indexd.alias.errors import (
+    MultipleRecordsFoundError,
+    NoRecordFoundError,
+    RevisionMismatchError,
+)
+from indexd.alias.schema import PUT_RECORD_SCHEMA
+from indexd.auth import AuthError, authorize
+from indexd.errors import UserError
 
 blueprint = flask.Blueprint("alias", __name__)
 
@@ -41,7 +44,7 @@ def get_alias():
     limit = flask.request.args.get("limit")
     try:
         limit = 100 if limit is None else int(limit)
-    except ValueError as err:
+    except ValueError:
         raise UserError("limit must be an integer")
 
     if limit <= 0 or limit > 1024:
@@ -50,7 +53,7 @@ def get_alias():
     size = flask.request.args.get("size")
     try:
         size = size if size is None else int(size)
-    except ValueError as err:
+    except ValueError:
         raise UserError("size must be an integer")
 
     if size is not None and size < 0:
@@ -148,12 +151,12 @@ def delete_alias_record(record):
     return "", 200
 
 
-@blueprint.errorhandler(NoRecordFound)
+@blueprint.errorhandler(NoRecordFoundError)
 def handle_no_record_error(err):
     return flask.jsonify(error=str(err)), 404
 
 
-@blueprint.errorhandler(MultipleRecordsFound)
+@blueprint.errorhandler(MultipleRecordsFoundError)
 def handle_multiple_records_error(err):
     return flask.jsonify(error=str(err)), 409
 
@@ -168,7 +171,7 @@ def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
 
 
-@blueprint.errorhandler(RevisionMismatch)
+@blueprint.errorhandler(RevisionMismatchError)
 def handle_revision_mismatch(err):
     return flask.jsonify(error=str(err)), 409
 

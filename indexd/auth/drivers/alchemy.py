@@ -8,7 +8,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from indexd.auth.driver import AuthDriverABC
 from indexd.auth.errors import AuthError
-from indexd.index.errors import UnhealthyCheck
+from indexd.index.errors import UnhealthyCheckError
 
 Base = declarative_base()
 
@@ -94,7 +94,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             try:
                 session.execute("SELECT 1")
             except Exception:
-                raise UnhealthyCheck()
+                raise UnhealthyCheckError()
 
             return True
 
