@@ -102,7 +102,6 @@ def query_metadata():
 @blueprint.record
 def pre_config(state):
     driver = state.app.config["INDEX"]["driver"]
-    blueprint.logger = logger
     blueprint.driver = AlchemyURLsQueryDriver(driver)
 
 

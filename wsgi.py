@@ -1,6 +1,6 @@
 import os
 
-from indexd import get_app
+from indexd import app
 
 os.environ["INDEXD_SETTINGS"] = "/var/www/indexd/"
-application = get_app()
+application = app.get_app()

@@ -1,7 +1,7 @@
+import logging
 import uuid
 from contextlib import contextmanager
 
-from cdislogging import get_logger
 from sqlalchemy import BigInteger, Column, ForeignKey, Integer, String, and_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
@@ -16,6 +16,7 @@ from indexd.alias.errors import (
 from indexd.index.errors import UnhealthyCheckError
 from indexd.utils import init_schema_version, is_empty_database, migrate_database
 
+logger = logging.getLogger(__name__)
 Base = declarative_base()
 
 
@@ -85,12 +86,11 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
     SQLAlchemy implementation of alias driver.
     """
 
-    def __init__(self, conn, logger=None, auto_migrate=True, **config):
+    def __init__(self, conn, auto_migrate=True, **config):
         """
         Initialize the SQLAlchemy database driver.
         """
         super().__init__(conn, **config)
-        self.logger = logger or get_logger(f"{__name__}.{self.__class__.__name__}")
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
 

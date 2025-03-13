@@ -8,10 +8,10 @@ import requests
 import swagger_client
 from sqlalchemy import create_engine
 
-from indexd import app_init, get_app
 from indexd import utils as indexd_utils
 from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
+from indexd.app import app_init, get_app
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver

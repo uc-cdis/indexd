@@ -1,7 +1,7 @@
+import logging
 import os
 import sys
 
-import cdislogging
 import ddtrace
 import flask
 
@@ -11,9 +11,10 @@ from indexd.bulk.blueprint import blueprint as indexd_bulk_blueprint
 from indexd.index.blueprint import blueprint as indexd_index_blueprint
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
+logger = logging.getLogger(__name__)
+
 
 def app_init(app: flask.Flask, settings=None):
-    app.logger.addHandler(cdislogging.get_stream_handler())
     ddtrace.patch_all()
     if not settings:
         from .default_settings import settings
@@ -39,5 +40,5 @@ def get_app():
         pass
 
     app_init(app, settings)
-
+    logger.debug("IndexD initialized successfully.")
     return app

@@ -10,7 +10,8 @@ import os
 
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
-if __name__ == "__main__":
+
+def parse_args():
     SQLAlchemyIndexDriver(
         "postgresql://{username}:{password}@{hostname}:{port}/{database}".format(
             username=os.environ.get("PG_USER"),
@@ -20,3 +21,7 @@ if __name__ == "__main__":
             database=os.environ.get("PG_DATABASE"),
         )
     )
+
+
+if __name__ == "__main__":
+    parse_args()

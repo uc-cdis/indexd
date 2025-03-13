@@ -2,6 +2,26 @@
 requires = ["setuptools>=61", "wheel", "setuptools_scm>=7", "versionista>=1.1.0"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "indexd"
+dynamic = [
+  "version",
+  "description",
+  "readme",
+  "requires-python",
+  "authors",
+  "maintainers",
+  "keywords",
+  "classifiers",
+  "license",
+  "urls",
+  "scripts",
+  "gui-scripts",
+  "entry-points",
+  "dependencies",
+  "optional-dependencies"
+]
+
 [tool.coverage.html]
 title = "indexd coverage report"
 directory = "docs/htmlcov"
@@ -31,6 +51,8 @@ norecursedirs = [
   ".git",
   ".tox",
   "dist",
+  "docs",
+  "helm",
   "build",
   "swagger_client"
 ]
@@ -41,7 +63,7 @@ testpaths = [
 
 [tool.ruff]
 line-length = 88 # black's default
-src = ["indexd", "tests"]
+src = ["src", "tests"]
 target-version = "py38"
 
 [tool.ruff.format]

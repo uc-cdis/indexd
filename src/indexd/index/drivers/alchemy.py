@@ -292,9 +292,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     SQLAlchemy implementation of index driver.
     """
 
-    def __init__(
-        self, conn, logger=None, auto_migrate=True, index_config=None, **config
-    ):
+    def __init__(self, conn, auto_migrate=True, index_config=None, **config):
         """
         Initialize the SQLAlchemy database driver.
         """

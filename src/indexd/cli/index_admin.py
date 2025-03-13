@@ -1,11 +1,8 @@
-#!/usr/bin/env python
-
 import argparse
+import logging
 import sys
 
-from cdislogging import get_logger
-
-logger = get_logger("index_admin")
+logger = logging.getLogger(__name__)
 
 
 def main(path, action=None, username=None, password=None):
@@ -41,7 +38,7 @@ def main(path, action=None, username=None, password=None):
             logger.error(e)
 
 
-if __name__ == "__main__":
+def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -52,9 +49,13 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(title="action", dest="action")
     create = subparsers.add_parser("create")
     delete = subparsers.add_parser("delete")
-    migrate = subparsers.add_parser("migrate_database")
+    subparsers.add_parser("migrate_database")
     create.add_argument("--username", required=True)
     create.add_argument("--password", required=True)
     delete.add_argument("--username", required=True)
     args = parser.parse_args()
     main(**args.__dict__)
+
+
+if __name__ == "__main__":
+    parse_args()
