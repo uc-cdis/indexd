@@ -1,12 +1,5 @@
 import json
-
-try:
-    from importlib.resources import as_file, files
-except ImportError:
-    from importlib_resources import (  # type: ignore[import-not-found, no-redef]
-        as_file,
-        files,
-    )
+from importlib.resources import as_file, files
 
 import openapi_spec_validator
 import openapis

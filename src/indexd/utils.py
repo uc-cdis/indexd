@@ -1,7 +1,6 @@
 import logging
 import os
 import re
-from typing import Optional
 
 import sqlalchemy_utils
 from sqlalchemy import create_engine
@@ -32,7 +31,7 @@ ROOT_USER = os.getenv("PG_INDEXD_ROOT_USER", "postgres")
 ROOT_PASS = os.getenv("PG_INDEXD_ROOT_PASS")
 
 
-def __root_user_auth(user: str, password: Optional[str] = None) -> Optional[str]:
+def __root_user_auth(user: str, password: str | None = None) -> str | None:
     if not user:
         return
     return user if not password else f"{user}:{password}"
@@ -51,11 +50,11 @@ IndexdConfig = dict(
 
 
 def try_drop_test_data(
-    database: Optional[str] = None,
-    root_user: Optional[str] = None,
-    host: Optional[str] = None,
-    root_pass: Optional[str] = None,
-    drop_db: Optional[bool] = None,
+    database: str | None = None,
+    root_user: str | None = None,
+    host: str | None = None,
+    root_pass: str | None = None,
+    drop_db: bool | None = None,
 ) -> None:
     """Attempts dropping the indexd database, useful only for testing."""
 

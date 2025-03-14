@@ -3,13 +3,9 @@ import json
 import re
 
 import flask
-
-try:
-    import importlib_metadata
-except ImportError:
-    import importlib.metadata as importlib_metadata
 import jsonschema
 
+import indexd
 from indexd.auth import AuthError, authorize
 from indexd.errors import UserError
 from indexd.index.errors import (
@@ -37,10 +33,10 @@ ACCEPTABLE_HASHES = {
 
 
 def separate_metadata(metadata):
-    """Separate release_number from the incoming metadata json blob.
+    """Separate release_number from the incoming metadata JSON blob.
 
     release_number was removed from the metadata key value pair/jsonb
-    object. To preserve backwards compatibility this field is still ingested
+    object. To preserve backwards compatibility, this field is still ingested
     through the metadata field. We have to manually separate them and
     later combine them to maintain compatibility with the current indexclient.
     """
@@ -72,7 +68,7 @@ def get_urls_metadata():
     """
     urls = flask.request.json.get("urls", [])
     urls_metadata = flask.request.json.get("urls_metadata", {})
-    if not sorted(urls) == sorted(urls_metadata.keys()):
+    if sorted(urls) != sorted(urls_metadata.keys()):
         raise UserError("urls and urls_metadata mismatch")
 
     return urls_metadata
@@ -517,7 +513,7 @@ def version():
     """
 
     base = {
-        "version": importlib_metadata.version("indexd"),
+        "version": indexd.VERSION,
         "commit": "deprecated",
     }
 

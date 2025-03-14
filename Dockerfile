@@ -1,9 +1,7 @@
-# syntax=docker/dockerfile:1.0-experimental
-
-ARG BASE_VERSION=3.0.9
+ARG BASE_VERSION=3.2.0
 ARG REGISTRY=docker.osdc.io
 ARG SERVICE_NAME=indexd
-ARG PYTHON_VERSION=python3.8
+ARG PYTHON_VERSION=python3.13
 
 FROM ${REGISTRY}/ncigdc/${PYTHON_VERSION}-builder:${BASE_VERSION} AS build
 ARG SERVICE_NAME
