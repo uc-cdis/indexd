@@ -4,7 +4,6 @@ import datetime
 import logging
 import os
 import sys
-from typing import Dict
 
 import json_log_formatter
 from ddtrace import tracer
@@ -63,7 +62,7 @@ backlog = os.getenv("GUNICORN_BACKLOG", 2048)
 #       Run each worker with the specified number of threads.
 #
 #       A positive integer generally in the 2-4 x $(NUM_CORES) range.
-#       You’ll  want to vary this a bit to find the best for your particular application’s work load.
+#       You'll want to vary this a bit to find the best for your particular application's work load.
 #       This setting only affects the Gthread worker type.
 #
 #   timeout - If a worker does not notify the master process in this
@@ -217,10 +216,18 @@ class JsonErrorFormatter(json_log_formatter.JSONFormatter):
         payload: dict[str, str | int | float] = super().json_record(
             message, extra, record
         )
+        span = tracer.current_span()
+        trace_id, span_id = (
+            (str((1 << 64) - 1 & span.trace_id), span.span_id) if span else (None, None)
+        )
+        payload["dd.trace_id"] = str(trace_id or 0)
+        payload["dd.span_id"] = str(span_id or 0)
         payload["level"] = record.levelname
         return payload
 
 
+gunicorn_loglevel = os.getenv("APP_GUNICORN_LOGLEVEL", "INFO")
+generic_loglevel = os.getenv("APP_GENERIC_LOGLEVEL", "INFO")
 # Ensure the two named loggers that Gunicorn uses are configured to use a custom
 # JSON formatter.
 logconfig_dict = {
@@ -248,12 +255,17 @@ logconfig_dict = {
     "root": {"level": "INFO", "handlers": []},
     "loggers": {
         "gunicorn.access": {
-            "level": "INFO",
+            "level": gunicorn_loglevel,
             "handlers": ["json_request"],
             "propagate": False,
         },
         "gunicorn.error": {
-            "level": "INFO",
+            "level": gunicorn_loglevel,
+            "handlers": ["json_error"],
+            "propagate": False,
+        },
+        "": {
+            "level": generic_loglevel,
             "handlers": ["json_error"],
             "propagate": False,
         },
