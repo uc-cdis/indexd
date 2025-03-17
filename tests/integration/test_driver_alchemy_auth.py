@@ -1,7 +1,7 @@
 import pytest
 
+from indexd.auth import AuthError
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
-from indexd.errors import AuthError
 from tests.integration.util import make_sql_statement
 
 USERNAME = "abc"

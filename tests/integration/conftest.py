@@ -8,12 +8,12 @@ import requests
 import swagger_client
 from sqlalchemy import create_engine
 
-from indexd import app_init, get_app
 from indexd import utils as indexd_utils
-from indexd.alias.drivers.alchemy import Base as alias_base
+from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
+from indexd.app import app_init, get_app
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
-from indexd.index.drivers.alchemy import Base as index_base
+from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
 PG_URL = (
@@ -62,7 +62,7 @@ def truncate_tables(driver, base):
 def index_driver():
     driver = SQLAlchemyIndexDriver(PG_URL, auto_migrate=False)
     yield driver
-    truncate_tables(driver, index_base)
+    truncate_tables(driver, IndexBase)
     driver.dispose()
 
 
@@ -70,7 +70,7 @@ def index_driver():
 def alias_driver():
     driver = SQLAlchemyAliasDriver(PG_URL, auto_migrate=False)
     yield driver
-    truncate_tables(driver, alias_base)
+    truncate_tables(driver, AliasBase)
     driver.dispose()
 
 
@@ -97,7 +97,7 @@ def index_driver_no_migrate():
     """
     driver = SQLAlchemyIndexDriver(PG_URL, auto_migrate=False)
     yield driver
-    truncate_tables(driver, index_base)
+    truncate_tables(driver, IndexBase)
     driver.dispose()
 
 
@@ -109,7 +109,7 @@ def alias_driver_no_migrate():
     """
     driver = SQLAlchemyAliasDriver(PG_URL, auto_migrate=False)
     yield driver
-    truncate_tables(driver, alias_base)
+    truncate_tables(driver, AliasBase)
     driver.dispose()
 
 

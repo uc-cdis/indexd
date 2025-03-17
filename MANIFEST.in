@@ -1,0 +1,5 @@
+prune tests
+
+global-exclude *.py[cod]
+exclude helm/** openapi/** scripts/** docs/** swagger_client/**
+exclude *.yml *.yaml *.sh .secrets.baseline *ignore

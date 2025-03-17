@@ -89,7 +89,7 @@ def test_postgres_index_setup_tables(index_driver, database_conn):
     for table, schema in INDEX_TABLES.items():
         # Index, column name, data type, nullable, default value, primary key
         c = database_conn.execute(
-            """
+            f"""
             SELECT col.column_name, col.data_type, col.is_nullable,
                 col.column_default, c.constraint_type
             FROM information_schema.columns col
@@ -102,9 +102,7 @@ def test_postgres_index_setup_tables(index_driver, database_conn):
                 ) c
             ON col.column_name =  c.column_name
             WHERE table_name = '{table}'
-        """.format(
-                table=table
-            )
+        """
         )
 
         assert schema == [i for i in c]
@@ -132,7 +130,7 @@ def test_postgres_alias_setup_tables(alias_driver, database_conn):
     for table, schema in ALIAS_TABLES.items():
         # Index, column name, data type, nullable, default value, primary key
         c = database_conn.execute(
-            """
+            f"""
             SELECT col.column_name, col.data_type, col.is_nullable,
                 col.column_default, c.constraint_type
             FROM information_schema.columns col
@@ -145,9 +143,7 @@ def test_postgres_alias_setup_tables(alias_driver, database_conn):
                 ) c
             ON col.column_name =  c.column_name
             WHERE table_name = '{table}'
-        """.format(
-                table=table
-            )
+        """
         )
 
         assert schema == [i for i in c]

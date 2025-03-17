@@ -1,13 +1,8 @@
-from cdislogging import get_logger
 from sqlalchemy import BigInteger, Column, ForeignKey, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
 from indexd.driver_base import SQLAlchemyDriverBase
-
-Base = declarative_base()
-CURRENT_SCHEMA_VERSION = 2
-
 
 Base = declarative_base()
 CURRENT_SCHEMA_VERSION = 2
@@ -69,7 +64,6 @@ class SQLAlchemyIndexTestDriver(SQLAlchemyDriverBase):
 
     def __init__(self, conn, logger=None, **config):
         super().__init__(conn, **config)
-        self.logger = logger or get_logger("SQLAlchemyIndexTestDriver")
 
         Base.metadata.bind = self.engine
         Base.metadata.create_all()

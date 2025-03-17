@@ -47,26 +47,20 @@ INDEX_TABLES = {
 
 def update_version_table_for_testing(conn, table, val):
     conn.execute(
-        """
+        f"""
         CREATE TABLE IF NOT EXISTS {table} (version INT)
-        """.format(
-            table=table
-        )
+        """
     )
     conn.execute(
-        """
+        f"""
             DELETE FROM {table}
-        """.format(
-            table=table
-        )
+        """
     )
     conn.execute(
         make_sql_statement(
-            """
+            f"""
             INSERT INTO {table} (version) VALUES (?)
-        """.format(
-                table=table
-            ),
+        """,
             (val,),
         )
     )
@@ -273,13 +267,11 @@ def test_migrate_12(
 
     # Check index table to see if the data transferred from the metadata table.
     rows = database_conn.execute(
-        """
+        f"""
         SELECT release_number, index_metadata
         FROM index_record
-        WHERE did = '{did}'
-    """.format(
-            did=dida
-        )
+        WHERE did = '{dida}'
+    """
     )
     assert rows.rowcount == 1
 
@@ -291,13 +283,11 @@ def test_migrate_12(
         }
 
     rows = database_conn.execute(
-        """
+        f"""
         SELECT release_number, index_metadata
         FROM index_record
-        WHERE did = '{did}'
-    """.format(
-            did=didb
-        )
+        WHERE did = '{didb}'
+    """
     )
     assert rows.rowcount == 1
 
@@ -309,13 +299,11 @@ def test_migrate_12(
 
     # Check url_metadata table to see if the data transferred to the jsonb table.
     rows = database_conn.execute(
-        """
+        f"""
         SELECT *
         FROM index_record_url_metadata_jsonb
-        WHERE did='{did}'
-    """.format(
-            did=dida
-        )
+        WHERE did='{dida}'
+    """
     )
     assert rows.rowcount == 1
 
@@ -330,13 +318,11 @@ def test_migrate_12(
         }
 
     rows = database_conn.execute(
-        """
+        f"""
         SELECT *
         FROM index_record_url_metadata_jsonb
-        WHERE did='{did}'
-    """.format(
-            did=didb
-        )
+        WHERE did='{didb}'
+    """
     )
     assert rows.rowcount == 1
 
@@ -345,7 +331,7 @@ def test_migrate_12(
         assert row.url == url
         assert row.state == u_state
         assert row.type == u_type
-        assert row.urls_metadata == None
+        assert row.urls_metadata is None
 
 
 def test_migrate_index(index_driver_no_migrate, database_conn):
@@ -458,12 +444,10 @@ def test_migrate_index_versioning(monkeypatch, index_driver_no_migrate, database
         size = 512
         form = "object"
         conn.execute(
-            """
+            f"""
             INSERT INTO index_record(did, rev, form, size)
-            VALUES ('{}','{}','{}',{})
-        """.format(
-                did, rev, form, size
-            )
+            VALUES ('{did}','{rev}','{form}',{size})
+        """
         )
     conn.execute("commit")
     conn.close()
@@ -485,12 +469,10 @@ def test_migrate_index_versioning(monkeypatch, index_driver_no_migrate, database
     conn = driver.engine.connect()
     for table, schema in INDEX_TABLES.items():
         cols = conn.execute(
-            "\
+            f"\
             SELECT column_name, data_type \
             FROM information_schema.columns \
-            WHERE table_schema = 'public' AND table_name = '{table}'".format(
-                table=table
-            )
+            WHERE table_schema = 'public' AND table_name = '{table}'"
         )
         assert schema == [i for i in cols]
 
@@ -498,12 +480,10 @@ def test_migrate_index_versioning(monkeypatch, index_driver_no_migrate, database
 
     for baseid in vids:
         c = conn.execute(
-            "\
+            f"\
             SELECT COUNT(*) AS number_rows \
             FROM index_record \
-            WHERE baseid = '{}'".format(
-                baseid[0]
-            )
+            WHERE baseid = '{baseid[0]}'"
         ).fetchone()[0]
         assert c == 1
     conn.close()

@@ -1,18 +1,10 @@
 import json
-
-try:
-    from importlib.resources import as_file, files
-except ImportError:
-    from importlib_resources import (  # type: ignore[import-not-found, no-redef]
-        files,
-        as_file,
-    )
+from importlib.resources import as_file, files
 
 import openapi_spec_validator
+import openapis
 from openapi_spec_validator import exceptions as specs_exceptions
 from openapi_spec_validator import readers as specs_readers
-
-import openapis
 
 
 def test_valid_openapi():

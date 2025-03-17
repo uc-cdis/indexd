@@ -1,13 +1,17 @@
 # syntax=docker/dockerfile:1
-ARG BASE_VERSION=3.0.9
+ARG BASE_VERSION=3.2.0
 ARG REGISTRY=docker.osdc.io
 ARG SERVICE_NAME=indexd
-ARG PYTHON_VERSION=python3.8
+ARG PYTHON_VERSION=python3.13
 
 FROM ${REGISTRY}/ncigdc/${PYTHON_VERSION}-builder:${BASE_VERSION} AS build
 ARG SERVICE_NAME
 ARG PIP_INDEX_URL
 ARG PYTHON_VERSION
+
+# avoids used detach heads in computing versions in gitlab
+ARG GIT_BRANCH_NAME
+ENV CI_COMMIT_REF_NAME=$GIT_BRANCH_NAME
 
 WORKDIR /${SERVICE_NAME}
 

@@ -51,7 +51,8 @@ def test_query_urls(swg_index_client, swg_query_client, test_data):
     Tests query urls endpoint
     Args:
         swg_index_client (swagger_client.api.indexurls_api.IndexApi): index api client
-        swg_query_client (swagger_client.api.indexurls_api.IndexurlsApi): urls api client
+        swg_query_client (swagger_client.api.indexurls_api.IndexurlsApi): urls
+            api client
         test_data (tuple[int, int, int, int]): test data counts
     """
     url_x_count, versioned_count, unversioned_count, deleted_count = test_data
@@ -89,7 +90,8 @@ def test_query_urls_metadata(swg_index_client, swg_query_client, test_data):
     Test query urls metadata endpoint
     Args:
         swg_index_client (swagger_client.api.indexurls_api.IndexApi): index api client
-        swg_query_client (swagger_client.api.indexurls_api.IndexurlsApi): urls api client
+        swg_query_client (swagger_client.api.indexurls_api.IndexurlsApi): urls
+            api client
         test_data (tuple[int, int, int, int]: test data counts
     """
     url_x_count, versioned_count, unversioned_count, deleted_count = test_data
