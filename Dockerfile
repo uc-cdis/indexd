@@ -37,26 +37,18 @@ LABEL org.opencontainers.image.title="${SERVICE_NAME}" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}"
 
-RUN dnf install -y libpq-15.0 && \
+RUN dnf install -y libpq-16.8 && \
     mkdir -p /var/www/${SERVICE_NAME}/ && \
     chmod 777 /var/www/${SERVICE_NAME}
 
-COPY wsgi.py /var/www/${SERVICE_NAME}/wsgi.py
-COPY gunicorn.conf.py /var/www/${SERVICE_NAME}/gunicorn.conf.py
-COPY --from=build /venv/lib/${PYTHON_VERSION}/site-packages /venv/lib/${PYTHON_VERSION}/site-packages
-
-# Make indexd CLI utilities available for, e.g., DB schema migration.
-COPY --from=build /venv/bin /venv/bin
-COPY --from=build /venv/bin/index_admin.py /venv/bin
-COPY --from=build /venv/bin/migrate_index.py /venv/bin
+COPY --chown=app:appwsgi.py /var/www/${SERVICE_NAME}/wsgi.py
+COPY --chown=app:app gunicorn.conf.py /var/www/${SERVICE_NAME}/gunicorn.conf.py
+COPY --chown=app:app --from=build /venv /venv
 
 
 WORKDIR /var/www/${SERVICE_NAME}
 EXPOSE 80 443
+USER app:app
 CMD [ "ddtrace-run", \
       "/venv/bin/gunicorn", \
       "wsgi" ]
-
-RUN chown -R app:app /venv /var/www/${SERVICE_NAME}
-
-USER app:app
