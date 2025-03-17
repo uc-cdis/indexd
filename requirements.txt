@@ -49,9 +49,18 @@ jinja2==3.1.6
 json-log-formatter==1.1.1
     # via indexd (pyproject.toml)
 jsonschema==4.23.0
-    # via indexd (pyproject.toml)
-jsonschema-specifications==2024.10.1
-    # via jsonschema
+    # via
+    #   indexd (pyproject.toml)
+    #   openapi-schema-validator
+    #   openapi-spec-validator
+jsonschema-spec==0.2.4
+    # via openapi-spec-validator
+jsonschema-specifications==2023.7.1
+    # via
+    #   jsonschema
+    #   openapi-schema-validator
+lazy-object-proxy==1.9.0
+    # via openapi-spec-validator
 legacy-cgi==2.6.2
     # via ddtrace
 logstick==0.1.3
@@ -64,22 +73,35 @@ markupsafe==3.0.2
     #   werkzeug
 mdurl==0.1.2
     # via markdown-it-py
+openapi-schema-validator==0.6.3
+    # via openapi-spec-validator
+openapi-spec-validator==0.7.0
+    # via indexd (pyproject.toml)
 opentelemetry-api==1.31.0
     # via ddtrace
 packaging==24.2
     # via gunicorn
+pathable==0.4.4
+    # via jsonschema-spec
 protobuf==6.30.1
     # via ddtrace
 psycopg2==2.9.10
     # via indexd (pyproject.toml)
 pygments==2.19.1
     # via rich
-referencing==0.36.2
+pyyaml==6.0.2
+    # via jsonschema-spec
+referencing==0.30.2
     # via
     #   jsonschema
+    #   jsonschema-spec
     #   jsonschema-specifications
 requests==2.32.3
-    # via indexd (pyproject.toml)
+    # via
+    #   indexd (pyproject.toml)
+    #   jsonschema-spec
+rfc3339-validator==0.1.4
+    # via openapi-schema-validator
 rich==13.9.4
     # via logstick
 rpds-py==0.23.1
@@ -88,6 +110,8 @@ rpds-py==0.23.1
     #   referencing
 setproctitle==1.3.5
     # via indexd (pyproject.toml)
+six==1.17.0
+    # via rfc3339-validator
 sqlalchemy==1.3.24
     # via
     #   indexd (pyproject.toml)
