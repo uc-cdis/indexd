@@ -41,7 +41,7 @@ RUN dnf install -y libpq-16.8 && \
     mkdir -p /var/www/${SERVICE_NAME}/ && \
     chmod 777 /var/www/${SERVICE_NAME}
 
-COPY --chown=app:appwsgi.py /var/www/${SERVICE_NAME}/wsgi.py
+COPY --chown=app:app wsgi.py /var/www/${SERVICE_NAME}/wsgi.py
 COPY --chown=app:app gunicorn.conf.py /var/www/${SERVICE_NAME}/gunicorn.conf.py
 COPY --chown=app:app --from=build /venv /venv
 
