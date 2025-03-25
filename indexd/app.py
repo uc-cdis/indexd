@@ -50,6 +50,8 @@ def app_init(app, settings=None):
     app.register_blueprint(indexd_guid_blueprint)
     app.register_blueprint(cross_blueprint)
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
+    engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
+    logger.info(f"Current IndexD Driver: {engine_name}")
 
 
 def get_app(settings=None):
