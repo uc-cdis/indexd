@@ -52,12 +52,10 @@ def app_init(app, settings=None):
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
     engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
 
-    logger.info("------------Current IndexD Driver--------------")
-    logger.info(f"Current IndexD Driver: {engine_name}")
-
 
 def get_app(settings=None):
     app = flask.Flask("indexd")
+    logger.info("------------Current IndexD Driver--------------")
 
     if "INDEXD_SETTINGS" in os.environ:
         sys.path.append(os.environ["INDEXD_SETTINGS"])
