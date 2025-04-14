@@ -55,7 +55,7 @@ def app_init(app, settings=None):
     engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
 
 
-def get_app(settings=None):
+def get_app(settings=None, logger=logger):
     app = flask.Flask("indexd")
 
     if "INDEXD_SETTINGS" in os.environ:
@@ -67,6 +67,6 @@ def get_app(settings=None):
         except ImportError:
             pass
 
-    app_init(app, settings)
+    app_init(app, settings, logger=logger)
 
     return app
