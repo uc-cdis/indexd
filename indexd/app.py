@@ -21,7 +21,7 @@ logger = cdislogging.get_logger(__name__)
 
 
 def app_init(app, settings=None):
-    logger.info("------------Current IndexD Driver--------------")
+    print("------------Current IndexD Driver--------------")
     app.url_map.strict_slashes = False
     if not settings:
         from .default_settings import settings
