@@ -21,6 +21,7 @@ logger = cdislogging.get_logger(__name__)
 
 
 def app_init(app, settings=None):
+    logger.info("------------Current IndexD Driver--------------")
     app.url_map.strict_slashes = False
     if not settings:
         from .default_settings import settings
@@ -55,7 +56,6 @@ def app_init(app, settings=None):
 
 def get_app(settings=None):
     app = flask.Flask("indexd")
-    logger.info("------------Current IndexD Driver--------------")
 
     if "INDEXD_SETTINGS" in os.environ:
         sys.path.append(os.environ["INDEXD_SETTINGS"])
