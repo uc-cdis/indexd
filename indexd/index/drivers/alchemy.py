@@ -342,6 +342,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
         self.logger.info("------------MultiTable IndexD Driver--------------")
+        print("------------MultiTable IndexD Driver--------------")
 
     def migrate_index_database(self):
         """

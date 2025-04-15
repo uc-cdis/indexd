@@ -117,6 +117,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         Base.metadata.bind = self.engine
         self.Session = sessionmaker(bind=self.engine)
         self.logger.info("------------SingleTable IndexD Driver--------------")
+        print("------------SingleTable IndexD Driver--------------")
 
     @property
     @contextmanager
@@ -488,7 +489,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     'guid "{guid}" already exists'.format(guid=record.guid)
                 )
             except Exception as e:
-                print(e)
+                self.logger.error(f"Error adding indexd records: {e}")
 
             return record.guid, record.rev, record.baseid
 
