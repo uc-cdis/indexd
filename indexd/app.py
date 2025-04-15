@@ -18,7 +18,7 @@ from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
-logger = cdislogging.get_logger(__name__)
+logger = cdislogging.get_logger("indexd.init")
 logger.setLevel(logging.INFO)
 
 
