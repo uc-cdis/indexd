@@ -4,6 +4,7 @@ import sys
 from alembic.config import main as alembic_main
 import cdislogging
 import flask
+import logging
 
 from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.alias.drivers.alchemy import Base as AliasBase
@@ -18,10 +19,12 @@ from .blueprint import blueprint as cross_blueprint
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
 logger = cdislogging.get_logger(__name__)
-logger.info("------------Current IndexD Driver--------------")
+logger.setLevel(logging.INFO)
 
 
 def app_init(app, settings=None):
+    logger.info("------------Current IndexD Driver--------------")
+
     app.url_map.strict_slashes = False
     if not settings:
         from .default_settings import settings
