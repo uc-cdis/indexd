@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-ARG BASE_VERSION=3.2.0
+ARG BASE_VERSION=3.2.2
 ARG REGISTRY=docker.osdc.io
 ARG SERVICE_NAME=indexd
 ARG PYTHON_VERSION=python3.13
@@ -37,7 +37,7 @@ LABEL org.opencontainers.image.title="${SERVICE_NAME}" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}"
 
-RUN dnf install -y libpq-16.8 && \
+RUN dnf install -y libpq-17.4 && \
     mkdir -p /var/www/${SERVICE_NAME}/ && \
     chmod 777 /var/www/${SERVICE_NAME}
 

@@ -24,7 +24,7 @@ colorama==0.4.6
     # via logstick
 colorlog==6.9.0
     # via logstick
-ddtrace==3.2.1
+ddtrace==3.4.1
     # via indexd (pyproject.toml)
 deprecated==1.2.18
     # via opentelemetry-api
