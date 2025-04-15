@@ -1,5 +1,7 @@
 import datetime
 
+import sqlalchemy
+
 
 def assert_blank(r):
     """
@@ -43,4 +45,4 @@ def make_sql_statement(statement, args):
 
         statement = statement.replace("?", arg, 1)
 
-    return statement.strip()
+    return sqlalchemy.text(statement.strip())

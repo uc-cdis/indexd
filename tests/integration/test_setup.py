@@ -1,4 +1,6 @@
 # column name, data type, nullable, default value, primary key
+import sqlalchemy
+
 INDEX_TABLES = {
     "index_record": [
         ("did", "character varying", "NO", None, "PRIMARY KEY"),
@@ -7,8 +9,8 @@ INDEX_TABLES = {
         ("form", "character varying", "YES", None, None),
         ("size", "bigint", "YES", None, None),
         ("release_number", "character varying", "YES", None, None),
-        ("created_date", "timestamp without time zone", "YES", None, None),
-        ("updated_date", "timestamp without time zone", "YES", None, None),
+        ("created_date", "timestamp without time zone", "YES", "now()", None),
+        ("updated_date", "timestamp without time zone", "YES", "now()", None),
         ("file_name", "character varying", "YES", None, None),
         ("version", "character varying", "YES", None, None),
         ("uploader", "character varying", "YES", None, None),
@@ -73,12 +75,12 @@ def test_postgres_index_setup_tables(index_driver, database_conn):
 
     # postgres
     c = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT table_name
         FROM information_schema.tables
         WHERE table_schema='public'
         AND table_type='BASE TABLE'
-    """
+    """)
     )
 
     tables = [i[0] for i in c]
@@ -89,7 +91,7 @@ def test_postgres_index_setup_tables(index_driver, database_conn):
     for table, schema in INDEX_TABLES.items():
         # Index, column name, data type, nullable, default value, primary key
         c = database_conn.execute(
-            f"""
+            sqlalchemy.text(f"""
             SELECT col.column_name, col.data_type, col.is_nullable,
                 col.column_default, c.constraint_type
             FROM information_schema.columns col
@@ -102,7 +104,7 @@ def test_postgres_index_setup_tables(index_driver, database_conn):
                 ) c
             ON col.column_name =  c.column_name
             WHERE table_name = '{table}'
-        """
+        """)
         )
 
         assert schema == [i for i in c]
@@ -114,12 +116,12 @@ def test_postgres_alias_setup_tables(alias_driver, database_conn):
     """
 
     c = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT table_name
         FROM information_schema.tables
         WHERE table_schema='public'
         AND table_type='BASE TABLE'
-    """
+    """)
     )
 
     tables = [i[0] for i in c]
@@ -130,7 +132,7 @@ def test_postgres_alias_setup_tables(alias_driver, database_conn):
     for table, schema in ALIAS_TABLES.items():
         # Index, column name, data type, nullable, default value, primary key
         c = database_conn.execute(
-            f"""
+            sqlalchemy.text(f"""
             SELECT col.column_name, col.data_type, col.is_nullable,
                 col.column_default, c.constraint_type
             FROM information_schema.columns col
@@ -143,7 +145,7 @@ def test_postgres_alias_setup_tables(alias_driver, database_conn):
                 ) c
             ON col.column_name =  c.column_name
             WHERE table_name = '{table}'
-        """
+        """)
         )
 
         assert schema == [i for i in c]

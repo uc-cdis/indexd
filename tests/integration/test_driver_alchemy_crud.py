@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 
 import pytest
+import sqlalchemy
 
 from indexd.errors import UserError
 from indexd.index.drivers.alchemy import IndexRecord
@@ -41,7 +42,7 @@ def insert_base_data(database_conn):
             (did, baseid, rev, form, 1),
         )
     )
-
+    database_conn.commit()
     return did, baseid, rev, form
 
 
@@ -56,9 +57,9 @@ def test_driver_init_does_not_create_records(index_driver, database_conn):
     Tests driver init does not have unexpected side-effects.
     """
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(*) FROM index_record
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 0, "driver created records upon initilization"
@@ -70,9 +71,9 @@ def test_driver_init_does_not_create_record_urls(index_driver, database_conn):
     Tests driver init does not have unexpected side-effects.
     """
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(*) FROM index_record_url
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 0, "driver created records urls upon initialization"
@@ -85,9 +86,9 @@ def test_driver_init_does_not_create_record_hashes(index_driver, database_conn):
     """
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(*) FROM index_record_hash
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 0, "driver created records hashes upon initialization"
@@ -101,17 +102,17 @@ def test_driver_add_object_record(index_driver, database_conn):
     index_driver.add("object")
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(*) FROM index_record
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 1, "driver did not create record"
 
     record = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT * FROM index_record
-    """
+    """)
     ).fetchone()
 
     assert record[0], "record id not populated"
@@ -129,17 +130,17 @@ def test_driver_add_container_record(index_driver, database_conn):
     index_driver.add("container")
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(*) FROM index_record
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 1, "driver did not create record"
 
     record = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT * FROM index_record
-    """
+    """)
     ).fetchone()
 
     assert record[0], "record id not populated"
@@ -157,17 +158,17 @@ def test_driver_add_multipart_record(index_driver, database_conn):
     index_driver.add("multipart")
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(*) FROM index_record
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 1, "driver did not create record"
 
     record = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT * FROM index_record
-    """
+    """)
     ).fetchone()
 
     assert record[0], "record id not populated"
@@ -211,17 +212,17 @@ def test_driver_add_multiple_records(index_driver, database_conn):
     index_driver.add("object")
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(*) FROM index_record
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 3, "driver did not create record(s)"
 
     records = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT * FROM index_record
-    """
+    """)
     )
 
     for record in records:
@@ -243,17 +244,17 @@ def test_driver_add_with_size(index_driver, database_conn):
     index_driver.add(form, size=size)
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(*) FROM index_record
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 1, "driver did not create record"
 
     new_form, new_size = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT form, size FROM index_record
-    """
+    """)
     ).fetchone()
 
     assert form == new_form, "record form mismatch"
@@ -271,17 +272,17 @@ def test_driver_add_with_urls(index_driver, database_conn):
     index_driver.add(form, urls_metadata=urls_metadata)
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(*) FROM index_record
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 1, "driver did not create record"
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(url) FROM index_record_url_metadata_jsonb
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 3, "driver did not create url(s)"
@@ -289,9 +290,9 @@ def test_driver_add_with_urls(index_driver, database_conn):
     new_urls = sorted(
         url[0]
         for url in database_conn.execute(
-            """
+            sqlalchemy.text("""
         SELECT url FROM index_record_url_metadata_jsonb
-    """
+    """)
         )
     )
 
@@ -336,17 +337,17 @@ def test_driver_add_with_hashes(index_driver, database_conn):
     index_driver.add(form, hashes=hashes)
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(*) FROM index_record
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 1, "driver did not create record"
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(*) FROM index_record_hash
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 3, "driver did not create hash(es)"
@@ -354,9 +355,9 @@ def test_driver_add_with_hashes(index_driver, database_conn):
     new_hashes = {
         h: v
         for h, v in database_conn.execute(
-            """
+            sqlalchemy.text("""
         SELECT hash_type, hash_value FROM index_record_hash
-    """
+    """)
         )
     }
 
@@ -385,6 +386,7 @@ def test_driver_get_record(index_driver, database_conn):
             (did, baseid, rev, form, size, created_date, updated_date),
         )
     )
+    database_conn.commit()
 
     record = index_driver.get(did)
 
@@ -432,7 +434,7 @@ def test_driver_get_latest_version(index_driver, database_conn):
                 (did, baseid, rev, form, size, created_date, updated_date),
             )
         )
-
+    database_conn.commit()
     record = index_driver.get_latest_version(did)
 
     assert record["did"] == did, "record id does not match"
@@ -467,6 +469,7 @@ def test_driver_get_latest_version_with_no_record(index_driver, database_conn):
                 (did, baseid, rev, form, size, dt, dt),
             )
         )
+        database_conn.commit()
 
     with pytest.raises(NoRecordFoundError):
         index_driver.get_latest_version("some base version")
@@ -512,6 +515,7 @@ def test_driver_get_latest_version_exclude_deleted(index_driver, database_conn):
                 ),
             )
         )
+    database_conn.commit()
 
     record = index_driver.get_latest_version(did, exclude_deleted=True)
 
@@ -557,6 +561,7 @@ def test_driver_get_all_version(index_driver, database_conn):
                 (did, baseid, rev, form, size, created_date, updated_date),
             )
         )
+    database_conn.commit()
 
     records = index_driver.get_all_versions(did)
     assert len(records) == number_of_record, "the number of records does not match"
@@ -595,6 +600,7 @@ def test_driver_get_all_version_with_no_record(index_driver, database_conn):
                 (did, baseid, rev, form, size),
             )
         )
+    database_conn.commit()
 
     with pytest.raises(NoRecordFoundError):
         index_driver.get_all_versions("some baseid")
@@ -642,6 +648,7 @@ def test_driver_get_all_version_exclude_deleted(index_driver, database_conn):
                 ),
             )
         )
+    database_conn.commit()
 
     records = index_driver.get_all_versions(did, exclude_deleted=True)
     assert len(records) == len(non_deleted_dids), "the number of records does not match"
@@ -677,9 +684,9 @@ def test_driver_update_record_simple_data(index_driver, database_conn):
     index_driver.update(did, rev, changing_fields)
 
     new_did, new_rev, new_file_name, new_size, new_version = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT did, rev, file_name, size, version FROM index_record
-    """
+    """)
     ).fetchone()
 
     assert did == new_did, "record id does not match"
@@ -704,9 +711,9 @@ def test_driver_update_record_hashes(index_driver, database_conn):
     new_hashes = {
         h: v
         for h, v in database_conn.execute(
-            """
+            sqlalchemy.text("""
         SELECT hash_type, hash_value FROM index_record_hash
-    """
+    """)
         )
     }
     assert update_hashes == new_hashes, "hashes do not match"
@@ -724,9 +731,9 @@ def test_driver_update_record_metadata(index_driver, database_conn):
     index_driver.update(did, rev, changing_fields)
 
     new_metadata = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT index_metadata FROM index_record
-    """
+    """)
     ).fetchone()[0]
 
     assert update_metadata == new_metadata, "metadata does not match"
@@ -741,17 +748,17 @@ def test_driver_update_record_release_number_separate(index_driver, database_con
     index_driver.update(did, rev, changing_fields)
 
     new_release_number = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT release_number FROM index_record
-    """
+    """)
     ).fetchone()[0]
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT count(did)
         FROM index_record
         WHERE index_metadata ? 'release_number'
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 0, "release number should not be in metadata jsonb"
@@ -767,17 +774,17 @@ def test_driver_update_record_release_number_metadata(index_driver, database_con
     index_driver.update(did, rev, changing_fields)
 
     new_release_number = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT release_number FROM index_record
-    """
+    """)
     ).fetchone()[0]
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT count(did)
         FROM index_record
         WHERE index_metadata ? 'release_number'
-    """
+    """)
     ).fetchone()[0]
 
     assert update_release_number == new_release_number, "metadata does not match"
@@ -810,10 +817,10 @@ def test_driver_update_record_urls_metadata(index_driver, database_conn):
     index_driver.update(did, rev, changing_fields)
 
     query = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT url, state, type, urls_metadata
         FROM index_record_url_metadata_jsonb
-    """
+    """)
     )
     new_urls_metadata = {}
     for row in query:
@@ -854,6 +861,7 @@ def test_driver_update_fails_with_invalid_id(index_driver, database_conn):
             (did, baseid, rev, form, None),
         )
     )
+    database_conn.commit()
 
     with pytest.raises(NoRecordFoundError):
         index_driver.update(
@@ -879,6 +887,7 @@ def test_driver_update_fails_with_invalid_rev(index_driver, database_conn):
             (did, baseid, rev, form, None),
         )
     )
+    database_conn.commit()
 
     with pytest.raises(RevisionMismatchError):
         index_driver.update(did, baseid, "some_revision")
@@ -901,13 +910,14 @@ def test_driver_delete_record(index_driver, database_conn):
             (did, baseid, rev, form, None),
         )
     )
+    database_conn.commit()
 
     index_driver.delete(did, rev)
 
     count = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT COUNT(*) FROM index_record
-    """
+    """)
     ).fetchone()[0]
 
     assert count == 0, "records remain after deletion"
@@ -939,6 +949,7 @@ def test_driver_delete_fails_with_invalid_id(index_driver, database_conn):
             (did, baseid, rev, form, None),
         )
     )
+    database_conn.commit()
 
     with pytest.raises(NoRecordFoundError):
         index_driver.delete("some_record_that_does_not_exist", rev)
@@ -961,6 +972,7 @@ def test_driver_delete_fails_with_invalid_rev(index_driver, database_conn):
             (did, baseid, rev, form, None),
         )
     )
+    database_conn.commit()
 
     with pytest.raises(RevisionMismatchError):
         index_driver.delete(did, "some_revision")
@@ -1012,7 +1024,7 @@ def test_driver_bulk_get_latest_versions_exclude_deleted(index_driver, database_
                     ),
                 )
             )
-
+    database_conn.commit()
     non_deleted_dids = [baseids[baseid]["non_deleted_did"] for baseid in baseids.keys()]
     deleted_dids = [baseids[baseid]["deleted_did"] for baseid in baseids.keys()]
 

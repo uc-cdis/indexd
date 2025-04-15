@@ -1,7 +1,8 @@
 import uuid
 
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+import pytest
+import sqlalchemy
+from sqlalchemy import orm
 from sqlalchemy_utils import database_exists, drop_database
 
 from indexd import utils as indexd_utils
@@ -19,7 +20,7 @@ from indexd.index.drivers.alchemy import (
 from tests.integration.alchemy import SQLAlchemyIndexTestDriver
 from tests.integration.util import make_sql_statement
 
-Base = declarative_base()
+Base = orm.declarative_base()
 
 TEST_DB = f"postgresql://{indexd_utils.IndexdConfig['root_auth']}@{indexd_utils.IndexdConfig['host']}/test_migration_db"
 
@@ -113,25 +114,25 @@ def test_migrate_7(
             (did, hash_type, hash_value),
         )
     )
-
+    database_conn.commit()
     with index_driver_no_migrate.session as session:
         migrate_7(session)
 
     rows = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT ace
         FROM index_record_ace
-    """
+    """)
     )
 
     acls = ace_value.split(",")
     for row in rows:
-        assert row["ace"] in acls
+        assert row.ace in acls
     rows = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT *
         FROM index_record_metadata
-    """
+    """)
     )
 
     assert rows.rowcount == 0
@@ -252,11 +253,12 @@ def test_migrate_12(
         )
     )
 
+    database_conn.commit()
     rows = database_conn.execute(
-        """
+        sqlalchemy.text("""
         SELECT *
         FROM index_record_url_metadata
-    """
+    """)
     )
 
     # Each key:value pair is on a separate row at this point.
@@ -267,11 +269,11 @@ def test_migrate_12(
 
     # Check index table to see if the data transferred from the metadata table.
     rows = database_conn.execute(
-        f"""
+        sqlalchemy.text(f"""
         SELECT release_number, index_metadata
         FROM index_record
         WHERE did = '{dida}'
-    """
+    """)
     )
     assert rows.rowcount == 1
 
@@ -283,11 +285,11 @@ def test_migrate_12(
         }
 
     rows = database_conn.execute(
-        f"""
+        sqlalchemy.text(f"""
         SELECT release_number, index_metadata
         FROM index_record
         WHERE did = '{didb}'
-    """
+    """)
     )
     assert rows.rowcount == 1
 
@@ -299,11 +301,11 @@ def test_migrate_12(
 
     # Check url_metadata table to see if the data transferred to the jsonb table.
     rows = database_conn.execute(
-        f"""
+        sqlalchemy.text(f"""
         SELECT *
         FROM index_record_url_metadata_jsonb
         WHERE did='{dida}'
-    """
+    """)
     )
     assert rows.rowcount == 1
 
@@ -318,11 +320,11 @@ def test_migrate_12(
         }
 
     rows = database_conn.execute(
-        f"""
+        sqlalchemy.text(f"""
         SELECT *
         FROM index_record_url_metadata_jsonb
         WHERE did='{didb}'
-    """
+    """)
     )
     assert rows.rowcount == 1
 
@@ -334,6 +336,7 @@ def test_migrate_12(
         assert row.urls_metadata is None
 
 
+@pytest.mark.skip(reason="Test does not execute inner function")
 def test_migrate_index(index_driver_no_migrate, database_conn):
     def test_migrate_index_internal(monkeypatch):
         called = []
@@ -360,6 +363,7 @@ def test_migrate_index(index_driver_no_migrate, database_conn):
     return test_migrate_index_internal
 
 
+@pytest.mark.skip(reason="Test does not execute inner function")
 def test_migrate_index_only_diff(index_driver_no_migrate, database_conn):
     def test_migrate_index_only_diff_internal(monkeypatch):
         called = []
@@ -399,6 +403,7 @@ def test_migrate_index_only_diff(index_driver_no_migrate, database_conn):
     return test_migrate_index_only_diff_internal
 
 
+@pytest.mark.skip(reason="Test does not execute inner function")
 def test_migrate_alias(alias_driver, database_conn):
     def test_migrate_alias_internal(monkeypatch):
         called = []
@@ -424,7 +429,7 @@ def test_migrate_alias(alias_driver, database_conn):
 
 
 def test_migrate_index_versioning(monkeypatch, index_driver_no_migrate, database_conn):
-    engine = create_engine(TEST_DB)
+    engine = sqlalchemy.create_engine(TEST_DB)
     if database_exists(engine.url):
         drop_database(engine.url)
 
@@ -444,12 +449,12 @@ def test_migrate_index_versioning(monkeypatch, index_driver_no_migrate, database
         size = 512
         form = "object"
         conn.execute(
-            f"""
+            sqlalchemy.text(f"""
             INSERT INTO index_record(did, rev, form, size)
             VALUES ('{did}','{rev}','{form}',{size})
-        """
+        """)
         )
-    conn.execute("commit")
+    conn.commit()
     conn.close()
     engine.dispose()
 
@@ -469,21 +474,25 @@ def test_migrate_index_versioning(monkeypatch, index_driver_no_migrate, database
     conn = driver.engine.connect()
     for table, schema in INDEX_TABLES.items():
         cols = conn.execute(
-            f"\
+            sqlalchemy.text(
+                f"\
             SELECT column_name, data_type \
             FROM information_schema.columns \
             WHERE table_schema = 'public' AND table_name = '{table}'"
+            )
         )
         assert schema == [i for i in cols]
 
-    vids = conn.execute("SELECT baseid FROM index_record").fetchall()
+    vids = conn.execute(sqlalchemy.text("SELECT baseid FROM index_record")).fetchall()
 
     for baseid in vids:
         c = conn.execute(
-            f"\
+            sqlalchemy.text(
+                f"\
             SELECT COUNT(*) AS number_rows \
             FROM index_record \
             WHERE baseid = '{baseid[0]}'"
+            )
         ).fetchone()[0]
         assert c == 1
     conn.close()

@@ -1,4 +1,5 @@
 import pytest
+import sqlalchemy
 
 from indexd.auth import AuthError
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
@@ -16,7 +17,9 @@ def test_driver_init_does_not_create_records(auth_driver, database_conn):
     Tests for creation of records after driver init.
     Tests driver init does not have unexpected side-effects.
     """
-    count = database_conn.execute("SELECT COUNT(*) FROM auth_record").fetchone()[0]
+    count = database_conn.execute(
+        sqlalchemy.text("SELECT COUNT(*) FROM auth_record")
+    ).fetchone()[0]
 
     assert count == 0, "driver created records upon initialization"
 
@@ -31,6 +34,7 @@ def test_driver_auth_accepts_good_creds(auth_driver, database_conn):
             (USERNAME, DIGESTED),
         )
     )
+    database_conn.commit()
 
     auth_driver.auth(USERNAME, PASSWORD)
     auth_driver.delete(USERNAME)
@@ -46,6 +50,7 @@ def test_driver_auth_rejects_bad_creds(auth_driver, database_conn):
             """INSERT INTO auth_record VALUES (?,?)""", (USERNAME, DIGESTED)
         )
     )
+    database_conn.commit()
 
     with pytest.raises(AuthError):
         auth_driver.auth(USERNAME, "invalid_" + PASSWORD)
@@ -65,6 +70,7 @@ def test_driver_auth_returns_user_context(auth_driver, database_conn):
             """INSERT INTO auth_record VALUES (?,?)""", (USERNAME, DIGESTED)
         )
     )
+    database_conn.commit()
 
     user = auth_driver.auth(USERNAME, PASSWORD)
 

@@ -2,9 +2,9 @@ import logging
 import os
 import re
 
+import sqlalchemy as sa
 import sqlalchemy_utils
-from sqlalchemy import create_engine
-from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy import engine as sa_engine
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ ROOT_PASS = os.getenv("PG_INDEXD_ROOT_PASS")
 
 def __root_user_auth(user: str, password: str | None = None) -> str | None:
     if not user:
-        return
+        return None
     return user if not password else f"{user}:{password}"
 
 
@@ -66,12 +66,12 @@ def try_drop_test_data(
     if not drop_db:
         return
 
-    engine = create_engine(f"postgresql://{root_auth}@{host}/{database}")
+    _engine = sa.create_engine(f"postgresql://{root_auth}@{host}/{database}")
 
-    if sqlalchemy_utils.database_exists(engine.url):
-        sqlalchemy_utils.drop_database(engine.url)
+    if sqlalchemy_utils.database_exists(_engine.url):
+        sqlalchemy_utils.drop_database(_engine.url)
 
-    engine.dispose()
+    _engine.dispose()
 
 
 def setup_database(
@@ -105,7 +105,7 @@ def setup_database(
 
     # Create an engine connecting to the `postgres` database allows us to
     # create a new database from there.
-    engine = create_engine(f"postgresql://{auth}@{host}/{database}")
+    engine = sa.create_engine(f"postgresql://{auth}@{host}/{database}")
     if not sqlalchemy_utils.database_exists(engine.url):
         sqlalchemy_utils.create_database(engine.url)
 
@@ -113,19 +113,21 @@ def setup_database(
 
     if not no_user:
         try:
-            user_stmt = f"CREATE USER {user} WITH PASSWORD '{password}'"
+            user_stmt = sa.text(f"CREATE USER {user} WITH PASSWORD '{password}'")
             conn.execute(user_stmt)
 
-            perm_stmt = f"GRANT ALL PRIVILEGES ON DATABASE {database} to {password}"
+            perm_stmt = sa.text(
+                f"GRANT ALL PRIVILEGES ON DATABASE {database} to {password}"
+            )
             conn.execute(perm_stmt)
-            conn.execute("commit")
+            conn.commit()
         except Exception as e:
             logger.warning("Unable to add user: %s", e)
     conn.close()
     engine.dispose()
 
 
-def check_engine_for_migrate(engine):
+def check_engine_for_migrate(engine: sa_engine.Engine) -> bool:
     """
     check if a db engine support database migration
 
@@ -138,7 +140,7 @@ def check_engine_for_migrate(engine):
     return engine.dialect.supports_alter
 
 
-def init_schema_version(driver, model, current_version):
+def init_schema_version(driver, model, current_version: int) -> int:
     """
     initialize schema table with a initialized singleton of version
 
@@ -203,6 +205,6 @@ def is_empty_database(driver):
     Returns:
         Boolean
     """
-    table_list = Inspector.from_engine(driver.engine).get_table_names()
+    table_list = sa.inspect(driver.engine).get_table_names()
 
     return len(table_list) == 0
