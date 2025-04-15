@@ -17,12 +17,11 @@ from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
-print(__name__)
 logger = cdislogging.get_logger(__name__)
+logger.info("------------Current IndexD Driver--------------")
 
 
 def app_init(app, settings=None):
-    logger.info("------------Current IndexD Driver--------------")
     app.url_map.strict_slashes = False
     if not settings:
         from .default_settings import settings
@@ -55,7 +54,7 @@ def app_init(app, settings=None):
     engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
 
 
-def get_app(settings=None, logger=logger):
+def get_app(settings=None):
     app = flask.Flask("indexd")
 
     if "INDEXD_SETTINGS" in os.environ:
@@ -67,6 +66,6 @@ def get_app(settings=None, logger=logger):
         except ImportError:
             pass
 
-    app_init(app, settings, logger=logger)
+    app_init(app, settings)
 
     return app
