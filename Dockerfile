@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker.osdc.io/docker/dockerfile:1
 ARG BASE_VERSION=3.2.2
 ARG REGISTRY=docker.osdc.io
 ARG SERVICE_NAME=indexd
@@ -11,13 +11,13 @@ ARG PYTHON_VERSION
 
 # avoids used detach heads in computing versions in gitlab
 ARG GIT_BRANCH_NAME
-ENV CI_COMMIT_REF_NAME=$GIT_BRANCH_NAME
+ENV CI_COMMIT_REF_NAME=$GIT_BRANCH_NAME \
+    PIP_EXTRA_INDEX_URL=https://nexus.osdc.io/repository/pypi-gdc-releases/simple
 
 WORKDIR /${SERVICE_NAME}
 
 COPY . .
-RUN pip install --upgrade setuptools pip \
-    && pip install versionista>=1.1.0 --extra-index-url https://nexus.osdc.io/repository/pypi-gdc-releases/simple \
+RUN pip install versionista>=1.1.0 \
     && python3 -m setuptools_scm \
     && pip install --no-deps -r requirements.txt .
 
