@@ -1,8 +1,8 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+import sqlalchemy as sa
+from sqlalchemy import orm
 from sqlalchemy_utils import create_database, database_exists
 
-Base = declarative_base()
+Base = orm.declarative_base()
 
 
 class SQLAlchemyDriverBase:
@@ -14,7 +14,7 @@ class SQLAlchemyDriverBase:
         """
         Initialize the SQLAlchemy database driver.
         """
-        engine = create_engine(conn, **config)
+        engine = sa.create_engine(conn, **config)
         if not database_exists(engine.url):
             create_database(engine.url)
         self.engine = engine

@@ -169,3 +169,8 @@ def test_status(client):
     resp = client.get("/_status")
     assert resp.status_code == 200
     assert resp.data == b"Healthy"
+
+
+def test_stats_endpoint(client):
+    resp = client.get("/_stats")
+    assert resp.status_code == 200

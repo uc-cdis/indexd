@@ -1,16 +1,14 @@
 import hashlib
 from contextlib import contextmanager
 
-from sqlalchemy import Column, String
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.exc import NoResultFound
+import sqlalchemy as sa
+from sqlalchemy import exc, orm
 
 from indexd.auth.driver import AuthDriverABC
 from indexd.auth.errors import AuthError
 from indexd.index.errors import UnhealthyCheckError
 
-Base = declarative_base()
+Base = orm.declarative_base()
 
 
 class AuthRecord(Base):
@@ -20,8 +18,8 @@ class AuthRecord(Base):
 
     __tablename__ = "auth_record"
 
-    username = Column(String, primary_key=True)
-    password = Column(String)
+    username: orm.Mapped[str] = sa.Column(sa.String, primary_key=True)
+    password: orm.Mapped[str] = sa.Column(sa.String)
 
 
 class SQLAlchemyAuthDriver(AuthDriverABC):
@@ -35,8 +33,8 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         """
         super().__init__(conn, **config)
         Base.metadata.bind = self.engine
-        Base.metadata.create_all()
-        self.Session = sessionmaker(bind=self.engine)
+        Base.metadata.create_all(bind=self.engine)
+        self._session_class = orm.sessionmaker(bind=self.engine)
 
     @property
     @contextmanager
@@ -44,7 +42,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         """
         Provide a transactional scope around a series of operations.
         """
-        session = self.Session()
+        session = self._session_class()
 
         try:
             yield session
@@ -92,7 +90,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         """
         with self.session as session:
             try:
-                session.execute("SELECT 1")
+                session.execute(sa.text("SELECT 1"))
             except Exception:
                 raise UnhealthyCheckError()
 
@@ -113,7 +111,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
 
             try:
                 query.one()
-            except NoResultFound:
+            except exc.NoResultFound:
                 raise AuthError("username / password mismatch")
 
         context = {
