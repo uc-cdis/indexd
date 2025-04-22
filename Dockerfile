@@ -5,14 +5,14 @@ ARG SERVICE_NAME=indexd
 ARG PYTHON_VERSION=python3.13
 
 FROM ${REGISTRY}/ncigdc/${PYTHON_VERSION}-builder:${BASE_VERSION} AS build
-ARG SERVICE_NAME
-ARG PIP_INDEX_URL
+ARG PIP_INDEX_URL=https://nexus.osdc.io/repository/pypi-gdc-releases/simple
 ARG PYTHON_VERSION
+ARG SERVICE_NAME
 
 # avoids used detach heads in computing versions in gitlab
 ARG GIT_BRANCH_NAME
 ENV CI_COMMIT_REF_NAME=$GIT_BRANCH_NAME \
-    PIP_EXTRA_INDEX_URL=https://nexus.osdc.io/repository/pypi-gdc-releases/simple
+    PIP_INDEX_URL=$PIP_INDEX_URL
 
 WORKDIR /${SERVICE_NAME}
 
