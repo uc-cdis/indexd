@@ -26,7 +26,7 @@ starterProjects:
 components:
   - name: py-web
     container:
-      image: docker.osdc.io/ncigdc/python3.8-builder:3.0.7
+      image: docker.osdc.io/ncigdc/python3.13-builder:3.2.3
       args: [tail, -f, /dev/null]
       mountSources: true
       endpoints:
@@ -52,9 +52,13 @@ components:
           value: test
         - name: PG_INDEXD_ROOT_PASS
           value: test
+        - name: SETUPTOOLS_SCM_PRETEND_VERSION
+          value: 0.0.1
+        - name: PIP_INDEX_URL
+          value: https://nexus.osdc.io/repository/pypi-all/simple
   - name: postgres
     container:
-      image: docker.osdc.io/ncigdc/ci-postgres-13:3.0.8
+      image: docker.osdc.io/ncigdc/ci-postgres-13:3.2.3
       memoryLimit: 512Mi
       endpoints:
         - name: postgres
@@ -72,7 +76,8 @@ components:
 commands:
   - id: pip-install-requirements
     exec:
-      commandLine: pip install -r requirements.txt
+      commandLine: pip install setuptools_scm && python3 -m setuptools_scm && pip
+        install --no-deps -r requirements.txt .
       workingDir: ${PROJECT_SOURCE}
       group:
         kind: build
@@ -80,7 +85,7 @@ commands:
       component: py-web
   - id: run-app
     exec:
-      commandLine: /venv/bin/gunicorn -c gunicorn.py wsgi
+      commandLine: /venv/bin/gunicorn -c gunicorn.conf.py wsgi
       workingDir: ${PROJECT_SOURCE}
       component: py-web
       group:

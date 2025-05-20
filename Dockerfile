@@ -1,5 +1,5 @@
 # syntax=docker.osdc.io/docker/dockerfile:1
-ARG BASE_VERSION=3.2.2
+ARG BASE_VERSION=3.2.3
 ARG REGISTRY=docker.osdc.io
 ARG SERVICE_NAME=indexd
 ARG PYTHON_VERSION=python3.13
