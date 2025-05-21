@@ -25,6 +25,11 @@
   services.postgres.listen_addresses = "localhost";
   services.postgres.initialDatabases = [
     {
+      name = "indexd_tests";
+      user = "postgres";
+      pass = "postgres";
+    }
+    {
       name = "indexd_default";
       user = "indexd";
       pass = "indexd_pAssW0rd1234";
@@ -54,7 +59,7 @@
 
   # https://devenv.sh/tasks/
   tasks = {
-    "indexd:run".exec = "poetry ";
+    "indexd:run".exec = "poetry run gunicorn deployment.wsgi.wsgi:application -b 0.0.0.0:8080";
   #   "devenv:enterShell".after = [ "myproj:setup" ];
   };
 
