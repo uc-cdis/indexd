@@ -1,21 +1,35 @@
 { pkgs, lib, config, inputs, ... }:
+let
+  # sharedConfigs = pkgs.fetchFromGitHub {
+  #   owner = "uc-cdis";
+  #   repo = "devenv-configs";
+  #   rev = "main"; # or specific commit hash
+  #   sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  # };
 
-{
+  # gitHooksConfig = import (sharedConfigs + "./git-hooks.nix") { inherit pkgs; };
+
+  gitHooksConfig = import ./git-hooks.nix {
+    inherit pkgs;
+    extraPackages = [ pkgs.jq ];
+  };
+in
+lib.recursiveUpdate gitHooksConfig {
   # https://devenv.sh/basics/
-  env.GREET = "devenv";
+  env.GREET = "devenv @ indexd";
 
+  # customizable through git-hooks.nix
   # https://devenv.sh/packages/
-  packages = [
-    pkgs.detect-secrets
-  ];
+  # packages = [
+  # ];
 
   # https://devenv.sh/languages/
   languages.python.enable = true;
-  languages.python.poetry.enable = true;
-  languages.python.poetry.activate.enable = true;
-  languages.python.poetry.install.enable = true;
-  languages.python.uv.enable = true;
   languages.python.version = "3.9";
+  languages.python.poetry.enable = true;
+  languages.python.poetry.install.enable = true;
+  languages.python.poetry.activate.enable = true;
+  languages.python.uv.enable = true;
 
   # https://devenv.sh/processes/
   # processes.cargo-watch.exec = "cargo-watch";
@@ -76,19 +90,14 @@
     '';
 
   # https://devenv.sh/git-hooks/
-  git-hooks.hooks.trim-trailing-whitespace.enable = true;
-  git-hooks.hooks.end-of-file-fixer.enable = true;
-  git-hooks.hooks.no-commit-to-branch.enable = true;
-  git-hooks.hooks.no-commit-to-branch.settings.branch = [
-    "master"
-  ];
+  # git-hooks.hooks.trim-trailing-whitespace.enable = true;
+  # git-hooks.hooks.end-of-file-fixer.enable = true;
+  # git-hooks.hooks.no-commit-to-branch.enable = true;
+  # git-hooks.hooks.no-commit-to-branch.settings.branch = [
+  #   "master"
+  # ];
 
-  git-hooks.hooks.detect-secrets = {
-    enable = true;
-    entry = ''${pkgs.detect-secrets}/bin/detect-secrets-hook'';
-    args = [ "--baseline" ".secrets.baseline" ];
-    description = "";
-  };
+  # git-hooks.hooks.
 
   # See full reference at https://devenv.sh/reference/options/
 }
