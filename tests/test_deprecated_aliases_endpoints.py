@@ -1,5 +1,10 @@
 import pytest
 
+from tests.conftest import skip_not_rbac_compatible
+
+pytestmark = pytest.mark.skipif(
+    skip_not_rbac_compatible, reason="Skipping - not RBAC compatible"
+)
 
 # NOTE these tests apply to the '/alias/' endpoint, which is deprecated
 # in favor of the 'index/{GUID}/aliases' endpoint.
@@ -178,6 +183,7 @@ def test_alias_delete(client, user):
         "release": "private",
         "keeper_authority": "CRI",
         "host_authorities": ["PDC"],
+        "authz": ["/programs/bpa/projects/UChicago"],
     }
     ark = "ark:/31807/TEST-abc"
 

@@ -1,4 +1,6 @@
 import random
+import sys
+
 import pytest
 from tests.test_client import get_doc
 
@@ -19,8 +21,10 @@ def test_data(client, user, combined_default_and_single_table_settings):
             doc["urls_metadata"][url_x] = {"state": "uploaded"}
             url_x_type -= 1
         print(doc)
+        print(f"DEBUG: test_data POST {doc}", file=sys.stderr)
         res = client.post("/index/", json=doc, headers=user)
         assert res.status_code == 200
+    print(f"DEBUG: test_data GET {doc}", file=sys.stderr)
     rec = client.get("/index/", json=doc, headers=user)
     assert rec.status_code == 200
 

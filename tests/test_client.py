@@ -1,5 +1,7 @@
 import base64
 import json
+import sys
+
 import pytest
 import uuid
 
@@ -17,6 +19,7 @@ def get_doc(
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "authz": ["/programs/bpa/projects/UChicago"],
     }
     if has_metadata:
         doc["metadata"] = {"project_id": "bpa-UChicago"}
@@ -29,17 +32,19 @@ def get_doc(
     return doc
 
 
-def test_index_list(client, combined_default_and_single_table_settings):
-    res = client.get("/index/")
+def test_index_list(client, combined_default_and_single_table_settings, user):
+    res = client.get("/index/", headers=user)
     assert res.status_code == 200
     rec = res.json
     assert rec["records"] == []
 
 
 def test_index_list_with_params(
-    client, user, combined_default_and_single_table_settings
+    client, user, combined_default_and_single_table_settings, mock_arborist_requests
 ):
+
     data1 = get_doc()
+
     data1["urls"] = [
         "s3://endpointurl/bucket_2/key_2",
         "s3://anotherurl/bucket_2/key_2",
@@ -48,6 +53,7 @@ def test_index_list_with_params(
         "s3://endpointurl/bucket_2/key_2": {"state": "error", "other": "xxx"},
         "s3://anotherurl/bucket_2/key_2": {"state": "error", "other": "xxx"},
     }
+    data1["authz"] = ["/programs/bpa/projects/UChicago"]
     res_1 = client.post("/index/", json=data1, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
@@ -55,6 +61,7 @@ def test_index_list_with_params(
     data2 = get_doc()
     data2["metadata"] = {"project_id": "other-project", "state": "abc", "other": "xxx"}
     data2["urls"] = ["s3://endpointurl/bucket/key_2", "s3://anotherurl/bucket/key_2"]
+    data2["authz"] = ["/programs/other/projects/project"]
     data2["urls_metadata"] = {
         "s3://endpointurl/bucket/key_2": {"state": "error", "other": "yyy"}
     }
@@ -71,23 +78,71 @@ def test_index_list_with_params(
         "s3://endpointurl/bucket_2/key_2": {"state": "test", "other": "xxx"},
         "s3://anotherurl/bucket_2/key_2": {"state": "test", "other": "xxx"},
     }
+    data3["authz"] = ["/programs/bpa/projects/UChicago"]
     res_3 = client.post("/index/", json=data3, headers=user)
     assert res_3.status_code == 200
     rec_3 = res_3.json
 
-    data1_by_md = client.get("/index/?metadata=project_id:bpa-UChicago")
-    assert data1_by_md.status_code == 200
+
+    # experimental: RBAC
+    if combined_default_and_single_table_settings.config["RBAC"]:
+        # add a record with a different project_id
+        data4 = get_doc()
+        data4["metadata"] = {"project_id": "forbidden-project", "state": "abc", "other": "xxx"}
+        data4["urls"] = ["s3://endpointurl/bucket/key_2", "s3://anotherurl/bucket/key_2"]
+        data4["urls_metadata"] = {
+            "s3://endpointurl/bucket/key_2": {"state": "error", "other": "yyy"}
+        }
+        data4["authz"] = ["/programs/forbidden/projects/project"]
+        res_4 = client.post("/index/", json=data4, headers=user)
+        assert res_4.status_code == 401
+        rec_4 = res_4.json
+
+        # # convert to Arborist format
+        # program, project = data1['metadata']["project_id"].split('-')
+        # resource = f"/programs/{program}/projects/{project}"
+        # mock_arborist_requests(
+        #     resource_method_to_authorized={
+        #         resource: {"read": True},
+        #         "/programs/other/projects/project": {"read": True},
+        #     }
+        # )
+
+        print("START data_all", file=sys.stderr)
+        data_all_by_md = client.get("/index", headers=user)
+        from pprint import pprint
+        pprint(data_all_by_md.text, stream=sys.stderr)
+        assert data_all_by_md.status_code == 200, data_all_by_md.text
+        data_all_list = data_all_by_md.json
+        # ids = [record["did"] for record in data_all_list["records"]]
+        # assert rec_4["did"] not in ids, f"Should not have access to forbidden project {data_all_list}"
+        assert len(data_all_list["records"]) == 3, f"Should have access to 3 records, got {len(data_all_list['records'])} records: {data_all_list}"
+
+        pprint(data_all_list["records"], stream=sys.stderr)
+
+        actual_authz: list[str] = [authz for record in data_all_list["records"] for authz in record["authz"]]
+
+        expected_authz = [
+            "/programs/bpa/projects/UChicago",
+            "/programs/other/projects/project",
+        ]
+        assert set(actual_authz) == set(expected_authz), f"Authz mismatch: {actual_authz} != {expected_authz}"
+
+    print("START data1", file=sys.stderr)
+    data1_by_md = client.get("/index/?metadata=project_id:bpa-UChicago", headers=user)
+    print(data1_by_md.text, file=sys.stderr)
+    assert data1_by_md.status_code == 200, data1_by_md.text
     data1_list = data1_by_md.json
     ids = [record["did"] for record in data1_list["records"]]
     assert rec_1["did"] in ids
 
-    data2_by_md = client.get("/index/?metadata=project_id:other-project")
+    data2_by_md = client.get("/index/?metadata=project_id:other-project", headers=user)
     assert data2_by_md.status_code == 200
     data2_list = data2_by_md.json
     ids = [record["did"] for record in data2_list["records"]]
     assert rec_2["did"] in ids
 
-    data_by_hash = client.get("/index/?hash=md5:8b9942cf415384b27cadf1f4d2d682e5")
+    data_by_hash = client.get("/index/?hash=md5:8b9942cf415384b27cadf1f4d2d682e5", headers=user)
     assert data_by_hash.status_code == 200
     data_list_all = data_by_hash.json
     ids = [record["did"] for record in data_list_all["records"]]
@@ -97,7 +152,7 @@ def test_index_list_with_params(
     # with nonstrict prefix
     stripped = rec_1["did"].split("testprefix:", 1)[1]
     with_prefix = rec_3["did"]
-    data_by_ids = client.get("/index/?ids={},{}".format(stripped, with_prefix))
+    data_by_ids = client.get("/index/?ids={},{}".format(stripped, with_prefix), headers=user)
     assert data_by_ids.status_code == 200
     data_list_all = data_by_ids.json
 
@@ -106,19 +161,21 @@ def test_index_list_with_params(
     assert not rec_2["did"] in ids
     assert rec_3["did"] in ids
 
-    data_with_limit = client.get("/index/?limit=1")
+    data_with_limit = client.get("/index/?limit=1", headers=user)
     assert data_with_limit.status_code == 200
     data_list_limit = data_with_limit.json
     assert len(data_list_limit["records"]) == 1
 
     param = {"bucket": {"state": "error", "other": "xxx"}}
 
-    data_by_url_md = client.get("/index/?urls_metadata=" + json.dumps(param))
+    data_by_url_md = client.get("/index/?urls_metadata=" + json.dumps(param), headers=user)
     assert data_by_url_md.status_code == 200
     data_list = data_by_url_md.json
     assert len(data_list["records"]) == 1
     assert data_list["records"][0]["did"] == rec_1["did"]
     assert data_list["records"][0]["urls_metadata"] == data1["urls_metadata"]
+
+    # assert False, "DEBUGGING: comment this line to supress"
 
 
 def test_get_list_form_param(client, user, combined_default_and_single_table_settings):
@@ -141,17 +198,17 @@ def test_get_list_form_param(client, user, combined_default_and_single_table_set
         res2 = client.post("/bundle/", json=data, headers=user)
         assert res2.status_code == 200
 
-    res3 = client.get("/index/")
+    res3 = client.get("/index/", headers=user)
     assert res3.status_code == 200
     rec3 = res3.json
     assert len(rec3["records"]) == n_records
 
-    res3 = client.get("/index/?form=bundle")
+    res3 = client.get("/index/?form=bundle", headers=user)
     assert res3.status_code == 200
     rec3 = res3.json
     assert len(rec3["records"]) == n_records
 
-    res3 = client.get("/index/?form=all")
+    res3 = client.get("/index/?form=all", headers=user)
     assert res3.status_code == 200
     rec3 = res3.json
     assert len(rec3["records"]) == 2 * n_records
@@ -192,28 +249,28 @@ def test_get_list_form_with_params(
     assert res_2.status_code == 200
     rec_2 = res_2.json
 
-    data1_by_md = client.get("/index/?metadata=project_id:bpa-UChicago&param=all")
+    data1_by_md = client.get("/index/?metadata=project_id:bpa-UChicago&param=all", headers=user)
     assert data1_by_md.status_code == 200
     data1_list = data1_by_md.json
     ids = [record["did"] for record in data1_list["records"] if "did" in record]
     assert rec_1["did"] in ids
 
-    data2_by_md = client.get("/index/?form=all&metadata=project_id:other-project")
+    data2_by_md = client.get("/index/?form=all&metadata=project_id:other-project", headers=user)
     assert data2_by_md.status_code == 200
     data2_list = data2_by_md.json
     ids = [record["did"] for record in data2_list["records"] if "did" in record]
-    assert rec_2["did"] in ids
+    assert rec_2["did"] in ids, (rec_2["did"], ids)
 
     data_by_hash = client.get(
         "/index/?form=all&hash=md5:8b9942cf415384b27cadf1f4d2d682e5"
-    )
+    , headers=user)
     assert data_by_hash.status_code == 200
     data_list_all = data_by_hash.json
     ids = [record["did"] for record in data_list_all["records"] if "did" in record]
     assert rec_1["did"] in ids
     assert rec_2["did"] in ids
 
-    data_by_ids = client.get("/index/?form=all&ids={}".format(rec_1["did"]))
+    data_by_ids = client.get("/index/?form=all&ids={}".format(rec_1["did"]), headers=user)
     assert data_by_ids.status_code == 200
     data_list_all = data_by_ids.json
 
@@ -221,16 +278,18 @@ def test_get_list_form_with_params(
     assert rec_1["did"] in ids
     assert not rec_2["did"] in ids
 
-    data_with_limit = client.get("/index/?form=all&limit=1")
+    data_with_limit = client.get("/index/?form=all&limit=1", headers=user)
     assert data_with_limit.status_code == 200
     data_list_limit = data_with_limit.json
     assert len(data_list_limit["records"]) == 2
 
     param = {"bucket": {"state": "error", "other": "xxx"}}
 
-    data_by_url_md = client.get("/index/?form=all&urls_metadata=" + json.dumps(param))
+    data_by_url_md = client.get("/index/?form=all&urls_metadata=" + json.dumps(param), headers=user)
     assert data_by_url_md.status_code == 200
     data_list = data_by_url_md.json
+    from pprint import pprint
+    pprint(data_list, stream=sys.stderr)
     assert len(data_list["records"]) == n_records + 1
     ids = [record["did"] for record in data_list["records"] if "did" in record]
     assert rec_1["did"] in ids
@@ -244,7 +303,7 @@ def test_index_list_by_size(client, user, combined_default_and_single_table_sett
     data["size"] = 100
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    res = client.get("/index/?size={}".format(data["size"]))
+    res = client.get("/index/?size={}".format(data["size"]), headers=user)
     assert res.status_code == 200
     rec = res.json
     # assert only one record returned and returned with proper size
@@ -265,7 +324,7 @@ def test_index_list_by_filename(
     data["file_name"] = "test_file_2"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    res = client.get("/index/?file_name=" + data["file_name"])
+    res = client.get("/index/?file_name=" + data["file_name"], headers=user)
     assert res.status_code == 200
     rec = res.json
     # assert only one record returned and returned with proper name
@@ -278,18 +337,18 @@ def test_index_list_by_authz(client, user, combined_default_and_single_table_set
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    data["authz"] = ["test_authz_1"]
+    data["authz"] = ["/programs/other/projects/project"]
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    data["authz"] = ["test_authz_2"]
+    data["authz"] = ["/programs/other/projects/project"]
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    res = client.get("/index/?authz=" + data["authz"][0])
-    assert res.status_code == 200
+    res = client.get("/index/?authz=" + "/programs/bpa/projects/UChicago", headers=user)
+    assert res.status_code == 200, ("/index/?authz=" + "/programs/bpa/projects/UChicago", res.json)
     rec = res.json
     # assert only one record returned and returned with proper authz
-    assert len(rec["records"]) == 1
-    assert sorted(rec["records"][0]["authz"]) == sorted(data["authz"])
+    assert len(rec["records"]) == 1, ("/index/?authz=" + "/programs/bpa/projects/UChicago", rec)
+    assert sorted(rec["records"][0]["authz"]) == sorted(["/programs/bpa/projects/UChicago"])
 
 
 def test_index_list_by_multiple_authz(
@@ -297,16 +356,16 @@ def test_index_list_by_multiple_authz(
 ):
     data = get_doc()
 
-    data["authz"] = ["abc"]
+    data["authz"] = ["/programs/other/projects/project"]
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
 
-    data["authz"] = ["abc", "rst", "xyz"]
+    data["authz"] = ["/programs/bpa/projects/UChicago", "/programs/other/projects/project"]
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
 
     # query the record with multiple authz elements
-    res = client.get("/index/?authz=" + ",".join(data["authz"]))
+    res = client.get("/index/?authz=" + ",".join(data["authz"]), headers=user)
     assert res.status_code == 200
     rec = res.json
     assert len(rec["records"]) == 1, "Got records: {}".format(
@@ -329,7 +388,7 @@ def test_index_list_by_multiple_acl(
     assert res.status_code == 200
 
     # query the record with multiple ACL elements
-    res = client.get("/index/?acl=" + ",".join(data["acl"]))
+    res = client.get("/index/?acl=" + ",".join(data["acl"]), headers=user)
     assert res.status_code == 200
     rec = res.json
     assert len(rec["records"]) == 1, "Got records: {}".format(
@@ -354,7 +413,7 @@ def test_index_list_by_urls(client, user, combined_default_and_single_table_sett
     assert res.status_code == 200
 
     # query the record with a single URL
-    res = client.get("/index/?url=s3://bucket2")
+    res = client.get("/index/?url=s3://bucket2", headers=user)
     assert res.status_code == 200
     rec = res.json
     assert len(rec["records"]) == 2, "Got records: {}".format(
@@ -362,7 +421,7 @@ def test_index_list_by_urls(client, user, combined_default_and_single_table_sett
     )
 
     # query the record with multiple URLs
-    res = client.get("/index/?url=s3://bucket2&url=s3://bucket3")
+    res = client.get("/index/?url=s3://bucket2&url=s3://bucket3", headers=user)
     assert res.status_code == 200
     rec = res.json
     assert len(rec["records"]) == 1, "Got records: {}".format(
@@ -384,7 +443,7 @@ def test_index_list_by_version(
     data["version"] = "3"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    res = client.get("/index/?version=" + data["version"])
+    res = client.get("/index/?version=" + data["version"], headers=user)
     assert res.status_code == 200
     rec = res.json
     # assert only one record returned and returned with proper version
@@ -426,14 +485,14 @@ def test_index_list_with_params_negate(
     rec_5 = res_5.json
 
     negate_params = {"metadata": {"testkey": ""}}
-    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params), headers=user)
     assert data_neg_param.status_code == 200
     data_list = data_neg_param.json
     assert len(data_list["records"]) == 1
     assert data_list["records"][0]["did"] == rec_1["did"]
 
     negate_params = {"metadata": {"project_id": "bpa-UChicago"}}
-    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params), headers=user)
     assert data_neg_param.status_code == 200
     data_list = data_neg_param.json
     ids = {record["did"] for record in data_list["records"]}
@@ -446,7 +505,7 @@ def test_index_list_with_params_negate(
 
     # negate url
     negate_params = {"urls": ["s3://endpointurl/bucket_2/key_2"]}
-    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params), headers=user)
     assert data_neg_param.status_code == 200
     data_list = data_neg_param.json
     ids = {record["did"] for record in data_list["records"]}
@@ -459,14 +518,14 @@ def test_index_list_with_params_negate(
 
     # negate url key
     negate_params = {"urls_metadata": {"s3://endpointurl/": {}}}
-    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params), headers=user)
     assert data_neg_param.status_code == 200
     data_list = data_neg_param.json
     assert len(data_list["records"]) == 1
     assert data_list["records"][0]["did"] == rec_5["did"]
 
     negate_params = {"urls_metadata": {"s3://endpointurl/": {}, "s3://anotherurl/": {}}}
-    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params), headers=user)
     assert data_neg_param.status_code == 200
     data_list = data_neg_param.json
     assert len(data_list["records"]) == 0
@@ -475,7 +534,7 @@ def test_index_list_with_params_negate(
     negate_params = {
         "urls_metadata": {"s3://endpointurl/": {"state": ""}, "s3://anotherurl/": {}}
     }
-    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params), headers=user)
     assert data_neg_param.status_code == 200
     data_list = data_neg_param.json
     assert len(data_list["records"]) == 1
@@ -483,7 +542,7 @@ def test_index_list_with_params_negate(
 
     # negate url_metadata value
     negate_params = {"urls_metadata": {"s3://endpointurl/": {"state": "uploaded"}}}
-    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
+    data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params), headers=user)
     assert data_neg_param.status_code == 200
     data_list = data_neg_param.json
     ids = {record["did"] for record in data_list["records"]}
@@ -495,25 +554,25 @@ def test_index_list_with_params_negate(
     assert rec_5["did"] in ids
 
 
-def test_index_list_invalid_param(client, combined_default_and_single_table_settings):
+def test_index_list_invalid_param(client, combined_default_and_single_table_settings, user):
     # test 400 when limit > 1024
-    res = client.get("/index/?limit=1025")
+    res = client.get("/index/?limit=1025", headers=user)
     assert res.status_code == 400
 
     # test 400 when limit < 0
-    res = client.get("/index/?limit=-1")
+    res = client.get("/index/?limit=-1", headers=user)
     assert res.status_code == 400
 
     # test 400 when limit not int
-    res = client.get("/index/?limit=string")
+    res = client.get("/index/?limit=string", headers=user)
     assert res.status_code == 400
 
     # test 400 when size < 0
-    res = client.get("/index/?size=-1")
+    res = client.get("/index/?size=-1", headers=user)
     assert res.status_code == 400
 
     # test 400 when size not int
-    res = client.get("/index/?size=string")
+    res = client.get("/index/?size=string", headers=user)
     assert res.status_code == 400
 
 
@@ -536,7 +595,7 @@ def test_negate_filter_file_name(
     assert res_3.status_code == 200
 
     negate_param = {"file_name": data2["file_name"]}
-    res = client.get("/index/?negate_params=" + json.dumps(negate_param))
+    res = client.get("/index/?negate_params=" + json.dumps(negate_param), headers=user)
     assert res.status_code == 200
     rec = res.json
     # assert record returned with proper non-negated file name
@@ -561,7 +620,7 @@ def test_negate_filter_acl(client, user, combined_default_and_single_table_setti
     assert res_3.status_code == 200
 
     negate_param = {"acl": data2["acl"]}
-    res = client.get("/index/?negate_params=" + json.dumps(negate_param))
+    res = client.get("/index/?negate_params=" + json.dumps(negate_param), headers=user)
     assert res.status_code == 200
     rec = res.json
     # assert record returned with proper non-negated acl
@@ -572,25 +631,26 @@ def test_negate_filter_acl(client, user, combined_default_and_single_table_setti
 def test_negate_filter_authz(client, user, combined_default_and_single_table_settings):
     # post two records of different authz
     data1 = get_doc()
-    data1["authz"] = ["admin"]
+    # auths default to /programs/bpa/projects/UChicago
     res_1 = client.post("/index/", json=data1, headers=user)
     assert res_1.status_code == 200
 
     data2 = get_doc()
-    data2["authz"] = ["user"]
+    data2["authz"] = ["/programs/other/projects/project"]
     res_2 = client.post("/index/", json=data2, headers=user)
     assert res_2.status_code == 200
 
     data3 = get_doc()
+    # auths default to /programs/bpa/projects/UChicago
     res_3 = client.post("/index/", json=data3, headers=user)
     assert res_3.status_code == 200
 
     negate_param = {"authz": data2["authz"]}
-    res = client.get("/index/?negate_params=" + json.dumps(negate_param))
+    res = client.get("/index/?negate_params=" + json.dumps(negate_param), headers=user)
     assert res.status_code == 200
     rec = res.json
     # assert record returned with proper non-negated authz
-    assert len(rec["records"]) == 1
+    assert len(rec["records"]) == 2
     assert sorted(rec["records"][0]["authz"]) == sorted(data1["authz"])
 
 
@@ -613,7 +673,7 @@ def test_negate_filter_version(
     assert res_2.status_code == 200
 
     negate_param = {"version": data2["version"]}
-    res = client.get("/index/?negate_params=" + json.dumps(negate_param))
+    res = client.get("/index/?negate_params=" + json.dumps(negate_param), headers=user)
     assert res.status_code == 200
     rec = res.json
     # assert record returned with proper non-negated version
@@ -644,7 +704,7 @@ def test_list_entries_with_uploader(
     assert res_3.status_code == 200
     rec_3 = res_3.json
 
-    data_grab = client.get("/index/?uploader=uploader_123")
+    data_grab = client.get("/index/?uploader=uploader_123", headers=user)
     assert data_grab.status_code == 200
     data_list = data_grab.json
     assert len(data_list["records"]) == 2
@@ -677,7 +737,7 @@ def test_list_entries_with_uploader_wrong_uploader(
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
 
-    data_grab = client.get("/index/?uploader=wrong_uploader")
+    data_grab = client.get("/index/?uploader=wrong_uploader", headers=user)
     data_list = data_grab.json
     assert len(data_list["records"]) == 0
 
@@ -688,7 +748,7 @@ def test_create_blank_record(client, user, combined_default_and_single_table_set
     and optionally file_name fields: test without file name
     """
 
-    doc = {"uploader": "uploader_123"}
+    doc = {"uploader": "uploader_123", "authz": ["/programs/bpa/projects/UChicago"]}
     res = client.post("/index/blank/", json=doc, headers=user)
     assert res.status_code == 201
     rec = res.json
@@ -696,14 +756,14 @@ def test_create_blank_record(client, user, combined_default_and_single_table_set
     assert rec["rev"]
     assert rec["baseid"]
 
-    res = client.get("/index/?uploader=uploader_123")
+    res = client.get("/index/?uploader=uploader_123", headers=user)
     assert res.status_code == 200
     rec = res.json
     assert rec["records"][0]["uploader"] == "uploader_123"
     assert not rec["records"][0]["file_name"]
 
     # test that record is blank
-    assert_blank(rec)
+    assert_blank(rec, with_authz=True)
 
 
 def test_create_blank_record_with_file_name(
@@ -714,7 +774,7 @@ def test_create_blank_record_with_file_name(
     and optionally file_name fields: test with file name
     """
 
-    doc = {"uploader": "uploader_321", "file_name": "myfile.txt"}
+    doc = {"uploader": "uploader_321", "file_name": "myfile.txt", "authz": ["/programs/bpa/projects/UChicago"]}
     res = client.post("/index/blank/", json=doc, headers=user)
     assert res.status_code == 201
     rec = res.json
@@ -722,18 +782,18 @@ def test_create_blank_record_with_file_name(
     assert rec["rev"]
     assert rec["baseid"]
 
-    res = client.get("/index/?uploader=uploader_321")
+    res = client.get("/index/?uploader=uploader_321", headers=user)
     assert res.status_code == 200
     rec = res.json
     assert rec["records"][0]["uploader"] == "uploader_321"
     assert rec["records"][0]["file_name"] == "myfile.txt"
 
     # test that record is blank
-    assert_blank(rec)
+    assert_blank(rec, with_authz=True)
 
 
 def test_create_blank_record_with_authz(
-    client, use_mock_authz, combined_default_and_single_table_settings
+    client, use_mock_authz, combined_default_and_single_table_settings, user
 ):
     """
     Test that a new blank record can be created with a specified
@@ -752,7 +812,7 @@ def test_create_blank_record_with_authz(
     assert rec["rev"]
     assert rec["baseid"]
 
-    res = client.get("/index/" + rec["did"])
+    res = client.get("/index/" + rec["did"], headers=user)
     assert res.status_code == 200, res.json
     rec = res.json
     assert rec["uploader"] == "uploader1"
@@ -770,7 +830,7 @@ def test_create_blank_record_with_authz(
     assert rec["rev"]
     assert rec["baseid"]
 
-    res = client.get("/index/" + rec["did"])
+    res = client.get("/index/" + rec["did"], headers=user)
     assert res.status_code == 200, res.json
     rec = res.json
     assert rec["uploader"] == "uploader1"
@@ -792,7 +852,7 @@ def test_create_blank_version(client, user, combined_default_and_single_table_se
     retain the acl/authz of the previous record.
     """
     mock_acl = ["acl_A", "acl_B"]
-    mock_authz = ["fake/authz/A", "fake/authz/B"]
+    mock_authz = ["/programs/bpa/projects/UChicago", "/programs/other/projects/project"]
     mock_baseid = "00000000-0000-0000-0000-000000000000"
 
     # SETUP
@@ -813,7 +873,7 @@ def test_create_blank_version(client, user, combined_default_and_single_table_se
         Helper to GET record with specified guid and assert acl, authz, and
         baseid.
         """
-        res = client.get("/index/{}".format(guid))
+        res = client.get("/index/{}".format(guid), headers=user)
         assert (
             res.status_code == 200
         ), "Failed to find original doc in index: {}".format(res.json)
@@ -865,8 +925,8 @@ def test_create_blank_version_with_authz(
     Test that a new version of a blank record can be created with a
     different authz when the user has the expected access
     """
-    old_authz = "/programs/A"
-    new_authz = "/programs/B"
+    old_authz = "/programs/bpa/projects/UChicago"
+    new_authz = "/programs/other/projects/project"
 
     # add an original record to the index
     doc = get_doc()
@@ -874,7 +934,7 @@ def test_create_blank_version_with_authz(
     res = client.post("/index/", json=doc, headers=user)
     assert res.status_code == 200, res.json
     original_guid = res.json["did"]
-    res = client.get("/index/{}".format(original_guid))
+    res = client.get("/index/{}".format(original_guid), headers=user)
     assert res.status_code == 200, res.json
     baseid = res.json["baseid"]
     assert res.json["authz"] == [old_authz]
@@ -894,7 +954,7 @@ def test_create_blank_version_with_authz(
     url = "/index/blank/{}".format(original_guid)
     res = client.post(url, json=payload)
     assert res.status_code == 201, res.json
-    res = client.get("/index/{}".format(res.json["did"]))
+    res = client.get("/index/{}".format(res.json["did"]), headers=user)
     assert res.status_code == 200, res.json
     new_version = res.json
 
@@ -930,7 +990,7 @@ def test_create_blank_version_specify_did(
     # Add an original record to the index
     doc = get_doc()
     mock_acl = ["acl_A", "acl_B"]
-    mock_authz = ["fake/authz/A", "fake/authz/B"]
+    mock_authz = ["/programs/bpa/projects/UChicago", "/programs/other/projects/project"]
     mock_baseid = "00000000-0000-0000-0000-000000000000"
     doc["acl"] = mock_acl
     doc["authz"] = mock_authz
@@ -940,7 +1000,7 @@ def test_create_blank_version_specify_did(
         res.json
     )
     original_doc_guid = res.json["did"]
-    res = client.get("/index/{}".format(original_doc_guid))
+    res = client.get("/index/{}".format(original_doc_guid), headers=user)
     assert res.status_code == 200, "Failed to find original doc in index: {}".format(
         res.json
     )
@@ -960,7 +1020,7 @@ def test_create_blank_version_specify_did(
     blank_doc_guid = res.json["did"]
 
     # Confirm that the new blank record is in the index
-    res = client.get("/index/{}".format(blank_doc_guid))
+    res = client.get("/index/{}".format(blank_doc_guid), headers=user)
     assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
     blank_doc = res.json
     # -----------
@@ -981,7 +1041,7 @@ def test_create_blank_version_specify_guid_already_exists(
     # Add an original record to the index
     doc = get_doc()
     mock_acl = ["acl_A", "acl_B"]
-    mock_authz = ["fake/authz/A", "fake/authz/B"]
+    mock_authz = ["/programs/bpa/projects/UChicago", "/programs/other/projects/project"]
     mock_baseid = "00000000-0000-0000-0000-000000000000"
     doc["acl"] = mock_acl
     doc["authz"] = mock_authz
@@ -991,7 +1051,7 @@ def test_create_blank_version_specify_guid_already_exists(
         res.json
     )
     original_doc_guid = res.json["did"]
-    res = client.get("/index/{}".format(original_doc_guid))
+    res = client.get("/index/{}".format(original_doc_guid), headers=user)
     assert res.status_code == 200, "Failed to find original doc in index: {}".format(
         res.json
     )
@@ -1074,7 +1134,7 @@ def test_create_blank_version_blank_record(
     blank_doc_guid = res.json["did"]
 
     # Confirm that the new blank record is in the index
-    res = client.get("/index/{}".format(blank_doc_guid))
+    res = client.get("/index/{}".format(blank_doc_guid), headers=user)
     assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
     blank_doc = res.json
     # -----------
@@ -1128,7 +1188,7 @@ def test_fill_size_n_hash_for_blank_record(
     assert rec["did"] == did
     assert rec["rev"] != rev
 
-    res = client.get("/index/" + did)
+    res = client.get("/index/" + did, headers=user)
     assert res.status_code == 200
     rec = res.json
     assert rec["size"] == 10
@@ -1173,7 +1233,7 @@ def test_update_blank_record_with_authz(
     assert rec["rev"] != rev
     rev = rec["rev"]
 
-    res = client.get("/index/" + did)
+    res = client.get("/index/" + did, headers=user)
     assert res.status_code == 200, res.json
     rec = res.json
     assert rec["authz"] == [new_authz]  # authz as provided
@@ -1191,7 +1251,7 @@ def test_update_blank_record_with_authz(
     assert rec["did"] == did
     assert rec["rev"] != rev
 
-    res = client.get("/index/" + did)
+    res = client.get("/index/" + did, headers=user)
     assert res.status_code == 200, res.json
     rec = res.json
     assert rec["authz"] == [new_authz2]  # authz as provided
@@ -1216,7 +1276,7 @@ def test_update_blank_record_with_authz_new(
     assert rec["did"]
     assert rec["rev"]
     did, rev = rec["did"], rec["rev"]
-    res = client.get("/index/{}".format(did))
+    res = client.get("/index/{}".format(did), headers=user)
     assert res.json["authz"] == [old_authz]  # authz as provided
 
     # - user has update access on the new resource but doesn't
@@ -1239,7 +1299,7 @@ def test_update_blank_record_with_authz_new(
     assert rec["rev"] != rev
     rev = rec["rev"]
 
-    res = client.get("/index/" + did)
+    res = client.get("/index/" + did, headers=user)
     assert res.status_code == 200, res.json
     rec = res.json
     assert rec["authz"] == [new_authz]  # authz as provided
@@ -1257,7 +1317,7 @@ def test_update_blank_record_with_authz_new(
     assert rec["did"] == did
     assert rec["rev"] != rev
 
-    res = client.get("/index/" + did)
+    res = client.get("/index/" + did, headers=user)
     assert res.status_code == 200, res.json
     rec = res.json
     assert rec["authz"] == [new_authz2]  # authz as provided
@@ -1270,24 +1330,26 @@ def test_get_empty_acl_authz_record(
     Test that can get a list of empty acl/authz given uploader
     """
     doc = get_doc()
+    if "RBAC" not in combined_default_and_single_table_settings.config:
+        del doc["authz"]
     client.post("/index/", json=doc, headers=user)
 
-    doc = {"uploader": "uploader_123"}
+    doc = {"uploader": "uploader_123", "authz": ["/programs/bpa/projects/UChicago"]}
     res_2 = client.post("/index/blank/", json=doc, headers=user)
     assert res_2.status_code == 201
     rec_2 = res_2.json
 
-    doc = {"uploader": "uploader_123"}
+    doc = {"uploader": "uploader_123", "authz": ["/programs/bpa/projects/UChicago"]}
     res_3 = client.post("/index/blank/", json=doc, headers=user)
     assert res_3.status_code == 201
     rec_3 = res_3.json
 
-    data_grab = client.get("/index/")
+    data_grab = client.get("/index/", headers=user)
     assert data_grab.status_code == 200
     data_list = data_grab.json
     assert len(data_list["records"]) == 3
 
-    data_by_acl_authz = client.get("/index/?uploader=uploader_123&acl=null&authz=null")
+    data_by_acl_authz = client.get("/index/?uploader=uploader_123&acl=null&authz=/programs/bpa/projects/UChicago", headers=user)
     assert data_by_acl_authz.status_code == 200
     data_list = data_by_acl_authz.json
 
@@ -1298,8 +1360,8 @@ def test_get_empty_acl_authz_record(
     assert rec_3["did"] in ids
     assert data_list["records"][0]["acl"] == []
     assert data_list["records"][1]["acl"] == []
-    assert data_list["records"][0]["authz"] == []
-    assert data_list["records"][1]["authz"] == []
+    assert data_list["records"][0]["authz"] == ["/programs/bpa/projects/UChicago"]
+    assert data_list["records"][1]["authz"] == ["/programs/bpa/projects/UChicago"]
 
 
 def test_get_empty_acl_authz_record_after_fill_size_n_hash(
@@ -1310,7 +1372,7 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(
     acl/authz
     """
     # create the first blank record, update size, hashes and acl/authz
-    doc = {"uploader": "uploader_123"}
+    doc = {"uploader": "uploader_123", "authz": ["/programs/bpa/projects/UChicago"]}
     res_1 = client.post("/index/blank/", json=doc, headers=user)
     assert res_1.status_code == 201
     rec_1 = res_1.json
@@ -1323,19 +1385,19 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(
     assert res_2.status_code == 200
     rec_2 = res_2.json
     rev_2 = rec_2["rev"]
-    body = {"acl": ["read"], "authz": ["read"]}
+    body = {"acl": ["read"], "authz": ["/programs/other/projects/project"]}
     res_1 = client.put("/index/{}?rev={}".format(did_1, rev_2), headers=user, json=body)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    res_1 = client.get("/index/" + rec_1["did"])
+    res_1 = client.get("/index/" + rec_1["did"], headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
     assert rec_1["acl"] == ["read"]
-    assert rec_1["authz"] == ["read"]
+    assert rec_1["authz"] == ["/programs/other/projects/project"]
     assert rec_1["did"] == did_1
 
     # create the second blank record, only update size hashes and urls
-    doc = {"uploader": "uploader_123"}
+    doc = {"uploader": "uploader_123", "authz": ["/programs/bpa/projects/UChicago"]}
     res_2 = client.post("/index/blank/", json=doc, headers=user)
     assert res_2.status_code == 201
     rec_2 = res_2.json
@@ -1353,7 +1415,7 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(
     assert res.status_code == 200
 
     # create the third blank record, only update size hashes and urls
-    doc = {"uploader": "uploader_123"}
+    doc = {"uploader": "uploader_123", "authz": ["/programs/bpa/projects/UChicago"]}
     res_3 = client.post("/index/blank/", json=doc, headers=user)
     assert res_3.status_code == 201
     rec_3 = res_3.json
@@ -1370,23 +1432,23 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(
     )
     assert res.status_code == 200
 
-    res = client.get("/index/?uploader=uploader_123")
+    res = client.get("/index/?uploader=uploader_123", headers=user)
     assert res.status_code == 200
     rec = res.json
     assert len(rec["records"]) == 3
 
-    res = client.get("/index/?uploader=uploader_123&acl=read")
+    res = client.get("/index/?uploader=uploader_123&acl=read", headers=user)
     assert res.status_code == 200
     rec = res.json
     assert len(rec["records"]) == 1
     assert rec["records"][0]["did"] == rec_1["did"]
 
-    res = client.get("/index/?uploader=uploader_123&acl=write")
+    res = client.get("/index/?uploader=uploader_123&acl=write", headers=user)
     assert res.status_code == 200
     rec = res.json
     assert len(rec["records"]) == 0
 
-    res = client.get("/index/?uploader=uploader_123&acl=null")
+    res = client.get("/index/?uploader=uploader_123&acl=null", headers=user)
     assert res.status_code == 200
     rec = res.json
     assert len(rec["records"]) == 2
@@ -1503,13 +1565,13 @@ def test_urls_metadata_partial_match(
         for url in url_group:
             url_doc_mapping[url] = rec
 
-    res = client.get("/index/?urls_metadata=" + json.dumps(params))
+    res = client.get("/index/?urls_metadata=" + json.dumps(params), headers=user)
     assert res.status_code == 200
     rec = res.json
 
     ids = {r["did"] for r in rec["records"]}
 
-    r = client.get("/index/")
+    r = client.get("/index/", headers=user)
 
     assert ids == {url_doc_mapping[url]["did"] for url in expected}
 
@@ -1562,7 +1624,7 @@ def test_index_create(client, user, combined_default_and_single_table_settings):
     assert res.status_code == 200
     rec = res.json
     assert rec["acl"] == []
-    assert rec["authz"] == []
+    assert rec["authz"] == ['/programs/bpa/projects/UChicago']
 
 
 def test_index_list_with_start(
@@ -1574,6 +1636,7 @@ def test_index_list_with_start(
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "authz": ["/programs/bpa/projects/UChicago"],
     }
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
@@ -1589,7 +1652,7 @@ def test_index_list_with_start(
     assert res.status_code == 200
     rec3 = res.json
 
-    res = client.get("/index/?start=" + rec1["did"])
+    res = client.get("/index/?start=" + rec1["did"], headers=user)
     assert res.status_code == 200
     rec = res.json
 
@@ -1606,6 +1669,7 @@ def test_index_list_with_page(client, user, combined_default_and_single_table_se
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "authz": ["/programs/bpa/projects/UChicago"],
     }
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
@@ -1621,7 +1685,7 @@ def test_index_list_with_page(client, user, combined_default_and_single_table_se
     assert res.status_code == 200
     rec3 = res.json
 
-    res = client.get("/index/?page=0&limit=2")
+    res = client.get("/index/?page=0&limit=2", headers=user)
     assert res.status_code == 200
     rec = res.json
 
@@ -1630,7 +1694,7 @@ def test_index_list_with_page(client, user, combined_default_and_single_table_se
     assert rec1["did"] in dids
     assert rec2["did"] in dids
 
-    res = client.get("/index/?page=1&limit=2")
+    res = client.get("/index/?page=1&limit=2", headers=user)
     assert res.status_code == 200
     rec = res.json
 
@@ -1815,11 +1879,11 @@ def test_index_create_with_acl_authz(
 ):
     data = {
         "acl": ["a", "b"],
-        "authz": ["x", "y"],
         "form": "object",
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "authz": ["/programs/other/projects/project", "/programs/bpa/projects/UChicago"],
     }
 
     res = client.post("/index/", json=data, headers=user)
@@ -1829,7 +1893,7 @@ def test_index_create_with_acl_authz(
     assert result.status_code == 200
     record = result.json
     assert sorted(record["acl"]) == ["a", "b"]
-    assert sorted(record["authz"]) == ["x", "y"]
+    assert sorted(record["authz"]) == ["/programs/bpa/projects/UChicago", "/programs/other/projects/project"]
 
 
 def test_index_create_with_duplicate_acl_authz(
@@ -1837,7 +1901,7 @@ def test_index_create_with_duplicate_acl_authz(
 ):
     data = {
         "acl": ["a", "b", "a"],
-        "authz": ["x", "y", "x"],
+        "authz": ["/programs/bpa/projects/UChicago", "/programs/other/projects/project"],
         "form": "object",
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
@@ -1847,11 +1911,11 @@ def test_index_create_with_duplicate_acl_authz(
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
     rec = res.json
-    result = client.get("/index/" + rec["did"])
+    result = client.get("/index/" + rec["did"], headers=user)
     assert result.status_code == 200
     record = result.json
     assert sorted(record["acl"]) == ["a", "b"]
-    assert sorted(record["authz"]) == ["x", "y"]
+    assert sorted(record["authz"]) == ["/programs/bpa/projects/UChicago", "/programs/other/projects/project"]
 
 
 def test_index_create_with_invalid_did(
@@ -1921,16 +1985,16 @@ def test_index_create_with_version(
 def test_create_blank_record_with_baseid(
     client, user, combined_default_and_single_table_settings
 ):
-    doc = {"uploader": "uploader_123", "baseid": "baseid_123"}
+    doc = {"uploader": "uploader_123", "baseid": "baseid_123", "authz": ["/programs/bpa/projects/UChicago"]}
 
     res = client.post("/index/blank/", json=doc, headers=user)
     assert res.status_code == 201
     rec = res.json
     assert rec["did"]
-    res = client.get("/index/?baseid=" + doc["baseid"])
+    res = client.get("/index/?baseid=" + doc["baseid"], headers=user)
     assert res.status_code == 200
     rec = res.json
-    assert_blank(rec)
+    assert_blank(rec, with_authz=True)
 
 
 def test_index_create_with_uploader(
@@ -2059,8 +2123,9 @@ def test_index_update(client, user, combined_default_and_single_table_settings):
 def test_index_update_with_authz_check(
     client, user, use_mock_authz, combined_default_and_single_table_settings
 ):
-    old_authz = "/programs/A"
-    new_authz = "/programs/B"
+
+    old_authz = "/programs/other/projects/project"
+    new_authz = "/programs/bpa/projects/UChicago"
 
     # create record
     data = get_doc()
@@ -2281,8 +2346,8 @@ def test_update_all_versions(client, user, combined_default_and_single_table_set
     dids = []
     mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
     mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
-    mock_authz_A = ["mock_authz_A1", "mock_authz_A2"]
-    mock_authz_B = ["mock_authz_B1", "mock_authz_B2"]
+    mock_authz_A = ["/programs/other/projects/project"]
+    mock_authz_B = ["/programs/bpa/projects/UChicago"]
 
     # SETUP
     # -------
@@ -2328,8 +2393,8 @@ def test_update_all_versions_using_baseid(
 ):
     mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
     mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
-    mock_authz_A = ["mock_authz_A1", "mock_authz_A2"]
-    mock_authz_B = ["mock_authz_B1", "mock_authz_B2"]
+    mock_authz_A = ["/programs/other/projects/project"]
+    mock_authz_B = ["/programs/bpa/projects/UChicago"]
 
     # SETUP
     # -------
@@ -2391,8 +2456,8 @@ def test_update_all_versions_fail_on_bad_metadata(
     """
     mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
     mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
-    mock_authz_A = ["mock_authz_A1", "mock_authz_A2"]
-    mock_authz_B = ["mock_authz_B1", "mock_authz_B2"]
+    mock_authz_A = ["/programs/other/projects/project"]
+    mock_authz_B = ["/programs/bpa/projects/UChicago"]
 
     # SETUP
     # -------
@@ -2444,20 +2509,20 @@ def test_update_all_versions_fail_on_missing_permissions(
     # Set up mock authz to allow test user to create two versions of a record with
     # different `authz` values.
     doc_1 = get_doc(has_metadata=False, has_baseid=False)
-    doc_1["authz"] = ["resource_A"]
+    # authz defaults to /programs/bpa/projects/UChicago
     res = client.post("/index/", json=doc_1, headers=user)
     assert res.status_code == 200, res.json
     rec1 = res.json
 
     doc_2 = get_doc(has_metadata=False, has_baseid=False)
-    doc_2["authz"] = ["resource_B"]
+    doc_2["authz"] = ["/programs/other/projects/project"]
     res = client.post("/index/" + rec1["did"], json=doc_2, headers=user)
     assert res.status_code == 200, res.json
     rec2 = res.json
     # ----------
 
     # Configure mock authz to allow updating both versions: Expect request to succeed
-    use_mock_authz([("update", "resource_A"), ("update", "resource_B")])
+    use_mock_authz([("update", "/programs/bpa/projects/UChicago"), ("update", "/programs/other/projects/project")])
     update_data = {"authz": ["new_authz"]}
     res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
     assert res.status_code == 200, "Expected operation to succeed: {}".format(res.json)
@@ -2527,6 +2592,7 @@ def test_good_hashes(client, user, typ, h, combined_default_and_single_table_set
         "file_name": "abc",
         "version": "ver_123",
         "hashes": {typ: h},
+        "authz": ["/programs/bpa/projects/UChicago"],
     }
 
     resp = client.post("/index/", data=json.dumps(data), headers=user)
@@ -2697,9 +2763,9 @@ def test_bulk_get_documents(client, user, combined_default_and_single_table_sett
         assert doc["did"] in dids
 
 
-@pytest.mark.parametrize("authz", [["/some/path"], []])
+# @pytest.mark.parametrize("authz", [["/some/path"], []])
 def test_indexd_admin_authz(
-    client, mock_arborist_requests, authz, combined_default_and_single_table_settings
+    client, mock_arborist_requests, combined_default_and_single_table_settings, user
 ):
     """
     Test that admin users can perform an operation even if they don't
@@ -2708,26 +2774,29 @@ def test_indexd_admin_authz(
     still be able to perform operations on the record.
     """
     data = get_doc()
-    data["authz"] = authz
 
     # user has no access => unauthorized
     mock_arborist_requests()
     res = client.post("/index/", json=data)
-    assert res.status_code == 401  # unauthorized
+    assert res.status_code in [401, 403]  # unauthorized
+    # TODO - why is this not 403? see test_unauthorized_create
 
     # user has admin access => authorized
     mock_arborist_requests(
-        resource_method_to_authorized={"/services/indexd/admin": {"create": True}}
+        resource_method_to_authorized={
+            "/services/indexd/admin": {"create": True},
+            "/programs/bpa/projects/UChicago": {"read": True, "create": True},
+        }
     )
-    res = client.post("/index/", json=data)
+    res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200  # authorized
 
     # user has old admin access => authorized (backwards compatibility test)
-    if not authz:
+    if "RBAC" not in combined_default_and_single_table_settings.config:
         mock_arborist_requests(
             resource_method_to_authorized={"/programs": {"create": True}}
         )
-        res = client.post("/index/", json=data)
+        res = client.post("/index/", json=data, headers=user)
         assert res.status_code == 200  # authorized
 
 

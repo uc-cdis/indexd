@@ -1,4 +1,7 @@
 import re
+import sys
+import traceback
+
 import flask
 import jsonschema
 
@@ -164,12 +167,21 @@ def handle_user_error(err):
 
 @blueprint.errorhandler(AuthError)
 def handle_auth_error(err):
+    print(f"AuthError: {err}", file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
     return flask.jsonify(error=str(err)), 403
 
 
 @blueprint.errorhandler(RevisionMismatch)
 def handle_revision_mismatch(err):
     return flask.jsonify(error=str(err)), 409
+
+
+@blueprint.errorhandler(Exception)
+def handle_uncaught_exception(err):
+    print(f"Uncaught Exception: {err}", file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
+    return flask.jsonify(error=f"Internal server error {type(err)} {err}"), 500
 
 
 @blueprint.record
