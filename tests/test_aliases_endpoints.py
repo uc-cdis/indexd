@@ -1,3 +1,6 @@
+import sys
+from typing import Iterable
+
 import pytest
 import string
 import json
@@ -25,9 +28,17 @@ def to_payload(aliases):
 def payload_to_list(alias_payload):
     """
     Unboxes a JSON payload object expected by the server into
-    a list of alias names.
+    a list of alias names.  Ensure that returned value is a list of str not a list of lists
     """
     return [record["value"] for record in alias_payload["aliases"]]
+    # result = []
+    # for record in alias_payload["aliases"]:
+    #     value = record["value"]
+    #     if isinstance(value, str):
+    #         result.append(value)
+    #     elif isinstance(value, Iterable) and not isinstance(value, str):
+    #         result.extend(value)
+    # return result
 
 
 def create_record(client, user):
@@ -40,6 +51,7 @@ def create_record(client, user):
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
         "metadata": {"project_id": "bpa-UChicago"},
+        "authz": ["/programs/bpa/projects/UChicago"],
     }
     res = client.post("/index/", json=document, headers=user)
     assert res.status_code == 200
@@ -102,7 +114,9 @@ def test_global_endpoint_valid_alias(client, guid, aliases):
     expect query for alias on global endpoint to return the record associated with alias
     """
     for alias in aliases:
+        print("/" + url_encode(alias), file=sys.stderr)
         res = client.get("/" + url_encode(alias))
+        print(res.text, file=sys.stderr)
         assert res.status_code == 200, res.text
         record = res.get_json()
         assert record["did"] == guid, f"Did not retrieve correct record for alias"
@@ -128,7 +142,7 @@ def test_global_endpoint_alias_guid_collision(client, guid, aliases, user):
     # assign an alias with the value of guid_B to guid_A
     aliases_payload = to_payload([guid_B])
     res = client.post(get_endpoint(guid_A), json=aliases_payload, headers=user)
-    assert res.status_code == 200, res.text
+    assert res.status_code == 200, (get_endpoint(guid_A), res.text)
 
     # expect that a search for value of guid_B on the global endpoint should resolve
     # to guid_B's record, not to guid_A's record
@@ -153,7 +167,7 @@ def test_global_endpoint_alias_endpoint_collision(client, guid, aliases, user):
 
     # when we query "index", we expect to see the "index" endpoint, not
     # an alias.
-    res = client.get("index")
+    res = client.get("index", headers=user)
     assert res.status_code == 200, res.text
     body = res.get_json()
     body_is_not_record = body.get("did") is None
@@ -181,7 +195,9 @@ def test_GET_aliases_valid_GUID(client, guid, aliases):
     alias_endpoint = get_endpoint(guid)
     res = client.get(alias_endpoint)
     assert res.status_code == 200, res.text
+    print("DEBUG aliases_in_db", alias_endpoint, res.text, file=sys.stderr)
     aliases_in_db = payload_to_list(res.get_json())
+    print("DEBUG aliases_in_db", alias_endpoint, aliases_in_db, file=sys.stderr)
     expected_aliases = aliases
     assert set(aliases_in_db) == set(expected_aliases)
 
@@ -252,14 +268,15 @@ def test_POST_aliases_nonunique_aliases(client, user, guid, aliases, unused_alia
     res = client.post(
         get_endpoint(guid_B), json=to_payload(unused_aliases), headers=user
     )
-    assert res.status_code == 200, res.text
 
+    assert res.status_code == 200, res.text
+    print("DEBUG aliases_in_db guid_B", res.text, file=sys.stderr)
     # expect that an attempt to add unused_aliases to guid_A
     # will fail, as aliases are already assigned to guid_B
     res = client.post(
         get_endpoint(guid_A), json=to_payload(unused_aliases), headers=user
     )
-    assert res.status_code == 409, res.json
+    assert res.status_code == 409, (get_endpoint(guid_A), res.json)
 
     # expect aliases that were already associated with guid_A to be unchanged.
     res = client.get(get_endpoint(guid_A))
@@ -304,7 +321,7 @@ def test_POST_aliases_duplicate_aliases_in_request(
     res = client.post(
         get_endpoint(guid), json=to_payload(duplicated_new_aliases), headers=user
     )
-    assert res.status_code == 409, res.json
+    assert res.status_code == 409, (get_endpoint(guid), res.json)
 
     # expect aliases in db to be unchanged
     res = client.get(get_endpoint(guid))
@@ -386,7 +403,7 @@ def test_PUT_aliases_unauthenticated(client, user, guid, aliases, unused_aliases
     new_aliases_payload = to_payload(new_aliases)
 
     res = client.put(get_endpoint(guid), json=new_aliases_payload)
-    assert res.status_code == 403, res.text
+    assert res.status_code == 403, (get_endpoint(guid), res.text)
 
     bad_user = {
         "Authorization": "Basic badpassword",
@@ -426,7 +443,7 @@ def test_PUT_aliases_nonunique_aliases(client, user, guid, aliases, unused_alias
     # expect that an attempt to add the original set of random aliases
     # will fail, as some of the aliases are already assigned to a different GUID.
     res = client.put(get_endpoint(guid), json=to_payload(new_aliases), headers=user)
-    assert res.status_code == 409, res.json
+    assert res.status_code == 409, (get_endpoint(guid), res.json)
 
     # expect aliases that were already associated with GUID to be unchanged.
     res = client.get(get_endpoint(guid))
@@ -506,7 +523,7 @@ def test_PUT_aliases_duplicate_aliases_in_request(
     res = client.put(
         get_endpoint(guid), json=to_payload(duplicated_new_aliases), headers=user
     )
-    assert res.status_code == 409, res.json
+    assert res.status_code == 409, (get_endpoint(guid), res.json)
 
 
 def test_PUT_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
@@ -597,9 +614,11 @@ def test_DELETE_one_alias_valid_GUID(client, user, guid, aliases):
     assert res.status_code == 200, res.text
 
     # expect that alias to no longer be in this guid's aliases
-    res = client.get(get_endpoint(guid))
+    res = client.get(get_endpoint(guid), headers=user)
     aliases_in_db = payload_to_list(res.get_json())
     expected_aliases = [a for a in aliases if a != alias_to_delete]
+    print("DEBUG aliases_in_db", aliases_in_db, file=sys.stderr)
+    print("DEBUG expected_aliases", expected_aliases, file=sys.stderr)
     assert set(aliases_in_db) == set(expected_aliases)
 
 

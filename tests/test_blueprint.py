@@ -107,3 +107,39 @@ def test_flask_blueprint_invalid_alias_config():
         app.register_blueprint(indexd_alias_blueprint)
 
     app.register_blueprint(indexd_index_blueprint)
+
+
+@util.removes("alias.sq3")
+def test_flask_blueprint_index_rbac():
+    """
+    Tests standing up the server using flask with RBAC enabled.
+    """
+    app = flask.Flask(__name__)
+
+    app.config["INDEX"] = INDEX_CONFIG
+    app.config["ALIAS"] = ALIAS_CONFIG
+    app.config["DIST"] = []
+    app.config["RBAC"] = True
+
+    app.register_blueprint(indexd_index_blueprint)
+
+    assert indexd_index_blueprint.rbac
+
+
+@util.removes("alias.sq3")
+def test_flask_blueprint_index_no_rbac():
+    """
+    Tests standing up the server using flask with RBAC disabled.
+    """
+    app = flask.Flask(__name__)
+
+    app.config["INDEX"] = INDEX_CONFIG
+    app.config["ALIAS"] = ALIAS_CONFIG
+    app.config["DIST"] = []
+
+    app.register_blueprint(indexd_index_blueprint)
+
+    assert indexd_index_blueprint.rbac is False
+
+    with pytest.raises(Exception):
+        print(indexd_index_blueprint.foobar)

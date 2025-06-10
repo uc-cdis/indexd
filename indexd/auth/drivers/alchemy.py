@@ -1,4 +1,5 @@
 import hashlib
+import sys
 
 from contextlib import contextmanager
 
@@ -102,6 +103,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         Returns a dict of user information.
         Raises AutheError otherwise.
         """
+        print("DEBUG auth called with username: {}, password: {}".format(username, password), file=sys.stderr)
         password = self.digest(password)
         with self.session as session:
             query = session.query(AuthRecord)
@@ -114,7 +116,9 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
 
             try:
                 query.one()
+                print("DEBUG auth OK", file=sys.stderr)
             except NoResultFound as err:
+                print("DEBUG auth AuthError username / password mismatch", file=sys.stderr)
                 raise AuthError("username / password mismatch")
 
         context = {
@@ -125,6 +129,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         return context
 
     def authz(self, method, resource):
+        print("DEBUG authz called with method: {}, resource: {}".format(method, resource), file=sys.stderr)
         if not self.arborist:
             raise AuthError(
                 "Arborist is not configured; cannot perform authorization check"
@@ -133,18 +138,27 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         try:
             # A successful call from arborist returns a bool, else returns ArboristError
             try:
+                token = get_jwt_token()
+                if not token:
+                    raise AuthzError("No JWT token found for authorization check")
                 authorized = self.arborist.auth_request(
-                    get_jwt_token(), "indexd", method, resource
+                    token, "indexd", method, resource
                 )
             except Exception as e:
                 logger.error(
                     f"Request to Arborist failed; now checking admin access. Details:\n{e}"
                 )
+                print(f"DEBUG Request to Arborist failed; now checking admin access. Details:\n{e}", file=sys.stderr)
                 authorized = False
+
+            print(f"DEBUG authorized {('indexd', method, resource)} {authorized}", file=sys.stderr)
             if not authorized:
+                token = get_jwt_token()
+                if not token:
+                    raise AuthError("No JWT token found for authorization check")
                 # admins can perform all operations
                 is_admin = self.arborist.auth_request(
-                    get_jwt_token(), "indexd", method, ["/services/indexd/admin"]
+                    token, "indexd", method, ["/services/indexd/admin"]
                 )
                 if not is_admin and not resource:
                     # if `authz` is empty (no `resource`), admin == access to
@@ -157,7 +171,38 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                             "The indexd admin '/programs' logic is deprecated. Please update your policy to '/services/indexd/admin'"
                         )
                 if not is_admin:
-                    raise AuthError("Permission denied.")
+                    raise AuthError("Permission denied. (not is_admin)")
+        except AuthError as err:
+            logger.error(err)
+            raise err
+        except AuthzError as err:
+            logger.error(err)
+            raise err
         except Exception as err:
             logger.error(err)
             raise AuthzError(err)
+
+    def resources(self):
+        """
+        Returns a list of resources for the given user.
+        """
+        print("DEBUG resources called", file=sys.stderr)
+        if not self.arborist:
+            raise AuthError(
+                "Arborist is not configured; cannot perform authorization check"
+            )
+        print("DEBUG resources calling get_jwt_token", file=sys.stderr)
+        token = get_jwt_token()
+        print(f"DEBUG resources calling auth_mapping {token}", file=sys.stderr)
+        try:
+            _ = self.arborist.auth_mapping(
+                jwt=token
+            )
+            print(("DEBUG resources called auth_mapping got", _), file=sys.stderr)
+            return _
+        except Exception as err:
+            print(f"DEBUG request failed with {err}", file=sys.stderr)
+            raise AuthError(
+                "Failed to get resources from Arborist. Please check your Arborist configuration."
+            )
+

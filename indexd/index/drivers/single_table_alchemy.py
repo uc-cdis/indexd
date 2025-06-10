@@ -1,4 +1,5 @@
 import datetime
+import sys
 import uuid
 
 from cdislogging import get_logger
@@ -644,6 +645,9 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             self.logger.info(
                 f"Trying to append new aliases {aliases} to aliases for did {did}..."
             )
+            print(
+                f"DEBUG append_aliases_for_did Trying to append new aliases {aliases} to aliases for did {did}...", file=sys.stderr
+            )
 
             index_record = get_record_if_exists(did, session)
             if index_record is None:
@@ -665,7 +669,23 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record = query.one()
 
             try:
-                record.alias = record.alias + aliases
+                record.alias = record.alias or [] + aliases
+                # for alias in aliases:
+                #     try:
+                #         if self.get_by_alias(alias):
+                #             raise IntegrityError(f"Duplicated aliases found: {alias}", None, None)
+                #     except NoRecordFound:
+                #         # No existing record found for this alias, continue
+                #         pass
+                #     except MultipleRecordsFound:
+                #         raise IntegrityError(f"Duplicated aliases found: {alias}", None, None)
+                #
+                # print("DEBUG append_aliases_for_did: record.alias", record.alias, aliases, file=sys.stderr)
+                # existing_aliases = record.alias or []
+                # duplicated_aliases = set(aliases) - set(existing_aliases)
+                # if len(duplicated_aliases) != len(aliases):
+                #     raise IntegrityError(f"Duplicated aliases found: {duplicated_aliases}", None, None)
+                # record.alias = existing_aliases + aliases
                 session.commit()
             except IntegrityError as err:
                 # One or more aliases in request were non-unique
@@ -775,7 +795,9 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record = query.one()
             # delete just this alias
             if alias in record.alias:
+                print("DEBUG delete_one_alias_for_did: record.alias", record.alias, alias, file=sys.stderr)
                 record.alias.remove(alias)
+                print("DEBUG delete_one_alias_for_did: AFTER record.alias", record.alias, alias, file=sys.stderr)
                 session.commit()
             else:
                 self.logger.warning(f"No alias {alias} found for did {did}")

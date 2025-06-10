@@ -37,6 +37,7 @@ def get_doc(
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "authz": ["/programs/bpa/projects/UChicago"],
     }
     if has_version:
         doc["version"] = "1"

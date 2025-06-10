@@ -35,9 +35,11 @@ python3 -m venv py38-venv
 You can install Poetry.  Make sure the virtual environment is activated.
 
 ```console
+# Note: this method is deprecated, returns a 404.
 curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
 source $HOME/.poetry/env
 ```
+See [poetry docs](https://python-poetry.org/docs/#installing-with-pipx)
 
 You can install python dependencies using Poetry:
 
@@ -72,7 +74,22 @@ sudo pg_ctlcluster 12 main start
 If you're on mac, you can install postgres using brew:
 
 ```console
-brew install postgres
+brew install postgresql
+```
+Start the PostgreSQL service: Use Homebrew to start the PostgreSQL service:
+
+```console
+# start
+brew services start postgresql
+
+# verify
+brew services list
+
+# connect
+psql postgres
+
+# stop 
+brew services stop postgresql
 ```
 
 You may also need to create a user.

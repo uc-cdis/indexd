@@ -4,6 +4,7 @@ for backwards compatibility, but any new migration should be added using Alembic
 """
 
 
+
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 import sqlite3
