@@ -3,6 +3,14 @@ These are tests for the old migration logic, which is DEPRECATED. It is still su
 for backwards compatibility, but any new migration should be added using Alembic.
 """
 
+import pytest
+
+from tests.conftest import skip_not_rbac_compatible
+
+pytestmark = pytest.mark.skipif(
+    skip_not_rbac_compatible, reason="Skipping - not RBAC compatible"
+)
+
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine

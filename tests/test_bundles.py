@@ -28,6 +28,7 @@ def get_index_doc(has_version=True, urls=list(), add_bundle=False):
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "authz": ["/programs/bpa/projects/UChicago"],
     }
     if has_version:
         doc["version"] = "1"
@@ -421,19 +422,19 @@ def test_get_bundle_list(client, user, combined_default_and_single_table_setting
         res2 = client.post("/bundle/", json=data, headers=user)
         assert res2.status_code == 200
 
-    res3 = client.get("/bundle/")
+    res3 = client.get("/bundle/", headers=user)
     assert res3.status_code == 200
     rec3 = res3.json
     assert len(rec3["records"]) == n_bundles
     # check to see bundle_data is not included
     assert "bundle_data" not in rec3["records"][0]
 
-    res4 = client.get("/bundle/?form=object")
+    res4 = client.get("/bundle/?form=object", headers=user)
     assert res4.status_code == 200
     rec4 = res4.json
     assert len(rec4["records"]) == n_records
 
-    res5 = client.get("/bundle/?form=all")
+    res5 = client.get("/bundle/?form=all", headers=user)
     assert res5.status_code == 200
     rec5 = res5.json
     assert len(rec5["records"]) == n_records + n_bundles
@@ -482,7 +483,7 @@ def test_bundle_delete(client, user, combined_default_and_single_table_settings)
         res2 = client.post("/bundle/", json=data, headers=user)
         assert res2.status_code == 200
 
-    res3 = client.get("/bundle/")
+    res3 = client.get("/bundle/", headers=user)
     assert res3.status_code == 200
     rec3 = res3.json
     assert len(rec3["records"]) == n_records
@@ -490,10 +491,10 @@ def test_bundle_delete(client, user, combined_default_and_single_table_settings)
     for i in range(n_delete):
         res4 = client.delete("/bundle/" + bundle_ids[i], headers=user)
         assert res4.status_code == 200
-        res5 = client.get("/bundle/" + bundle_ids[i])
+        res5 = client.get("/bundle/" + bundle_ids[i], headers=user)
         assert res5.status_code == 404
 
-    res3 = client.get("/bundle/")
+    res3 = client.get("/bundle/", headers=user)
     assert res3.status_code == 200
     rec3 = res3.json
     assert len(rec3["records"]) == n_records - n_delete
