@@ -60,22 +60,17 @@ def get_record(record):
     """
 
     try:
-        print("DEBUG: index_driver.get_with_nonstrict_prefix", file=sys.stderr)
         ret = blueprint.index_driver.get_with_nonstrict_prefix(record)
     except IndexNoRecordFound:
         try:
-            print("DEBUG: alias_driver.get_by_alias", file=sys.stderr)
             ret = blueprint.index_driver.get_by_alias(record)
         except IndexNoRecordFound:
             try:
-                print("DEBUG: alias_driver.get", file=sys.stderr)
                 ret = blueprint.alias_driver.get(record)
             except AliasNoRecordFound:
                 if not blueprint.dist or "no_dist" in flask.request.args:
                     raise
-                print("DEBUG: dist_get_record", file=sys.stderr)
                 ret = dist_get_record(record)
-    print("DEBUG: get_record", record, ret, file=sys.stderr)
     return flask.jsonify(ret), 200
 
 
