@@ -1,5 +1,7 @@
 import os
 import re
+import sys
+
 import flask
 import json
 from indexd.errors import AuthError, AuthzError
@@ -7,6 +9,7 @@ from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
 from indexd.utils import reverse_url
+import traceback
 
 blueprint = flask.Blueprint("drs", __name__)
 
@@ -369,6 +372,13 @@ def handle_unexpected_error(err):
     return flask.jsonify(ret), err.code
 
 
+@blueprint.errorhandler(Exception)
+def handle_uncaught_exception(err):
+    print(f"Uncaught Exception: {err}", file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
+    return flask.jsonify(error=f"Internal server error"), 500
+
+
 @blueprint.record
 def get_config(setup_state):
     index_config = setup_state.app.config["INDEX"]
@@ -379,3 +389,6 @@ def get_config(setup_state):
 def get_config(setup_state):
     if "DRS_SERVICE_INFO" in setup_state.app.config:
         blueprint.service_info = setup_state.app.config["DRS_SERVICE_INFO"]
+    blueprint.rbac = False
+    if "RBAC" in setup_state.app.config:
+        blueprint.rbac = setup_state.app.config["RBAC"]

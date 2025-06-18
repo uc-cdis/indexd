@@ -58,47 +58,10 @@ def validate_hashes(**hashes):
 
 
 @blueprint.route("/index/", methods=["GET"])
-def get_index(form=None, ):
+def get_index(form=None):
     """
     Returns a list of records.
     """
-
-    # experimental: check authz
-    authz = flask.request.args.get("authz")
-    if blueprint.rbac:
-
-        try:
-            print(f"DEBUG get_index blueprint.rbac {blueprint}", file=sys.stderr)
-            # convert authz to a list if it is a string
-            if authz is not None:
-                authz = [] if authz == "null" else authz.split(",")
-            else:
-                authz = []
-            # get the user's authorized resources from Arborist
-            authorized_resources = _get_authorized_resources()
-
-            if authz:
-                # if authz is provided, we need to check if the user is authorized for the given resources
-                _check_user_access(authorized_resources, authz)
-                authz = ",".join(authz)
-            elif not authz:
-                # if no authz is provided, use the user's authorized resources
-                # We add the prefix "OR:" to indicate that we want to match all
-                authz = "OR:" + ",".join(authorized_resources)
-
-            # TODO - remove? this is a test of the mock arborist call
-            print(f"DEBUG get_index trying to authorize with {authorized_resources}", file=sys.stderr)
-            auth.authorize("read", authorized_resources)
-
-            # print(f"DEBUG get_index authorized {authorized_resources}", file=sys.stderr)
-            # # cast back to string
-            # authz = ",".join(_resource_to_program_id(authz)) if authz else None
-        except (AuthzError, AuthError) as err:
-            print(f"DEBUG Got Error {type(err)} {err}", file=sys.stderr)
-            raise err
-    else:
-        print(f"DEBUG get_index !blueprint.rbac {blueprint}", file=sys.stderr)
-
     limit = flask.request.args.get("limit")
     start = flask.request.args.get("start")
     page = flask.request.args.get("page")
@@ -152,17 +115,9 @@ def get_index(form=None, ):
     if acl is not None:
         acl = [] if acl == "null" else acl.split(",")
 
-    print(f"DEBUG get_index before inline check authz: {authz}", file=sys.stderr)
-
-    multiple_authz = False
+    authz = flask.request.args.get("authz")
     if authz is not None:
-        if authz.startswith("OR:"):
-            # if authz starts with OR:, it means multiple authz are provided
-            multiple_authz = True
-            authz = authz[3:]
         authz = [] if authz == "null" else authz.split(",")
-
-    print(f"DEBUG get_index authz: {authz}", file=sys.stderr)
 
     urls_metadata = flask.request.args.get("urls_metadata")
     if urls_metadata:
@@ -184,107 +139,42 @@ def get_index(form=None, ):
             start=start, limit=limit, page=page
         )
     elif form == "all":
-        records = []
-        if multiple_authz:
-            for authz_item in authz:
-                records.extend(blueprint.index_driver.get_bundle_and_object_list(
-                    limit=limit,
-                    page=page,
-                    start=start,
-                    size=size,
-                    urls=urls,
-                    acl=acl,
-                    authz=[authz_item],
-                    hashes=hashes,
-                    file_name=file_name,
-                    version=version,
-                    uploader=uploader,
-                    metadata=metadata,
-                    ids=ids,
-                    urls_metadata=urls_metadata,
-                    negate_params=negate_params,
-                ))
-                if len(records) >= limit:
-                    # if we have enough records, we can stop
-                    break
-        else:
-            records = blueprint.index_driver.get_bundle_and_object_list(
-                limit=limit,
-                page=page,
-                start=start,
-                size=size,
-                urls=urls,
-                acl=acl,
-                authz=authz,
-                hashes=hashes,
-                file_name=file_name,
-                version=version,
-                uploader=uploader,
-                metadata=metadata,
-                ids=ids,
-                urls_metadata=urls_metadata,
-                negate_params=negate_params,
-            )
+        records = blueprint.index_driver.get_bundle_and_object_list(
+            limit=limit,
+            page=page,
+            start=start,
+            size=size,
+            urls=urls,
+            acl=acl,
+            authz=authz,
+            hashes=hashes,
+            file_name=file_name,
+            version=version,
+            uploader=uploader,
+            metadata=metadata,
+            ids=ids,
+            urls_metadata=urls_metadata,
+            negate_params=negate_params,
+        )
 
-        # de-duplicate records
-        seen = set()
-        deduplicated_records = []
-        for record in records:
-            if "id" not in record and "did" not in record:
-                print(f"DEBUG get_index record {record} does not have a 'id' or 'did' field", file=sys.stderr)
-                raise UserError("Record does not have a 'id' or 'did' field")
-            record_id = record.get("id", record.get("did"))
-            if record_id not in seen:
-                deduplicated_records.append(record)
-            seen.add(record_id)
-        records = deduplicated_records
     else:
-        records = []
-        if multiple_authz:
-            # if multiple authz are provided, we need to iterate over them
-            print(f"DEBUG get_index index_driver.ids multiple_authz: {authz}", file=sys.stderr)
-            for authz_item in authz:
-                records.extend(
-                    blueprint.index_driver.ids(
-                        start=start,
-                        limit=limit,
-                        page=page,
-                        size=size,
-                        file_name=file_name,
-                        version=version,
-                        urls=urls,
-                        acl=acl,
-                        authz=[authz_item],
-                        hashes=hashes,
-                        uploader=uploader,
-                        ids=ids,
-                        metadata=metadata,
-                        urls_metadata=urls_metadata,
-                        negate_params=negate_params,
-                    )
-                )
-                if len(records) >= limit:
-                    # if we have enough records, we can stop
-                    break
-        else:
-            print(f"DEBUG get_index index_driver.ids single authz: {authz}", file=sys.stderr)
-            records = blueprint.index_driver.ids(
-                start=start,
-                limit=limit,
-                page=page,
-                size=size,
-                file_name=file_name,
-                version=version,
-                urls=urls,
-                acl=acl,
-                authz=authz,
-                hashes=hashes,
-                uploader=uploader,
-                ids=ids,
-                metadata=metadata,
-                urls_metadata=urls_metadata,
-                negate_params=negate_params,
-            )
+        records = blueprint.index_driver.ids(
+            start=start,
+            limit=limit,
+            page=page,
+            size=size,
+            file_name=file_name,
+            version=version,
+            urls=urls,
+            acl=acl,
+            authz=authz,
+            hashes=hashes,
+            uploader=uploader,
+            ids=ids,
+            metadata=metadata,
+            urls_metadata=urls_metadata,
+            negate_params=negate_params,
+        )
 
     base = {
         "ids": ids,
@@ -303,28 +193,6 @@ def get_index(form=None, ):
         "urls_metadata": urls_metadata,
     }
     return flask.jsonify(base), 200
-
-
-def _check_user_access(authorized_resources: list[str], authz: list[str]) -> None:
-    """Raise an AuthzError if the user is not authorized for the given resources."""
-    for resource in authz:
-        if resource not in authorized_resources:
-            raise AuthzError(
-                f"User is not authorized for project {resource}"
-            )
-
-
-def _get_authorized_resources():
-    """Retrieve the user's authorized resources from Arborist."""
-    print(f"DEBUG get_index retrieving user's authorization", file=sys.stderr)
-    if not flask.request.authorization:
-        raise AuthError("Authorization header is required for RBAC")
-    token = flask.request.headers.get("Authorization")
-    if token is None:
-        raise AuthError("Authorization header is required for RBAC")
-    authorized_resources = [_ for _ in auth.resources().keys()]
-    print(f"DEBUG get_index authorized_resources {authorized_resources}", file=sys.stderr)
-    return authorized_resources
 
 
 @blueprint.route("/urls/", methods=["GET"])
@@ -438,7 +306,6 @@ def replace_aliases(record):
     aliases = [record["value"] for record in aliases_json["aliases"]]
 
     # authorization and error handling done in driver
-    print("DEBUG replace_aliases", aliases, record, file=sys.stderr)
     blueprint.index_driver.replace_aliases_for_did(aliases, record)
 
     aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
@@ -528,15 +395,7 @@ def post_index_record():
         raise UserError(err)
 
     authz = flask.request.json.get("authz", [])
-
-    if blueprint.rbac:
-        if not authz:
-            raise AuthzError("authz must be provided")
-        authorized_resources = _get_authorized_resources()
-        _check_user_access(authorized_resources, authz)
-    else:
-        auth.authorize("create", authz)
-        print(f"DEBUG post_index_record authorize: {authz}", file=sys.stderr)
+    auth.authorize("create", authz)
 
     did = flask.request.json.get("did")
     form = flask.request.json["form"]
@@ -960,17 +819,11 @@ def handle_multiple_records_error(err):
 
 @blueprint.errorhandler(UserError)
 def handle_user_error(err):
-    print(f"DEBUG handle_user_error {err}", file=sys.stderr)
-    import traceback
-    traceback.print_exc(file=sys.stderr)
     return flask.jsonify(error=str(err)), 400
 
 
 @blueprint.errorhandler(AuthError)
 def handle_auth_error(err):
-    print(f"DEBUG handle_auth_error {err}", file=sys.stderr)
-    import traceback
-    traceback.print_exc(file=sys.stderr)
     return flask.jsonify(error=str(err)), 403
 
 
@@ -1009,5 +862,4 @@ def get_config(setup_state):
         blueprint.dist = setup_state.app.config["DIST"]
     blueprint.rbac = False
     if "RBAC" in setup_state.app.config:
-        print(f"DEBUG get_config RBAC {setup_state.app.config['RBAC']}", file=sys.stderr)
         blueprint.rbac = setup_state.app.config["RBAC"]
