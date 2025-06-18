@@ -84,14 +84,14 @@ def test_bundle_get_post_with_optional_fields(
     did = rec2["bundle_id"]
     assert res2.status_code == 200
 
-    res3 = client.get("/ga4gh/drs/v1/objects/" + did)
+    res3 = client.get("/ga4gh/drs/v1/objects/" + did, headers=user)
     rec3 = res3.json
     assert res3.status_code == 200
     assert rec3["description"] == data["description"]
     assert rec3["version"] == data["version"]
     assert rec3["aliases"] == data["aliases"]
 
-    res4 = client.get("/bundle/" + did)
+    res4 = client.get("/bundle/" + did, headers=user)
     rec4 = res4.json
     assert res4.status_code == 200
     assert rec4["description"] == data["description"]
@@ -103,7 +103,7 @@ def test_bundle_get_post_with_optional_fields(
     res5 = client.post("/bundle/", json=data2, headers=user)
     did2 = res5.json["bundle_id"]
     assert res5.status_code == 200
-    res6 = client.get("/bundle/" + did2 + "?expand=true")
+    res6 = client.get("/bundle/" + did2 + "?expand=true", headers=user)
     rec6 = res6.json
     contents = rec6["contents"]
     for content in contents:
@@ -163,7 +163,7 @@ def test_bundle_post_different_checksum_types(
     }
     res = client.post("/bundle/", json=data, headers=user)
     assert res.status_code == 200
-    res1 = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
+    res1 = client.get("/ga4gh/drs/v1/objects/" + bundle_id, headers=user)
     rec1 = res1.json
     assert rec1["checksums"][0] == {
         "checksum": "85136c79cbf9fe36bb9d05d0639c70c265c18d37",
@@ -191,7 +191,7 @@ def test_bundle_post_multiple_checksum_types(
     res = client.post("/bundle/", json=data, headers=user)
     assert res.status_code == 200
 
-    res = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
+    res = client.get("/ga4gh/drs/v1/objects/" + bundle_id, headers=user)
     rec = res.json
     checksums = rec["checksums"]
     for checksum in checksums:
@@ -231,7 +231,7 @@ def test_bundle_post_checksum_with_incorrect_schema(
     res = client.post("/bundle/", json=data, headers=user)
     assert res.status_code == 400
 
-    res = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
+    res = client.get("/ga4gh/drs/v1/objects/" + bundle_id, headers=user)
     assert res.status_code == 404
 
 
@@ -287,7 +287,7 @@ def test_bundle_get(client, user, combined_default_and_single_table_settings):
         +-object1
     """
     did_list, rec = create_index(client, user)
-    res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"])
+    res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"], headers=user)
     rec1 = res1.json
     bundle_id = str(uuid.uuid4())
     data = get_bundle_doc(did_list, bundle_id=bundle_id)
@@ -295,7 +295,7 @@ def test_bundle_get(client, user, combined_default_and_single_table_settings):
     res1 = client.post("/bundle/", json=data, headers=user)
     assert res1.status_code == 200
 
-    res2 = client.get("/bundle/" + bundle_id)
+    res2 = client.get("/bundle/" + bundle_id, headers=user)
     assert res2.status_code == 200
     rec2 = res2.json
 
@@ -313,7 +313,7 @@ def test_bundle_get_form_type(client, user, combined_default_and_single_table_se
     form = bundle when bundle
     """
     did_list, rec = create_index(client, user)
-    res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"])
+    res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"], headers=user)
     rec1 = res1.json
     rec1["form"] = "object"
     bundle_id = str(uuid.uuid4())
@@ -322,7 +322,7 @@ def test_bundle_get_form_type(client, user, combined_default_and_single_table_se
     res1 = client.post("/bundle/", json=data, headers=user)
     assert res1.status_code == 200
 
-    res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
+    res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id, headers=user)
     assert res2.status_code == 200
 
     rec2 = res2.json
@@ -339,7 +339,7 @@ def test_bundle_get_no_bundle_id(
     res1 = client.post("/bundle/", json=data, headers=user)
     assert res1.status_code == 200
 
-    res2 = client.get("/bundle/" + "hc42397hf902-37g4hf970h23479fgh9euwh")
+    res2 = client.get("/bundle/" + "hc42397hf902-37g4hf970h23479fgh9euwh", headers=user)
     assert res2.status_code == 404
 
 
@@ -347,7 +347,7 @@ def test_bundle_get_expand_false(
     client, user, combined_default_and_single_table_settings
 ):
     did_list, rec = create_index(client, user)
-    res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"])
+    res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"], headers=user)
 
     bundle_id = str(uuid.uuid4())
     data = get_bundle_doc(did_list, bundle_id=bundle_id)
@@ -355,7 +355,7 @@ def test_bundle_get_expand_false(
     res1 = client.post("/bundle/", json=data, headers=user)
     assert res1.status_code == 200
 
-    res2 = client.get("/bundle/" + bundle_id + "?expand=false")
+    res2 = client.get("/bundle/" + bundle_id + "?expand=false", headers=user)
     rec2 = res2.json
     assert res2.status_code == 200
     assert rec2["id"] == bundle_id
@@ -373,10 +373,10 @@ def test_redirect_to_bundle_from_index(
     res2 = client.post("/bundle/", json=data, headers=user)
     assert res2.status_code == 200
 
-    res = client.get("/bundle/" + bundle_id)
+    res = client.get("/bundle/" + bundle_id, headers=user)
     assert res.status_code == 200
 
-    res3 = client.get("/index/" + bundle_id)
+    res3 = client.get("/index/" + bundle_id, headers=user)
     assert res3.status_code == 200
 
 
@@ -390,10 +390,10 @@ def test_bundle_from_drs_endpoint(
     res2 = client.post("/bundle/", json=data, headers=user)
     assert res2.status_code == 200
 
-    res = client.get("/bundle/" + bundle_id)
+    res = client.get("/bundle/" + bundle_id, headers=user)
     assert res.status_code == 200
 
-    res3 = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
+    res3 = client.get("/ga4gh/drs/v1/objects/" + bundle_id, headers=user)
     assert res3.status_code == 200
 
 
@@ -459,7 +459,7 @@ def test_multiple_bundle_data(client, user, combined_default_and_single_table_se
     data = get_bundle_doc(did_list, bundle_id=bundle_id)
     res2 = client.post("/bundle/", json=data, headers=user)
     assert res2.status_code == 200
-    res3 = client.get("/bundle/" + bundle_id + "?expand=true")
+    res3 = client.get("/bundle/" + bundle_id + "?expand=true", headers=user)
     assert res3.status_code == 200
 
     rec3 = res3.json
@@ -547,7 +547,7 @@ def test_bundle_data_bundle_and_index(
     res1 = client.post("/bundle/", json=data_main, headers=user)
     assert res1.status_code == 200
 
-    res2 = client.get("/bundle/" + bundle_id_main + "?expand=true")
+    res2 = client.get("/bundle/" + bundle_id_main + "?expand=true", headers=user)
     assert res2.status_code == 200
     rec3 = res2.json
 
@@ -581,7 +581,7 @@ def test_nested_bundle_data(client, user, combined_default_and_single_table_sett
         base_bundle_id = bundle_id
 
     assert base_bundle_id == bundle_id
-    res2 = client.get("/bundle/" + bundle_id + "?expand=true")
+    res2 = client.get("/bundle/" + bundle_id + "?expand=true", headers=user)
     assert res2.status_code == 200
     rec3 = res2.json
 
@@ -673,10 +673,10 @@ def test_get_drs_expand_contents_default(
     client, user, combined_default_and_single_table_settings
 ):
     bundle_id = build_bundle(client, user)
-    res = client.get("/bundle/" + bundle_id)
+    res = client.get("/bundle/" + bundle_id, headers=user)
     assert res.status_code == 200
 
-    res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
+    res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id, headers=user)
     assert res2.status_code == 200
     rec2 = res2.json
 
@@ -688,10 +688,10 @@ def test_get_drs_expand_contents_false(
     client, user, combined_default_and_single_table_settings
 ):
     bundle_id = build_bundle(client, user)
-    res = client.get("/bundle/" + bundle_id)
+    res = client.get("/bundle/" + bundle_id, headers=user)
     assert res.status_code == 200
 
-    res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id + "?expand=false")
+    res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id + "?expand=false", headers=user)
     assert res2.status_code == 200
     rec2 = res2.json
 
@@ -703,10 +703,10 @@ def test_get_drs_expand_contents_true(
     client, user, combined_default_and_single_table_settings
 ):
     bundle_id = build_bundle(client, user)
-    res = client.get("/bundle/" + bundle_id)
+    res = client.get("/bundle/" + bundle_id, headers=user)
     assert res.status_code == 200
 
-    res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id + "?expand=true")
+    res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id + "?expand=true", headers=user)
     assert res2.status_code == 200
     rec2 = res2.json
 

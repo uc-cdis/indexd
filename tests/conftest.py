@@ -176,6 +176,7 @@ def user(app, combined_default_and_single_table_settings, mock_arborist_requests
             resource_method_to_authorized={
                 "/programs/bpa/projects/UChicago": {"read": True},
                 "/programs/other/projects/project": {"read": True},
+                "/programs/other/projects/project2": {"read": True},
                 "/programs": {"create": True},
                 "/services/indexd/admin": {"create": True, "update": True, "delete": True, "read": True, "file_upload": True},
             }
