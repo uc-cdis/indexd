@@ -47,7 +47,13 @@ def _get_authorized_resources() -> list[str]:
     token = flask.request.headers.get("Authorization")
     if token is None:
         raise AuthError("Authorization header is required for RBAC")
-    authorized_resources = [_ for _ in auth.resources().keys()]
+    authorized_resources = []
+    for resource, permissions in auth.resources().items():
+        for permission in permissions:
+            method = permission['method']
+            service = permission['service']
+            if "read-storage" == method or service == "indexd":
+                authorized_resources.append(resource)
     return authorized_resources
 
 
@@ -76,14 +82,17 @@ def _enforce_rbac(authz) -> tuple[list[str], list[str]]:
         # This is for backwards compatibility with existing code.
         authorized_resources = _get_authorized_resources()
         if len(authorized_resources) == 0:
-            raise AuthError("User is not authorized for any resources")
+            # Force filtering by an non-existent resource if no resources are authorized.
+            authorized_resources = ["NO-AUTHORIZED-RESOURCES"]
         if authz:
             _check_user_access(authorized_resources, authz or [])
             any_authz = None
         else:
             authz = None
             any_authz = authorized_resources
+
     return any_authz, authz
+
 
 def _enforce_record_authz(record):
     """ Enforce record authorization based on the current request's RBAC settings."""

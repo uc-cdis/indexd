@@ -331,9 +331,13 @@ def mock_arborist_requests(app, request):
                 elif url == f"{arborist_base_url}/auth/mapping":
                     # Mock the auth mapping response
                     mocked_response.status_code = 200
-                    mocked_response.json.return_value = {k: [{"service": "*", "method": "read"}, {"service": "*", "method": "read-storage"}] for k in resource_method_to_authorized.keys()}
+                    return_value = {}
+                    for k, permissions in resource_method_to_authorized.items():
+                        if 'read' in permissions and permissions['read']:
+                            return_value[k] = [{"service": "*", "method": "read"}, {"service": "*", "method": "read-storage"}]
+                    mocked_response.json.return_value = return_value
                     print(
-                        f"DEBUG make_mock_response auth/mapping response: {mocked_response.status_code} for {method} {url} with payload {mocked_response.json.return_value}",
+                        f"DEBUG make_mock_response auth/mapping response: {mocked_response.status_code} for {method} {url} with payload {mocked_response.json.return_value} {resource_method_to_authorized}",
                         file=sys.stderr)
 
             return mocked_response

@@ -111,7 +111,9 @@ def test_index_no_parameters(client, user, mock_arborist_requests, is_rbac_confi
 
     print("DEBUG >>>>>> User should not have access to anything", file=sys.stderr)
     data_all_by_md = client.get("/index", headers=user)
-    assert data_all_by_md.status_code == 403, f"Expected status code 403, got {data_all_by_md.status_code}"
+    assert data_all_by_md.status_code == 200, f"Expected status code 200, got {data_all_by_md.status_code}"
+    data_all_list = data_all_by_md.json
+    assert len(data_all_list["records"]) == 0, f"Should have access to 0 records, got {len(data_all_list['records'])} records: {data_all_list}"
 
     print("DEBUG >>>>>> User missing", file=sys.stderr)
     data_all_by_md = client.get("/index")
@@ -187,10 +189,23 @@ def test_drs_no_parameters(client, user, mock_arborist_requests, is_rbac_configu
     assert len(data_all_list[
                    "drs_objects"]) == 1, f"Should have access to 1 records, got {len(data_all_list['drs_objects'])} records: {data_all_list}"
 
+    print("DEBUG >>>>>> User should have access to 0 records due to read:False", file=sys.stderr)
+    mock_arborist_requests(
+        resource_method_to_authorized={
+            # user has some access to the project, but not indexd or read-storage
+            "/programs/other/projects/project": {"foo": "bar"},
+        }
+    )
+
+    data_all_by_md = client.get("/ga4gh/drs/v1/objects", headers=user)
+    assert data_all_by_md.status_code == 200, f"Expected status code 200, got {data_all_by_md.status_code}"
+    data_all_list = data_all_by_md.json
+
+    assert len(data_all_list[
+                   "drs_objects"]) == 0, f"Should have access to 0 records, got {len(data_all_list['drs_objects'])} records: {data_all_list}"
+
     data_2 = client.get(f"/ga4gh/drs/v1/objects/{res2_did}", headers=user)
-    assert data_2.status_code == 200, f"Expected status code 200, got {data_2.status_code}"
-    data_2_res = data_2.json
-    assert data_2_res["id"] == res2_did, data_2_res
+    assert data_2.status_code == 403, f"Expected status code 403, got {data_2.status_code}"
 
     # user can't read any of the existing projects
     mock_arborist_requests(
@@ -222,7 +237,10 @@ def test_drs_no_parameters(client, user, mock_arborist_requests, is_rbac_configu
 
     print("DEBUG >>>>>> User should not have access to anything", file=sys.stderr)
     data_all_by_md = client.get("/ga4gh/drs/v1/objects", headers=user)
-    assert data_all_by_md.status_code == 403, f"Expected status code 403, got {data_all_by_md.status_code}"
+    assert data_all_by_md.status_code == 200, f"Expected status code 200, got {data_all_by_md.status_code}"
+    data_all_list = data_all_by_md.json
+    assert len(data_all_list[
+                   "drs_objects"]) == 0, f"Should have access to 0 records, got {len(data_all_list['drs_objects'])} records: {data_all_list}"
 
     print("DEBUG >>>>>> User missing", file=sys.stderr)
     data_all_by_md = client.get("/ga4gh/drs/v1/objects")
