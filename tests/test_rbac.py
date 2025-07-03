@@ -120,9 +120,9 @@ def test_index_no_parameters(client, user, mock_arborist_requests, is_rbac_confi
     assert data_all_by_md.status_code == 403, f"Expected status code 403, got {data_all_by_md.status_code}"
 
 
-def test_drs_no_parameters(client, user, mock_arborist_requests, is_rbac_configured):
+def test_multiple_endpoints(client, user, mock_arborist_requests, is_rbac_configured):
     """
-    Test that the index endpoint without parameters returns expected projects.
+    Test multiple endpoints, ensure rbac.
     """
     if not is_rbac_configured:
         pytest.skip("RBAC is not configured, skipping test.")
@@ -204,6 +204,53 @@ def test_drs_no_parameters(client, user, mock_arborist_requests, is_rbac_configu
     assert len(data_all_list[
                    "drs_objects"]) == 0, f"Should have access to 0 records, got {len(data_all_list['drs_objects'])} records: {data_all_list}"
 
+# start other-checks
+
+    print(f"DEBUG >>>>>> User should not have access to /index/urls", file=sys.stderr)
+    urls = client.get("/index/urls", headers=user)
+    assert urls.status_code == 404, f"Expected status code 404, got {urls.status_code}"
+    urls = urls.json
+    assert 'error' in urls, f"Expected 'error' in response, got {urls}"
+    assert urls['error'] == 'no record found', f"Expected 'no record found', got {urls['error']}"
+
+    print(f"DEBUG >>>>>> User should not have access to /index/{res2_did}", file=sys.stderr)
+    data_2 = client.get(f"/index/{res2_did}", headers=user)
+    assert data_2.status_code == 403, f"Expected status code 403, got {data_2.status_code}"
+    data_2 = data_2.json
+    assert 'error' in data_2, f"Expected 'error' in response, got {data_2}"
+    assert data_2['error'] == 'User is not authorized for any resources', f"Expected 'User is not authorized for any resources', got {data_2['error']}"
+
+    print(f"DEBUG >>>>>> User should not have access to /index/ga4gh/dos/v1/dataobjects/{res2_did}", file=sys.stderr)
+    dataobjects = client.get(f"/index/ga4gh/dos/v1/dataobjects/{res2_did}", headers=user)
+    assert dataobjects.status_code == 404, f"Expected status code 404, got {dataobjects.status_code}"
+    dataobjects = dataobjects.json
+    assert 'error' in dataobjects, f"Expected 'error' in response, got {dataobjects}"
+    assert dataobjects['error'] == 'no record found', f"Expected 'no record found', got {dataobjects['error']}"
+
+    print(f"DEBUG >>>>>> User should not have access to index/bundle", file=sys.stderr)
+    bundles = client.get(f"/index/bundle", headers=user)
+    assert bundles.status_code == 404, f"Expected status code 404, got {bundles.status_code}"
+    bundles = bundles.json
+    assert 'error' in bundles, f"Expected 'error' in response, got {bundles}"
+    assert bundles['error'] == 'no record found', f"Expected 'no record found', got {bundles['error']}"
+
+    print(f"DEBUG >>>>>> User should not have access to index/index/{res2_did}/aliases", file=sys.stderr)
+    aliases = client.get(f"index/index/{res2_did}/aliases", headers=user)
+    assert aliases.status_code == 404, f"Expected status code 404, got {aliases.status_code}"
+    aliases = aliases.json
+    assert 'error' in aliases, f"Expected 'error' in response, got {aliases}"
+    assert aliases['error'] == f"index/{res2_did}", f"Expected 'index/{res2_did}', got {aliases}"
+
+    print(f"DEBUG >>>>>> User should not have access to index/_stats", file=sys.stderr)
+    _stats = client.get(f"index/_stats", headers=user)
+    assert _stats.status_code == 404, f"Expected status code 404, got {_stats.status_code}"
+    _stats = _stats.json
+    assert 'error' in _stats, f"Expected 'error' in response, got {_stats}"
+    assert _stats['error'] == 'no record found', f"Expected 'no record found', got {_stats}"
+
+    # end other-checks
+
+    print(f"DEBUG >>>>>> User should not have access to /ga4gh/drs/v1/objects/{res2_did}", file=sys.stderr)
     data_2 = client.get(f"/ga4gh/drs/v1/objects/{res2_did}", headers=user)
     assert data_2.status_code == 403, f"Expected status code 403, got {data_2.status_code}"
 
@@ -214,7 +261,7 @@ def test_drs_no_parameters(client, user, mock_arborist_requests, is_rbac_configu
         }
     )
 
-    print("DEBUG >>>>>> User should not have access to any records", file=sys.stderr)
+    print("DEBUG >>>>>> User should not have access to any /ga4gh/drs/v1/objects", file=sys.stderr)
     data_all_by_md = client.get("/ga4gh/drs/v1/objects", headers=user)
     assert data_all_by_md.status_code == 200, f"Expected status code 200, got {data_all_by_md.status_code}"
     data_all_list = data_all_by_md.json
@@ -222,12 +269,13 @@ def test_drs_no_parameters(client, user, mock_arborist_requests, is_rbac_configu
     assert len(data_all_list[
                    "drs_objects"]) == 0, f"Should have access to 0 records, got {len(data_all_list['drs_objects'])} records: {data_all_list}"
 
+    print(f"DEBUG >>>>>> User should not have access to /ga4gh/drs/v1/objects/{res1_did}", file=sys.stderr)
     data_1 = client.get(f"/ga4gh/drs/v1/objects/{res1_did}", headers=user)
     assert data_1.status_code == 401, f"Expected status code 401, got {data_1.status_code}"
 
+    print(f"DEBUG >>>>>> User should not have access to /ga4gh/drs/v1/objects/{res2_did}", file=sys.stderr)
     data_2 = client.get(f"/ga4gh/drs/v1/objects/{res2_did}", headers=user)
     assert data_2.status_code == 401, f"Expected status code 401, got {data_2.status_code}"
-
 
     # user has no access to anything
     mock_arborist_requests(
@@ -235,7 +283,7 @@ def test_drs_no_parameters(client, user, mock_arborist_requests, is_rbac_configu
         }
     )
 
-    print("DEBUG >>>>>> User should not have access to anything", file=sys.stderr)
+    print("DEBUG >>>>>> User should not have access to /ga4gh/drs/v1/objects", file=sys.stderr)
     data_all_by_md = client.get("/ga4gh/drs/v1/objects", headers=user)
     assert data_all_by_md.status_code == 200, f"Expected status code 200, got {data_all_by_md.status_code}"
     data_all_list = data_all_by_md.json
