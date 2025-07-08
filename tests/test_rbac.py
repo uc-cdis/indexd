@@ -289,6 +289,9 @@ def test_multiple_endpoints(client, user, mock_arborist_requests, is_rbac_config
     data_2 = client.get(f"/ga4gh/dos/v1/dataobjects/{res2_did}", headers=user)
     assert data_2.status_code == 401, f"Expected status code 401, got {data_2.status_code}"
 
+    print(f"DEBUG >>>>>> User should not have access to /{res2_did}", file=sys.stderr)
+    data_2 = client.get(f"/{res2_did}", headers=user)
+    assert data_2.status_code == 401, f"Expected status code 401, got {data_2.status_code} {data_2.json}"
 
     # user has no access to anything
     mock_arborist_requests(

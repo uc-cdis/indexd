@@ -6,6 +6,7 @@ from email.feedparser import headerRE
 import pytest
 import uuid
 
+from tests.conftest import is_rbac_configured
 from tests.util import assert_blank
 from indexd.index.blueprint import ACCEPTABLE_HASHES
 from tests.test_bundles import create_index, get_bundle_doc
@@ -2014,13 +2015,18 @@ def test_index_create_with_uploader(
 
 def test_index_get_global_endpoint(
     client, user, combined_default_and_single_table_settings
-):
+, is_rbac_configured):
     data = get_doc()
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
     rec = res.json
-    res = client.get("/" + rec["did"])
+
+    if is_rbac_configured:
+        res = client.get("/" + rec["did"])
+        assert res.status_code == 403
+
+    res = client.get("/" + rec["did"], headers=user)
     assert res.status_code == 200
     rec = res.json
 
@@ -2033,7 +2039,7 @@ def test_index_get_global_endpoint(
 
 def test_index_add_prefix_alias(
     client, user, combined_default_and_single_table_settings
-):
+, is_rbac_configured):
     """
     For index_config =
     {
@@ -2054,7 +2060,11 @@ def test_index_add_prefix_alias(
         assert res.status_code == 200
         rec = res.json
 
-        res_2 = client.get("/testprefix:" + rec["did"])
+        if is_rbac_configured:
+            res_2 = client.get("/testprefix:" + rec["did"])
+            assert res_2.status_code == 403
+
+        res_2 = client.get("/testprefix:" + rec["did"], headers=user)
         assert res_2.status_code == 200
         rec_2 = res_2.json
         assert rec_2["did"] == rec["did"]

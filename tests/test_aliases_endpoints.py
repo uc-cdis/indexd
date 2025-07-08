@@ -6,6 +6,8 @@ import string
 import json
 import urllib.parse
 
+from tests.conftest import is_rbac_configured
+
 
 # Test fixtures and helper functions
 # =============================================
@@ -131,7 +133,7 @@ def test_global_endpoint_nonexistant_alias(client, guid, aliases):
     assert res.status_code == 404, f"Request for fake alias should have failed"
 
 
-def test_global_endpoint_alias_guid_collision(client, guid, aliases, user):
+def test_global_endpoint_alias_guid_collision(client, guid, aliases, user, is_rbac_configured):
     """
     if an alias has the same name as a GUID, the global endpoint should resolve
     to the GUID, not resolve the alias
@@ -146,7 +148,12 @@ def test_global_endpoint_alias_guid_collision(client, guid, aliases, user):
 
     # expect that a search for value of guid_B on the global endpoint should resolve
     # to guid_B's record, not to guid_A's record
-    res = client.get("/" + url_encode(guid_B))
+
+    if is_rbac_configured:
+        res = client.get("/" + url_encode(guid_B))
+        assert res.status_code == 403, res.text
+
+    res = client.get("/" + url_encode(guid_B), headers=user)
     assert res.status_code == 200, res.text
     record = res.get_json()
     assert record["did"] == guid_B

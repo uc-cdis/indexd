@@ -7,6 +7,7 @@ from doiclient.client import DOIClient
 from dosclient.client import DOSClient
 from hsclient.client import HSClient
 
+from indexd.auth import AuthzError
 from indexd.utils import hint_match
 
 from indexd.errors import AuthError
@@ -121,6 +122,11 @@ def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
 
 
+@blueprint.errorhandler(AuthzError)
+def handle_authz_error(err):
+    return flask.jsonify(error=str(err)), 401
+
+
 @blueprint.errorhandler(AliasNoRecordFound)
 def handle_no_record_error(err):
     return flask.jsonify(error=str(err)), 404
@@ -139,3 +145,6 @@ def get_config(setup_state):
     blueprint.alias_driver = alias_config["driver"]
     if "DIST" in setup_state.app.config:
         blueprint.dist = setup_state.app.config["DIST"]
+    blueprint.rbac = False
+    if "RBAC" in setup_state.app.config:
+        blueprint.rbac = setup_state.app.config["RBAC"]
