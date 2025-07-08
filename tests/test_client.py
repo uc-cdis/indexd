@@ -2640,13 +2640,17 @@ def test_bad_hashes(client, user, typ, h, combined_default_and_single_table_sett
         assert "does not match" in json_resp["error"]
 
 
-def test_dos_get(client, user, combined_default_and_single_table_settings):
+def test_dos_get(client, user, combined_default_and_single_table_settings, is_rbac_configured):
     data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    res_2 = client.get("/ga4gh/dos/v1/dataobjects/" + rec_1["did"])
+    if is_rbac_configured:
+        res_2 = client.get("/ga4gh/dos/v1/dataobjects/" + rec_1["did"])
+        assert res_2.status_code == 403 # No authz in request
+
+    res_2 = client.get("/ga4gh/dos/v1/dataobjects/" + rec_1["did"], headers=user)
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["data_object"]["id"] == rec_1["did"]
@@ -2662,8 +2666,13 @@ def test_dos_get(client, user, combined_default_and_single_table_settings):
         rec_2["data_object"]["urls"][0]["system_metadata"]["project_id"]
         == "bpa-UChicago"
     )
-    res_3 = client.get("/ga4gh/dos/v1/dataobjects/" + rec_1["baseid"])
+    if is_rbac_configured:
+        res_3 = client.get("/ga4gh/dos/v1/dataobjects/" + rec_1["baseid"])
+        assert res_3.status_code == 403
+
+    res_3 = client.get("/ga4gh/dos/v1/dataobjects/" + rec_1["baseid"], headers=user)
     assert res_3.status_code == 200
+
     rec_3 = res_3.json
     assert rec_3["data_object"]["id"] == rec_1["did"]
 
@@ -2675,15 +2684,20 @@ def test_get_dos_record_error(client, user, combined_default_and_single_table_se
     assert res.status_code == 404
 
 
-def test_dos_list(client, user, combined_default_and_single_table_settings):
+def test_dos_list(client, user, combined_default_and_single_table_settings, is_rbac_configured):
     data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
 
-    res_2 = client.get("/ga4gh/dos/v1/dataobjects?page_size=100")
+    if is_rbac_configured:
+        res_2 = client.get("/ga4gh/dos/v1/dataobjects?page_size=100")
+        assert res_2.status_code == 403
+
+    res_2 = client.get("/ga4gh/dos/v1/dataobjects?page_size=100", headers=user)
     assert res_2.status_code == 200
+
     rec_2 = res_2.json
     assert len(rec_2["data_objects"]) == 1
     assert rec_2["data_objects"][0]["id"] == rec_1["did"]

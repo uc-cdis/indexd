@@ -1225,7 +1225,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     # overwrite the "no bundle found" message
                     raise NoRecordFound("no record found")
 
-            return record.to_document_dict()
+            document_dict = record.to_document_dict()
+            _enforce_record_authz(document_dict)
+            return document_dict
 
     def get_with_nonstrict_prefix(self, did, expand=True):
         """

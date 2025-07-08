@@ -277,6 +277,19 @@ def test_multiple_endpoints(client, user, mock_arborist_requests, is_rbac_config
     data_2 = client.get(f"/ga4gh/drs/v1/objects/{res2_did}", headers=user)
     assert data_2.status_code == 401, f"Expected status code 401, got {data_2.status_code}"
 
+    print(f"DEBUG >>>>>> User should not have access to /ga4gh/dos/v1/dataobjects", file=sys.stderr)
+    data_2 = client.get(f"/ga4gh/dos/v1/dataobjects", headers=user)
+    assert data_2.status_code == 200, f"Expected status code 200, got {data_2.status_code}"
+    data_all_list = data_2.json
+    assert 'data_objects' in data_all_list, data_all_list
+    assert len(data_all_list[
+                   "data_objects"]) == 0, f"Should have access to 0 records, got {len(data_all_list['data_objects'])} records: {data_all_list}"
+
+    print(f"DEBUG >>>>>> User should not have access to /ga4gh/dos/v1/dataobjects/{res2_did}", file=sys.stderr)
+    data_2 = client.get(f"/ga4gh/dos/v1/dataobjects/{res2_did}", headers=user)
+    assert data_2.status_code == 401, f"Expected status code 401, got {data_2.status_code}"
+
+
     # user has no access to anything
     mock_arborist_requests(
         resource_method_to_authorized={
@@ -293,3 +306,13 @@ def test_multiple_endpoints(client, user, mock_arborist_requests, is_rbac_config
     print("DEBUG >>>>>> User missing", file=sys.stderr)
     data_all_by_md = client.get("/ga4gh/drs/v1/objects")
     assert data_all_by_md.status_code == 403, f"Expected status code 403, got {data_all_by_md.status_code}"
+
+
+def test_indexclient(client, user, mock_arborist_requests, is_rbac_configured):
+    """
+    Test multiple endpoints, ensure rbac.
+    """
+    if not is_rbac_configured:
+        pytest.skip("RBAC is not configured, skipping test.")
+
+    # TODO
