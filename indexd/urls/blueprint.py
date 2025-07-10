@@ -77,6 +77,9 @@ def pre_config(state):
         if type(driver) == SingleTableSQLAlchemyIndexDriver
         else AlchemyURLsQueryDriver(driver)
     )
+    blueprint.rbac = False
+    if "RBAC" in state.app.config:
+        blueprint.rbac = state.app.config["RBAC"]
 
 
 @blueprint.errorhandler(UserError)

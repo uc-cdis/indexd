@@ -310,6 +310,13 @@ def test_multiple_endpoints(client, user, mock_arborist_requests, is_rbac_config
     data_all_by_md = client.get("/ga4gh/drs/v1/objects")
     assert data_all_by_md.status_code == 403, f"Expected status code 403, got {data_all_by_md.status_code}"
 
+    print("DEBUG >>>>>> User should not have access to /urls", file=sys.stderr)
+    data_all_by_md = client.get("/urls", headers=user)
+    assert data_all_by_md.status_code == 200, f"Expected status code 200, got {data_all_by_md.status_code}"
+    data_all_list = data_all_by_md.json
+    assert len(data_all_list[
+                   "urls"]) == 0, f"Should have access to 0 records, got {len(data_all_list['urls'])} records: {data_all_list}"
+
 
 def test_indexclient(client, user, mock_arborist_requests, is_rbac_configured):
     """

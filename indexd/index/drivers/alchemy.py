@@ -716,6 +716,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Returns a list of urls matching supplied size/hashes/dids.
         """
+        any_authz, authz = _enforce_rbac([])
+
         if size is None and hashes is None and ids is None:
             raise UserError("Please provide size/hashes/ids to filter")
 
@@ -742,6 +744,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.filter(IndexRecordUrl.did.in_(ids))
             # Remove duplicates.
             query = query.distinct()
+            # if any_authz is set, filter by authz
+            if any_authz:
+                sub = session.query(IndexRecordAuthz.did).filter(
+                    IndexRecordAuthz.resource.in_(any_authz)
+                )
+                query = query.filter(IndexRecordUrl.did.in_(sub.subquery()))
 
             # Return only specified window.
             query = query.offset(start)

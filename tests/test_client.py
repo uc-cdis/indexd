@@ -1584,14 +1584,14 @@ def test_get_urls(client, user, combined_default_and_single_table_settings):
     assert response.status_code == 200
     record = response.json
 
-    response = client.get("/urls/?ids=" + record["did"])
+    response = client.get("/urls/?ids=" + record["did"], headers=user)
     assert response.status_code == 200
     record = response.json
     url = data["urls"][0]
     assert record["urls"][0]["url"] == url
     assert record["urls"][0]["metadata"] == data["urls_metadata"][url]
 
-    response = client.get("/urls/?size={}".format(data["size"]))
+    response = client.get("/urls/?size={}".format(data["size"]), headers=user)
     assert response.status_code == 200
     record = response.json
     url = data["urls"][0]
@@ -1599,14 +1599,18 @@ def test_get_urls(client, user, combined_default_and_single_table_settings):
     assert record["urls"][0]["metadata"] == data["urls_metadata"][url]
 
 
-def test_get_urls_size_0(client, user, combined_default_and_single_table_settings):
+def test_get_urls_size_0(client, user, combined_default_and_single_table_settings, is_rbac_configured):
     data = get_doc(has_urls_metadata=True)
     data["size"] = 0
     response = client.post("/index/", json=data, headers=user)
     assert response.status_code == 200
     record = response.json
 
-    response = client.get("/urls/?size={}".format(data["size"]))
+    if is_rbac_configured:
+        response = client.get("/urls/?size={}".format(data["size"]))
+        assert response.status_code == 403
+
+    response = client.get("/urls/?size={}".format(data["size"]), headers=user)
     assert response.status_code == 200
     record = response.json
     url = data["urls"][0]
