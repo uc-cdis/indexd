@@ -829,10 +829,6 @@ def handle_auth_error(err):
 
 @blueprint.errorhandler(AuthzError)
 def handle_authz_error(err):
-    print(f"DEBUG handle_authz_error {err}", file=sys.stderr)
-    import traceback
-    traceback.print_exc(file=sys.stderr)
-
     return flask.jsonify(error=str(err)), 401
 
 

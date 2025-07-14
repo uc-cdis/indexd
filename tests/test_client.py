@@ -2297,7 +2297,7 @@ def test_create_index_version(client, user, combined_default_and_single_table_se
     assert rec_2["did"] == dataNew["did"]
 
 
-def test_get_latest_version(client, user, combined_default_and_single_table_settings):
+def test_get_latest_version(client, user, combined_default_and_single_table_settings, is_rbac_configured):
     data = get_doc(has_metadata=False, has_baseid=False, has_version=True)
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
@@ -2309,23 +2309,27 @@ def test_get_latest_version(client, user, combined_default_and_single_table_sett
     assert res_2.status_code == 200
     rec_2 = res_2.json
 
-    res_3 = client.get("/index/{}/latest".format(rec_2["did"]))
+    if is_rbac_configured:
+        res_3 = client.get("/index/{}/latest".format(rec_2["did"]))
+        assert res_3.status_code == 403
+
+    res_3 = client.get("/index/{}/latest".format(rec_2["did"]), headers=user)
     assert res_3.status_code == 200
     rec_3 = res_3.json
     assert rec_3["did"] == rec_2["did"]
 
-    res_4 = client.get("/index/{}/latest".format(rec_1["baseid"]))
+    res_4 = client.get("/index/{}/latest".format(rec_1["baseid"]), headers=user)
     assert res_4.status_code == 200
     rec_4 = res_4.json
     assert rec_4["did"] == rec_2["did"]
 
-    res_5 = client.get("/index/{}/latest?has_version=True".format(rec_1["baseid"]))
+    res_5 = client.get("/index/{}/latest?has_version=True".format(rec_1["baseid"]), headers=user)
     assert res_5.status_code == 200
     rec_5 = res_5.json
     assert rec_5["did"] == rec_1["did"]
 
 
-def test_get_all_versions(client, user, combined_default_and_single_table_settings):
+def test_get_all_versions(client, user, combined_default_and_single_table_settings, is_rbac_configured):
     dids = []
 
     # create 1st version
@@ -2343,11 +2347,15 @@ def test_get_all_versions(client, user, combined_default_and_single_table_settin
     assert rec2["did"]
     dids.append(rec2["did"])
 
+    if is_rbac_configured:
+        res = client.get("/index/{}/versions".format(rec1["did"]))
+        assert res.status_code == 403, "Expected 403 when trying to get versions without authz"
+
     # make sure all versions are returned when hitting the /versions endpoint
-    res = client.get("/index/{}/versions".format(rec1["did"]))
+    res = client.get("/index/{}/versions".format(rec1["did"]), headers=user)
     recs1 = res.json
     assert len(recs1) == 2
-    res = client.get("/index/{}/versions".format(rec1["baseid"]))
+    res = client.get("/index/{}/versions".format(rec1["baseid"]), headers=user)
     recs2 = res.json
     assert len(recs2) == 2
     assert recs1 == recs1
@@ -2357,7 +2365,7 @@ def test_get_all_versions(client, user, combined_default_and_single_table_settin
         assert record["did"] == dids[int(i)], "record id does not match"
 
 
-def test_update_all_versions(client, user, combined_default_and_single_table_settings):
+def test_update_all_versions(client, user, combined_default_and_single_table_settings, is_rbac_configured):
     dids = []
     mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
     mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
@@ -2395,8 +2403,12 @@ def test_update_all_versions(client, user, combined_default_and_single_table_set
     # in order of version creation
     assert dids == [record["did"] for record in res.json]
 
+    if is_rbac_configured:
+        res = client.get("/index/{}/versions".format(rec1["did"]))
+        assert res.status_code == 403, "Expected 403 when trying to get versions without authz"
+
     # Expect all versions to have the new acl/authz
-    res = client.get("/index/{}/versions".format(rec1["did"]))
+    res = client.get("/index/{}/versions".format(rec1["did"]), headers=user)
     assert res.status_code == 200, "Failed to get all versions"
     for _, version in res.json.items():
         assert sorted(version["acl"]) == sorted(mock_acl_B)
@@ -2405,7 +2417,7 @@ def test_update_all_versions(client, user, combined_default_and_single_table_set
 
 def test_update_all_versions_using_baseid(
     client, user, combined_default_and_single_table_settings
-):
+, is_rbac_configured):
     mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
     mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
     mock_authz_A = ["/programs/other/projects/project"]
@@ -2438,8 +2450,12 @@ def test_update_all_versions_using_baseid(
     )
     assert res.status_code == 200, "Failed to update all version: {}".format(res.json)
 
+    if is_rbac_configured:
+        res = client.get("/index/{}/versions".format(rec1["did"]))
+        assert res.status_code == 403, "Expected 403 when trying to get versions without authz"
+
     # Expect all versions to have the new acl/authz
-    res = client.get("/index/{}/versions".format(rec1["did"]))
+    res = client.get("/index/{}/versions".format(rec1["did"]), headers=user)
     assert res.status_code == 200, "Failed to get all versions"
     for _, version in res.json.items():
         assert sorted(version["acl"]) == sorted(mock_acl_B)
@@ -2463,7 +2479,7 @@ def test_update_all_versions_guid_not_found(
 
 def test_update_all_versions_fail_on_bad_metadata(
     client, user, combined_default_and_single_table_settings
-):
+, is_rbac_configured):
     """
     When making an update request, endpoint should return 400 (User error) if
     the metadata to update contains any fields that cannot be updated across all versions.
@@ -2504,8 +2520,12 @@ def test_update_all_versions_fail_on_bad_metadata(
         res.status_code == 400
     ), "Expected update operation to fail with 400: {}".format(res.json)
 
+    if is_rbac_configured:
+        res = client.get("/index/{}/versions".format(rec1["did"]))
+        assert res.status_code == 403, "Expected 403 when trying to get versions without authz"
+
     # Expect all versions to retain the old acl/authz
-    res = client.get("/index/{}/versions".format(rec1["did"]))
+    res = client.get("/index/{}/versions".format(rec1["did"]), headers=user)
     assert res.status_code == 200, "Failed to get all versions"
     for _, version in res.json.items():
         assert sorted(version["acl"]) == sorted(mock_acl_A)

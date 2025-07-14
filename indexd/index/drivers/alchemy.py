@@ -1566,6 +1566,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Get all record versions (in order of creation) given DID
         """
+        any_authz, authz = _enforce_rbac([])
         ret = dict()
         with self.session as session:
             query = session.query(IndexRecord)
@@ -1584,6 +1585,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound("multiple records found")
 
             query = session.query(IndexRecord)
+
             records = (
                 query.filter(IndexRecord.baseid == baseid)
                 .order_by(IndexRecord.created_date.asc())
@@ -1591,7 +1593,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             )
 
             for idx, record in enumerate(records):
-                ret[idx] = record.to_document_dict()
+                document_dict = record.to_document_dict()
+                _enforce_record_authz(document_dict)
+                ret[idx] = document_dict
 
         return ret
 
@@ -1649,6 +1653,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Get the lattest record version given did
         """
+        any_authz, authz = _enforce_rbac([])
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
@@ -1671,7 +1676,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if not record:
                 raise NoRecordFound("no record found")
 
-            return record.to_document_dict()
+            document_dict = record.to_document_dict()
+            _enforce_record_authz(document_dict)
+
+            return document_dict
 
     def health_check(self):
         """

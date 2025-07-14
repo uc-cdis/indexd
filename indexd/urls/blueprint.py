@@ -1,14 +1,35 @@
 import json
+import sys
 
+import flask
 from flask import Blueprint, Response, request
 from flask.json import jsonify
 
+from indexd.auth import AuthzError, AuthError
 from indexd.errors import UserError
 from indexd.index.drivers.query.urls import AlchemyURLsQueryDriver
 from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
 
 
 blueprint = Blueprint("urls", __name__)
+
+
+@blueprint.errorhandler(AuthError)
+def handle_auth_error(err):
+    return flask.jsonify(error=str(err)), 403
+
+
+@blueprint.errorhandler(AuthzError)
+def handle_authz_error(err):
+    return flask.jsonify(error=str(err)), 401
+
+
+@blueprint.errorhandler(Exception)
+def handle_uncaught_exception(err):
+    import traceback
+    print(f"Uncaught Exception: {err}", file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
+    return flask.jsonify(error=f"Internal server error {type(err)} {err}"), 500
 
 
 @blueprint.route("/q", methods=["GET"])

@@ -4,7 +4,7 @@ from indexd.errors import UserError
 from indexd.index.drivers.alchemy import (
     IndexRecord,
     IndexRecordUrl,
-    IndexRecordUrlMetadata,
+    IndexRecordUrlMetadata, _enforce_rbac, IndexRecordAuthz,
 )
 from indexd.index.drivers.query import URLsQueryDriver
 
@@ -44,6 +44,8 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         )
 
+        any_authz, authz = _enforce_rbac([])
+
         with self.driver.session as session:
             # special database specific functions dependent of the selected dialect
             q_func = driver_query_map.get(session.bind.dialect.name)
@@ -51,6 +53,14 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             query = session.query(
                 IndexRecordUrl.did, q_func["string_agg"](IndexRecordUrl.url, ",")
             )
+
+            # add authz filter
+            if any_authz:
+                # if any_authz is set, we want to filter records that have ANY of the authz elements
+                sub = session.query(IndexRecordAuthz.did).filter(
+                    IndexRecordAuthz.resource.in_(any_authz)
+                )
+                query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
             # add version filter if versioned is not None
             if versioned is True:  # retrieve only those with a version number
@@ -108,6 +118,8 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         versioned = (
             versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         )
+        any_authz, authz = _enforce_rbac([])
+
         with self.driver.session as session:
             query = session.query(
                 IndexRecordUrlMetadata.did, IndexRecordUrlMetadata.url, IndexRecord.rev
@@ -116,6 +128,14 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 IndexRecordUrlMetadata.key == key,
                 IndexRecordUrlMetadata.value == value,
             )
+
+            # add authz filter
+            if any_authz:
+                # if any_authz is set, we want to filter records that have ANY of the authz elements
+                sub = session.query(IndexRecordAuthz.did).filter(
+                    IndexRecordAuthz.resource.in_(any_authz)
+                )
+                query = query.filter(IndexRecord.did.in_(sub.subquery()))
 
             # filter by version
             if versioned is True:
