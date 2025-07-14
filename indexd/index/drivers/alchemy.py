@@ -1786,6 +1786,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Returns list of all bundles
         """
+        authz, any_authz = _enforce_rbac([])
         with self.session as session:
             query = session.query(DrsBundleRecord)
             query = query.limit(limit)

@@ -4,6 +4,8 @@ import uuid
 import tests.conftest
 import requests
 import responses
+
+from tests.conftest import is_rbac_configured
 from tests.default_test_settings import settings
 
 
@@ -700,9 +702,14 @@ def test_get_drs_expand_contents_false(
 
 
 def test_get_drs_expand_contents_true(
-    client, user, combined_default_and_single_table_settings
+    client, user, combined_default_and_single_table_settings, is_rbac_configured
 ):
     bundle_id = build_bundle(client, user)
+
+    if is_rbac_configured:
+        res = client.get("/bundle/" + bundle_id)
+        assert res.status_code == 403, "RBAC is configured, should not be able to access bundle directly"
+
     res = client.get("/bundle/" + bundle_id, headers=user)
     assert res.status_code == 200
 
