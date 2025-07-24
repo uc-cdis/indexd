@@ -525,7 +525,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 sub = session.query(IndexRecordAuthz.did).filter(
                     IndexRecordAuthz.resource.in_(any_authz)
                 )
-                query = query.filter(IndexRecord.did.in_(sub.subquery()))
+                query = query.filter(IndexRecord.did.in_(sub.subquery().select()))
             if hashes:
                 for h, v in hashes.items():
                     sub = session.query(IndexRecordHash.did)
@@ -749,7 +749,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 sub = session.query(IndexRecordAuthz.did).filter(
                     IndexRecordAuthz.resource.in_(any_authz)
                 )
-                query = query.filter(IndexRecordUrl.did.in_(sub.subquery()))
+                query = query.filter(IndexRecordUrl.did.in_(sub.subquery().select()))
 
             # Return only specified window.
             query = query.offset(start)
