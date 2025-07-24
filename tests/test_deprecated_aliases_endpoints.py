@@ -1,4 +1,3 @@
-import pytest
 
 
 # NOTE these tests apply to the '/alias/' endpoint, which is deprecated
@@ -178,6 +177,7 @@ def test_alias_delete(client, user):
         "release": "private",
         "keeper_authority": "CRI",
         "host_authorities": ["PDC"],
+        "authz": ["/programs/bpa/projects/UChicago"],
     }
     ark = "ark:/31807/TEST-abc"
 

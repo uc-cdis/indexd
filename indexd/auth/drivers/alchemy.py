@@ -1,4 +1,5 @@
 import hashlib
+import sys
 
 from contextlib import contextmanager
 
@@ -133,18 +134,25 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         try:
             # A successful call from arborist returns a bool, else returns ArboristError
             try:
+                token = get_jwt_token()
+                if not token:
+                    raise AuthzError("No JWT token found for authorization check")
                 authorized = self.arborist.auth_request(
-                    get_jwt_token(), "indexd", method, resource
+                    token, "indexd", method, resource
                 )
             except Exception as e:
                 logger.error(
                     f"Request to Arborist failed; now checking admin access. Details:\n{e}"
                 )
                 authorized = False
+
             if not authorized:
+                token = get_jwt_token()
+                if not token:
+                    raise AuthError("No JWT token found for authorization check")
                 # admins can perform all operations
                 is_admin = self.arborist.auth_request(
-                    get_jwt_token(), "indexd", method, ["/services/indexd/admin"]
+                    token, "indexd", method, ["/services/indexd/admin"]
                 )
                 if not is_admin and not resource:
                     # if `authz` is empty (no `resource`), admin == access to
@@ -157,7 +165,33 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                             "The indexd admin '/programs' logic is deprecated. Please update your policy to '/services/indexd/admin'"
                         )
                 if not is_admin:
-                    raise AuthError("Permission denied.")
+                    raise AuthError("Permission denied. (not is_admin)")
+        except AuthError as err:
+            logger.error(err)
+            raise err
+        except AuthzError as err:
+            logger.error(err)
+            raise err
         except Exception as err:
             logger.error(err)
             raise AuthzError(err)
+
+    def resources(self):
+        """
+        Returns a list of resources for the given user.
+        """
+        if not self.arborist:
+            raise AuthError(
+                "Arborist is not configured; cannot perform authorization check"
+            )
+        token = get_jwt_token()
+        try:
+            _ = self.arborist.auth_mapping(
+                jwt=token
+            )
+            return _
+        except Exception as err:
+            raise AuthError(
+                "Failed to get resources from Arborist. Please check your Arborist configuration."
+            )
+

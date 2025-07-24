@@ -43,3 +43,11 @@ class AuthDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         Raises AuthError if user doesn't exist.
         """
         raise NotImplementedError("TODO")
+
+    @abc.abstractmethod
+    def resources(self):
+        """
+        Returns a list of resources the user has access to. Uses Arborist if available.
+        Raises AuthError if the user doesn't exist.
+        """
+        raise NotImplementedError("TODO")

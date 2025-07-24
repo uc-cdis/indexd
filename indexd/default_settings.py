@@ -83,6 +83,8 @@ CONFIG["DRS_SERVICE_INFO"] = {
     },
 }
 
+CONFIG["RBAC"] = False  # RBAC is not enabled by default
+
 AUTH = SQLAlchemyAuthDriver(
     "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 )

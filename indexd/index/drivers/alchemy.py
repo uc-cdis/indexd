@@ -2,6 +2,8 @@ import datetime
 import uuid
 import json
 from contextlib import contextmanager
+
+import flask
 from cdislogging import get_logger
 from sqlalchemy import (
     BigInteger,
@@ -24,6 +26,7 @@ from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd import auth
+from indexd.auth import AuthzError
 from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import (
@@ -35,6 +38,70 @@ from indexd.index.errors import (
 from indexd.utils import migrate_database
 
 Base = declarative_base()
+
+
+def _get_authorized_resources() -> list[str]:
+    """Retrieve the user's authorized resources from Arborist."""
+    if not flask.request.authorization:
+        raise AuthError("Authorization header is required for RBAC")
+    token = flask.request.headers.get("Authorization")
+    if token is None:
+        raise AuthError("Authorization header is required for RBAC")
+    authorized_resources = []
+    for resource, permissions in auth.resources().items():
+        for permission in permissions:
+            method = permission['method']
+            service = permission['service']
+            if "read-storage" == method or service == "indexd":
+                authorized_resources.append(resource)
+    return authorized_resources
+
+
+def _check_user_access(authorized_resources: list[str], authz: list[str]) -> None:
+    """Raise an AuthzError if the user is not authorized for the given resources."""
+    for resource in authz:
+        if resource not in authorized_resources:
+            raise AuthzError(
+                f"User is not authorized for project {resource} {authz} {type(authz)}"
+            )
+
+
+def _is_rbac() -> bool:
+    """ Check if RBAC is enabled for the current blueprint."""
+    bp = flask.current_app.blueprints.get(flask.request.blueprint, None)
+    if not bp:
+        return False
+    return getattr(bp, "rbac", False)
+
+
+def _enforce_rbac(authz) -> tuple[list[str], list[str]]:
+    """ Enforce RBAC for the current request."""
+    any_authz = None
+    if _is_rbac():
+        # If RBAC is not enabled, we don't need to check user access.
+        # This is for backwards compatibility with existing code.
+        authorized_resources = _get_authorized_resources()
+        if len(authorized_resources) == 0:
+            # Force filtering by an non-existent resource if no resources are authorized.
+            authorized_resources = ["NO-AUTHORIZED-RESOURCES"]
+        if authz:
+            _check_user_access(authorized_resources, authz or [])
+            any_authz = None
+        else:
+            authz = None
+            any_authz = authorized_resources
+
+    return any_authz, authz
+
+
+def _enforce_record_authz(record):
+    """ Enforce record authorization based on the current request's RBAC settings."""
+    if not _is_rbac():
+        return
+    authorized_resources = _get_authorized_resources()
+    if len(authorized_resources) == 0:
+        raise AuthError("User is not authorized for any resources")
+    _check_user_access(authorized_resources, record.get("authz", []))
 
 
 class BaseVersion(Base):
@@ -389,11 +456,14 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         metadata=None,
         ids=None,
         urls_metadata=None,
-        negate_params=None,
+        negate_params=None
     ):
         """
         Returns list of records stored by the backend.
         """
+
+        any_authz, authz = _enforce_rbac(authz)
+
         with self.session as session:
             query = session.query(IndexRecord)
 
@@ -450,7 +520,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
             elif authz == []:
                 query = query.filter(IndexRecord.authz == None)
-
+            elif any_authz:
+                # if any_authz is set, we want to filter records that have ANY of the authz elements
+                sub = session.query(IndexRecordAuthz.did).filter(
+                    IndexRecordAuthz.resource.in_(any_authz)
+                )
+                query = query.filter(IndexRecord.did.in_(sub.subquery().select()))
             if hashes:
                 for h, v in hashes.items():
                     sub = session.query(IndexRecordHash.did)
@@ -534,6 +609,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.offset(limit * page)
 
             return [i.to_document_dict() for i in query]
+
 
     @staticmethod
     def _negate_filter(
@@ -640,6 +716,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Returns a list of urls matching supplied size/hashes/dids.
         """
+        any_authz, authz = _enforce_rbac([])
+
         if size is None and hashes is None and ids is None:
             raise UserError("Please provide size/hashes/ids to filter")
 
@@ -666,6 +744,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.filter(IndexRecordUrl.did.in_(ids))
             # Remove duplicates.
             query = query.distinct()
+            # if any_authz is set, filter by authz
+            if any_authz:
+                sub = session.query(IndexRecordAuthz.did).filter(
+                    IndexRecordAuthz.resource.in_(any_authz)
+                )
+                query = query.filter(IndexRecordUrl.did.in_(sub.subquery().select()))
 
             # Return only specified window.
             query = query.offset(start)
@@ -720,7 +804,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         hashes = hashes or {}
         metadata = metadata or {}
         urls_metadata = urls_metadata or {}
-
+        _enforce_rbac(authz)
         with self.session as session:
             record = IndexRecord()
 
@@ -1149,7 +1233,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     # overwrite the "no bundle found" message
                     raise NoRecordFound("no record found")
 
-            return record.to_document_dict()
+            document_dict = record.to_document_dict()
+            _enforce_record_authz(document_dict)
+            return document_dict
 
     def get_with_nonstrict_prefix(self, did, expand=True):
         """
@@ -1170,7 +1256,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             else:
                 stripped = did.split(DEFAULT_PREFIX, 1)[1]
                 record = self.get(stripped, expand=expand)
-
+        _enforce_record_authz(record)
         return record
 
     def update(self, did, rev, changing_fields):
@@ -1480,6 +1566,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Get all record versions (in order of creation) given DID
         """
+        any_authz, authz = _enforce_rbac([])
         ret = dict()
         with self.session as session:
             query = session.query(IndexRecord)
@@ -1498,6 +1585,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound("multiple records found")
 
             query = session.query(IndexRecord)
+
             records = (
                 query.filter(IndexRecord.baseid == baseid)
                 .order_by(IndexRecord.created_date.asc())
@@ -1505,7 +1593,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             )
 
             for idx, record in enumerate(records):
-                ret[idx] = record.to_document_dict()
+                document_dict = record.to_document_dict()
+                _enforce_record_authz(document_dict)
+                ret[idx] = document_dict
 
         return ret
 
@@ -1563,6 +1653,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Get the lattest record version given did
         """
+        any_authz, authz = _enforce_rbac([])
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
@@ -1585,7 +1676,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if not record:
                 raise NoRecordFound("no record found")
 
-            return record.to_document_dict()
+            document_dict = record.to_document_dict()
+            _enforce_record_authz(document_dict)
+
+            return document_dict
 
     def health_check(self):
         """
@@ -1692,6 +1786,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Returns list of all bundles
         """
+        authz, any_authz = _enforce_rbac([])
         with self.session as session:
             query = session.query(DrsBundleRecord)
             query = query.limit(limit)
@@ -1744,6 +1839,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Gets bundles and objects and orders them by created time.
         """
+
         limit = int((limit / 2) + 1)
         bundle = self.get_bundle_list(start=start, limit=limit, page=page)
         objects = self.ids(

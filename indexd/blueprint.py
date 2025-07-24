@@ -1,3 +1,5 @@
+import sys
+
 import flask
 
 from indexclient.client import IndexClient
@@ -5,6 +7,7 @@ from doiclient.client import DOIClient
 from dosclient.client import DOSClient
 from hsclient.client import HSClient
 
+from indexd.auth import AuthzError
 from indexd.utils import hint_match
 
 from indexd.errors import AuthError
@@ -18,6 +21,15 @@ blueprint.config = dict()
 blueprint.index_driver = None
 blueprint.alias_driver = None
 blueprint.dist = []
+
+
+@blueprint.errorhandler(Exception)
+def handle_uncaught_exception(err):
+    import traceback
+    import sys
+    print("Uncaught Exception:", file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
+    return flask.jsonify(error="Internal server error"), 500
 
 
 @blueprint.route("/alias/<path:alias>", methods=["GET"])
@@ -60,7 +72,6 @@ def get_record(record):
                 if not blueprint.dist or "no_dist" in flask.request.args:
                     raise
                 ret = dist_get_record(record)
-
     return flask.jsonify(ret), 200
 
 
@@ -111,6 +122,11 @@ def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
 
 
+@blueprint.errorhandler(AuthzError)
+def handle_authz_error(err):
+    return flask.jsonify(error=str(err)), 401
+
+
 @blueprint.errorhandler(AliasNoRecordFound)
 def handle_no_record_error(err):
     return flask.jsonify(error=str(err)), 404
@@ -129,3 +145,6 @@ def get_config(setup_state):
     blueprint.alias_driver = alias_config["driver"]
     if "DIST" in setup_state.app.config:
         blueprint.dist = setup_state.app.config["DIST"]
+    blueprint.rbac = False
+    if "RBAC" in setup_state.app.config:
+        blueprint.rbac = setup_state.app.config["RBAC"]

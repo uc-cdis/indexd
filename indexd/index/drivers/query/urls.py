@@ -4,7 +4,7 @@ from indexd.errors import UserError
 from indexd.index.drivers.alchemy import (
     IndexRecord,
     IndexRecordUrl,
-    IndexRecordUrlMetadata,
+    IndexRecordUrlMetadata, _enforce_rbac, IndexRecordAuthz,
 )
 from indexd.index.drivers.query import URLsQueryDriver
 
@@ -44,6 +44,8 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         )
 
+        any_authz, authz = _enforce_rbac([])
+
         with self.driver.session as session:
             # special database specific functions dependent of the selected dialect
             q_func = driver_query_map.get(session.bind.dialect.name)
@@ -52,12 +54,14 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 IndexRecordUrl.did, q_func["string_agg"](IndexRecordUrl.url, ",")
             )
 
+            # Only join IndexRecord once, using outerjoin if versioned filtering is needed
+            if versioned is not None or any_authz:
+                query = query.outerjoin(IndexRecord, IndexRecord.did == IndexRecordUrl.did)
+
             # add version filter if versioned is not None
             if versioned is True:  # retrieve only those with a version number
-                query = query.outerjoin(IndexRecord)
                 query = query.filter(IndexRecord.version.isnot(None))
             elif versioned is False:  # retrieve only those without a version number
-                query = query.outerjoin(IndexRecord)
                 query = query.filter(~IndexRecord.version.isnot(None))
 
             query = query.group_by(IndexRecordUrl.did)
@@ -80,13 +84,37 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 query = query.having(
                     ~q_func["string_agg"](IndexRecordUrl.url, ",").contains(exclude)
                 )
+
+            # add authz filter
+            if any_authz:
+                # if any_authz is set, we want to filter records that have ANY of the authz elements
+                # was getting the following warning
+                #  SAWarning: SELECT statement has a cartesian product between FROM element(s) "index_record" and FROM element "index_record_url".  Apply join condition(s) between each element to resolve. .all()
+                # This warning means the query is selecting from multiple tables (index_record and index_record_url) without a proper join condition, causing a cartesian product. To fix this, so we explicitly join IndexRecordUrl to IndexRecord using their relationship.
+                # originally it was:
+                # Add an explicit join between IndexRecordUrl and IndexRecord
+                sub = session.query(IndexRecordAuthz.did).filter(
+                    IndexRecordAuthz.resource.in_(any_authz)
+                )
+                query = query.filter(IndexRecord.did.in_(sub.with_entities(IndexRecordAuthz.did).statement))
+
+
             # [('did', 'urls')]
+
             record_list = (
                 query.order_by(IndexRecordUrl.did.asc())
                 .offset(offset)
                 .limit(limit)
                 .all()
             )
+            # alternatively, we could have used the following query:
+            # record_list = (
+            #     query.join(IndexRecord, IndexRecord.did == IndexRecordUrl.did)
+            #     .order_by(IndexRecordUrl.did.asc())
+            #     .offset(offset)
+            #     .limit(limit)
+            #     .all()
+            # )
         return self._format_response(fields, record_list)
 
     def query_metadata_by_key(
@@ -108,6 +136,8 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         versioned = (
             versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         )
+        any_authz, authz = _enforce_rbac([])
+
         with self.driver.session as session:
             query = session.query(
                 IndexRecordUrlMetadata.did, IndexRecordUrlMetadata.url, IndexRecord.rev
@@ -116,6 +146,14 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 IndexRecordUrlMetadata.key == key,
                 IndexRecordUrlMetadata.value == value,
             )
+
+            # add authz filter
+            if any_authz:
+                # if any_authz is set, we want to filter records that have ANY of the authz elements
+                sub = session.query(IndexRecordAuthz.did).filter(
+                    IndexRecordAuthz.resource.in_(any_authz)
+                )
+                query = query.filter(IndexRecord.did.in_(sub.subquery().select()))
 
             # filter by version
             if versioned is True:
@@ -143,7 +181,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         """loops through the query result and removes undesired columns and converts result of urls string_agg to list
         Args:
             requested_fields (str): comma separated list of fields to return, if not specified return all fields
-            record_list (list(tuple]): must be of the form [(did, urls, rev)], rev is not required for urls query
+            record_list (list(tuple): must be of the form [(did, urls, rev)], rev is not required for urls query
         Returns:
             list[dict]: list of response dicts
         """

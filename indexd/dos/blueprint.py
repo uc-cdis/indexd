@@ -1,5 +1,9 @@
+import sys
+import traceback
+
 import flask
 
+from indexd.auth import AuthzError
 from indexd.blueprint import dist_get_record
 
 from indexd.errors import AuthError
@@ -15,12 +19,32 @@ blueprint.alias_driver = None
 blueprint.dist = []
 
 
+@blueprint.errorhandler(Exception)
+def handle_uncaught_exception(err):
+    print(f"Uncaught Exception: {err}", file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
+    return flask.jsonify(error=f"Internal server error"), 500
+
+
+@blueprint.errorhandler(AuthzError)
+def handle_authz_error(err):
+    ret = {"msg": str(err), "status_code": 401}
+    return flask.jsonify(ret), 401
+
+
+@blueprint.errorhandler(AuthError)
+def handle_requester_auth_error(err):
+    ret = {"msg": str(err), "status_code": 403}
+    return flask.jsonify(ret), 403
+
+
 @blueprint.route("/ga4gh/dos/v1/dataobjects/<path:record>", methods=["GET"])
 def get_dos_record(record):
     """
     Returns a record from the local ids, alias, or global resolvers.
     Returns DOS Schema
     """
+
     try:
         ret = blueprint.index_driver.get(record)
         # record may be a baseID or a DID / GUID. If record is a baseID, ret["did"] is the latest GUID for that record.
@@ -157,3 +181,6 @@ def get_config(setup_state):
     blueprint.alias_driver = alias_config["driver"]
     if "DIST" in setup_state.app.config:
         blueprint.dist = setup_state.app.config["DIST"]
+    blueprint.rbac = False
+    if "RBAC" in setup_state.app.config:
+        blueprint.rbac = setup_state.app.config["RBAC"]

@@ -37,6 +37,7 @@ def get_doc(
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "authz": ["/programs/bpa/projects/UChicago"],
     }
     if has_version:
         doc["version"] = "1"
@@ -71,7 +72,7 @@ def test_drs_get(client, user, combined_default_and_single_table_settings):
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"])
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"], headers=user)
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["id"] == rec_1["did"]
@@ -102,7 +103,7 @@ def test_drs_get_no_default(client, user, combined_default_and_single_table_sett
     assert res_1.status_code == 200
     did = res_1.json["did"]
     assert "testprefix:" not in did
-    res_2 = client.get("/ga4gh/drs/v1/objects/" + did)
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + did, headers=user)
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["self_uri"] == "drs://" + did
@@ -118,11 +119,11 @@ def test_drs_get_no_default(client, user, combined_default_and_single_table_sett
     ] = True
 
 
-def verify_timestamps(expected_doc, did, client, has_updated_date=True):
-    drs_resp = client.get(f"/ga4gh/drs/v1/objects/{did}")
+def verify_timestamps(expected_doc, did, client, user, has_updated_date=True):
+    drs_resp = client.get(f"/ga4gh/drs/v1/objects/{did}", headers=user)
     assert drs_resp.status_code == 200
 
-    record_resp = client.get(f"/index/{did}")
+    record_resp = client.get(f"/index/{did}", headers=user)
     assert record_resp.status_code == 200
     assert expected_doc["content_created_date"] == drs_resp.json["created_time"]
     assert (
@@ -150,7 +151,7 @@ def test_timestamps(client, user, combined_default_and_single_table_settings):
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
     obj_did = create_obj_resp.json["did"]
-    verify_timestamps(data, obj_did, client)
+    verify_timestamps(data, obj_did, client, user)
 
 
 def test_changing_timestamps(client, user, combined_default_and_single_table_settings):
@@ -168,7 +169,7 @@ def test_changing_timestamps(client, user, combined_default_and_single_table_set
     )
     assert update_obj_resp.status_code == 200
     update_obj_did = update_obj_resp.json["did"]
-    verify_timestamps(update_json, update_obj_did, client)
+    verify_timestamps(update_json, update_obj_did, client, user)
 
 
 def test_timestamps_updated_sets_to_created(
@@ -181,7 +182,7 @@ def test_timestamps_updated_sets_to_created(
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
     obj_did = create_obj_resp.json["did"]
-    verify_timestamps(data, obj_did, client, has_updated_date=False)
+    verify_timestamps(data, obj_did, client, user, has_updated_date=False)
 
 
 def test_timestamps_none(client, user, combined_default_and_single_table_settings):
@@ -189,11 +190,11 @@ def test_timestamps_none(client, user, combined_default_and_single_table_setting
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
     obj_did = create_obj_resp.json["did"]
-    drs_resp = client.get(f"/ga4gh/drs/v1/objects/{obj_did}")
+    drs_resp = client.get(f"/ga4gh/drs/v1/objects/{obj_did}", headers=user)
     assert drs_resp.status_code == 200
     assert drs_resp.json.get("created_time") is None
     assert drs_resp.json.get("updated_time") is None
-    record_resp = client.get(f"/index/{obj_did}")
+    record_resp = client.get(f"/index/{obj_did}", headers=user)
     assert record_resp.status_code == 200
     assert record_resp.json.get("content_created_date") is None
     assert record_resp.json.get("content_updated_date") is None
@@ -206,7 +207,7 @@ def test_drs_get_description(client, user, combined_default_and_single_table_set
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"])
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"], headers=user)
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["description"] == data["description"]
@@ -227,7 +228,7 @@ def test_drs_changing_description(
     )
     assert update_obj_resp.status_code == 200
     update_obj = update_obj_resp.json
-    drs_resp = client.get("/ga4gh/drs/v1/objects/" + update_obj["did"])
+    drs_resp = client.get("/ga4gh/drs/v1/objects/" + update_obj["did"], headers=user)
     assert drs_resp.status_code == 200
     drs_rec = drs_resp.json
     assert drs_rec["description"] == update_json["description"]
@@ -240,7 +241,7 @@ def test_drs_get_no_description(
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"])
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"], headers=user)
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["description"] is None
@@ -281,7 +282,7 @@ def test_drs_multiple_endpointurl(
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"])
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + rec_1["did"], headers=user)
 
     assert res_2.status_code == 200
     rec_2 = res_2.json
@@ -304,18 +305,18 @@ def test_drs_list(client, user, combined_default_and_single_table_settings):
         res2 = client.post("/bundle/", json=bundle_data, headers=user)
         assert res_1.status_code == 200
 
-    res_2 = client.get("/ga4gh/drs/v1/objects")
+    res_2 = client.get("/ga4gh/drs/v1/objects", headers=user)
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert len(rec_2["drs_objects"]) == 2 * record_length
     assert submitted_guids.sort() == [r["id"] for r in rec_2["drs_objects"]].sort()
 
-    res_3 = client.get("/ga4gh/drs/v1/objects/?form=bundle")
+    res_3 = client.get("/ga4gh/drs/v1/objects/?form=bundle", headers=user)
     assert res_3.status_code == 200
     rec_3 = res_3.json
     assert len(rec_3["drs_objects"]) == record_length
 
-    res_4 = client.get("/ga4gh/drs/v1/objects/?form=object")
+    res_4 = client.get("/ga4gh/drs/v1/objects/?form=object", headers=user)
     assert res_4.status_code == 200
     rec_4 = res_4.json
     assert len(rec_4["drs_objects"]) == record_length
@@ -326,7 +327,7 @@ def test_get_drs_record_not_found(
 ):
     # test exception raised at nonexistent
     fake_did = "testprefix:d96bab16-c4e1-44ac-923a-04328b6fe78f"
-    res = client.get("/ga4gh/drs/v1/objects/" + fake_did)
+    res = client.get("/ga4gh/drs/v1/objects/" + fake_did, headers=user)
     assert res.status_code == 404
 
 
@@ -339,7 +340,7 @@ def test_get_drs_with_encoded_slash(
     assert res_1.status_code == 200
     rec_1 = res_1.json
     did = "testprefix%3aed8f4658-6acd-4f96-9dd8-3709890c959e"
-    res_2 = client.get("/ga4gh/drs/v1/objects/" + did)
+    res_2 = client.get("/ga4gh/drs/v1/objects/" + did, headers=user)
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["id"] == rec_1["did"]
