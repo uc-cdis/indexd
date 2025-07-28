@@ -10,9 +10,9 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
+python = ">=3.9.2,<4.0"
 alembic = "^1.9.4"
-authutils = "^6.0.0"
+authutils = ">=6,<8"
 cdislogging = "^1.0.0"
 cdiserrors =  "^1.0.0"
 doiclient = {git = "https://github.com/uc-cdis/doiclient", rev = "1.0.0"}
