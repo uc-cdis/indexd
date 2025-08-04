@@ -1,5 +1,6 @@
 import os
-import re
+
+import cdislogging
 import flask
 import json
 from indexd.errors import AuthError, AuthzError
@@ -7,6 +8,8 @@ from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
 from indexd.utils import reverse_url
+
+logger = cdislogging.get_logger(__name__)
 
 blueprint = flask.Blueprint("drs", __name__)
 
@@ -367,6 +370,15 @@ def handle_no_index_record_error(err):
 def handle_unexpected_error(err):
     ret = {"msg": err.message, "status_code": err.code}
     return flask.jsonify(ret), err.code
+
+
+@blueprint.errorhandler(Exception)
+def handle_uncaught_exception(err):
+    """
+    Handle uncaught exceptions and log them.
+    """
+    logger.error(err, exc_info=True)
+    return flask.jsonify(error=f"Internal server error"), 500
 
 
 @blueprint.record

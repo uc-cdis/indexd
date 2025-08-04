@@ -1,4 +1,8 @@
 import re
+import sys
+import traceback
+
+import cdislogging
 import flask
 import jsonschema
 
@@ -13,6 +17,7 @@ from .errors import NoRecordFound
 from .errors import MultipleRecordsFound
 from .errors import RevisionMismatch
 
+logger = cdislogging.get_logger(__name__)
 
 blueprint = flask.Blueprint("alias", __name__)
 
@@ -159,17 +164,25 @@ def handle_multiple_records_error(err):
 
 @blueprint.errorhandler(UserError)
 def handle_user_error(err):
+    logger.error(err, exc_info=True)
     return flask.jsonify(error=str(err)), 400
 
 
 @blueprint.errorhandler(AuthError)
 def handle_auth_error(err):
+    logger.error(err, exc_info=True)
     return flask.jsonify(error=str(err)), 403
 
 
 @blueprint.errorhandler(RevisionMismatch)
 def handle_revision_mismatch(err):
     return flask.jsonify(error=str(err)), 409
+
+
+@blueprint.errorhandler(Exception)
+def handle_uncaught_exception(err):
+    logger.error(err, exc_info=True)
+    return flask.jsonify(error=f"Internal server error {type(err)} {err}"), 500
 
 
 @blueprint.record
