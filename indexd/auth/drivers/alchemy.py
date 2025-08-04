@@ -11,6 +11,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.ext.declarative import declarative_base
 
 from indexd.auth.driver import AuthDriverABC
+from indexd.auth.drivers import request_auth_cache
 
 from indexd.auth.errors import AuthError, AuthzError
 
@@ -133,14 +134,13 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         try:
             # A successful call from arborist returns a bool, else returns ArboristError
             try:
-                authorized = self.arborist.auth_request(
-                    get_jwt_token(), "indexd", method, resource
-                )
+                authorized = self.cached_auth_request(get_jwt_token(), "indexd", method, resource)
             except Exception as e:
                 logger.error(
                     f"Request to Arborist failed; now checking admin access. Details:\n{e}"
                 )
                 authorized = False
+
             if not authorized:
                 # admins can perform all operations
                 is_admin = self.arborist.auth_request(
@@ -157,7 +157,53 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                             "The indexd admin '/programs' logic is deprecated. Please update your policy to '/services/indexd/admin'"
                         )
                 if not is_admin:
-                    raise AuthError("Permission denied.")
+                    raise AuthError("Permission denied. (not is_admin)")
         except Exception as err:
             logger.error(err)
             raise AuthzError(err)
+
+    def resources(self):
+        """
+        Returns a list of resources for the given user.
+        """
+        if not self.arborist:
+            raise AuthError(
+                "Arborist is not configured; cannot perform authorization check"
+            )
+        token = get_jwt_token()
+        try:
+            resources = self.caching_auth_mapping(token)
+            return resources
+        except Exception as err:
+            raise AuthError(
+                "Failed to get resources from Arborist. Please check your Arborist configuration."
+            )
+
+    @request_auth_cache()  # cache the result of the auth request
+    def caching_auth_mapping(self, token):
+        """
+        Returns a list of resources the user has access to.
+        Uses Arborist if available.
+        If a token is provided, it will use that token to get the auth mapping.
+        If no token is provided, it will use the default auth mapping.
+        """
+        if token:
+            resources = self.arborist.auth_mapping(
+                jwt=token
+            )
+        else:
+            resources = self.arborist.auth_mapping()
+        return resources
+
+    @request_auth_cache()  # cache the result of the auth request
+    def cached_auth_request(self, token, service, method, resource):
+        """
+        Makes an authenticated request to Arborist and caches the result.
+        This method is used to check if the user has access to a specific resource
+        with a specific method.
+        """
+        return self.arborist.auth_request(
+            token, service, method, resource
+        )
+
+
