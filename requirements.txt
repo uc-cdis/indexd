@@ -46,7 +46,7 @@ jsonschema-specifications==2025.4.1
     # via jsonschema
 legacy-cgi==2.6.3
     # via ddtrace
-logstick==0.1.5
+logstick==0.1.6
     # via indexd (pyproject.toml)
 markdown-it-py==3.0.0
     # via rich

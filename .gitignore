@@ -74,7 +74,7 @@ docs/_build/
 .python-version
 venv
 .venv*/
-venv/
+venv*/
 
 #.swp
 *.swp
