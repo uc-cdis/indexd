@@ -80,7 +80,7 @@ testpaths = [
 env = [
   "SQLALCHEMY_WARN_20=1",
   "LOGSTICK_LOG_LEVEL=debug",
-  "LOGSTICK_OUTPUT_FORMAT=raw",
+  "LOGSTICK_OUTPUT_LOG_FORMAT=raw",
   "LOGSTICK_ROOT_LOG_LEVEL=info",
 ]
 

@@ -69,10 +69,10 @@ class IndexRecord(Base):
     size: orm.Mapped[int] = sa.Column(sa.BigInteger, index=True)
     release_number: orm.Mapped[str] = sa.Column(sa.String, index=True)
     created_date: orm.Mapped[datetime.datetime] = sa.Column(
-        sa.DateTime, server_default=sa.text("now()")
+        sa.DateTime, default=func.now()
     )
     updated_date: orm.Mapped[datetime.datetime] = sa.Column(
-        sa.DateTime, server_default=sa.text("now()")
+        sa.DateTime, default=func.now()
     )
     file_name: orm.Mapped[str] = sa.Column(sa.String, index=True)
     version: orm.Mapped[str] = sa.Column(sa.String, index=True)
@@ -119,8 +119,8 @@ class IndexRecord(Base):
             metadata["release_number"] = self.release_number
 
         urls_metadata = extract_urls_metadata(self.urls_metadata)
-        created_date = self.created_date.isoformat()
-        updated_date = self.updated_date.isoformat()
+        created_date = self.created_date.isoformat() if self.created_date else None
+        updated_date = self.updated_date.isoformat() if self.updated_date else None
 
         return {
             "did": self.did,
