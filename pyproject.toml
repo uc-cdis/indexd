@@ -1,25 +1,87 @@
 [build-system]
-requires = ["setuptools>=61", "wheel", "setuptools_scm>=7", "versionista>=1.1.0"]
 build-backend = "setuptools.build_meta"
+
+requires = [ "setuptools>=61", "setuptools-scm>=7", "versionista>=1.1", "wheel" ]
 
 [project]
 name = "indexd"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
 dynamic = [
-  "version",
+  "authors",
+  "dependencies",
   "description",
+  "entry-points",
+  "gui-scripts",
+  "keywords",
+  "license",
+  "maintainers",
+  "optional-dependencies",
   "readme",
   "requires-python",
-  "authors",
-  "maintainers",
-  "keywords",
-  "classifiers",
-  "license",
-  "urls",
   "scripts",
-  "gui-scripts",
-  "entry-points",
-  "dependencies",
-  "optional-dependencies"
+  "urls",
+  "version",
+]
+
+[tool.setuptools_scm]
+local_scheme = "versionista-local-format"
+version_scheme = "versionista-format"
+
+[tool.ruff]
+target-version = "py313"
+
+line-length = 88                    # black's default
+src = [ "src", "tests" ]
+format.docstring-code-format = true
+# see https://docs.astral.sh/ruff/rules/
+lint.select = [
+  "E",   # pydocstyle errors
+  "F",   # pyflakes
+  "I",   # isort
+  "N",   # pep8 naming
+  "RUF", # ruff specific rules
+  "UP",  # pyupgrade
+  "W",   # pydocstyle warnings
+]
+lint.ignore = [ "E501" ]
+lint.isort.known-first-party = [ "indexd" ]
+lint.pyupgrade.keep-runtime-typing = true
+
+[tool.pytest.ini_options]
+minversion = 6.0
+python_files = "test_*.py"
+python_functions = "test_*"
+log_cli_level = "INFO"
+log_cli = "1"
+log_auto_indent = "true"
+addopts = [
+  "-rvlFE --color=true -p no:ddtrace -p no:ddtrace.pytest_bdd",
+]
+norecursedirs = [
+  ".git",
+  ".tox",
+  "dist",
+  "docs",
+  "helm",
+  "build",
+  "swagger_client",
+]
+testpaths = [
+  "tests/unit",
+  "tests/integration",
+]
+env = [
+  "SQLALCHEMY_WARN_20=1",
+  "LOGSTICK_LOG_LEVEL=debug",
+  "LOGSTICK_OUTPUT_FORMAT=raw",
+  "LOGSTICK_ROOT_LOG_LEVEL=info",
 ]
 
 [tool.coverage.html]
@@ -30,65 +92,4 @@ show_contexts = true
 [tool.coverage.run]
 branch = true
 context = "unit tests"
-source = ["indexd"]
-
-[tool.pytest.ini_options]
-minversion = 6.0
-python_files = "test_*.py"
-python_functions = "test_*"
-log_cli_level = "INFO"
-log_cli = "1"
-log_auto_indent = "true"
-addopts = [
-  "-rvlFE --color=true -p no:ddtrace -p no:ddtrace.pytest_bdd"
-]
-norecursedirs = [
-  ".git",
-  ".tox",
-  "dist",
-  "docs",
-  "helm",
-  "build",
-  "swagger_client"
-]
-testpaths = [
-  "tests/unit",
-  "tests/integration"
-]
-env = [
-  "SQLALCHEMY_WARN_20=1",
-  "LOGSTICK_LOG_LEVEL=debug",
-  "LOGSTICK_OUTPUT_FORMAT=raw",
-  "LOGSTICK_ROOT_LOG_LEVEL=info"
-]
-
-[tool.ruff]
-line-length = 88 # black's default
-src = ["src", "tests"]
-target-version = "py313"
-
-[tool.ruff.format]
-docstring-code-format = true
-
-[tool.ruff.lint]
-# see https://docs.astral.sh/ruff/rules/
-select = [
-  "E", # pydocstyle errors
-  "F", # pyflakes
-  "I", # isort
-  "N", # pep8 naming
-  "RUF", # ruff specific rules
-  "UP", # pyupgrade
-  "W" # pydocstyle warnings
-]
-ignore = ["E501"]
-
-[tool.ruff.lint.isort]
-known-first-party = ["indexd"]
-
-[tool.ruff.lint.pyupgrade]
-keep-runtime-typing = true
-
-[tool.setuptools_scm]
-local_scheme = "versionista-local-format"
-version_scheme = "versionista-format"
+source = [ "indexd" ]

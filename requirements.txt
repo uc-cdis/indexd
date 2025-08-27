@@ -24,7 +24,7 @@ colorama==0.4.6
     # via logstick
 colorlog==6.9.0
     # via logstick
-ddtrace==3.7.1
+ddtrace==3.12.3
     # via indexd (pyproject.toml)
 deprecated==1.2.18
     # via
@@ -52,7 +52,7 @@ jsonschema-specifications==2024.10.1
     # via jsonschema
 legacy-cgi==2.6.3
     # via ddtrace
-logstick==0.1.4
+logstick==0.1.6
     # via indexd (pyproject.toml)
 markdown-it-py==3.0.0
     # via rich
@@ -109,8 +109,6 @@ wrapt==1.17.2
     # via
     #   ddtrace
     #   deprecated
-xmltodict==0.14.2
-    # via ddtrace
 zipp==3.21.0
     # via
     #   importlib-metadata
