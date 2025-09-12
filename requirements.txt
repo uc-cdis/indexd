@@ -24,7 +24,7 @@ colorama==0.4.6
     # via logstick
 colorlog==6.9.0
     # via logstick
-ddtrace==3.13.0
+ddtrace==3.14.0
     # via indexd (pyproject.toml)
 deprecated==1.2.18
     # via logstick
