@@ -37,6 +37,9 @@ LABEL org.opencontainers.image.title="${SERVICE_NAME}" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}"
 
+ENV DD_GIT_COMMIT_SHA=${COMMIT} \
+    DD_GIT_REPOSITORY_URL=https://github.com/NCI-GDC/${SERVICE_NAME}
+
 RUN dnf install -y libpq-17.4 && \
     mkdir -p /var/www/${SERVICE_NAME}/ && \
     chmod 777 /var/www/${SERVICE_NAME}
