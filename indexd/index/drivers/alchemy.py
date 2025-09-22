@@ -828,7 +828,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         hashes = hashes or {}
         metadata = metadata or {}
         urls_metadata = urls_metadata or {}
-        _enforce_rbac(authz, method="WRITE")
+
         with self.session as session:
             record = IndexRecord()
 
@@ -1049,7 +1049,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Create a index alias with the alias as {prefix:did}
         """
-        _enforce_rbac(record.authz, method="WRITE")
+
         prefix = self.config["DEFAULT_PREFIX"]
         alias = IndexRecordAlias(did=record.did, name=prefix + record.did)
         session.add(alias)

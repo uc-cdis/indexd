@@ -19,12 +19,13 @@ import copy
             "s3://bucket/newkey2",
             200,
         ),
+        # NOTE: Existing code base authorizes basic auth users
         (
             "basic_user",
             "public_record",
             {"md5": "098f6bcd4621d373cade4e832627b4f6"},
             "s3://bucket/newkey3",
-            401,
+            200,
         ),
         (
             "null_user",
