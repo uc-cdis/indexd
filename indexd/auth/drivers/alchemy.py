@@ -157,7 +157,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                             "The indexd admin '/programs' logic is deprecated. Please update your policy to '/services/indexd/admin'"
                         )
                 if not is_admin:
-                    raise AuthError("Permission denied. (not is_admin)")
+                    raise AuthError("Permission denied.")
         except Exception as err:
             logger.error(err)
             raise AuthzError(err)
@@ -172,14 +172,15 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             )
         token = get_jwt_token()
         try:
-            resources = self.caching_auth_mapping(token)
-            return resources
+            authz_resources = self.caching_auth_mapping(token)
         except Exception as err:
             raise AuthError(
                 "Failed to get resources from Arborist. Please check your Arborist configuration."
             )
+        return authz_resources
 
-    @request_auth_cache()  # cache the result of the auth request
+    # cache the result of the auth request
+    @request_auth_cache()
     def caching_auth_mapping(self, token):
         """
         Returns a list of resources the user has access to.
@@ -195,7 +196,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             resources = self.arborist.auth_mapping()
         return resources
 
-    @request_auth_cache()  # cache the result of the auth request
+    @request_auth_cache()
     def cached_auth_request(self, token, service, method, resource):
         """
         Makes an authenticated request to Arborist and caches the result.

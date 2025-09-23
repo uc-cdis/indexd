@@ -22,7 +22,7 @@ def authorize(*p):
         @wraps(f)
         def check_auth(*args, **kwargs):
             if not request.authorization.parameters.get("username"):
-                raise AuthError(f"Basic auth Username / password required. {request.authorization}")
+                raise AuthError("Username / password required.")
             current_app.auth.auth(
                 request.authorization.parameters.get("username"),
                 request.authorization.parameters.get("password"),
@@ -32,19 +32,19 @@ def authorize(*p):
 
         return check_auth
     else:
-        method, resources_ = p
+        method, authz_resources = p
         if request.authorization and request.authorization.type == "basic":
             current_app.auth.auth(
                 request.authorization.parameters.get("username"),
                 request.authorization.parameters.get("password"),
             )
         else:
-            if not isinstance(resources_, list):
-                raise UserError(f"'authz' must be a list, received '{resources_}'.")
-            return current_app.auth.authz(method, list(set(resources_)))
+            if not isinstance(authz_resources, list):
+                raise UserError(f"'authz' must be a list, received '{authz_resources}'.")
+            return current_app.auth.authz(method, list(set(authz_resources)))
 
 
-def resources():
+def get_authorized_resources():
     """
     Returns a list of resources the user has access to. Uses Arborist if available.
     """

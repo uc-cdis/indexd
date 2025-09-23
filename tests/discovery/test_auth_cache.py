@@ -12,14 +12,17 @@ def test_request_auth_cache_no_token_with_authorization_header():
     """
     calls = []
 
-    @request_auth_cache(maximum_ttl_seconds=2)
+    @request_auth_cache()
     def dummy_func(x, token=None):
         calls.append(x)
         return x * 2
 
     # Mock flask.request.headers.get to return a specific Authorization header
     with patch("flask.request") as mock_request:
-        mock_headers = {"Authorization": "Bearer test.jwt.token"}
+        original_time = time.time()
+        expiry_time = 2
+        token = _create_token(original_time, expiry_time)
+        mock_headers = {"Authorization": f"Bearer {token}"}
         mock_request.headers = MagicMock()
         mock_request.headers.get = MagicMock(return_value=mock_headers["Authorization"])
 
@@ -49,7 +52,7 @@ def test_request_auth_cache_basic_auth_header():
     """
     calls = []
 
-    @request_auth_cache(maximum_ttl_seconds=2)
+    @request_auth_cache()
     def dummy_func(x, token=None):
         calls.append(x)
         return x + 1
@@ -65,16 +68,16 @@ def test_request_auth_cache_basic_auth_header():
         assert result1 == 8
         assert calls == [7]
 
-        # Second call, should use cache
+        # Second call, should not use cache
         result2 = dummy_func(7)
         assert result2 == 8
-        assert calls == [7]
+        assert calls == [7, 7]
 
         # Change Basic Auth header, should miss cache
         mock_request.headers.get = MagicMock(return_value="Basic dXNlcjoxMjM0NQ==")
         result3 = dummy_func(7)
         assert result3 == 8
-        assert calls == [7, 7]
+        assert calls == [7, 7, 7]
 
 
 def test_request_auth_cache_token_timeout(monkeypatch):
@@ -86,7 +89,7 @@ def test_request_auth_cache_token_timeout(monkeypatch):
     """
     calls = []
 
-    @request_auth_cache(maximum_ttl_seconds=5)
+    @request_auth_cache()
     def dummy_func(x, token=None):
         calls.append(x)
         return x * 2
@@ -94,40 +97,49 @@ def test_request_auth_cache_token_timeout(monkeypatch):
     with patch("flask.request") as mock_request:
 
         # Simulate a JWT token with exp field 2 seconds from now
-        exp_time = int(time.time()) + 2
-        payload = {"exp": exp_time}
-        secret = "your-secret-key"
-        token = jwt.encode(payload, secret, algorithm="HS256")
+        original_time = time.time()
+        expiry_time = 2
+
+        token = _create_token(original_time, expiry_time)
 
         mock_headers = {"Authorization": f"Bearer {token}"}
         mock_request.headers = MagicMock()
         mock_request.headers.get = MagicMock(return_value=mock_headers["Authorization"])
 
-        # First call, should cache
-        result1 = dummy_func(5)
+        # First call, should cache - since it was never called before
+        result1 = dummy_func(5, token=token)
         assert result1 == 10
         assert calls == [5]
 
-        # Second call, should use cache
-        result2 = dummy_func(5)
+        # Second call, should use cache - since within token expiry
+        result2 = dummy_func(5, token=token)
         assert result2 == 10
         assert calls == [5]
 
         # Simulate time passing beyond TTL
-        original_time = time.time()
         monkeypatch.setattr(time, "time", lambda: original_time + 3)
 
-        # Third call, cache not should expire
-        result3 = dummy_func(5)
+        # Third call, cache should expire - since it is 1 sec beyond token expiry
+        result3 = dummy_func(5, token=token)
         assert result3 == 10
-        assert calls == [5]
+        assert calls == [5, 5]
 
+        # Simulate time passing way beyond TTL
         monkeypatch.setattr(time, "time", lambda: original_time + 10)
 
-        # Fourth call, cache not should expire
-        result4 = dummy_func(5)
+        # Fourth call, cache should expire - since it is way beyond token expiry
+        result4 = dummy_func(5, token=token)
         assert result4 == 10
-        assert calls == [5, 5]
+        assert calls == [5, 5, 5]
+
+
+def _create_token(original_time, expiry_time):
+    """Create a JWT token with an 'exp' field set to original_time + expiry_time."""
+    exp_time = int(original_time) + expiry_time
+    payload = {"exp": exp_time}
+    secret = "your-secret-key"
+    token = jwt.encode(payload, secret, algorithm="HS256")
+    return token
 
 
 def test_request_auth_cache_token_with_expiry(monkeypatch):
@@ -142,12 +154,11 @@ def test_request_auth_cache_token_with_expiry(monkeypatch):
 
     # Simulate a JWT token with exp field 2 seconds from now
 
-    exp_time = int(time.time()) + 2
-    payload = {"exp": exp_time}
-    secret = "your-secret-key"
-    token = jwt.encode(payload, secret, algorithm="HS256")
+    original_time = time.time()
+    expiry_time = 2
+    token = _create_token(original_time, expiry_time)
 
-    @request_auth_cache(maximum_ttl_seconds=5)
+    @request_auth_cache()
     def dummy_func(x, token=None):
         calls.append(x)
         return x * 3

@@ -400,3 +400,42 @@ def all_records(public_record, controlled_record, private_record):
         "controlled": controlled_record,
         "private": private_record,
     }
+
+
+def create_bundle(client, user, records, name):
+    """
+    Create a bundle with the given records and name
+    """
+    bundle = {
+        "name": name,
+        "bundles": [_['did'] for _ in records],
+        "size": len(records),
+    }
+    response = client.post(
+        "/bundle/", json=bundle, headers=user["header"]
+    )
+    assert (
+        response.status_code == 200
+    ), f"Failed to create bundle: {response.text} {power_user['header']}"
+    bundle.update(response.json)
+    return bundle
+
+
+@pytest.fixture
+def public_bundle(public_record, client, power_user):
+    yield create_bundle(client, power_user, [public_record], "public-bundle")
+
+
+@pytest.fixture
+def controlled_bundle(controlled_record, client, power_user):
+    yield create_bundle(client, power_user, [controlled_record], "controlled-bundle")
+
+
+@pytest.fixture
+def private_bundle(private_record, client, power_user):
+    yield create_bundle(client, power_user, [private_record], "private-bundle")
+
+
+@pytest.fixture
+def mixed_bundle(public_record, controlled_record, private_record, client, power_user):
+    yield create_bundle(client, power_user, [public_record, controlled_record, private_record], "mixed-bundle")

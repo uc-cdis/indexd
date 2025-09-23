@@ -223,4 +223,5 @@ def handle_uncaught_exception(err):
     Log the error and return a JSON response with a 500 status code.
     """
     logger.error(err, exc_info=True)
+    print(err)
     return flask.jsonify(error=f"Internal server error"), 500

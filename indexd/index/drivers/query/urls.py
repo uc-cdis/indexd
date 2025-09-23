@@ -4,7 +4,7 @@ from indexd.errors import UserError
 from indexd.index.drivers.alchemy import (
     IndexRecord,
     IndexRecordUrl,
-    IndexRecordUrlMetadata, _enforce_rbac, IndexRecordAuthz,
+    IndexRecordUrlMetadata, _filter_authorized_resources, IndexRecordAuthz, _is_record_discovery_enabled,
 )
 from indexd.index.drivers.query import URLsQueryDriver
 
@@ -44,8 +44,6 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         )
 
-        any_authz, authz = _enforce_rbac([])
-
         with self.driver.session as session:
             # special database specific functions dependent of the selected dialect
             q_func = driver_query_map.get(session.bind.dialect.name)
@@ -55,7 +53,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             )
 
             # Only join IndexRecord once, using outerjoin if versioned filtering is needed
-            if versioned is not None or any_authz:
+            if versioned is not None:
                 query = query.outerjoin(IndexRecord, IndexRecord.did == IndexRecordUrl.did)
 
             # add version filter if versioned is not None
@@ -86,20 +84,18 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 )
 
             # add authz filter
-            if any_authz:
-                # if any_authz is set, we want to filter records that have ANY of the authz elements
+            if _is_record_discovery_enabled():
+                permitted_authz_resources, authz = _filter_authorized_resources()
+                # if permitted_authz_resources is set, we want to filter records that have ANY of the authz elements
                 # was getting the following warning
                 #  SAWarning: SELECT statement has a cartesian product between FROM element(s) "index_record" and FROM element "index_record_url".  Apply join condition(s) between each element to resolve. .all()
                 # This warning means the query is selecting from multiple tables (index_record and index_record_url) without a proper join condition, causing a cartesian product. To fix this, so we explicitly join IndexRecordUrl to IndexRecord using their relationship.
                 # originally it was:
                 # Add an explicit join between IndexRecordUrl and IndexRecord
                 sub = session.query(IndexRecordAuthz.did).filter(
-                    IndexRecordAuthz.resource.in_(any_authz)
+                    IndexRecordAuthz.resource.in_(permitted_authz_resources)
                 )
                 query = query.filter(IndexRecord.did.in_(sub.with_entities(IndexRecordAuthz.did).statement))
-
-
-            # [('did', 'urls')]
 
             record_list = (
                 query.order_by(IndexRecordUrl.did.asc())
@@ -107,14 +103,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 .limit(limit)
                 .all()
             )
-            # alternatively, we could have used the following query:
-            # record_list = (
-            #     query.join(IndexRecord, IndexRecord.did == IndexRecordUrl.did)
-            #     .order_by(IndexRecordUrl.did.asc())
-            #     .offset(offset)
-            #     .limit(limit)
-            #     .all()
-            # )
+
         return self._format_response(fields, record_list)
 
     def query_metadata_by_key(
@@ -136,7 +125,6 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         versioned = (
             versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         )
-        any_authz, authz = _enforce_rbac([])
 
         with self.driver.session as session:
             query = session.query(
@@ -148,10 +136,11 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             )
 
             # add authz filter
-            if any_authz:
+            if _is_record_discovery_enabled():
+                permitted_authz_resources, authz = _filter_authorized_resources()
                 # if any_authz is set, we want to filter records that have ANY of the authz elements
                 sub = session.query(IndexRecordAuthz.did).filter(
-                    IndexRecordAuthz.resource.in_(any_authz)
+                    IndexRecordAuthz.resource.in_(permitted_authz_resources)
                 )
                 query = query.filter(IndexRecord.did.in_(sub.subquery().select()))
 

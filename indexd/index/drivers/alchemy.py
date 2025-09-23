@@ -40,27 +40,17 @@ from indexd.utils import migrate_database
 Base = declarative_base()
 
 
-def _get_authorized_resources(requested_method="READ") -> list[str]:
+def _get_authorized_resources() -> list[str]:
     """Retrieve the user's authorized resources from Arborist."""
-    # Token is __not__ required for RBAC, but we can use it to get the user's context.
+    # Arborist allows no token to be sent on purpose, it allows assignment of anonymous access
     # See https://github.com/uc-cdis/indexd/pull/400#discussion_r2243298256
-    # `Arborist allows no token to be sent on purpose, it allows assignment of anonymous access. So we don't want to raise this error here`
-    # if not flask.request.authorization:
-    #     raise AuthError("Authorization header is required for RBAC")
-    # token = flask.request.headers.get("Authorization")
-    # if token is None:
-    #     raise AuthError("Authorization header is required for RBAC")
     authorized_resources = []
-    for resource, permissions in auth.resources().items():
+    for resource, permissions in auth.get_authorized_resources().items():
         for permission in permissions:
-            method = permission['method']
-            service = permission['service']
-            if requested_method == "READ":
-                if "read-storage" == method or service == "indexd":
-                    authorized_resources.append(resource)
-            else:
-                if method in ["create", "update", "delete"]:
-                    authorized_resources.append(resource)
+            method = permission['method'].lower().strip()
+            service = permission['service'].lower().strip()
+            if method == "read" and service in ["indexd", "*"]:
+                authorized_resources.append(resource)
     return authorized_resources
 
 
@@ -69,19 +59,19 @@ def _check_user_access(authorized_resources: list[str], authz: list[str]) -> Non
     for resource in authz:
         if resource not in authorized_resources:
             raise AuthzError(
-                f"User is not authorized for project {resource} {authz} {type(authz)}"
+                "User is not authorized"
             )
 
 
-def _is_rbac() -> bool:
+def _is_record_discovery_enabled() -> bool:
     """
-        Check if RBAC is enabled for the current app.
+        Check if discovery is enabled for the current app.
         Does current user have access to a global discovery resource?
-        If so, RBAC is not enabled.
+        If so, discovery is not enabled.
     """
     # For simplicity, we check the config directly.
     are_records_discoverable = flask.current_app.config.get('ARE_RECORDS_DISCOVERABLE', True)
-    # If records are not discoverable, RBAC is not enabled.
+    # If records are not discoverable, discovery is not enabled.
     if are_records_discoverable:
         return False
     # Does user have access to "GLOBAL_DISCOVERY_AUTHZ" resource?
@@ -90,41 +80,43 @@ def _is_rbac() -> bool:
     # if any of the global discovery authz resources are in the authorized resources, RBAC is not enabled
     if any(resource in authorized_resources for resource in global_discovery_authz):
         return False
-    # If we reach here, RBAC is enabled.
+    # If we reach here, discovery is enabled.
     return True
 
 
-def _enforce_rbac(authz, method="READ") -> tuple[list[str], list[str]]:
-    """ Enforce RBAC for the current request."""
-    any_authz = None
-    if _is_rbac():
-        # If RBAC is not enabled, we don't need to check user access.
-        # This is for backwards compatibility with existing code.
-        authorized_resources = _get_authorized_resources(method)
-        if len(authorized_resources) == 0:
-            # Force filtering by an non-existent resource if no resources are authorized.
-            authorized_resources = ["NO-AUTHORIZED-RESOURCES"]
-        if authz:
-            _check_user_access(authorized_resources, authz or [])
-            any_authz = None
-        else:
-            authz = None
-            any_authz = authorized_resources
+def _filter_authorized_resources(authz: list[str] = None) -> tuple[list[str], list[str]]:
+    """ Enforce discovery for the current request.
+        The authz parameter represents a list of resource strings that specify which resources the user is requesting access to.
+        These are typically project or resource identifiers used for authorization checks.
+        If provided, the function will ensure the user is authorized for all resources in this list; 
+        If not provided, it will determine the permitted resources based on the user's context and discovery settings.
+    """
+    # Hold a list of resources the user is authorized to access, used for filtering when discovery is enabled.
+    permitted_authz_resources = None
 
-    return any_authz, authz
+    # If discovery is not enabled, we don't need to check user access.
+    # This is for backwards compatibility with existing code.
+    authorized_resources = _get_authorized_resources()
+    if authz:
+        _check_user_access(authorized_resources, authz or [])
+        permitted_authz_resources = None
+    else:
+        authz = None
+        permitted_authz_resources = authorized_resources
+
+    return permitted_authz_resources, authz
 
 
 def _enforce_record_authz(record):
     """ Enforce record authorization based on the current request's RBAC settings."""
-    if not _is_rbac():
+    if not _is_record_discovery_enabled():
         return
     authorized_resources = _get_authorized_resources()
     if len(authorized_resources) == 0:
-        raise AuthError("User is not authorized for any resources")
+        raise AuthError("User is not authorized")
     if isinstance(record, IndexRecord):
         record = record.to_document_dict()
-    if not isinstance(record, dict):
-        raise UserError("Record must be a dictionary")
+    # Note: bundle records do not have authz field
     _check_user_access(authorized_resources, record.get("authz", []))
 
 
@@ -486,8 +478,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         Returns list of records stored by the backend.
         """
 
-        any_authz, authz = _enforce_rbac(authz)
-
         with self.session as session:
             query = session.query(IndexRecord)
 
@@ -544,10 +534,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     query = query.filter(IndexRecord.did.in_(sub.subquery()))
             elif authz == []:
                 query = query.filter(IndexRecord.authz == None)
-            elif any_authz:
-                # if any_authz is set, we want to filter records that have ANY of the authz elements
+
+            elif _is_record_discovery_enabled():
+                permitted_authz_resources, authz = _filter_authorized_resources(authz)
+                # if permitted_authz_resources is set, we want to filter records that have ANY of the authz elements
                 sub = session.query(IndexRecordAuthz.did).filter(
-                    IndexRecordAuthz.resource.in_(any_authz)
+                    IndexRecordAuthz.resource.in_(permitted_authz_resources)
                 )
                 query = query.filter(IndexRecord.did.in_(sub.subquery().select()))
             if hashes:
@@ -740,7 +732,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Returns a list of urls matching supplied size/hashes/dids.
         """
-        any_authz, authz = _enforce_rbac([])
 
         if size is None and hashes is None and ids is None:
             raise UserError("Please provide size/hashes/ids to filter")
@@ -768,10 +759,11 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.filter(IndexRecordUrl.did.in_(ids))
             # Remove duplicates.
             query = query.distinct()
-            # if any_authz is set, filter by authz
-            if any_authz:
+
+            if _is_record_discovery_enabled():
+                permitted_authz_resources, authz = _filter_authorized_resources()
                 sub = session.query(IndexRecordAuthz.did).filter(
-                    IndexRecordAuthz.resource.in_(any_authz)
+                    IndexRecordAuthz.resource.in_(permitted_authz_resources)
                 )
                 query = query.filter(IndexRecordUrl.did.in_(sub.subquery().select()))
 
@@ -1596,7 +1588,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Get all record versions (in order of creation) given DID
         """
-        any_authz, authz = _enforce_rbac([])
         ret = dict()
         with self.session as session:
             query = session.query(IndexRecord)
@@ -1615,6 +1606,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound("multiple records found")
 
             query = session.query(IndexRecord)
+
+            if _is_record_discovery_enabled():
+                permitted_authz_resources, authz = _filter_authorized_resources()
+                record_authz = record.to_document_dict().get("authz", [])
+                if not any(resource in permitted_authz_resources for resource in record_authz):
+                    raise AuthzError(f"User is not authorized")
 
             records = (
                 query.filter(IndexRecord.baseid == baseid)
@@ -1681,9 +1678,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     def get_latest_version(self, did, has_version=None):
         """
-        Get the lattest record version given did
+        Get the latest record version given did
         """
-        any_authz, authz = _enforce_rbac([])
         with self.session as session:
             query = session.query(IndexRecord)
             query = query.filter(IndexRecord.did == did)
@@ -1816,7 +1812,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Returns list of all bundles
         """
-        authz, any_authz = _enforce_rbac([])
         with self.session as session:
             query = session.query(DrsBundleRecord)
             query = query.limit(limit)
@@ -1826,6 +1821,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             if page is not None:
                 query = query.offset(limit * page)
+
+            # since bundle records are not authz-protected, and bundle_data is not included
+            # DO NOT enforce authz on bundle listing
 
             return [i.to_document_dict() for i in query]
 

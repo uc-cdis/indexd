@@ -48,7 +48,7 @@ def ensure_drs(
         ), f"Expected DID {did}, got {record['id']} for user {user_['header']}"
 
 
-def ensure_get_urls(
+def _ensure_get_urls(
     client, did, expected_count, expected_status, mock_arborist_requests, user_
 ):
     url = "/urls"
@@ -245,7 +245,7 @@ def test_get_urls(
     did = record["did"]
     user_ = request.getfixturevalue(user_fixture)
 
-    ensure_get_urls(
+    _ensure_get_urls(
         client, did, expected_count, expected_status, mock_arborist_requests, user_
     )
 
@@ -551,3 +551,68 @@ def test_get_index_versions(
         assert (
             str(expected_count - 1) in data
         ), f"Expected key '{expected_count - 1}' in response, got {data} for user {user_['header']}"
+
+
+@pytest.mark.parametrize(
+    "bundle_fixture, user_fixture, expected_status, expected_count",
+    [
+        ("public_bundle", "power_user", 200, 1),
+        ("public_bundle", "controlled_user", 200, 1),
+        ("public_bundle", "basic_user", 200, 1),
+        ("public_bundle", "null_user", 200, 1),
+        ("public_bundle", "discovery_user", 200, 1),
+        ("controlled_bundle", "power_user", 200, 1),
+        ("controlled_bundle", "controlled_user", 200, 1),
+        ("controlled_bundle", "basic_user", 200, 1),
+        ("controlled_bundle", "null_user", 200, 1),
+        ("controlled_bundle", "discovery_user", 200, 1),
+        ("private_bundle", "power_user", 200, 1),
+        ("private_bundle", "controlled_user", 200, 1),
+        ("private_bundle", "basic_user", 200, 1),
+        ("private_bundle", "null_user", 200, 1),
+        ("private_bundle", "discovery_user", 200, 1),
+    ],
+)
+def test_get_bundle(
+    client,
+    request,
+    bundle_fixture,
+    user_fixture,
+    expected_status,
+    expected_count,
+    mock_arborist_requests,
+):
+    """
+    Test GET /bundles for all record and user combinations.
+    """
+    record = request.getfixturevalue(bundle_fixture)
+    assert "bundle_id" in record, f"Bundle fixture {bundle_fixture} has no 'bundle_id'"
+    bundle_id = record["bundle_id"]
+    user_ = request.getfixturevalue(user_fixture)
+    mock_arborist_requests(resource_method_to_authorized=user_["permissions"])
+    url = f"/bundle"
+    res = client.get(url, headers=user_["header"])
+    assert (
+        res.status_code == expected_status
+    ), f"GET {url} expected {expected_status}, got {res.status_code} for user {user_['header']} {res.text}"
+    if expected_status == 200:
+        data = res.json
+        assert isinstance(data, dict), f"Expected dict, got {type(data)}"
+        assert 'records' in data, f"Expected 'records' in response, got {data}"
+        records = data['records']
+        assert isinstance(records, list), f"Expected 'records' to be a list, got {type(records)}"
+
+        assert (
+            len(records) == expected_count
+        ), f"Expected {expected_count} versions, got {len(data['versions'])} for user {user_['header']}"
+
+        assert all(r['form'] == 'bundle' for r in records), (
+            f"Expected all records to have form == 'bundle, got {[r['form'] for r in records]}"
+        )
+
+        for bundle in records:
+            url = f"/bundle/{bundle['id']}"
+            res = client.get(url, headers=user_["header"])
+            assert (
+                    res.status_code == expected_status
+            ), f"GET {url} expected {expected_status}, got {res.status_code} for user {user_['header']} {res.text}"

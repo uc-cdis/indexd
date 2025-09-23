@@ -83,7 +83,7 @@ CONFIG["DRS_SERVICE_INFO"] = {
     },
 }
 
-CONFIG["ARE_RECORDS_DISCOVERABLE"] = True  # Whether any records are discoverable at all. RBAC is not enabled by default
+CONFIG["ARE_RECORDS_DISCOVERABLE"] = True  # Whether any records are discoverable at all. Enabled by default
 
 # Override per-record authz for GET/read
 # Only applies to record discovery (not file access)
