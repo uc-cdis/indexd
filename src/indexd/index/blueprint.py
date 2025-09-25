@@ -489,6 +489,12 @@ def health_check():
     return "Healthy", 200
 
 
+@blueprint.route("/ready", methods=["GET"])
+def ready() -> flask.Response:
+    """Called by service discovery and monitoring to confirm app is ready to handle requests"""
+    return "", 200
+
+
 @blueprint.route("/_stats", methods=["GET"])
 def stats():
     """

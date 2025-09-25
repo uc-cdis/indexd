@@ -1,26 +1,27 @@
-ARG BASE_VERSION=3.2.1
+# syntax=docker.osdc.io/docker/dockerfile:1
+ARG BASE_VERSION=3.5.0
 ARG REGISTRY=docker.osdc.io
 ARG SERVICE_NAME=indexd
 ARG PYTHON_VERSION=python3.13
 
 FROM ${REGISTRY}/ncigdc/${PYTHON_VERSION}-builder:${BASE_VERSION} AS build
-ARG SERVICE_NAME
-ARG PIP_INDEX_URL
+ARG PIP_INDEX_URL=https://nexus.osdc.io/repository/pypi-gdc-releases/simple
 ARG PYTHON_VERSION
+ARG SERVICE_NAME
 
 # avoids used detach heads in computing versions in gitlab
 ARG GIT_BRANCH_NAME
-ENV CI_COMMIT_REF_NAME=$GIT_BRANCH_NAME
+ENV CI_COMMIT_REF_NAME=$GIT_BRANCH_NAME \
+    PIP_INDEX_URL=$PIP_INDEX_URL
 
 WORKDIR /${SERVICE_NAME}
 
 COPY . .
-RUN pip install --upgrade setuptools pip \
-    && pip install versionista>=1.1.0 \
+RUN pip install versionista>=1.1.0 \
     && python3 -m setuptools_scm \
     && pip install --no-deps -r requirements.txt .
 
-FROM ${REGISTRY}/ncigdc/${PYTHON_VERSION}-httpd:${BASE_VERSION}
+FROM ${REGISTRY}/ncigdc/${PYTHON_VERSION}:${BASE_VERSION}
 ARG NAME
 ARG PYTHON_VERSION
 ARG SERVICE_NAME
@@ -36,18 +37,21 @@ LABEL org.opencontainers.image.title="${SERVICE_NAME}" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}"
 
-RUN dnf install -y libpq-15.0 \
-    && mkdir -p /var/www/${SERVICE_NAME}/ \
-    && chmod 777 /var/www/${SERVICE_NAME}
+ENV DD_GIT_COMMIT_SHA=${COMMIT} \
+    DD_GIT_REPOSITORY_URL=https://github.com/NCI-GDC/${SERVICE_NAME}
 
-COPY wsgi.py /var/www/${SERVICE_NAME}/
-COPY .docker/indexd.conf /etc/httpd/conf.d/indexd.conf
-COPY --from=build /venv/lib/${PYTHON_VERSION}/site-packages /venv/lib/${PYTHON_VERSION}/site-packages
+RUN dnf install -y libpq-17.4 && \
+    mkdir -p /var/www/${SERVICE_NAME}/ && \
+    chmod 777 /var/www/${SERVICE_NAME}
 
-# Make indexd CLI utilities available for, e.g., DB schema migration.
-COPY --from=build /venv/bin/indexd /venv/bin
-COPY --from=build /venv/bin/index_admin.py /venv/bin
-COPY --from=build /venv/bin/migrate_index.py /venv/bin
+COPY --chown=app:app wsgi.py /var/www/${SERVICE_NAME}/wsgi.py
+COPY --chown=app:app gunicorn.conf.py /var/www/${SERVICE_NAME}/gunicorn.conf.py
+COPY --chown=app:app --from=build /venv /venv
 
 
 WORKDIR /var/www/${SERVICE_NAME}
+EXPOSE 80 443
+USER app:app
+CMD [ "ddtrace-run", \
+      "/venv/bin/gunicorn", \
+      "wsgi" ]

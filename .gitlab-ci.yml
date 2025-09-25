@@ -8,7 +8,7 @@ include:
 variables:
   SERVICE_NAME: indexd
   LANGUAGE_VERSION: python3.13
-  BASE_CONTAINER_VERSION: 3.2.1
+  BASE_CONTAINER_VERSION: 3.5.0
   PRE_COMMIT_PY_VERSION: "3.13"
 
 tox:

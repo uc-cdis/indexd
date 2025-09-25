@@ -1,0 +1,111 @@
+---
+schemaVersion: 2.2.0
+metadata:
+  name: indexd
+  displayName: Indexd
+  description: Django is a high-level Python web framework that enables rapid development
+    of secure and maintainable websites. Built by experienced developers, Django takes
+    care of much of the hassle of web development, so you can focus on writing your
+    app without needing to reinvent the wheel. It is free and open source, has a thriving
+    and active community, great documentation, and many options for free and paid-for
+    support.
+  icon: https://static.djangoproject.com/img/logos/django-logo-positive.svg
+  tags:
+    - Django
+    - Python
+    - Pip
+  projectType: Django
+  language: Python
+  provider: Red Hat
+  version: 0.0.1
+starterProjects:
+  - name: indexd-example
+    git:
+      remotes:
+        origin: https://github.com/NCI-GDC/indexd
+components:
+  - name: py-web
+    container:
+      image: docker.osdc.io/ncigdc/python3.13-builder:3.2.3
+      args: [tail, -f, /dev/null]
+      mountSources: true
+      endpoints:
+        - name: http-django
+          targetPort: 80
+        - exposure: none
+          name: debug
+          targetPort: 5858
+      env:
+        - name: DEBUG_PORT
+          value: '5858'
+        - name: PG_HOST
+          value: localhost
+        - name: PG_INDEXD_USER
+          value: test
+        - name: PG_INDEXD_PASS
+          value: test
+        - name: PG_INDEXD_HOST
+          value: localhost
+        - name: PG_INDEXD_DROP_DB
+          value: 'false'
+        - name: PG_INDEXD_ROOT_USER
+          value: test
+        - name: PG_INDEXD_ROOT_PASS
+          value: test
+        - name: SETUPTOOLS_SCM_PRETEND_VERSION
+          value: 0.0.1
+        - name: PIP_INDEX_URL
+          value: https://nexus.osdc.io/repository/pypi-all/simple
+  - name: postgres
+    container:
+      image: docker.osdc.io/ncigdc/ci-postgres-13:3.2.3
+      memoryLimit: 512Mi
+      endpoints:
+        - name: postgres
+          targetPort: 5432
+          exposure: none
+      env:
+        - name: POSTGRES_DB
+          value: indexd_test
+        - name: POSTGRES_USER
+          value: test
+        - name: POSTGRES_PASSWORD
+          value: test
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: trust
+commands:
+  - id: pip-install-requirements
+    exec:
+      commandLine: pip install setuptools_scm && python3 -m setuptools_scm && pip
+        install --no-deps -r requirements.txt .
+      workingDir: ${PROJECT_SOURCE}
+      group:
+        kind: build
+        isDefault: true
+      component: py-web
+  - id: run-app
+    exec:
+      commandLine: /venv/bin/gunicorn -c gunicorn.conf.py wsgi
+      workingDir: ${PROJECT_SOURCE}
+      component: py-web
+      group:
+        kind: run
+        isDefault: true
+  - id: tox
+    exec:
+      commandLine: mkdir -p /usr/share/man/man1 && dnf -y install java-11-amazon-corretto-headless
+        && dnf upgrade wget && java -version && pip install "tox > 4" && git init
+        && tox -e py
+      workingDir: ${PROJECT_SOURCE}
+      component: py-web
+      group:
+        kind: test
+        isDefault: true
+  - id: debug
+    exec:
+      commandLine: pip install debugpy && export DEBUG_MODE=True && python -m debugpy
+        --listen 0.0.0.0:${DEBUG_PORT} manage.py runserver 0.0.0.0:80 --noreload --nothreading
+      workingDir: ${PROJECT_SOURCE}
+      component: py-web
+      group:
+        kind: debug

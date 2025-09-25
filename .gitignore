@@ -41,7 +41,7 @@ pip-delete-this-directory.txt
 htmlcov/
 test-reports/
 .tox/
-.coverage
+.coverage*
 .cache
 .local/
 nosetests.xml
@@ -94,3 +94,5 @@ swagger-codegen-cli.jar
 helm/*.tgz
 results.xml
 report.xml
+
+.odo

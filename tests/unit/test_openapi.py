@@ -18,4 +18,4 @@ def test_valid_openapi():
         # ensure the spec is valid JSON
         spec = json.loads(json.dumps(spec))
 
-        openapi_spec_validator.validate(spec, url)
+        openapi_spec_validator.validate_spec(spec, url)
