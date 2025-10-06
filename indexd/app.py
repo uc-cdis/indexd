@@ -8,6 +8,7 @@ import flask
 from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.auth.drivers.alchemy import Base as AuthBase
+from .auth.discovery_context import ensure_auth_context
 from .bulk.blueprint import blueprint as indexd_bulk_blueprint
 from .index.blueprint import blueprint as indexd_index_blueprint
 from .alias.blueprint import blueprint as indexd_alias_blueprint
@@ -42,6 +43,10 @@ def app_init(app, settings=None):
 
     app.auth = settings["auth"]
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
+
+    # write flask app and request information to a ContextVar
+    app.before_request(ensure_auth_context)
+
     app.register_blueprint(indexd_bulk_blueprint)
     app.register_blueprint(indexd_index_blueprint)
     app.register_blueprint(indexd_alias_blueprint)

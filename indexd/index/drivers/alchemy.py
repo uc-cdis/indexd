@@ -3,7 +3,6 @@ import uuid
 import json
 from contextlib import contextmanager
 
-import flask
 from cdislogging import get_logger
 from sqlalchemy import (
     BigInteger,
@@ -26,6 +25,7 @@ from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd import auth
+from indexd.auth.discovery_context import get_auth_context
 from indexd.auth.errors import AuthzError
 from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
@@ -40,20 +40,6 @@ from indexd.utils import migrate_database
 Base = declarative_base()
 
 
-def _get_authorized_resources() -> list[str]:
-    """Retrieve the user's authorized resources from Arborist."""
-    # Arborist allows no token to be sent on purpose, it allows assignment of anonymous access
-    # See https://github.com/uc-cdis/indexd/pull/400#discussion_r2243298256
-    authorized_resources = []
-    for resource, permissions in auth.get_authorized_resources().items():
-        for permission in permissions:
-            method = permission['method'].lower().strip()
-            service = permission['service'].lower().strip()
-            if method == "read" and service in ["indexd", "*"]:
-                authorized_resources.append(resource)
-    return authorized_resources
-
-
 def _check_user_access(authorized_resources: list[str], authz: list[str]) -> None:
     """Raise an AuthzError if the user is not authorized for the given resources."""
     for resource in authz:
@@ -63,28 +49,16 @@ def _check_user_access(authorized_resources: list[str], authz: list[str]) -> Non
             )
 
 
-def _is_record_discovery_enabled() -> bool:
+def can_user_discover() -> bool:
     """
         Check if discovery is enabled for the current app.
         Does current user have access to a global discovery resource?
         If so, discovery is not enabled.
     """
-    # For simplicity, we check the config directly.
-    are_records_discoverable = flask.current_app.config.get('ARE_RECORDS_DISCOVERABLE', True)
-    # If records are not discoverable, discovery is not enabled.
-    if are_records_discoverable:
-        return False
-    # Does user have access to "GLOBAL_DISCOVERY_AUTHZ" resource?
-    global_discovery_authz: list = flask.current_app.config.get('GLOBAL_DISCOVERY_AUTHZ', [])
-    authorized_resources: list = _get_authorized_resources()
-    # if any of the global discovery authz resources are in the authorized resources, RBAC is not enabled
-    if any(resource in authorized_resources for resource in global_discovery_authz):
-        return False
-    # If we reach here, discovery is enabled.
-    return True
+    return get_auth_context()['can_user_discover']
 
 
-def _filter_authorized_resources(authz: list[str] = None) -> tuple[list[str], list[str]]:
+def get_permitted_authz_resources(authz: list[str] = None) -> tuple[list[str], list[str]]:
     """ Enforce discovery for the current request.
         The authz parameter represents a list of resource strings that specify which resources the user is requesting access to.
         These are typically project or resource identifiers used for authorization checks.
@@ -93,10 +67,10 @@ def _filter_authorized_resources(authz: list[str] = None) -> tuple[list[str], li
     """
     # Hold a list of resources the user is authorized to access, used for filtering when discovery is enabled.
     permitted_authz_resources = None
+    authorized_resources = get_auth_context()['authorized_resources']
 
     # If discovery is not enabled, we don't need to check user access.
     # This is for backwards compatibility with existing code.
-    authorized_resources = _get_authorized_resources()
     if authz:
         _check_user_access(authorized_resources, authz or [])
         permitted_authz_resources = None
@@ -109,9 +83,9 @@ def _filter_authorized_resources(authz: list[str] = None) -> tuple[list[str], li
 
 def _enforce_record_authz(record):
     """ Enforce record authorization based on the current request's RBAC settings."""
-    if not _is_record_discovery_enabled():
+    if can_user_discover():
         return
-    authorized_resources = _get_authorized_resources()
+    authorized_resources = get_auth_context()['authorized_resources']
     if len(authorized_resources) == 0:
         raise AuthError("User is not authorized")
     if isinstance(record, IndexRecord):
@@ -472,7 +446,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         metadata=None,
         ids=None,
         urls_metadata=None,
-        negate_params=None
+        negate_params=None,
     ):
         """
         Returns list of records stored by the backend.
@@ -535,8 +509,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             elif authz == []:
                 query = query.filter(IndexRecord.authz == None)
 
-            elif _is_record_discovery_enabled():
-                permitted_authz_resources, authz = _filter_authorized_resources(authz)
+            elif not can_user_discover():
+                permitted_authz_resources, authz = get_permitted_authz_resources(authz)
+
                 # if permitted_authz_resources is set, we want to filter records that have ANY of the authz elements
                 sub = session.query(IndexRecordAuthz.did).filter(
                     IndexRecordAuthz.resource.in_(permitted_authz_resources)
@@ -760,8 +735,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             # Remove duplicates.
             query = query.distinct()
 
-            if _is_record_discovery_enabled():
-                permitted_authz_resources, authz = _filter_authorized_resources()
+            if not can_user_discover():
+                permitted_authz_resources, authz = get_permitted_authz_resources()
                 sub = session.query(IndexRecordAuthz.did).filter(
                     IndexRecordAuthz.resource.in_(permitted_authz_resources)
                 )
@@ -1607,8 +1582,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             query = session.query(IndexRecord)
 
-            if _is_record_discovery_enabled():
-                permitted_authz_resources, authz = _filter_authorized_resources()
+            if not can_user_discover():
+                permitted_authz_resources, authz = get_permitted_authz_resources()
                 record_authz = record.to_document_dict().get("authz", [])
                 if not any(resource in permitted_authz_resources for resource in record_authz):
                     raise AuthzError(f"User is not authorized")

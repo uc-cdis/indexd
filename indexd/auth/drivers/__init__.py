@@ -8,8 +8,8 @@ import jwt
 def request_auth_cache():
     """
     Decorator to cache the result of a function for a specified maximum TTL in seconds.
-    The actual cache duration is determined by the 'token' parameter's expiration.
-    If no token is provided as a argument to the cached token, use the Authentication header's token and included the Authorization header is in the cache key.
+    Use the Authentication header's token and included the Authorization header is in the cache key.
+    https://github.com/uc-cdis/indexd/pull/405#discussion_r2402579919
     """
 
     def decorator(func):
@@ -21,31 +21,16 @@ def request_auth_cache():
             key = functools._make_key(args, kwargs, typed=False)
             now = time.time()
 
-            # Extract token from args or kwargs
-            token = kwargs.get("token")
-            if token is None:
-                # print("No token provided in kwargs")
-                if type(args[0]) is str:
-                    # If the first argument is a string, assume it's the token
-                    token = args[0]
-                else:
-                    token = args[1] if len(args) > 1 else None
-
-            # Calculate token expiration duration
-            # if no token provided on call, use the
+            # Use the Authorization header to the key.
+            # This is useful for cases where the function does not require a token,
+            # but still needs to cache based on the Authorization header.
+            auth_header = flask.request.headers.get('Authorization', None)
             token_ttl = None
-            if token:
+            if auth_header and auth_header.startswith('Bearer '):
+                token = auth_header.split(' ', 1)[1]
                 token_ttl = calculate_ttl(now, token)
-            else:
-                # If no token is provided, use the maximum TTL and add the Authorization header to the key.
-                # This is useful for cases where the function does not require a token,
-                # but still needs to cache based on the Authorization header.
-                auth_header = flask.request.headers.get('Authorization', None)
-                if auth_header and auth_header.startswith('Bearer '):
-                    token = auth_header.split(' ', 1)[1]
-                    token_ttl = calculate_ttl(now, token)
-                    # Add the Authorization header to the key
-                    key = functools._make_key(args + (auth_header,), kwargs, typed=False)
+                # Add the Authorization header to the key
+                key = functools._make_key(args + (auth_header,), kwargs, typed=False)
 
             # Check if the result is already cached and still valid
             if key in cache:
@@ -55,7 +40,7 @@ def request_auth_cache():
 
             # If not cached or expired, call the function and cache the result
             result = func(*args, **kwargs)
-            # onlu cache if we have a valid token_ttl
+            # only cache if we have a valid token_ttl
             if token_ttl:
                 cache[key] = (result, now)
 

@@ -47,7 +47,7 @@ def test_request_auth_cache_basic_auth_header():
     """
     Test caching behavior with Basic Auth header.
     The cache key should include the Basic Auth header, and subsequent calls with the same header
-    should hit the cache.
+    should miss the cache.
     If the Basic Auth header changes, it should miss the cache.
     """
     calls = []
@@ -165,15 +165,16 @@ def test_request_auth_cache_token_with_expiry(monkeypatch):
 
     with patch("flask.request") as mock_request:
         mock_request.headers = MagicMock()
-        mock_request.headers.get = MagicMock(return_value=None)
+        mock_headers = {"Authorization": f"Bearer {token}"}
+        mock_request.headers.get = MagicMock(return_value=mock_headers["Authorization"])
 
         # First call, should cache
-        result1 = dummy_func(4, token=token)
+        result1 = dummy_func(4)
         assert result1 == 12
         assert calls == [4]
 
         # Second call, within token expiry, should use cache
-        result2 = dummy_func(4, token=token)
+        result2 = dummy_func(4)
         assert result2 == 12
         assert calls == [4]
 
@@ -182,6 +183,6 @@ def test_request_auth_cache_token_with_expiry(monkeypatch):
         monkeypatch.setattr(time, "time", lambda: original_time + 3)
 
         # Third call, token expired, cache should miss
-        result3 = dummy_func(4, token=token)
+        result3 = dummy_func(4)
         assert result3 == 12
         assert calls == [4, 4]

@@ -31,6 +31,9 @@ def handle_uncaught_exception(err):
 
 @blueprint.errorhandler(AuthzError)
 def handle_authz_error(err):
+    """
+    Handle authz errors that occur when the user is not authorized to access the resource.
+    """
     ret = {"msg": str(err), "status_code": 401}
     return flask.jsonify(ret), 401
 

@@ -4,7 +4,7 @@ from indexd.errors import UserError
 from indexd.index.drivers.alchemy import (
     IndexRecord,
     IndexRecordUrl,
-    IndexRecordUrlMetadata, _filter_authorized_resources, IndexRecordAuthz, _is_record_discovery_enabled,
+    IndexRecordUrlMetadata, get_permitted_authz_resources, IndexRecordAuthz, can_user_discover,
 )
 from indexd.index.drivers.query import URLsQueryDriver
 
@@ -84,14 +84,8 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 )
 
             # add authz filter
-            if _is_record_discovery_enabled():
-                permitted_authz_resources, authz = _filter_authorized_resources()
-                # if permitted_authz_resources is set, we want to filter records that have ANY of the authz elements
-                # was getting the following warning
-                #  SAWarning: SELECT statement has a cartesian product between FROM element(s) "index_record" and FROM element "index_record_url".  Apply join condition(s) between each element to resolve. .all()
-                # This warning means the query is selecting from multiple tables (index_record and index_record_url) without a proper join condition, causing a cartesian product. To fix this, so we explicitly join IndexRecordUrl to IndexRecord using their relationship.
-                # originally it was:
-                # Add an explicit join between IndexRecordUrl and IndexRecord
+            if not can_user_discover():
+                permitted_authz_resources, authz = get_permitted_authz_resources()
                 sub = session.query(IndexRecordAuthz.did).filter(
                     IndexRecordAuthz.resource.in_(permitted_authz_resources)
                 )
@@ -136,8 +130,8 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             )
 
             # add authz filter
-            if _is_record_discovery_enabled():
-                permitted_authz_resources, authz = _filter_authorized_resources()
+            if not can_user_discover():
+                permitted_authz_resources, authz = get_permitted_authz_resources()
                 # if any_authz is set, we want to filter records that have ANY of the authz elements
                 sub = session.query(IndexRecordAuthz.did).filter(
                     IndexRecordAuthz.resource.in_(permitted_authz_resources)
