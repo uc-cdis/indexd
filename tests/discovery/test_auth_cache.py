@@ -37,7 +37,8 @@ def test_request_auth_cache_no_token_with_authorization_header():
         assert calls == [5]  # No new call, cache hit
 
         # Change Authorization header, should miss cache
-        mock_request.headers.get = MagicMock(return_value="Bearer another.token")
+        token = _create_token(original_time, expiry_time, secret="different-secret")
+        mock_request.headers.get = MagicMock(return_value=f"Bearer {token}")
         result3 = dummy_func(5)
         assert result3 == 10
         assert calls == [5, 5]  # New call, cache miss due to header change
@@ -133,11 +134,10 @@ def test_request_auth_cache_token_timeout(monkeypatch):
         assert calls == [5, 5, 5]
 
 
-def _create_token(original_time, expiry_time):
+def _create_token(original_time, expiry_time, secret="your-secret-key"):
     """Create a JWT token with an 'exp' field set to original_time + expiry_time."""
     exp_time = int(original_time) + expiry_time
     payload = {"exp": exp_time}
-    secret = "your-secret-key"
     token = jwt.encode(payload, secret, algorithm="HS256")
     return token
 

@@ -18,42 +18,40 @@ def request_auth_cache():
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
 
-            key = functools._make_key(args, kwargs, typed=False)
             now = time.time()
+
+            # Clean up any old cache entries
+            keys_to_delete = [k for k, (v, t) in cache.items() if t <= now]
+            for k in keys_to_delete:
+                del cache[k]
 
             # Use the Authorization header to the key.
             # This is useful for cases where the function does not require a token,
             # but still needs to cache based on the Authorization header.
             auth_header = flask.request.headers.get('Authorization', None)
-            token_ttl = None
+
+            exp = None
+            key = None
             if auth_header and auth_header.startswith('Bearer '):
                 token = auth_header.split(' ', 1)[1]
-                token_ttl = calculate_ttl(now, token)
+                exp = get_expiration(token)
                 # Add the Authorization header to the key
                 key = functools._make_key(args + (auth_header,), kwargs, typed=False)
 
-            # Check if the result is already cached and still valid
-            if key in cache:
-                result, timestamp = cache[key]
-                if now - timestamp < token_ttl:
+                # Check if the result is already cached
+                if key in cache:
+                    result, timestamp = cache[key]
                     return result
 
             # If not cached or expired, call the function and cache the result
             result = func(*args, **kwargs)
-            # only cache if we have a valid token_ttl
-            if token_ttl:
-                cache[key] = (result, now)
-
-            # Clean up any old cache entries
-            if not token_ttl:
-                token_ttl = 0
-            keys_to_delete = [k for k, (v, t) in cache.items() if now - t >= token_ttl]
-            for k in keys_to_delete:
-                del cache[k]
+            # only cache if we have a valid key and expiration time
+            if key and exp:
+                cache[key] = (result, exp)
 
             return result
 
-        def calculate_ttl(now, token) -> int | None:
+        def get_expiration(token) -> int:
             """
             Decode the JWT token without verifying the signature to get the 'exp' claim
             """
@@ -63,11 +61,10 @@ def request_auth_cache():
             # and just decode it to get the expiration time
             try:
                 payload = jwt.decode(token, options={"verify_signature": False})
-                exp = payload.get("exp", now)
-                token_ttl = max(0, exp - now)
+                exp = payload.get("exp")
+                return exp
             except jwt.exceptions.DecodeError:
-                token_ttl = None
-            return token_ttl
+                raise ValueError("Invalid JWT token")
 
         return wrapper
 
