@@ -1,17 +1,24 @@
 from contextvars import ContextVar
+import inspect
+from functools import wraps
+from typing import Any, Mapping
+
 
 import flask
 
 from indexd import auth
 
-request_ctx = ContextVar("request_ctx", default={})
+discovery_context = ContextVar("discovery_context", default={})
 
 
-def _set_request_ctx(**kwargs) -> None:
+def set_auth_context(**kwargs) -> None:
     """
     Set key-value pairs in the request context.
+    You should not need to call this function directly, as
+    ensure_auth_context() will set the context for you.
+    However, this function is exposed for testing purposes.
     """
-    request_ctx.set(kwargs)
+    discovery_context.set(kwargs)
 
 
 def get_auth_context() -> dict:
@@ -22,7 +29,15 @@ def get_auth_context() -> dict:
         can_user_discover: for the current user, does this user have access to the GLOBAL_DISCOVERY_AUTHZ
         authorized_resources: what resources the current user has read access to (from Arborist)
     """
-    return request_ctx.get()
+    return discovery_context.get()
+
+
+def reset_auth_context() -> None:
+    """
+    Reset the request context to an empty dict.
+    Primarily useful for testing.
+    """
+    discovery_context.set({})
 
 
 def _get_authorized_resources() -> list[str]:
@@ -67,6 +82,46 @@ def ensure_auth_context() -> None:
     if are_records_discoverable:
         can_user_discover = True
 
-    _set_request_ctx(are_records_discoverable=are_records_discoverable,
+    set_auth_context(are_records_discoverable=are_records_discoverable,
                      can_user_discover=can_user_discover,
                      authorized_resources=authorized_resources)
+
+
+def authorize_discovery(func):
+    """
+    Injects `can_user_discover` and `authorized_resources` into the wrapped callable
+    from the ContextVar-backed auth context (set by ensure_auth_context).
+
+    Injection rules:
+      - Only inject for parameters actually present in the target signature.
+      - Only fill when the argument is missing or None (does not override explicit values).
+    """
+    sig = inspect.signature(func)
+    inject_params = ("can_user_discover", "authorized_resources")
+    is_async = inspect.iscoroutinefunction(func)
+
+    def _apply(bound: inspect.BoundArguments) -> None:
+        ctx: Mapping[str, Any] = get_auth_context() or {}
+        for name in inject_params:
+            if name not in sig.parameters:
+                continue
+            current = bound.arguments.get(name, None)
+            if current is None:
+                if name in ctx:
+                    bound.arguments[name] = ctx[name]
+
+    if is_async:
+        @wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            bound = sig.bind_partial(*args, **kwargs)
+            _apply(bound)
+            # Use keyword-style call to avoid "multiple values" issues
+            return await func(**bound.arguments)
+        return async_wrapper
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        bound = sig.bind_partial(*args, **kwargs)
+        _apply(bound)
+        return func(**bound.arguments)
+    return wrapper

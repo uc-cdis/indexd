@@ -25,7 +25,7 @@ from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd import auth
-from indexd.auth.discovery_context import get_auth_context
+from indexd.auth.discovery_context import authorize_discovery
 from indexd.auth.errors import AuthzError
 from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
@@ -49,43 +49,11 @@ def _check_user_access(authorized_resources: list[str], authz: list[str]) -> Non
             )
 
 
-def can_user_discover() -> bool:
-    """
-        Check if discovery is enabled for the current app.
-        Does current user have access to a global discovery resource?
-        If so, discovery is not enabled.
-    """
-    return get_auth_context()['can_user_discover']
-
-
-def get_permitted_authz_resources(authz: list[str] = None) -> tuple[list[str], list[str]]:
-    """ Enforce discovery for the current request.
-        The authz parameter represents a list of resource strings that specify which resources the user is requesting access to.
-        These are typically project or resource identifiers used for authorization checks.
-        If provided, the function will ensure the user is authorized for all resources in this list; 
-        If not provided, it will determine the permitted resources based on the user's context and discovery settings.
-    """
-    # Hold a list of resources the user is authorized to access, used for filtering when discovery is enabled.
-    permitted_authz_resources = None
-    authorized_resources = get_auth_context()['authorized_resources']
-
-    # If discovery is not enabled, we don't need to check user access.
-    # This is for backwards compatibility with existing code.
-    if authz:
-        _check_user_access(authorized_resources, authz or [])
-        permitted_authz_resources = None
-    else:
-        authz = None
-        permitted_authz_resources = authorized_resources
-
-    return permitted_authz_resources, authz
-
-
-def _enforce_record_authz(record):
+@authorize_discovery
+def _enforce_record_authz(record, can_user_discover: bool = None, authorized_resources: list = None) -> None:
     """ Enforce record authorization based on the current request's RBAC settings."""
-    if can_user_discover():
+    if can_user_discover:
         return
-    authorized_resources = get_auth_context()['authorized_resources']
     if len(authorized_resources) == 0:
         raise AuthError("User is not authorized")
     if isinstance(record, IndexRecord):
@@ -430,6 +398,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         finally:
             session.close()
 
+    @authorize_discovery
     def ids(
         self,
         limit=100,
@@ -447,6 +416,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         ids=None,
         urls_metadata=None,
         negate_params=None,
+        can_user_discover: bool = None,
+        authorized_resources: list = None,
     ):
         """
         Returns list of records stored by the backend.
@@ -509,12 +480,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             elif authz == []:
                 query = query.filter(IndexRecord.authz == None)
 
-            elif not can_user_discover():
-                permitted_authz_resources, authz = get_permitted_authz_resources(authz)
-
+            elif not can_user_discover:
                 # if permitted_authz_resources is set, we want to filter records that have ANY of the authz elements
                 sub = session.query(IndexRecordAuthz.did).filter(
-                    IndexRecordAuthz.resource.in_(permitted_authz_resources)
+                    IndexRecordAuthz.resource.in_(authorized_resources)
                 )
                 query = query.filter(IndexRecord.did.in_(sub.subquery().select()))
             if hashes:
@@ -703,7 +672,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                             query = query.filter(~IndexRecord.did.in_(sub.subquery()))
         return query
 
-    def get_urls(self, size=None, hashes=None, ids=None, start=0, limit=100):
+    @authorize_discovery
+    def get_urls(self, size=None, hashes=None, ids=None, start=0, limit=100, can_user_discover: bool = None, authorized_resources: list = None):
         """
         Returns a list of urls matching supplied size/hashes/dids.
         """
@@ -735,10 +705,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             # Remove duplicates.
             query = query.distinct()
 
-            if not can_user_discover():
-                permitted_authz_resources, authz = get_permitted_authz_resources()
+            if not can_user_discover:
                 sub = session.query(IndexRecordAuthz.did).filter(
-                    IndexRecordAuthz.resource.in_(permitted_authz_resources)
+                    IndexRecordAuthz.resource.in_(authorized_resources)
                 )
                 query = query.filter(IndexRecordUrl.did.in_(sub.subquery().select()))
 
@@ -1559,7 +1528,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return new_record.did, new_record.baseid, new_record.rev
 
-    def get_all_versions(self, did):
+    @authorize_discovery
+    def get_all_versions(self, did, can_user_discover: bool = None, authorized_resources: list = None):
         """
         Get all record versions (in order of creation) given DID
         """
@@ -1582,10 +1552,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             query = session.query(IndexRecord)
 
-            if not can_user_discover():
-                permitted_authz_resources, authz = get_permitted_authz_resources()
+            if not can_user_discover:
                 record_authz = record.to_document_dict().get("authz", [])
-                if not any(resource in permitted_authz_resources for resource in record_authz):
+                if not any(resource in authorized_resources for resource in record_authz):
                     raise AuthzError(f"User is not authorized")
 
             records = (

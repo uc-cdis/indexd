@@ -1,10 +1,11 @@
 from sqlalchemy import func, and_
 
+from indexd.auth.discovery_context import authorize_discovery
 from indexd.errors import UserError
 from indexd.index.drivers.alchemy import (
     IndexRecord,
     IndexRecordUrl,
-    IndexRecordUrlMetadata, get_permitted_authz_resources, IndexRecordAuthz, can_user_discover,
+    IndexRecordUrlMetadata, IndexRecordAuthz,
 )
 from indexd.index.drivers.query import URLsQueryDriver
 
@@ -25,6 +26,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         """
         self.driver = alchemy_driver
 
+    @authorize_discovery
     def query_urls(
         self,
         exclude=None,
@@ -33,6 +35,8 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         offset=0,
         limit=1000,
         fields="did,urls",
+        can_user_discover: bool = None,
+        authorized_resources: list = None,
         **kwargs
     ):
         if kwargs:
@@ -84,10 +88,9 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 )
 
             # add authz filter
-            if not can_user_discover():
-                permitted_authz_resources, authz = get_permitted_authz_resources()
+            if not can_user_discover:
                 sub = session.query(IndexRecordAuthz.did).filter(
-                    IndexRecordAuthz.resource.in_(permitted_authz_resources)
+                    IndexRecordAuthz.resource.in_(authorized_resources)
                 )
                 query = query.filter(IndexRecord.did.in_(sub.with_entities(IndexRecordAuthz.did).statement))
 
@@ -100,6 +103,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
 
         return self._format_response(fields, record_list)
 
+    @authorize_discovery
     def query_metadata_by_key(
         self,
         key,
@@ -109,6 +113,8 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         offset=0,
         limit=1000,
         fields="did,urls,rev",
+        can_user_discover: bool = None,
+        authorized_resources: list = None,
         **kwargs
     ):
         if kwargs:
@@ -130,11 +136,10 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             )
 
             # add authz filter
-            if not can_user_discover():
-                permitted_authz_resources, authz = get_permitted_authz_resources()
+            if not can_user_discover:
                 # if any_authz is set, we want to filter records that have ANY of the authz elements
                 sub = session.query(IndexRecordAuthz.did).filter(
-                    IndexRecordAuthz.resource.in_(permitted_authz_resources)
+                    IndexRecordAuthz.resource.in_(authorized_resources)
                 )
                 query = query.filter(IndexRecord.did.in_(sub.subquery().select()))
 
