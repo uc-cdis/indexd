@@ -7,6 +7,7 @@ import hashlib
 import jsonschema
 from werkzeug.exceptions import BadRequest
 
+from ..auth.discovery_context import auth_context
 from ..version_data import VERSION, COMMIT
 
 from indexd import auth, utils
@@ -333,7 +334,9 @@ def get_all_index_record_versions(record):
     """
     Get all record versions
     """
-    ret = blueprint.index_driver.get_all_versions(record)
+    are_records_discoverable, can_user_discover, authorized_resources = auth_context()
+
+    ret = blueprint.index_driver.get_all_versions(record, can_user_discover, authorized_resources)
 
     return flask.jsonify(ret), 200
 

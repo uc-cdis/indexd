@@ -54,14 +54,10 @@ def _get_authorized_resources() -> list[str]:
     return authorized_resources
 
 
-def ensure_auth_context() -> None:
+def auth_context() -> tuple[bool, bool, list[str]]:
     """
-    Ensure that the request context has the authorized resources set.
-    If not, retrieve them from Arborist and set them in the context.
-    Sets the following variables:
-        are_records_discoverable: application wide setting, ARE_RECORDS_DISCOVERABLE
-        can_user_discover: for the current user, does this user have access to the GLOBAL_DISCOVERY_AUTHZ
-        authorized_resources: what resources the current user has read access to (from Arborist)
+    Returns a tuple of (are_records_discoverable, can_user_discover, authorized_resources)
+    from the current request context.
     """
     are_records_discoverable = flask.current_app.config.get('ARE_RECORDS_DISCOVERABLE', True)
 
@@ -81,6 +77,19 @@ def ensure_auth_context() -> None:
     # if are_records_discoverable is True, then can_user_discover is True for everyone
     if are_records_discoverable:
         can_user_discover = True
+    return are_records_discoverable, can_user_discover, authorized_resources
+
+
+def ensure_auth_context() -> None:
+    """
+    Ensure that the request context has the authorized resources set.
+    If not, retrieve them from Arborist and set them in the context.
+    Sets the following variables:
+        are_records_discoverable: application wide setting, ARE_RECORDS_DISCOVERABLE
+        can_user_discover: for the current user, does this user have access to the GLOBAL_DISCOVERY_AUTHZ
+        authorized_resources: what resources the current user has read access to (from Arborist)
+    """
+    are_records_discoverable, can_user_discover, authorized_resources = auth_context()
 
     set_auth_context(are_records_discoverable=are_records_discoverable,
                      can_user_discover=can_user_discover,

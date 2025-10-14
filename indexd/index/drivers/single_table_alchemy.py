@@ -1085,7 +1085,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             return new_record.guid, new_record.baseid, new_record.rev
 
-    def get_all_versions(self, guid):
+    def get_all_versions(self, guid, can_user_discover: bool = None, authorized_resources: list = None):
         """
         Get all record versions (in order of creation) given DID
         """

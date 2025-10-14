@@ -54,7 +54,7 @@ def _enforce_record_authz(record, can_user_discover: bool = None, authorized_res
     """ Enforce record authorization based on the current request's RBAC settings."""
     if can_user_discover:
         return
-    if len(authorized_resources) == 0:
+    if authorized_resources and len(authorized_resources) == 0:
         raise AuthError("User is not authorized")
     if isinstance(record, IndexRecord):
         record = record.to_document_dict()
@@ -1528,8 +1528,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return new_record.did, new_record.baseid, new_record.rev
 
-    @authorize_discovery
-    def get_all_versions(self, did, can_user_discover: bool = None, authorized_resources: list = None):
+    # @authorize_discovery
+    def get_all_versions(self, did, can_user_discover: bool = True, authorized_resources: list = None):
         """
         Get all record versions (in order of creation) given DID
         """
