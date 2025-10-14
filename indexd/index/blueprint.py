@@ -1,11 +1,16 @@
 import re
 import json
+import sys
+
 import flask
 import hashlib
 import jsonschema
+from werkzeug.exceptions import BadRequest
+
+from ..auth.discovery_context import auth_context
 from ..version_data import VERSION, COMMIT
 
-from indexd import auth
+from indexd import auth, utils
 
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
@@ -106,6 +111,7 @@ def get_index(form=None):
     hashes = hashes if hashes else None
     metadata = flask.request.args.getlist("metadata")
     metadata = {k: v for k, v in (x.split(":", 1) for x in metadata)}
+
     acl = flask.request.args.get("acl")
     if acl is not None:
         acl = [] if acl == "null" else acl.split(",")
@@ -151,6 +157,7 @@ def get_index(form=None):
             urls_metadata=urls_metadata,
             negate_params=negate_params,
         )
+
     else:
         records = blueprint.index_driver.ids(
             start=start,
@@ -263,12 +270,12 @@ def append_aliases(record):
     Append one or more aliases to aliases already associated with this
     DID / GUID, if any.
     """
-    # we set force=True so that if MIME type of request is not application/JSON,
-    # get_json will still throw a UserError.
-    aliases_json = flask.request.get_json(force=True)
     try:
+        # we set force=True so that if MIME type of request is not application/JSON,
+        # get_json will still throw a UserError.
+        aliases_json = flask.request.get_json(force=True)
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
-    except jsonschema.ValidationError as err:
+    except (jsonschema.ValidationError, BadRequest)as err:
         # TODO I BELIEVE THIS IS WHERE THE ERROR IS
         logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
@@ -288,12 +295,12 @@ def replace_aliases(record):
     """
     Replace all aliases associated with this DID / GUID
     """
-    # we set force=True so that if MIME type of request is not application/JSON,
-    # get_json will still throw a UserError.
-    aliases_json = flask.request.get_json(force=True)
     try:
+        # we set force=True so that if MIME type of request is not application/JSON,
+        # get_json will still throw a UserError.
+        aliases_json = flask.request.get_json(force=True)
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
-    except jsonschema.ValidationError as err:
+    except (jsonschema.ValidationError, BadRequest) as err:
         logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
 
@@ -327,7 +334,9 @@ def get_all_index_record_versions(record):
     """
     Get all record versions
     """
-    ret = blueprint.index_driver.get_all_versions(record)
+    are_records_discoverable, can_user_discover, authorized_resources = auth_context()
+
+    ret = blueprint.index_driver.get_all_versions(record, can_user_discover, authorized_resources)
 
     return flask.jsonify(ret), 200
 
@@ -834,6 +843,15 @@ def handle_revision_mismatch(err):
 @blueprint.errorhandler(UnhealthyCheck)
 def handle_unhealthy_check(err):
     return "Unhealthy", 500
+
+
+@blueprint.errorhandler(Exception)
+def handle_uncaught_exception(err):
+    """
+    Handle uncaught exceptions.
+    Delegate to utils.handle_uncaught_exception
+    """
+    return utils.handle_uncaught_exception(err)
 
 
 @blueprint.record

@@ -1,5 +1,9 @@
+
+import cdislogging
 import flask
 
+from indexd import utils
+from indexd.auth import AuthzError
 from indexd.blueprint import dist_get_record
 
 from indexd.errors import AuthError
@@ -7,6 +11,7 @@ from indexd.errors import UserError
 from indexd.alias.errors import NoRecordFound as AliasNoRecordFound
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 
+logger = cdislogging.get_logger(__name__)
 blueprint = flask.Blueprint("dos", __name__)
 
 blueprint.config = dict()
@@ -15,12 +20,40 @@ blueprint.alias_driver = None
 blueprint.dist = []
 
 
+@blueprint.errorhandler(Exception)
+def handle_uncaught_exception(err):
+    """
+    Handle uncaught exceptions.
+    Delegate to utils.handle_uncaught_exception
+    """
+    return utils.handle_uncaught_exception(err)
+
+
+@blueprint.errorhandler(AuthzError)
+def handle_authz_error(err):
+    """
+    Handle authz errors that occur when the user is not authorized to access the resource.
+    """
+    ret = {"msg": str(err), "status_code": 401}
+    return flask.jsonify(ret), 401
+
+
+@blueprint.errorhandler(AuthError)
+def handle_requester_auth_error(err):
+    """
+    Handle auth errors that occur when the requester is not authorized to access the resource.
+    """
+    ret = {"msg": str(err), "status_code": 403}
+    return flask.jsonify(ret), 403
+
+
 @blueprint.route("/ga4gh/dos/v1/dataobjects/<path:record>", methods=["GET"])
 def get_dos_record(record):
     """
     Returns a record from the local ids, alias, or global resolvers.
     Returns DOS Schema
     """
+
     try:
         ret = blueprint.index_driver.get(record)
         # record may be a baseID or a DID / GUID. If record is a baseID, ret["did"] is the latest GUID for that record.

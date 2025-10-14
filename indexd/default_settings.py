@@ -83,6 +83,13 @@ CONFIG["DRS_SERVICE_INFO"] = {
     },
 }
 
+CONFIG["ARE_RECORDS_DISCOVERABLE"] = True  # Whether any records are discoverable at all. Enabled by default
+
+# Override per-record authz for GET/read
+# Only applies to record discovery (not file access)
+# If None, use per-record `authz`
+CONFIG["GLOBAL_DISCOVERY_AUTHZ"] = []
+
 AUTH = SQLAlchemyAuthDriver(
     "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 )

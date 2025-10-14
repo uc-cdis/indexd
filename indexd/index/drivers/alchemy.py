@@ -2,6 +2,7 @@ import datetime
 import uuid
 import json
 from contextlib import contextmanager
+
 from cdislogging import get_logger
 from sqlalchemy import (
     BigInteger,
@@ -24,6 +25,8 @@ from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd import auth
+from indexd.auth.discovery_context import authorize_discovery
+from indexd.auth.errors import AuthzError
 from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
 from indexd.index.errors import (
@@ -35,6 +38,28 @@ from indexd.index.errors import (
 from indexd.utils import migrate_database
 
 Base = declarative_base()
+
+
+def _check_user_access(authorized_resources: list[str], authz: list[str]) -> None:
+    """Raise an AuthzError if the user is not authorized for the given resources."""
+    for resource in authz:
+        if resource not in authorized_resources:
+            raise AuthzError(
+                "User is not authorized"
+            )
+
+
+@authorize_discovery
+def _enforce_record_authz(record, can_user_discover: bool = None, authorized_resources: list = None) -> None:
+    """ Enforce record authorization based on the current request's RBAC settings."""
+    if can_user_discover:
+        return
+    if authorized_resources and len(authorized_resources) == 0:
+        raise AuthError("User is not authorized")
+    if isinstance(record, IndexRecord):
+        record = record.to_document_dict()
+    # Note: bundle records do not have authz field
+    _check_user_access(authorized_resources, record.get("authz", []))
 
 
 class BaseVersion(Base):
@@ -373,6 +398,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         finally:
             session.close()
 
+    @authorize_discovery
     def ids(
         self,
         limit=100,
@@ -390,10 +416,13 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         ids=None,
         urls_metadata=None,
         negate_params=None,
+        can_user_discover: bool = None,
+        authorized_resources: list = None,
     ):
         """
         Returns list of records stored by the backend.
         """
+
         with self.session as session:
             query = session.query(IndexRecord)
 
@@ -451,6 +480,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             elif authz == []:
                 query = query.filter(IndexRecord.authz == None)
 
+            elif not can_user_discover:
+                # if permitted_authz_resources is set, we want to filter records that have ANY of the authz elements
+                sub = session.query(IndexRecordAuthz.did).filter(
+                    IndexRecordAuthz.resource.in_(authorized_resources)
+                )
+                query = query.filter(IndexRecord.did.in_(sub.subquery().select()))
             if hashes:
                 for h, v in hashes.items():
                     sub = session.query(IndexRecordHash.did)
@@ -534,6 +569,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.offset(limit * page)
 
             return [i.to_document_dict() for i in query]
+
 
     @staticmethod
     def _negate_filter(
@@ -636,10 +672,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                             query = query.filter(~IndexRecord.did.in_(sub.subquery()))
         return query
 
-    def get_urls(self, size=None, hashes=None, ids=None, start=0, limit=100):
+    @authorize_discovery
+    def get_urls(self, size=None, hashes=None, ids=None, start=0, limit=100, can_user_discover: bool = None, authorized_resources: list = None):
         """
         Returns a list of urls matching supplied size/hashes/dids.
         """
+
         if size is None and hashes is None and ids is None:
             raise UserError("Please provide size/hashes/ids to filter")
 
@@ -666,6 +704,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 query = query.filter(IndexRecordUrl.did.in_(ids))
             # Remove duplicates.
             query = query.distinct()
+
+            if not can_user_discover:
+                sub = session.query(IndexRecordAuthz.did).filter(
+                    IndexRecordAuthz.resource.in_(authorized_resources)
+                )
+                query = query.filter(IndexRecordUrl.did.in_(sub.subquery().select()))
 
             # Return only specified window.
             query = query.offset(start)
@@ -941,6 +985,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Create a index alias with the alias as {prefix:did}
         """
+
         prefix = self.config["DEFAULT_PREFIX"]
         alias = IndexRecordAlias(did=record.did, name=prefix + record.did)
         session.add(alias)
@@ -960,6 +1005,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise NoRecordFound("no record found")
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
+
+            _enforce_record_authz(record)
+
             return record.to_document_dict()
 
     def get_aliases_for_did(self, did):
@@ -973,6 +1021,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if index_record is None:
                 self.logger.warning(f"No record found for did {did}")
                 raise NoRecordFound(did)
+
+            _enforce_record_authz(index_record)
 
             query = session.query(IndexRecordAlias).filter(IndexRecordAlias.did == did)
             return [i.name for i in query]
@@ -1149,7 +1199,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     # overwrite the "no bundle found" message
                     raise NoRecordFound("no record found")
 
-            return record.to_document_dict()
+            document_dict = record.to_document_dict()
+            _enforce_record_authz(document_dict)
+            return document_dict
 
     def get_with_nonstrict_prefix(self, did, expand=True):
         """
@@ -1170,7 +1222,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             else:
                 stripped = did.split(DEFAULT_PREFIX, 1)[1]
                 record = self.get(stripped, expand=expand)
-
+        _enforce_record_authz(record)
         return record
 
     def update(self, did, rev, changing_fields):
@@ -1476,7 +1528,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return new_record.did, new_record.baseid, new_record.rev
 
-    def get_all_versions(self, did):
+    # @authorize_discovery
+    def get_all_versions(self, did, can_user_discover: bool = True, authorized_resources: list = None):
         """
         Get all record versions (in order of creation) given DID
         """
@@ -1498,6 +1551,12 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound("multiple records found")
 
             query = session.query(IndexRecord)
+
+            if not can_user_discover:
+                record_authz = record.to_document_dict().get("authz", [])
+                if not any(resource in authorized_resources for resource in record_authz):
+                    raise AuthzError(f"User is not authorized")
+
             records = (
                 query.filter(IndexRecord.baseid == baseid)
                 .order_by(IndexRecord.created_date.asc())
@@ -1505,7 +1564,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             )
 
             for idx, record in enumerate(records):
-                ret[idx] = record.to_document_dict()
+                document_dict = record.to_document_dict()
+                _enforce_record_authz(document_dict)
+                ret[idx] = document_dict
 
         return ret
 
@@ -1561,7 +1622,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     def get_latest_version(self, did, has_version=None):
         """
-        Get the lattest record version given did
+        Get the latest record version given did
         """
         with self.session as session:
             query = session.query(IndexRecord)
@@ -1585,7 +1646,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if not record:
                 raise NoRecordFound("no record found")
 
-            return record.to_document_dict()
+            document_dict = record.to_document_dict()
+            _enforce_record_authz(document_dict)
+
+            return document_dict
 
     def health_check(self):
         """
@@ -1702,6 +1766,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if page is not None:
                 query = query.offset(limit * page)
 
+            # since bundle records are not authz-protected, and bundle_data is not included
+            # DO NOT enforce authz on bundle listing
+
             return [i.to_document_dict() for i in query]
 
     def get_bundle(self, bundle_id, expand=False):
@@ -1744,6 +1811,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
         """
         Gets bundles and objects and orders them by created time.
         """
+
         limit = int((limit / 2) + 1)
         bundle = self.get_bundle_list(start=start, limit=limit, page=page)
         objects = self.ids(

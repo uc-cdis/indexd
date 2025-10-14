@@ -1,10 +1,11 @@
 from sqlalchemy import func, and_
 
+from indexd.auth.discovery_context import authorize_discovery
 from indexd.errors import UserError
 from indexd.index.drivers.alchemy import (
     IndexRecord,
     IndexRecordUrl,
-    IndexRecordUrlMetadata,
+    IndexRecordUrlMetadata, IndexRecordAuthz,
 )
 from indexd.index.drivers.query import URLsQueryDriver
 
@@ -25,6 +26,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         """
         self.driver = alchemy_driver
 
+    @authorize_discovery
     def query_urls(
         self,
         exclude=None,
@@ -33,6 +35,8 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         offset=0,
         limit=1000,
         fields="did,urls",
+        can_user_discover: bool = None,
+        authorized_resources: list = None,
         **kwargs
     ):
         if kwargs:
@@ -52,12 +56,14 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 IndexRecordUrl.did, q_func["string_agg"](IndexRecordUrl.url, ",")
             )
 
+            # Only join IndexRecord once, using outerjoin if versioned filtering is needed
+            if versioned is not None:
+                query = query.outerjoin(IndexRecord, IndexRecord.did == IndexRecordUrl.did)
+
             # add version filter if versioned is not None
             if versioned is True:  # retrieve only those with a version number
-                query = query.outerjoin(IndexRecord)
                 query = query.filter(IndexRecord.version.isnot(None))
             elif versioned is False:  # retrieve only those without a version number
-                query = query.outerjoin(IndexRecord)
                 query = query.filter(~IndexRecord.version.isnot(None))
 
             query = query.group_by(IndexRecordUrl.did)
@@ -80,15 +86,24 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 query = query.having(
                     ~q_func["string_agg"](IndexRecordUrl.url, ",").contains(exclude)
                 )
-            # [('did', 'urls')]
+
+            # add authz filter
+            if not can_user_discover:
+                sub = session.query(IndexRecordAuthz.did).filter(
+                    IndexRecordAuthz.resource.in_(authorized_resources)
+                )
+                query = query.filter(IndexRecord.did.in_(sub.with_entities(IndexRecordAuthz.did).statement))
+
             record_list = (
                 query.order_by(IndexRecordUrl.did.asc())
                 .offset(offset)
                 .limit(limit)
                 .all()
             )
+
         return self._format_response(fields, record_list)
 
+    @authorize_discovery
     def query_metadata_by_key(
         self,
         key,
@@ -98,6 +113,8 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         offset=0,
         limit=1000,
         fields="did,urls,rev",
+        can_user_discover: bool = None,
+        authorized_resources: list = None,
         **kwargs
     ):
         if kwargs:
@@ -108,6 +125,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         versioned = (
             versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         )
+
         with self.driver.session as session:
             query = session.query(
                 IndexRecordUrlMetadata.did, IndexRecordUrlMetadata.url, IndexRecord.rev
@@ -116,6 +134,14 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
                 IndexRecordUrlMetadata.key == key,
                 IndexRecordUrlMetadata.value == value,
             )
+
+            # add authz filter
+            if not can_user_discover:
+                # if any_authz is set, we want to filter records that have ANY of the authz elements
+                sub = session.query(IndexRecordAuthz.did).filter(
+                    IndexRecordAuthz.resource.in_(authorized_resources)
+                )
+                query = query.filter(IndexRecord.did.in_(sub.subquery().select()))
 
             # filter by version
             if versioned is True:
@@ -143,7 +169,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         """loops through the query result and removes undesired columns and converts result of urls string_agg to list
         Args:
             requested_fields (str): comma separated list of fields to return, if not specified return all fields
-            record_list (list(tuple]): must be of the form [(did, urls, rev)], rev is not required for urls query
+            record_list (list(tuple): must be of the form [(did, urls, rev)], rev is not required for urls query
         Returns:
             list[dict]: list of response dicts
         """

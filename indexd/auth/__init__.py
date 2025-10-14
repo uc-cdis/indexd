@@ -3,7 +3,8 @@ from functools import wraps
 from flask import current_app
 from flask import request
 
-from .errors import AuthError
+from indexd.auth.errors import AuthError, AuthzError
+from indexd.errors import UserError
 
 
 def authorize(*p):
@@ -20,7 +21,7 @@ def authorize(*p):
 
         @wraps(f)
         def check_auth(*args, **kwargs):
-            if not request.authorization:
+            if not request.authorization.parameters.get("username"):
                 raise AuthError("Username / password required.")
             current_app.auth.auth(
                 request.authorization.parameters.get("username"),
@@ -31,13 +32,20 @@ def authorize(*p):
 
         return check_auth
     else:
-        method, resources = p
+        method, authz_resources = p
         if request.authorization and request.authorization.type == "basic":
             current_app.auth.auth(
                 request.authorization.parameters.get("username"),
                 request.authorization.parameters.get("password"),
             )
         else:
-            if not isinstance(resources, list):
-                raise UserError(f"'authz' must be a list, received '{resources}'.")
-            current_app.auth.authz(method, list(set(resources)))
+            if not isinstance(authz_resources, list):
+                raise UserError(f"'authz' must be a list, received '{authz_resources}'.")
+            return current_app.auth.authz(method, list(set(authz_resources)))
+
+
+def get_authorized_resources():
+    """
+    Returns a list of resources the user has access to. Uses Arborist if available.
+    """
+    return current_app.auth.resources()

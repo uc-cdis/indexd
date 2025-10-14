@@ -1,6 +1,11 @@
 import logging
 import re
 from urllib.parse import urlparse
+import flask
+import cdislogging
+
+
+logger = cdislogging.get_logger(__name__)
 
 
 def hint_match(record, hints):
@@ -210,3 +215,13 @@ def reverse_url(url):
     reversed_segments = reversed(segments)
     res = ".".join(reversed_segments)
     return res
+
+
+def handle_uncaught_exception(err):
+    """
+    Handle uncaught exceptions in the application.
+    Log the error and return a JSON response with a 500 status code.
+    """
+    logger.error(err, exc_info=True)
+    print(err)
+    return flask.jsonify(error=f"Internal server error"), 500

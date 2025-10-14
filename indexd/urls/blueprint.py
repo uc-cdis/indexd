@@ -1,14 +1,40 @@
 import json
+import sys
 
+import cdislogging
+import flask
 from flask import Blueprint, Response, request
 from flask.json import jsonify
 
+from indexd import utils
+from indexd.auth import AuthzError, AuthError
 from indexd.errors import UserError
 from indexd.index.drivers.query.urls import AlchemyURLsQueryDriver
 from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
 
 
+logger = cdislogging.get_logger(__name__)
+
 blueprint = Blueprint("urls", __name__)
+
+
+@blueprint.errorhandler(AuthError)
+def handle_auth_error(err):
+    return flask.jsonify(error=str(err)), 403
+
+
+@blueprint.errorhandler(AuthzError)
+def handle_authz_error(err):
+    return flask.jsonify(error=str(err)), 401
+
+
+@blueprint.errorhandler(Exception)
+def handle_uncaught_exception(err):
+    """
+    Handle uncaught exceptions.
+    Delegate to utils.handle_uncaught_exception
+    """
+    return utils.handle_uncaught_exception(err)
 
 
 @blueprint.route("/q", methods=["GET"])

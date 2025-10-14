@@ -1,3 +1,6 @@
+import sys
+
+import cdislogging
 import flask
 
 from indexclient.client import IndexClient
@@ -5,6 +8,8 @@ from doiclient.client import DOIClient
 from dosclient.client import DOSClient
 from hsclient.client import HSClient
 
+from indexd import utils
+from indexd.auth import AuthzError
 from indexd.utils import hint_match
 
 from indexd.errors import AuthError
@@ -12,12 +17,23 @@ from indexd.errors import UserError
 from indexd.alias.errors import NoRecordFound as AliasNoRecordFound
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 
+logger = cdislogging.get_logger(__name__)
+
 blueprint = flask.Blueprint("cross", __name__)
 
 blueprint.config = dict()
 blueprint.index_driver = None
 blueprint.alias_driver = None
 blueprint.dist = []
+
+
+@blueprint.errorhandler(Exception)
+def handle_uncaught_exception(err):
+    """
+    Handle uncaught exceptions.
+    Delegate to utils.handle_uncaught_exception
+    """
+    return utils.handle_uncaught_exception(err)
 
 
 @blueprint.route("/alias/<path:alias>", methods=["GET"])
@@ -60,7 +76,6 @@ def get_record(record):
                 if not blueprint.dist or "no_dist" in flask.request.args:
                     raise
                 ret = dist_get_record(record)
-
     return flask.jsonify(ret), 200
 
 
@@ -109,6 +124,11 @@ def handle_user_error(err):
 @blueprint.errorhandler(AuthError)
 def handle_auth_error(err):
     return flask.jsonify(error=str(err)), 403
+
+
+@blueprint.errorhandler(AuthzError)
+def handle_authz_error(err):
+    return flask.jsonify(error=str(err)), 401
 
 
 @blueprint.errorhandler(AliasNoRecordFound)
