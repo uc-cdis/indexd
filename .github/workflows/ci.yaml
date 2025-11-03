@@ -16,7 +16,7 @@ jobs:
 
   UnitTest:
     name: Python Unit Test with Postgres
-    uses: uc-cdis/.github/.github/workflows/python_unit_test.yaml@dependabot/github_actions/actions/setup-python-5
+    uses: uc-cdis/.github/.github/workflows/python_unit_test.yaml@dependabot/github_actions/actions/setup-python-6
     with:
        python-version: '3.9'
        test-script: 'tests/ci_commands_script.sh'
