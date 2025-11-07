@@ -31,6 +31,8 @@ RUN git config --global --add safe.directory ${appname} && COMMIT=`git rev-parse
 # Final stage
 FROM base
 
+USER root
+
 COPY --from=builder /${appname} /${appname}
 
 RUN dnf -y install vim
