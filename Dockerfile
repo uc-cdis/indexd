@@ -35,7 +35,7 @@ USER root
 
 COPY --from=builder /${appname} /${appname}
 
-RUN dnf -y install vim
+RUN dnf -y install vim nginx
 
 # Switch to non-root user 'gen3' for the serving process
 USER gen3
