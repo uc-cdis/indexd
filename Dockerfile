@@ -34,6 +34,7 @@ FROM base
 USER root
 
 COPY --from=builder /${appname} /${appname}
+COPY --chown=gen3:gen3 ./dockerrun.bash /indexd/dockerrun.bash
 
 RUN dnf -y install vim nginx
 
