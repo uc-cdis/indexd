@@ -46,10 +46,9 @@ FROM base
 USER root
 
 COPY --from=builder /${appname} /${appname}
-COPY --from=builder /${appname}/requirements.txt /${appname}/requirements.txt
 COPY --chown=gen3:gen3 ./dockerrun.bash /${appname}/dockerrun.bash
 
-RUN dnf -y install vim nginx
+RUN dnf -y install vim
 
 # Install dependencies
 RUN pip install --no-cache-dir -r /${appname}/requirements.txt
