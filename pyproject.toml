@@ -24,6 +24,8 @@ flask = "^2.3.3"
 sqlalchemy = "^1.4.0"
 sqlalchemy-utils = "^0.37.3"
 PyYAML = ">=5.3,<7"
+psycopg2-binary = ">=2.7"
+gunicorn = ">=22.0.0"
 
 [tool.poetry.group.dev.dependencies]
 coveralls = "^3.0.1"
