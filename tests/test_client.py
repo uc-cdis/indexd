@@ -26,6 +26,7 @@ def get_doc(
         doc["urls_metadata"] = {"s3://endpointurl/bucket/key": {"state": "uploaded"}}
     if has_version:
         doc["version"] = "1"
+
     return doc
 
 
