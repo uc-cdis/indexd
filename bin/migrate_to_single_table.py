@@ -4,7 +4,7 @@ to run: python migrate_to_single_table.py --creds-path /dir/containing/db_creds 
 import argparse
 import backoff
 import json
-import bin.config_helper as config_helper
+import indexd.config_helper as config_helper
 from cdislogging import get_logger
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
