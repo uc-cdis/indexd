@@ -1,6 +1,6 @@
 from os import environ
 import json
-import config_helper
+import indexd.config_helper as config_helper
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
