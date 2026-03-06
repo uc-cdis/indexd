@@ -1,9 +1,13 @@
 import json
 import os
-import copy
 import argparse
-import re
-import types
+
+from cdislogging import get_logger
+
+from indexd.errors import ConfigurationError
+
+
+logger = get_logger(__name__)
 
 #
 # make it easy to change this for testing
@@ -47,6 +51,14 @@ def load_json(file_name, app_name, search_folders=None):
         return None
     with open(actual_files[0], "r") as reader:
         return json.load(reader)
+
+
+def validate_config(settings):
+    prefix = settings["config"]["INDEX"]["driver"].config.get("DEFAULT_PREFIX")
+    if prefix and not prefix.endswith("/"):
+        logger.warning(
+            f"The DEFAULT_PREFIX is set to '{prefix}' with does not end with '/'. Some functionality may not work."
+        )
 
 
 if __name__ == "__main__":
