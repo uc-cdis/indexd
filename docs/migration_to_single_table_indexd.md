@@ -57,7 +57,7 @@ Change the config `CONFIG[“INDEX”]`
         "postgresql://postgres:postgres@localhost:5432/indexd_tests",
             echo=True,
             index_config={
-                "DEFAULT_PREFIX": "testprefix:",
+                "DEFAULT_PREFIX": "testprefix/",
                 "PREPEND_PREFIX": True,
                 "ADD_PREFIX_ALIAS": False,
             },
@@ -77,7 +77,7 @@ Change the config `CONFIG[“INDEX”]`
                 "postgresql://postgres:postgres@localhost:5432/indexd_tests",
                 echo=True,
                 index_config={
-                    "DEFAULT_PREFIX": "testprefix:",
+                    "DEFAULT_PREFIX": "testprefix/",
                     "PREPEND_PREFIX": True,
                     "ADD_PREFIX_ALIAS": False,
                 },
@@ -89,7 +89,7 @@ Change the config `CONFIG[“INDEX”]`
             "postgresql://postgres:postgres@localhost:5432/indexd_tests",
                 echo=True,
                 index_config={
-                    "DEFAULT_PREFIX": "testprefix:",
+                    "DEFAULT_PREFIX": "testprefix/",
                     "PREPEND_PREFIX": True,
                     "ADD_PREFIX_ALIAS": False,
                 },
