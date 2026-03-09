@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "indexclient"
+version = "3.0.0"
+description = ""
+authors = ["CTDS UChicago <cdis@uchicago.edu>"]
+license = "Apache-2.0"
+
+[tool.poetry.dependencies]
+python = ">=3.13, <4.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
