@@ -22,13 +22,15 @@ def test_instantiate(index_client):
         baseid=baseid,
         urls_metadata=urls_metadata,
     )
+    # ACL ordering is not deterministic for some reason
+    sorted_returned_acls = sorted(doc.acl)
     assert doc.size == 5
     assert doc.hashes == hashes
     assert doc.size == size
     assert doc.urls == urls
     assert doc.baseid == baseid
     assert doc.urls_metadata == urls_metadata
-    assert doc.acl == acl
+    assert sorted_returned_acls == acl
     assert doc.authz == authz
 
 
