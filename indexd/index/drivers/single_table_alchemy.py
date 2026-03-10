@@ -619,7 +619,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 raise NoRecordFound("no record found")
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
-            return record.to_document_dict
+            return record.to_document_dict()
 
     def get_aliases_for_did(self, did):
         """
@@ -667,7 +667,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record.alias = (record.alias or []) + aliases
                 session.commit()
-            except IntegrityError as err:
+            except Exception as err:
                 # One or more aliases in request were non-unique
                 self.logger.warning(
                     f"One or more aliases in request already associated with this or another GUID: {aliases}",
