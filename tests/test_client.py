@@ -23,7 +23,9 @@ def get_doc(
     if has_baseid:
         doc["baseid"] = "e044a62c-fd60-4203-b1e5-a62d1005f027"
     if has_urls_metadata:
-        doc["urls_metadata"] = {"s3://endpointurl/bucket/key": {"state": "uploaded"}}
+        doc["urls_metadata"] = {
+            "s3://endpointurl/bucket/key": {"state": "uploaded", "cloud": "aws"}
+        }
     if has_version:
         doc["version"] = "1"
     return doc
@@ -1421,7 +1423,7 @@ def test_update_urls_metadata(client, user, combined_default_and_single_table_se
     rec_2 = res_2.json
     assert rec_2["urls_metadata"] == data["urls_metadata"]
 
-    updated = {"urls_metadata": {data["urls"][0]: {"test": "b"}}}
+    updated = {"urls_metadata": {data["urls"][0]: {"test": "b", "cloud": "aws"}}}
     res = client.put(
         "/index/{}?rev={}".format(rec_2["did"], rec_2["rev"]),
         json=updated,
