@@ -667,7 +667,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 record.alias = (record.alias or []) + aliases
                 session.commit()
-            except Exception as err:
+            except IntegrityError as err:
                 # One or more aliases in request were non-unique
                 self.logger.warning(
                     f"One or more aliases in request already associated with this or another GUID: {aliases}",
