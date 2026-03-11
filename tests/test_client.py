@@ -2869,3 +2869,26 @@ def test_check_urls_metadata_partially_missing_metadata(
 
     for key in rec["urls_metadata"]:
         assert key in urls
+
+
+def test_check_cloud_field(client, user, combined_default_and_single_table_settings):
+    """
+    Checks that the cloud field is correctly set based on the url provided
+    """
+    data = get_doc(has_urls_metadata=True)
+    data["urls"] = [
+        "s3://endpointurl/bucket/key",
+        "gs://endpointurl/bucket/key",
+        "https://bucket.s3.amazonaws.com/key",
+    ]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    did = rec["did"]
+
+    res = client.get("/ga4gh/drs/v1/objects/" + did, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    print("asdfasdfasdf")
+    print(rec)
+    assert rec["access_methods"][0]["cloud"] == "aws"
