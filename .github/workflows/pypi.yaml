@@ -8,7 +8,7 @@ on:
 jobs:
   PyPIPoetryPublish:
     name: PyPI Poetry Publish
-    uses: uc-cdis/.github/.github/workflows/python_package_index_publish.yaml@feat/add-working-dir-to-pypi
+    uses: uc-cdis/.github/.github/workflows/python_package_index_publish.yaml@master
     with:
         PYTHON_VERSION: '3.9'
         DO_TEST_PUBLISH_FIRST: true
