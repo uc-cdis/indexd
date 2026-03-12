@@ -10,7 +10,7 @@ jobs:
     name: PyPI Poetry Publish
     uses: uc-cdis/.github/.github/workflows/python_package_index_publish.yaml@master
     with:
-        PYTHON_VERSION: '3.9'
+        PYTHON_VERSION: '3.13'
         DO_TEST_PUBLISH_FIRST: true
         PACKAGE_DIRECTORY: 'indexclient'
     secrets:
