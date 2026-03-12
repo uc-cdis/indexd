@@ -9,6 +9,7 @@ from indexclient.indexclient.client import IndexClient
 from tests.conftest import clear_database
 
 
+# TODO: PD-125 Use indexd_client fixture in place of the client fixture for all tests
 @pytest.fixture(scope="function")
 def indexd_client(app, monkeypatch, user):
     flask_client = app.test_client()
