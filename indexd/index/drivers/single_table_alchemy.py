@@ -665,7 +665,10 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record = query.one()
 
             try:
-                record.alias = (record.alias or []) + aliases
+                if record.alias:
+                    record.alias = [record.alias] + aliases
+                else:
+                    record.alias = aliases
                 session.commit()
             except IntegrityError as err:
                 # One or more aliases in request were non-unique
