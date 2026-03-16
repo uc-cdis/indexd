@@ -666,7 +666,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 if record.alias:
-                    record.alias = [record.alias] + aliases
+                    record.alias = record.alias + aliases
                 else:
                     record.alias = aliases
                 session.commit()
