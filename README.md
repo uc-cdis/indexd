@@ -218,7 +218,7 @@ Data may be loaded into Indexd through a few different means:
 
 ### I want to upload data to storage location(s) and index at the same time
 
-Using the [gen3-client](https://gen3.org/resources/user/gen3-client/) you can upload objects to storage locations and mint GUIDs at the same time.
+Using the [gen3-client](https://docs.gen3.org/gen3-resources/tools/data-client/) you can upload objects to storage locations and mint GUIDs at the same time.
 
 <div align="center">
 <img src="./docs/indexd_client_upload.png" alt="gen3-client Data Upload flow" height="300
@@ -227,7 +227,7 @@ Using the [gen3-client](https://gen3.org/resources/user/gen3-client/) you can up
 
 #### Blank Record Creation in Indexd
 
-Indexd supports void or blank records that allow users to pre-register data files through Fence before actually registering them. This enables the [Data Upload flow](https://gen3.org/resources/user/submit-data/#2-upload-data-files-to-object-storage) that allows users to use a client to create Indexd records before the physical file exists in storage buckets. The complete flow contains three main steps:
+Indexd supports void or blank records that allow users to pre-register data files through Fence before actually registering them. This enables the [Data Upload flow](https://docs.gen3.org/gen3-resources/operator-guide/submit-unstructured-data/#2-upload-data-files-to-object-storage) that allows users to use a client to create Indexd records before the physical file exists in storage buckets. The complete flow contains three main steps:
 
 1) pre-register
 2) hash/size/URL populating
