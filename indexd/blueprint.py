@@ -1,6 +1,6 @@
 import flask
 
-from indexclient.client import IndexClient
+from indexclient.indexclient.client import IndexClient
 from doiclient.client import DOIClient
 from dosclient.client import DOSClient
 from hsclient.client import HSClient
