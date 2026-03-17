@@ -16,6 +16,7 @@ from .drs.blueprint import blueprint as indexd_guid_blueprint
 from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
+from cachelib import SimpleCache
 
 logger = cdislogging.get_logger(__name__)
 
@@ -50,6 +51,7 @@ def app_init(app, settings=None):
     app.register_blueprint(indexd_guid_blueprint)
     app.register_blueprint(cross_blueprint)
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
+    app.cache = SimpleCache(default_timeout=1800)
 
 
 def get_app(settings=None):
