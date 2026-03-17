@@ -2910,6 +2910,5 @@ def test_check_cloud_field(client, user, combined_default_and_single_table_setti
     res = client.get("/ga4gh/drs/v1/objects/" + did, headers=user)
     assert res.status_code == 200
     rec = res.json
-    print("asdfasdfasdf")
     print(rec)
     assert rec["access_methods"][0]["cloud"] == "aws"
