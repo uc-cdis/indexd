@@ -7,6 +7,8 @@ from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
 from indexd.utils import reverse_url
+from flask import current_app as app
+import requests
 
 blueprint = flask.Blueprint("drs", __name__)
 
@@ -14,6 +16,36 @@ blueprint.config = dict()
 blueprint.index_driver = None
 blueprint.service_info = {}
 blueprint.cloud_provider_map = {}
+
+
+FENCE_SERVICE = os.environ.get("FENCE_SERVICE_URL", "http://fence-service")
+
+
+def get_bucket_regions():
+    """
+    Get all buckets from Fence and cache their region info.
+    """
+    cached = app.cache.get("bucket_regions")
+    if cached:
+        return cached
+
+    # Fence endpoint for public buckets (no auth)
+    url = f"{FENCE_SERVICE}/data/buckets"
+    try:
+        resp = requests.get(url)
+        resp.raise_for_status()
+        data = resp.json().get("S3_BUCKETS")
+    except Exception as e:
+        app.logger.warning(f"Failed to fetch bucket regions from Fence: {e}")
+        data = dict()
+
+    # Convert list of buckets into dict {bucket_name: region}
+    regions = {k: v.get("region", "") for k, v in data.items()}
+
+    # Save to cache for next time
+    app.cache.set("bucket_regions", regions)
+
+    return regions
 
 
 @blueprint.route("/ga4gh/drs/v1/service-info", methods=["GET"])
@@ -183,6 +215,15 @@ def indexd_to_drs(record, expand=False):
         else []
     )
 
+    bucket_regions = get_bucket_regions()
+
+    region = ""
+    if "urls" in record and record["urls"]:
+        first_url = record["urls"][0]
+        if first_url.startswith("s3://"):
+            bucket_name = first_url.split("/")[2]  # s3://bucket_name/key
+            region = bucket_regions.get(bucket_name, "")
+
     drs_object = {
         "id": did,
         "mime_type": "application/json",
@@ -198,6 +239,7 @@ def indexd_to_drs(record, expand=False):
         "form": form,
         "checksums": [],
         "description": description,
+        "region": region,
     }
 
     if "description" in record:

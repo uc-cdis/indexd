@@ -87,7 +87,6 @@ CONFIG["CLOUD_PROVIDER_MAP"] = {
     "s3": "aws",
     "gs": "gcp",
     "az": "azure",
-    "vec": "aws",
 }
 
 AUTH = SQLAlchemyAuthDriver(
