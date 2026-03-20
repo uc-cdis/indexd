@@ -10,6 +10,8 @@ from indexd import auth
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 
+from indexd.utils import get_bucket_regions, lookup_bucket_region
+
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
 from .schema import RECORD_ALIAS_SCHEMA
@@ -381,6 +383,17 @@ def get_index_record(record):
             location_type = location.split(":")[0]
             cloud = blueprint.cloud_provider_map.get(location_type)
             urls_meta[location]["cloud"] = cloud
+            if "region" not in metadata.keys():
+                bucket_regions = get_bucket_regions()
+                bucket_name = metadata.get("bucket")
+                if bucket_name:
+                    region = lookup_bucket_region(bucket_name, bucket_regions)
+                    urls_meta[location]["region"] = region
+
+            if "available" not in metadata.keys():
+                urls_meta[location][
+                    "available"
+                ] = True  # default to True if not specified
 
     return flask.jsonify(ret), 200
 
