@@ -24,7 +24,11 @@ def get_doc(
         doc["baseid"] = "e044a62c-fd60-4203-b1e5-a62d1005f027"
     if has_urls_metadata:
         doc["urls_metadata"] = {
-            "s3://endpointurl/bucket/key": {"state": "uploaded", "cloud": "aws"}
+            "s3://endpointurl/bucket/key": {
+                "state": "uploaded",
+                "cloud": "aws",
+                "available": True,
+            }
         }
     if has_version:
         doc["version"] = "1"
