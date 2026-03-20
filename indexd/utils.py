@@ -1,6 +1,9 @@
 import logging
 import re
 from urllib.parse import urlparse
+import os
+import requests
+from flask import current_app as app
 
 
 def hint_match(record, hints):
@@ -210,3 +213,52 @@ def reverse_url(url):
     reversed_segments = reversed(segments)
     res = ".".join(reversed_segments)
     return res
+
+
+FENCE_SERVICE = os.environ.get("FENCE_SERVICE_URL", "http://fence-service")
+
+
+def lookup_bucket_region(bucket_name, bucket_regions):
+    """
+    Resolve a bucket name to a region.
+    First try exact match, then try regex-pattern keys.
+    """
+    if bucket_name in bucket_regions:
+        return bucket_regions[bucket_name]
+
+    for pattern, region in bucket_regions.items():
+        try:
+            if re.fullmatch(pattern, bucket_name):
+                return region
+        except re.error:
+            # ignore invalid regex keys and keep going
+            continue
+
+    return ""
+
+
+def get_bucket_regions():
+    """
+    Get all buckets from Fence and cache their region info.
+    """
+    cached = app.cache.get("bucket_regions")
+    if cached:
+        return cached
+
+    # Fence endpoint for public buckets (no auth)
+    url = f"{FENCE_SERVICE}/data/buckets"
+    try:
+        resp = requests.get(url)
+        resp.raise_for_status()
+        data = resp.json().get("S3_BUCKETS")
+    except Exception as e:
+        app.logger.warning(f"Failed to fetch bucket regions from Fence: {e}")
+        app.logger.warning("Attempting to pull region data from urls_metadata")
+
+    # Convert list of buckets into dict {bucket_name: region}
+    regions = {k: v.get("region", "") for k, v in data.items()}
+
+    # Save to cache for next time
+    app.cache.set("bucket_regions", regions)
+
+    return regions
