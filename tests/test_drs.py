@@ -7,7 +7,7 @@ import responses
 from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
 from unittest.mock import patch
-from indexd.utils import get_bucket_regions, lookup_bucket_region
+from indexd.utils import lookup_bucket_region
 
 
 def generate_presigned_url_response(did, status=200, **query_params):
@@ -420,41 +420,28 @@ from indexd.utils import get_bucket_regions, lookup_bucket_region
 
 
 def test_bucket_region_lookup():
-    """
-    Pure unit test for lookup_bucket_region using fake bucket data.
-    """
     fake_bucket_regions = {
         "exact-bucket": "us-east-1",
         "regex-bucket-.*": "us-west-2",
     }
 
-    # Patch get_bucket_regions to return our fake dictionary
-    with patch("indexd.utils.get_bucket_regions", return_value=fake_bucket_regions):
-        regions = get_bucket_regions()
+    assert lookup_bucket_region("exact-bucket", fake_bucket_regions) == "us-east-1"
+    assert lookup_bucket_region("regex-bucket-123", fake_bucket_regions) == "us-west-2"
+    assert lookup_bucket_region("nonexistent-bucket", fake_bucket_regions) == ""
 
-        # Exact match should return us-east-1
-        assert lookup_bucket_region("exact-bucket", regions) == "us-east-1"
 
-        # Regex match should return us-west-2
-        assert lookup_bucket_region("regex-bucket-123", regions) == "us-west-2"
-
-        # No match should return empty string
-        assert lookup_bucket_region("nonexistent-bucket", regions) == ""
+from unittest.mock import patch
 
 
 def test_bucket_region_in_drs_object(client, user):
-    """
-    Integration-style test: create a DRS object pointing to a bucket
-    and verify that the access method contains the correct region.
-    """
     fake_bucket_regions = {
         "my-test-bucket": "us-east-1",
         "another-bucket-.*": "us-west-2",
     }
 
-    # Patch get_bucket_regions in indexd.utils
-    with patch("indexd.utils.get_bucket_regions", return_value=fake_bucket_regions):
-        # Create a doc pointing to a bucket
+    with patch(
+        "indexd.drs.blueprint.get_bucket_regions", return_value=fake_bucket_regions
+    ):
         doc = {
             "form": "object",
             "size": 123,
@@ -464,19 +451,16 @@ def test_bucket_region_in_drs_object(client, user):
 
         res = client.post("/index/", json=doc, headers=user)
         assert res.status_code == 200
+
         did = res.json["did"]
 
-        # Fetch the DRS object
         drs_res = client.get(f"/ga4gh/drs/v1/objects/{did}")
         assert drs_res.status_code == 200
 
-        # Check that access_methods contains the resolved region
-        access_methods = drs_res.json.get("access_methods")
-        assert access_methods is not None
+        drs_json = drs_res.json
 
-        s3_access = next((a for a in access_methods if a["type"] == "s3"), None)
-        assert s3_access is not None
+        region_map = drs_json.get("region")
+        assert region_map is not None
 
-        # Confirm region matches the lookup
-        resolved_region = lookup_bucket_region("my-test-bucket", get_bucket_regions())
-        assert s3_access["access_url"]["region"] == resolved_region
+        assert "s3://my-test-bucket/path/to/file" in region_map
+        assert region_map["s3://my-test-bucket/path/to/file"] == "us-east-1"
