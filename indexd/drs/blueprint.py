@@ -76,20 +76,26 @@ def get_drs_object_options(object_id):
     @blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["OPTIONS"]) #test b: same URL
     """
     print("- inside options... ")
-    # Extract authz based on guid
-    expand = True if flask.request.args.get("expand") == "true" else False
-    ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
-    authz = ret["authz"][0]
-    print(f"authz: {authz}")
+    # Get authz based on guid
+    try:
+        ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
+        authz = ret["authz"][0]
+    except IndexNoRecordFound as err:
+        return handle_no_index_record_error(err)
 
-    # Get static authz metadata
-    authz_metadata = blueprint.drs_authorization_metadata
+    # Get static authz metadata based on blueprint
+    try:
+        # Get static authz metadata
+        authz_metadata = blueprint.drs_authorization_metadata
+        # If static match detected, update with object id
+        if authz in authz_metadata.keys():
+            authz_metadata[authz].update({"drs_object_id": object_id})
+            return flask.jsonify(authz_metadata[authz]), 200
+        return flask.jsonify(data), 200
 
-    # If static match detected, update with object id
-    if authz in authz_metadata.keys():
-        authz_metadata[authz].update({"drs_object_id": object_id})
-        return flask.jsonify(authz_metadata[authz]), 200
-    return flask.jsonify(data), 200
+    # Otherwise return unexpected error
+    except IndexdUnexpectedError as err:
+        return handle_unexpected_error(err)
 
 
 @blueprint.route("/ga4gh/drs/v1/objects", methods=["GET"])
