@@ -442,12 +442,7 @@ def test_bucket_region_in_drs_object(client, user):
     with patch(
         "indexd.drs.blueprint.get_bucket_regions", return_value=fake_bucket_regions
     ):
-        doc = {
-            "form": "object",
-            "size": 123,
-            "urls": ["s3://my-test-bucket/path/to/file"],
-            "hashes": {"md5": "abc123"},
-        }
+        doc = get_doc(urls=["s3://my-test-bucket/path/to/file"])
 
         res = client.post("/index/", json=doc, headers=user)
         assert res.status_code == 200
@@ -456,11 +451,9 @@ def test_bucket_region_in_drs_object(client, user):
 
         drs_res = client.get(f"/ga4gh/drs/v1/objects/{did}")
         assert drs_res.status_code == 200
-
         drs_json = drs_res.json
 
         region_map = drs_json.get("region")
         assert region_map is not None
-
         assert "s3://my-test-bucket/path/to/file" in region_map
         assert region_map["s3://my-test-bucket/path/to/file"] == "us-east-1"
