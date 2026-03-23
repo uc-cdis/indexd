@@ -228,7 +228,7 @@ def lookup_bucket_region(bucket_name, bucket_regions):
 
     for pattern, region in bucket_regions.items():
         try:
-            if re.fullmatch(pattern, bucket_name):
+            if re.search(pattern, bucket_name):
                 return region
         except re.error:
             # ignore invalid regex keys and keep going
