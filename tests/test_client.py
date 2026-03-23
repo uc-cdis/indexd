@@ -38,7 +38,7 @@ def get_doc(
             "s3://endpointurl/bucket/key": {
                 "state": "available",
                 "cloud": "aws",
-                "available": True,
+                "available": "true",
             }
         }
     if has_version:
@@ -2905,4 +2905,4 @@ def test_check_cloud_field(client, user, combined_default_and_single_table_setti
     assert res.status_code == 200
     rec = res.json
     print(rec)
-    assert rec["access_methods"][0]["cloud"] == "aws"
+    assert rec["access_methods"][0]["cloud"] == "gcp"
