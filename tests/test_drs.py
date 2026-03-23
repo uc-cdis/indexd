@@ -464,16 +464,16 @@ def test_auth_options(client, user, combined_default_and_single_table_settings):
     """Tests that OPTIONS endpoint returns expected static return after successful authz lookup"""
 
     print("=== beginning of test === ")
-    # Get test set-up
+    # Get test set-up doc, doc did, and define expected info
     data = get_doc()
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
     expected_info = {
+        "drs_object_id": doc_did,
         "bearer_auth_issuers": ["https://gen3.datacommons.io"],
         "passport_auth_issuers": ["https://ras/foo/bar"],
         "supported_types": ["BearerAuth", "PassportAuth"],
     }
 
-    # Get test did
-    doc_did = client.post("/index", json=data, headers=user).json["did"]
     # Call OPTIONS endpoint
     print("~~ BEFORE")
     res_1 = client.options(

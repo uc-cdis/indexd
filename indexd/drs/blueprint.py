@@ -85,8 +85,9 @@ def get_drs_object_options(object_id):
     # Get static authz metadata
     authz_metadata = blueprint.drs_authorization_metadata
 
+    # If static match detected, update with object id
     if authz in authz_metadata.keys():
-        print("- authz match detected")
+        authz_metadata[authz].update({"drs_object_id": object_id})
         return flask.jsonify(authz_metadata[authz]), 200
     return flask.jsonify(data), 200
 
