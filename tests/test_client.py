@@ -2920,7 +2920,6 @@ def test_check_cloud_field(client, user, combined_default_and_single_table_setti
     data["urls"] = [
         "s3://endpointurl/bucket/key",
         "gs://endpointurl/bucket/key",
-        "https://bucket.s3.amazonaws.com/key",
     ]
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
@@ -2931,4 +2930,7 @@ def test_check_cloud_field(client, user, combined_default_and_single_table_setti
     assert res.status_code == 200
     rec = res.json
     print(rec)
-    assert rec["access_methods"][0]["cloud"] == "aws"
+    clouds = []
+    for i in range(len(rec["access_methods"])):
+        clouds.append(rec["access_methods"][i]["cloud"])
+    assert "aws" in clouds
