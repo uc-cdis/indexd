@@ -25,6 +25,14 @@ CONFIG["DRS_SERVICE_INFO"] = {
     },
 }
 
+CONFIG["DRS_AUTHORIZATION_METADATA"] = {
+    "/gen3/programs/a/projects/b": {
+        "supported_types": ["BearerAuth", "PassportAuth"],
+        "passport_auth_issuers": ["https://ras/foo/bar"],
+        "bearer_auth_issuers": ["https://gen3.datacommons.io"],
+    }
+}
+
 os.environ["PRESIGNED_FENCE_URL"] = "https://fictitious-commons.io/"
 os.environ["HOSTNAME"] = "fictitious-commons.io"
 settings = {"config": CONFIG, "auth": AUTH}
@@ -34,6 +42,6 @@ settings = {"config": CONFIG, "auth": AUTH}
 psql_port = os.environ["PGPORT"] if os.environ.get("PGPORT") else "5432"
 
 # database used by the `/tests/postgres` tests
-settings["config"][
-    "TEST_DB"
-] = "postgresql://postgres:postgres@localhost:{0}/indexd_tests".format(psql_port)
+settings["config"]["TEST_DB"] = (
+    "postgresql://postgres:postgres@localhost:{0}/indexd_tests".format(psql_port)
+)
