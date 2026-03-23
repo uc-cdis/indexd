@@ -31,12 +31,16 @@ def get_doc(
     has_description=True,
     has_content_created_date=True,
     has_content_updated_date=True,
+    authz: str | None = None,
 ):
+    if authz is None:
+        authz = "/gen3/programs/a/projects/b"
     doc = {
         "form": "object",
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "authz": [authz],
     }
     if has_version:
         doc["version"] = "1"
@@ -411,3 +415,33 @@ def test_drs_service_info_no_information_configured(
         assert res.json == expected_info
     finally:
         settings["config"]["DRS_SERVICE_INFO"] = backup
+
+
+def test_auth_options(client, user, combined_default_and_single_table_settings):
+    """Tests that OPTIONS endpoint returns expected static return after successful authz lookup"""
+
+    print("=== beginning of test === ")
+    # Get test set-up
+    data = get_doc()
+    expected_info = {
+        "bearer_auth_issuers": ["https://gen3.datacommons.io"],
+        "passport_auth_issuers": ["https://ras/foo/bar"],
+        "supported_types": ["BearerAuth", "PassportAuth"],
+    }
+
+    # Get test did
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    # Call OPTIONS endpoint
+    print("~~ BEFORE")
+    res_1 = client.options(
+        "ga4gh/drs/v1/options/objects/" + doc_did
+    )  # test a (add 'options' to URL)
+    # res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did) # test b (same URL)
+    print("~~ AFTER")
+
+    # Check that response has expected results
+    print("=== end of test prints === ")
+    assert res_1.json is not None
+    assert res_1.status_code == 200
+    assert res_1.json == expected_info
+    # assert 'a' == 'b' # force failure
