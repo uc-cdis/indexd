@@ -506,8 +506,8 @@ def test_auth_options_unexpected_error(
     """Tests that OPTIONS endpoint returns approproate 'unexpected error' message when
     an unexpected error occurs"""
 
-    # Check that OPTIONS call fails as index cannot be found
-    doc_did = "unknownguid"
+    # Check that OPTIONS call with unexpected error (object id is valid, but path is invalid)
+    data = get_doc(authz="unknown/path")
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
     res_1 = client.options("ga4gh/drs/v1/options/objects/" + doc_did)
-    assert res_1._status_code == 404
-    assert res_1.json["status_code"] == 404
+    assert res_1._status_code == 500
