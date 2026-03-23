@@ -6,6 +6,9 @@ import requests
 import responses
 from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
+from indexd.index.errors import NoRecordFound as IndexNoRecordFound
+from indexd.errors import IndexdUnexpectedError
+import pytest
 
 
 def generate_presigned_url_response(did, status=200, **query_params):
@@ -445,3 +448,28 @@ def test_auth_options(client, user, combined_default_and_single_table_settings):
     assert res_1.status_code == 200
     assert res_1.json == expected_info
     # assert 'a' == 'b' # force failure
+
+
+def test_auth_options_index_not_found(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that OPTIONS endpoint returns appropriate 'index not found' error when appropriate"""
+
+    # Check that OPTIONS call fails as index cannot be found
+    doc_did = "unknownguid"
+    res_1 = client.options("ga4gh/drs/v1/options/objects/" + doc_did)
+    assert res_1._status_code == 404
+    assert res_1.json["status_code"] == 404
+
+
+def test_auth_options_unexpected_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that OPTIONS endpoint returns approproate 'unexpected error' message when
+    an unexpected error occurs"""
+
+    # Check that OPTIONS call fails as index cannot be found
+    doc_did = "unknownguid"
+    res_1 = client.options("ga4gh/drs/v1/options/objects/" + doc_did)
+    assert res_1._status_code == 404
+    assert res_1.json["status_code"] == 404
