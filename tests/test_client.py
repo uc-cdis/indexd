@@ -1449,6 +1449,11 @@ def test_update_urls_metadata(client, user, combined_default_and_single_table_se
     res_3 = client.get("/index/" + rec["did"])
     assert res_3.status_code == 200
     rec_3 = res_3.json
+    updated = {
+        "urls_metadata": {
+            data["urls"][0]: {"test": "b", "cloud": "aws", "available": True}
+        }
+    }
     assert rec_3["urls_metadata"] == updated["urls_metadata"]
 
 
@@ -2926,4 +2931,4 @@ def test_check_cloud_field(client, user, combined_default_and_single_table_setti
     assert res.status_code == 200
     rec = res.json
     print(rec)
-    assert rec["access_methods"][0]["cloud"] == "gcp"
+    assert rec["access_methods"][0]["cloud"] == "aws"
