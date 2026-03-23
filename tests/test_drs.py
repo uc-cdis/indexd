@@ -415,12 +415,6 @@ def test_drs_service_info_no_information_configured(
         settings["config"]["DRS_SERVICE_INFO"] = backup
 
 
-import pytest
-from unittest.mock import patch
-
-from indexd.utils import get_bucket_regions, lookup_bucket_region
-
-
 def test_bucket_region_lookup():
     fake_bucket_regions = {
         "exact-bucket": "us-east-1",
@@ -430,9 +424,6 @@ def test_bucket_region_lookup():
     assert lookup_bucket_region("exact-bucket", fake_bucket_regions) == "us-east-1"
     assert lookup_bucket_region("regex-bucket-123", fake_bucket_regions) == "us-west-2"
     assert lookup_bucket_region("nonexistent-bucket", fake_bucket_regions) == ""
-
-
-from unittest.mock import patch
 
 
 def test_bucket_region_in_drs_object(client, user):
