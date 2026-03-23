@@ -221,18 +221,15 @@ FENCE_SERVICE = os.environ.get("FENCE_SERVICE_URL", "http://fence-service")
 def lookup_bucket_region(bucket_name, bucket_regions):
     """
     Resolve a bucket name to a region.
-    First try exact match, then try regex-pattern keys.
+    Exact match first, then simple prefix fallback.
     """
     if bucket_name in bucket_regions:
         return bucket_regions[bucket_name]
 
+    # remove regexp for prefix matching to remove snyk vulnerability
     for pattern, region in bucket_regions.items():
-        try:
-            if re.search(pattern, bucket_name):
-                return region
-        except re.error:
-            # ignore invalid regex keys and keep going
-            continue
+        if pattern.endswith(".*") and bucket_name.startswith(pattern[:-2]):
+            return region
 
     return ""
 
