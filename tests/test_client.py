@@ -10,7 +10,11 @@ from tests.default_test_settings import settings
 
 
 def get_doc(
-    has_metadata=True, has_baseid=False, has_urls_metadata=False, has_version=False
+    has_metadata=True,
+    has_baseid=False,
+    has_urls_metadata=False,
+    has_version=False,
+    has_available=False,
 ):
     doc = {
         "form": "object",
@@ -22,10 +26,17 @@ def get_doc(
         doc["metadata"] = {"project_id": "bpa-UChicago"}
     if has_baseid:
         doc["baseid"] = "e044a62c-fd60-4203-b1e5-a62d1005f027"
-    if has_urls_metadata:
+    if has_urls_metadata and not has_available:
         doc["urls_metadata"] = {
             "s3://endpointurl/bucket/key": {
                 "state": "uploaded",
+                "cloud": "aws",
+            }
+        }
+    if has_urls_metadata and has_available:
+        doc["urls_metadata"] = {
+            "s3://endpointurl/bucket/key": {
+                "state": "available",
                 "cloud": "aws",
                 "available": True,
             }
@@ -1417,7 +1428,7 @@ def test_cant_update_inexistent_blank_record(
 
 
 def test_update_urls_metadata(client, user, combined_default_and_single_table_settings):
-    data = get_doc(has_urls_metadata=True)
+    data = get_doc(has_urls_metadata=True, has_available=True)
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
     rec = res.json
