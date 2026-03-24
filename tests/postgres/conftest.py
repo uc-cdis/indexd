@@ -43,7 +43,7 @@ def postgres_driver(app):
 
 
 @pytest.fixture(autouse=True)
-def reset_db():
+def reset_db(postgres_driver):
     alembic_main(["--raiseerr", "downgrade", "base"])
     alembic_main(["--raiseerr", "upgrade", "head"])
 
