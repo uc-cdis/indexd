@@ -18,6 +18,7 @@ from .blueprint import blueprint as cross_blueprint
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
 logger = cdislogging.get_logger(__name__)
+# TEST CHANGE
 
 
 def app_init(app, settings=None):
