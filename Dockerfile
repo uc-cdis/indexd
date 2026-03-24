@@ -1,49 +1,47 @@
-# To run: docker run -v /path/to/wsgi.py:/var/www/indexd/wsgi.py --name=indexd -p 81:80 indexd
-# To check running container: docker exec -it indexd /bin/bash
+ARG AZLINUX_BASE_VERSION=3.13-pythonnginx
 
-FROM quay.io/cdis/python:python3.9-buster-2.0.0
+# Base stage with python-build-base
+FROM quay.io/cdis/amazonlinux-base:${AZLINUX_BASE_VERSION} AS base
 
 ENV appname=indexd
 
-RUN pip install --upgrade pip poetry
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libffi-dev musl-dev gcc libxml2-dev libxslt-dev \
-    curl bash git vim
+WORKDIR /${appname}
 
-RUN mkdir -p /var/www/$appname \
-    && mkdir -p /var/www/.cache/Python-Eggs/ \
-    && mkdir /run/nginx/ \
-    && ln -sf /dev/stdout /var/log/nginx/access.log \
-    && ln -sf /dev/stderr /var/log/nginx/error.log \
-    && chown nginx -R /var/www/.cache/Python-Eggs/ \
-    && chown nginx /var/www/$appname
+RUN chown -R gen3:gen3 /${appname}
 
-EXPOSE 80
+# Builder stage
+FROM base AS builder
 
-WORKDIR /$appname
+USER root
+RUN chown -R gen3:gen3 /venv
 
-# copy ONLY poetry artifact, install the dependencies but not indexd
-# this will make sure than the dependencies is cached
-COPY poetry.lock pyproject.toml /$appname/
-RUN poetry config virtualenvs.create false \
-    && poetry install -vv --no-root --no-dev --no-interaction \
-    && poetry show -v
+USER gen3
 
-# copy source code ONLY after installing dependencies
-COPY . /$appname
-COPY ./deployment/uwsgi/uwsgi.ini /etc/uwsgi/uwsgi.ini
-COPY ./deployment/uwsgi/wsgi.py /$appname/wsgi.py
-COPY clear_prometheus_multiproc /$appname/clear_prometheus_multiproc
+COPY poetry.lock pyproject.toml /${appname}/
 
-# install indexd
-RUN poetry config virtualenvs.create false \
-    && poetry install -vv --no-dev --no-interaction \
-    && poetry show -v
+# RUN python3 -m venv /env && . /env/bin/activate &&
+RUN poetry install -vv --no-interaction --without dev
 
-RUN COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" >$appname/index/version_data.py \
-    && VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >>$appname/index/version_data.py
+COPY --chown=gen3:gen3 . /${appname}
 
-# directory where the app can find Alembic files
-WORKDIR /indexd
+RUN poetry install -vv --no-interaction --without dev
 
-CMD /dockerrun.sh
+RUN git config --global --add safe.directory ${appname} && COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" > ${appname}/version_data.py \
+    && VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >> ${appname}/version_data.py
+
+
+# Final stage
+FROM base
+
+COPY --from=builder /${appname} /${appname}
+COPY --from=builder /venv /venv
+ENV  PATH="/usr/sbin:$PATH"
+USER root
+RUN mkdir -p /var/log/nginx
+RUN chown -R gen3:gen3 /var/log/nginx
+
+# Switch to non-root user 'gen3' for the serving process
+
+USER gen3
+
+CMD ["/bin/bash", "-c", "/${appname}/dockerrun.bash"]

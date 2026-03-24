@@ -36,4 +36,4 @@ psql_port = os.environ["PGPORT"] if os.environ.get("PGPORT") else "5432"
 # database used by the `/tests/postgres` tests
 settings["config"][
     "TEST_DB"
-] = "postgres://postgres:postgres@localhost:{0}/indexd_tests".format(psql_port)
+] = "postgresql://postgres:postgres@localhost:{0}/indexd_tests".format(psql_port)

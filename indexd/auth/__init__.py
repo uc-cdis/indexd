@@ -23,7 +23,8 @@ def authorize(*p):
             if not request.authorization:
                 raise AuthError("Username / password required.")
             current_app.auth.auth(
-                request.authorization.username, request.authorization.password
+                request.authorization.parameters.get("username"),
+                request.authorization.parameters.get("password"),
             )
 
             return f(*args, **kwargs)
@@ -31,9 +32,10 @@ def authorize(*p):
         return check_auth
     else:
         method, resources = p
-        if request.authorization:
+        if request.authorization and request.authorization.type == "basic":
             current_app.auth.auth(
-                request.authorization.username, request.authorization.password
+                request.authorization.parameters.get("username"),
+                request.authorization.parameters.get("password"),
             )
         else:
             if not isinstance(resources, list):

@@ -100,7 +100,7 @@ def test_index_list_with_params(
     assert rec_2["did"] in ids
 
     # with nonstrict prefix
-    stripped = rec_1["did"].split("testprefix:", 1)[1]
+    stripped = rec_1["did"].split("testprefix/", 1)[1]
     with_prefix = rec_3["did"]
     data_by_ids = client.get("/index/?ids={},{}".format(stripped, with_prefix))
     assert data_by_ids.status_code == 200
@@ -1438,7 +1438,7 @@ def test_cant_update_inexistent_blank_record(
 ):
     # test that non-existent did throws 400 error
     data = {"size": 123, "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}
-    fake_did = "testprefix:455ffb35-1b0e-49bd-a4ab-3afe9f3aece9"
+    fake_did = "testprefix/455ffb35-1b0e-49bd-a4ab-3afe9f3aece9"
     fake_rev = "8d19b5c10"
     res = client.put(
         "/index/blank/{}?rev={}".format(fake_did, fake_rev), json=data, headers=user
@@ -1605,7 +1605,7 @@ def test_index_list_with_start(
     client, user, combined_default_and_single_table_settings
 ):
     data = {
-        "did": "testprefix:11111111-1111-1111-1111-111111111111",
+        "did": "testprefix/11111111-1111-1111-1111-111111111111",
         "form": "object",
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
@@ -1615,12 +1615,12 @@ def test_index_list_with_start(
     assert res.status_code == 200
     rec1 = res.json
 
-    data["did"] = "testprefix:22222222-2222-2222-2222-222222222222"
+    data["did"] = "testprefix/22222222-2222-2222-2222-222222222222"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
     rec2 = res.json
 
-    data["did"] = "testprefix:33333333-3333-3333-3333-333333333333"
+    data["did"] = "testprefix/33333333-3333-3333-3333-333333333333"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
     rec3 = res.json
@@ -1637,7 +1637,7 @@ def test_index_list_with_start(
 
 def test_index_list_with_page(client, user, combined_default_and_single_table_settings):
     data = {
-        "did": "testprefix:11111111-1111-1111-1111-111111111111",
+        "did": "testprefix/11111111-1111-1111-1111-111111111111",
         "form": "object",
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
@@ -1647,12 +1647,12 @@ def test_index_list_with_page(client, user, combined_default_and_single_table_se
     assert res.status_code == 200
     rec1 = res.json
 
-    data["did"] = "testprefix:22222222-2222-2222-2222-222222222222"
+    data["did"] = "testprefix/22222222-2222-2222-2222-222222222222"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
     rec2 = res.json
 
-    data["did"] = "testprefix:33333333-3333-3333-3333-333333333333"
+    data["did"] = "testprefix/33333333-3333-3333-3333-333333333333"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
     rec3 = res.json
@@ -1711,7 +1711,7 @@ def test_get_id(client, user, combined_default_and_single_table_settings):
     assert record["size"] == data["size"]
 
     # test getting an ID that does not exist
-    fake_did = "testprefix:d96bab16-c4e1-44ac-923a-04328b6fe78f"
+    fake_did = "testprefix/d96bab16-c4e1-44ac-923a-04328b6fe78f"
     res = client.get("/index/" + fake_did)
     assert res.status_code == 404
     res = client.get("/alias/" + fake_did)
@@ -1722,7 +1722,7 @@ def test_index_prepend_prefix(client, user, combined_default_and_single_table_se
     """
     For index_config =
     {
-        "DEFAULT_PREFIX": "testprefix:",
+        "DEFAULT_PREFIX": "testprefix/",
         "PREPEND_PREFIX": True
     }
     """
@@ -1735,7 +1735,7 @@ def test_index_prepend_prefix(client, user, combined_default_and_single_table_se
     assert res_2.status_code == 200, res_2.json
     rec_2 = res_2.json
     assert rec_1["did"] == rec_2["did"]
-    assert rec_2["did"].startswith("testprefix:")
+    assert rec_2["did"].startswith("testprefix/")
 
     # create a new version, check the GUID has the prefix
     dataNew = {
@@ -1748,7 +1748,7 @@ def test_index_prepend_prefix(client, user, combined_default_and_single_table_se
     assert res_3.status_code == 200, res_3.json
     rec_3 = res_3.json
     assert rec_3["baseid"] == rec_1["baseid"]
-    assert rec_3["did"].startswith("testprefix:")
+    assert rec_3["did"].startswith("testprefix/")
 
 
 def test_index_get_with_baseid(
@@ -2008,7 +2008,7 @@ def test_index_add_prefix_alias(
     """
     For index_config =
     {
-        "DEFAULT_PREFIX": "testprefix:",
+        "DEFAULT_PREFIX": "testprefix/",
         "ADD_PREFIX_ALIAS": True
     }
     """
@@ -2025,7 +2025,7 @@ def test_index_add_prefix_alias(
         assert res.status_code == 200
         rec = res.json
 
-        res_2 = client.get("/testprefix:" + rec["did"])
+        res_2 = client.get("/testprefix/" + rec["did"])
         assert res_2.status_code == 200
         rec_2 = res_2.json
         assert rec_2["did"] == rec["did"]
@@ -2246,6 +2246,8 @@ def test_create_index_version(client, user, combined_default_and_single_table_se
         "urls": ["s3://endpointurl/bucket2/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"},
         "acl": ["a"],
+        "content_updated_date": "2023-03-14T17:02:54",
+        "content_created_date": "2023-03-13T17:02:54",
     }
 
     res_2 = client.post("/index/" + rec["did"], json=dataNew, headers=user)
@@ -2523,7 +2525,6 @@ def test_update_all_versions_fail_on_missing_permissions(
 
 
 def test_index_stats(client, user, combined_default_and_single_table_settings):
-
     # populate the index with three different size records
     data1 = get_doc()
     res1 = client.post("/index/", json=data1, headers=user)
@@ -2685,7 +2686,7 @@ def test_dos_get(client, user, combined_default_and_single_table_settings):
 
 def test_get_dos_record_error(client, user, combined_default_and_single_table_settings):
     # test exception raised at nonexistent
-    fake_did = "testprefix:d96bab16-c4e1-44ac-923a-04328b6fe78f"
+    fake_did = "testprefix/d96bab16-c4e1-44ac-923a-04328b6fe78f"
     res = client.get("/ga4gh/dos/v1/dataobjects/" + fake_did)
     assert res.status_code == 404
 
@@ -2930,3 +2931,45 @@ def test_timestamps_no_updated_without_created(
     data["content_updated_date"] = "2022-03-14T17:02:54"
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 400
+
+
+def test_check_urls_metadata(client, user, combined_default_and_single_table_settings):
+    """
+    Checks that the urls_metadata field has the same url keys as the urls
+    """
+    data = get_doc()
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    did = rec["did"]
+
+    res = client.get("/index/" + did, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    urls = rec["urls"]
+
+    assert len(rec["urls_metadata"]) == len(rec["urls"])
+
+    for key in rec["urls_metadata"]:
+        assert key in urls
+
+
+def test_check_urls_metadata_partially_missing_metadata(
+    client, user, combined_default_and_single_table_settings
+):
+    data = get_doc(has_urls_metadata=True)
+    data["urls"].append("s3://new-data/location.txt")
+    res = client.post("/index", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    did = rec["did"]
+
+    res = client.get("/index/" + did, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    urls = rec["urls"]
+
+    assert len(rec["urls_metadata"]) == len(rec["urls"])
+
+    for key in rec["urls_metadata"]:
+        assert key in urls

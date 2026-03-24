@@ -150,7 +150,8 @@ To install the implementation, assure you have poetry installed and simply run:
 poetry install
 ```
 
-To see how the automated tests (run in Travis CI) install Indexd, check out the `.travis.yml` file in the root directory of this repository.
+The automated tests are configured in `.github/workflows/ci.yaml`. The Indexd repo has a
+`tests/ci_commands_script.sh` script that the workflow calls.
 
 ## Installation with Docker
 
@@ -174,7 +175,7 @@ There is a `/indexd/default_settings.py` file which houses, you guessed it, defa
 
 This works because on app startup, Indexd will attempt to include a `local_settings` python module (the attempted import happens in the `/indexd/app.py` file). If a local settings file is not found, Indexd falls back on the default settings.
 
-There is specific information about some configuration options in the [distributed resolution](README.md#distributed-resolution-utilizing-prefixes-in-guids) section of this document.
+There is specific information about some configuration options in the [distributed resolution](../README.md#distributed-resolution-utilizing-prefixes-in-guids) section of this document.
 
 ## Testing
 
@@ -185,17 +186,17 @@ Follow [installation](#installation) guidance and make sure your virtual environ
 You can then update the python dependencies and test from the repository root directory:
 
 ```console
-python3 -m pytest -vv --cov=indexd --cov-report xml --junitxml="test-results.xml" tests
+poetry run pytest -vv --cov=indexd --cov-report xml tests
 ```
 
 > If you're in `wsl1`, you may encounter an error such as `ImportMismatchError` when running pytest.  If this is the case, you can rename the `./tests/__pycache__` folder to `./tests/__pycache__Backup` and re-run the tests.
 You may also need to update the [test settings](./tests/default_test_settings.py) with the appropriate database connection information prior to running the tests.
 
 ```python
-settings["config"]["TEST_DB"] = "postgres://{username}:{password}@localhost:{port}/indexd_tests"
+settings["config"]["TEST_DB"] = "postgresql://{username}:{password}@localhost:{port}/indexd_tests"
 ```
 
-> If you are using Azure Postgresql, you will need to include the `username@hostname` for the `username` in the connection string.  You may also need to include support for SSL in the connection string, e.g. `postgres://{username@hostname}:{password}@serverfqdn:{port}/{dbname}?sslmode=require`.
+> If you are using Azure Postgresql, you will need to include the `username@hostname` for the `username` in the connection string.  You may also need to include support for SSL in the connection string, e.g. `postgresql://{username@hostname}:{password}@serverfqdn:{port}/{dbname}?sslmode=require`.
 > Further, you may run into `sqlite` errors; it may be helpful to rename existing local `*.sq3` files before running `pytest`.
 
 ## Administration

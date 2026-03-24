@@ -1,5 +1,6 @@
 import flask
 import json
+
 import tests.conftest
 import requests
 import responses
@@ -79,28 +80,43 @@ def test_drs_get(client, user, combined_default_and_single_table_settings):
         assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
-    assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
+    # the '/' at the end of the prefix is replaced by ':'
+    assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split("/")[1]
     # according to ga4gh DRS blobs objects are NOT supposed to have contents. Only DRS Bundle objects should include the contetnts field
     assert "contents" not in rec_2
 
 
 def test_drs_get_no_default(client, user, combined_default_and_single_table_settings):
     # Change default index driver settings to use no prefix
-    settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = None
-    settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = False
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "DEFAULT_PREFIX"
+    ] = None
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "PREPEND_PREFIX"
+    ] = False
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "ADD_PREFIX_ALIAS"
+    ] = False
 
     data = get_doc()
-    did = "ad8f4658-6acd-4f96-0dd8-3709890c959f"
-    data["did"] = did
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
+    did = res_1.json["did"]
+    assert "testprefix/" not in did
     res_2 = client.get("/ga4gh/drs/v1/objects/" + did)
     assert res_2.status_code == 200
     rec_2 = res_2.json
     assert rec_2["self_uri"] == "drs://" + did
 
-    settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = "testprefix:"
-    settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "DEFAULT_PREFIX"
+    ] = "testprefix/"
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "PREPEND_PREFIX"
+    ] = True
+    combined_default_and_single_table_settings.config["INDEX"]["driver"].config[
+        "ADD_PREFIX_ALIAS"
+    ] = True
 
 
 def verify_timestamps(expected_doc, did, client, has_updated_date=True):
@@ -310,7 +326,7 @@ def test_get_drs_record_not_found(
     client, user, combined_default_and_single_table_settings
 ):
     # test exception raised at nonexistent
-    fake_did = "testprefix:d96bab16-c4e1-44ac-923a-04328b6fe78f"
+    fake_did = "testprefix/d96bab16-c4e1-44ac-923a-04328b6fe78f"
     res = client.get("/ga4gh/drs/v1/objects/" + fake_did)
     assert res.status_code == 404
 
@@ -319,11 +335,11 @@ def test_get_drs_with_encoded_slash(
     client, user, combined_default_and_single_table_settings
 ):
     data = get_doc()
-    data["did"] = "testprefix:ed8f4658-6acd-4f96-9dd8-3709890c959e"
+    data["did"] = "testprefix/ed8f4658-6acd-4f96-9dd8-3709890c959e"
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
     rec_1 = res_1.json
-    did = "testprefix%3aed8f4658-6acd-4f96-9dd8-3709890c959e"
+    did = "testprefix%2fed8f4658-6acd-4f96-9dd8-3709890c959e"
     res_2 = client.get("/ga4gh/drs/v1/objects/" + did)
     assert res_2.status_code == 200
     rec_2 = res_2.json
@@ -333,7 +349,8 @@ def test_get_drs_with_encoded_slash(
         assert rec_2["checksums"][0]["checksum"] == data["hashes"][k]
         assert rec_2["checksums"][0]["type"] == k
     assert rec_2["version"]
-    assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split(":")[1]
+    # the '/' at the end of the prefix is replaced by ':'
+    assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split("/")[1]
 
 
 def test_drs_service_info_endpoint(client, combined_default_and_single_table_settings):

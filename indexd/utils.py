@@ -18,7 +18,7 @@ def try_drop_test_data(
     user, database, root_user="postgres", host=""
 ):  # pragma: no cover
     engine = create_engine(
-        "postgres://{user}@{host}/postgres".format(user=root_user, host=host)
+        "postgresql://{user}@{host}/postgres".format(user=root_user, host=host)
     )
 
     conn = engine.connect()
@@ -50,7 +50,7 @@ def setup_database(
         try_drop_test_data(user, database)
 
     engine = create_engine(
-        "postgres://{user}@{host}/postgres".format(user=root_user, host=host)
+        "postgresql://{user}@{host}/postgres".format(user=root_user, host=host)
     )
     conn = engine.connect()
     conn.execute("commit")
@@ -84,7 +84,7 @@ def create_tables(host, user, password, database):  # pragma: no cover
     create tables
     """
     engine = create_engine(
-        "postgres://{user}:{pwd}@{host}/{db}".format(
+        "postgresql://{user}:{pwd}@{host}/{db}".format(
             user=user, host=host, pwd=password, db=database
         )
     )

@@ -6,8 +6,9 @@ from sqlalchemy import create_engine
 import mock
 from unittest.mock import patch
 
+from cdislogging import get_logger
+
 # indexd_server and indexd_client is needed as fixtures
-# from cdisutilstest.code.indexd_fixture import clear_database
 from gen3authz.client.arborist.client import ArboristClient
 
 from indexd import get_app
@@ -19,16 +20,23 @@ from indexd.alias.drivers.alchemy import Base as alias_base
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
+from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
 
-POSTGRES_CONNECTION = "postgres://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+
+POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+
+logger = get_logger(__name__, log_level="info")
 
 
 def clear_database():
+    """
+    Clean up test data from unit test
+    """
     engine = create_engine(POSTGRES_CONNECTION)
 
     with engine.connect() as conn:
-        # Clear the Index records
         index_driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+        # IndexD table needs to be delete in this order to avoid foreign key constraint error
         table_delete_order = [
             "index_record_url_metadata",
             "index_record_url",
@@ -68,33 +76,56 @@ def clear_database():
 
 @pytest.fixture(scope="function", params=["default_settings", "single_table_settings"])
 def combined_default_and_single_table_settings(request):
+    """
+    Fixture to run a unit test with both multi-table and single-table driver
+    """
+
+    # Load the default settings
     from indexd import default_settings
     from tests import default_test_settings
 
-    # Load the default settings
+    importlib.reload(default_settings)
+    importlib.reload(default_test_settings)
+
     if request.param == "default_settings":
-        importlib.reload(default_settings)
-        default_settings.settings = {
-            **default_settings.settings,
-            **default_test_settings.settings,
+        default_settings.settings["use_single_table"] = False
+        default_settings.settings["config"]["INDEX"] = {
+            "driver": SQLAlchemyIndexDriver(
+                "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+                echo=True,
+                index_config={
+                    "DEFAULT_PREFIX": "testprefix/",
+                    "PREPEND_PREFIX": True,
+                    "ADD_PREFIX_ALIAS": False,
+                },
+            )
         }
-        yield get_app(default_settings.settings)
 
     # Load the single-table settings
     elif request.param == "single_table_settings":
-        from indexd import single_table_settings
-
-        importlib.reload(single_table_settings)
-        single_table_settings.settings = {
-            **default_test_settings.settings,
-            **single_table_settings.settings,
+        default_settings.settings["use_single_table"] = True
+        default_settings.settings["config"]["INDEX"] = {
+            "driver": SingleTableSQLAlchemyIndexDriver(
+                "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+                echo=True,
+                index_config={
+                    "DEFAULT_PREFIX": "testprefix/",
+                    "PREPEND_PREFIX": True,
+                    "ADD_PREFIX_ALIAS": False,
+                },
+            )
         }
-        yield get_app(single_table_settings.settings)
+
+    default_settings.settings = {
+        **default_settings.settings,
+        **default_test_settings.settings,
+    }
+    yield get_app(default_settings.settings)
 
     try:
         clear_database()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to clear database with error {e}")
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -113,18 +144,17 @@ def app():
     try:
         clear_database()
     except Exception as e:
-        pass
+        logger.error(f"Failed to clear database with error {e}")
 
 
 @pytest.fixture
 def user(app):
     engine = create_engine(POSTGRES_CONNECTION)
     driver = SQLAlchemyAuthDriver(POSTGRES_CONNECTION)
-
     try:
         driver.add("test", "test")
     except Exception as e:
-        pass
+        logger.error(f"Failed to add test users with error {e}")
 
     yield {
         "Authorization": ("Basic " + base64.b64encode(b"test:test").decode("ascii")),
@@ -134,7 +164,7 @@ def user(app):
     try:
         driver.delete("test")
     except Exception as e:
-        pass
+        logger.error(f"Failed to delete test user with error {e}")
 
     engine.dispose()
 

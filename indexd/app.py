@@ -5,6 +5,7 @@ from alembic.config import main as alembic_main
 import cdislogging
 import flask
 
+from indexd.config_helper import validate_config
 from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.auth.drivers.alchemy import Base as AuthBase
@@ -17,17 +18,18 @@ from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
+logger = cdislogging.get_logger(__name__)
+
 
 def app_init(app, settings=None):
     app.url_map.strict_slashes = False
-    app.logger.addHandler(cdislogging.get_stream_handler())
     if not settings:
         from .default_settings import settings
     app.config.update(settings["config"])
 
     if settings.get("AUTO_MIGRATE", True):
         engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
-        app.logger.info(f"Auto migrating. Engine name: {engine_name}")
+        logger.info(f"Auto migrating. Engine name: {engine_name}")
         if engine_name == "sqlite":
             IndexBase.metadata.create_all()
             AliasBase.metadata.create_all()
@@ -37,7 +39,9 @@ def app_init(app, settings=None):
         else:
             alembic_main(["--raiseerr", "upgrade", "head"])
     else:
-        app.logger.info("Auto migrations are disabled")
+        logger.info("Auto migrations are disabled")
+
+    validate_config(settings)
 
     app.auth = settings["auth"]
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
