@@ -644,9 +644,9 @@ def stats():
     month = flask.request.args.get("month")
     year = flask.request.args.get("year")
 
-    if month == None and year == None:
+    if month is None and year is None:
         filecount, totalfilesize = blueprint.index_driver.get_stats()
-    elif month == None or year == None:
+    elif month is None or year is None:
         raise UserError(
             "Please call this endpoint with both month/year or neither month/year")
     else:

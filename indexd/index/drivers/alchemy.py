@@ -1893,7 +1893,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
     def get_stats(self, month=None, year=None):
         now = datetime.datetime.now()
 
-        if month == None and year == None:
+        if month is None and year is None:
             month = now.month
             year = now.year
 
@@ -1902,14 +1902,15 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 stats = session.query(StatsRecord).filter(
                     or_(
                         and_(
-                            StatsRecord.month <= now.month,
-                            StatsRecord.year == now.year,
+                            StatsRecord.month <= int(month),
+                            StatsRecord.year == int(year),
                         ),
-                        StatsRecord.year < now.year,
+                        StatsRecord.year < int(year),
                     )
                 ).order_by(StatsRecord.year.desc(), StatsRecord.month.desc()).first()
                 return (stats.total_record_count, stats.total_record_bytes)
-            except:
+            except Exception as e:
+                self.logger.warning(f"Failed to get stats: {e}")
                 return (None, None)
 
 

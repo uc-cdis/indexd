@@ -1280,7 +1280,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     .first()
                 )
                 return (stats.total_record_count, stats.total_record_bytes)
-            except Exception:
+            except Exception as e:
+                self.logger.warning(f"Failed to get stats: {e}")
                 return (None, None)
 
     def add_bundle(

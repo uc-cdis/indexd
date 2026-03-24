@@ -892,12 +892,12 @@ paths:
       produces:
         - application/json
       parameters:
-        - in: body
+        - in: query
           name: month
           type: integer
           description: Month for which data is to be returned.  (Either both month and year or neither must be provided)
           required: false
-        - in: body
+        - in: query
           name: year
           type: integer
           description: year for which data is to be returned. (Either both month and year or neither must be provided)
