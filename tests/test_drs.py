@@ -6,6 +6,9 @@ import requests
 import responses
 from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
+from unittest.mock import patch
+from indexd.utils import lookup_bucket_region
+from flask import current_app
 
 
 def generate_presigned_url_response(did, status=200, **query_params):
@@ -411,3 +414,43 @@ def test_drs_service_info_no_information_configured(
         assert res.json == expected_info
     finally:
         settings["config"]["DRS_SERVICE_INFO"] = backup
+
+
+def test_bucket_region_lookup():
+    fake_bucket_regions = {
+        "exact-bucket": "us-east-1",
+        "regex-bucket-.*": "us-west-2",
+    }
+
+    assert lookup_bucket_region("exact-bucket", fake_bucket_regions) == "us-east-1"
+    assert lookup_bucket_region("regex-bucket-123", fake_bucket_regions) == "us-west-2"
+    assert lookup_bucket_region("nonexistent-bucket", fake_bucket_regions) == ""
+
+
+def test_bucket_region_in_drs_object(client, user):
+    fake_bucket_regions = {
+        "my-test-bucket": "us-east-1",
+        "another-bucket-.*": "us-west-2",
+    }
+
+    with patch(
+        "indexd.utils.get_bucket_regions", return_value=fake_bucket_regions
+    ), patch(
+        "indexd.drs.blueprint.get_bucket_regions", return_value=fake_bucket_regions
+    ):
+        doc = get_doc(urls=["s3://my-test-bucket/path/to/file"])
+
+        res = client.post("/index/", json=doc, headers=user)
+        assert res.status_code == 200
+
+        did = res.json["did"]
+
+        drs_res = client.get(f"/ga4gh/drs/v1/objects/{did}")
+        assert drs_res.status_code == 200
+        drs_json = drs_res.json
+
+        region_map = drs_json.get("region")
+        assert region_map is not None
+        assert "s3://my-test-bucket/path/to/file" in region_map
+        assert region_map["s3://my-test-bucket/path/to/file"] == "us-east-1"
+    current_app.cache.clear()

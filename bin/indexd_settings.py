@@ -86,4 +86,10 @@ AUTH = SQLAlchemyAuthDriver(
     arborist="http://localhost/",
 )
 
+CONFIG["CLOUD_PROVIDER_MAP"] = {
+    "s3": "aws",
+    "gs": "gcp",
+    "az": "azure",
+}
+
 settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE}

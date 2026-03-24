@@ -83,6 +83,12 @@ CONFIG["DRS_SERVICE_INFO"] = {
     },
 }
 
+CONFIG["CLOUD_PROVIDER_MAP"] = {
+    "s3": "aws",
+    "gs": "gcp",
+    "az": "azure",
+}
+
 AUTH = SQLAlchemyAuthDriver(
     "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 )

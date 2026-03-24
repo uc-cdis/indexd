@@ -6,13 +6,15 @@ from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
-from indexd.utils import reverse_url
+from indexd.utils import reverse_url, lookup_bucket_region, get_bucket_regions
+from flask import current_app as app
 
 blueprint = flask.Blueprint("drs", __name__)
 
 blueprint.config = dict()
 blueprint.index_driver = None
 blueprint.service_info = {}
+blueprint.cloud_provider_map = {}
 
 
 @blueprint.route("/ga4gh/drs/v1/service-info", methods=["GET"])
@@ -182,6 +184,37 @@ def indexd_to_drs(record, expand=False):
         else []
     )
 
+    bucket_regions = get_bucket_regions()
+
+    region = {}
+
+    if "urls" in record and record["urls"]:
+        for url in record["urls"]:
+            if url.startswith("s3://"):
+                bucket_name = url.split("/")[2]
+                matched_region = lookup_bucket_region(bucket_name, bucket_regions)
+                if matched_region:
+                    region[url] = matched_region
+                break
+
+    if not region:
+        try:
+            urls_metadata = record.get("urls_metadata", {})
+            for url, meta in urls_metadata.items():
+                if isinstance(meta, dict) and meta.get("region"):
+                    region[url] = meta["region"]
+                    break
+        except Exception as e:
+            app.logger.warning(f"Unable to get region field for record {did}: {e}")
+
+    available = {}
+
+    for url, url_meta in record.get("urls_metadata", {}).items():
+        if isinstance(url_meta, dict) and url_meta.get("available"):
+            available[url] = url_meta["available"]
+        else:
+            available[url] = True  # default to True if not specified
+
     drs_object = {
         "id": did,
         "mime_type": "application/json",
@@ -197,6 +230,8 @@ def indexd_to_drs(record, expand=False):
         "form": form,
         "checksums": [],
         "description": description,
+        "region": region,
+        "available": available,
     }
 
     if "description" in record:
@@ -217,13 +252,14 @@ def indexd_to_drs(record, expand=False):
             location_type = location.split(":")[
                 0
             ]  # (s3, gs, ftp, gsiftp, globus, htsget, https, file)
+            cloud = blueprint.cloud_provider_map.get(location_type)
 
             drs_object["access_methods"].append(
                 {
                     "type": location_type,
+                    "cloud": cloud,
                     "access_url": {"url": location},
                     "access_id": location_type,
-                    "region": "",
                 }
             )
 
@@ -379,3 +415,9 @@ def get_config(setup_state):
 def get_config(setup_state):
     if "DRS_SERVICE_INFO" in setup_state.app.config:
         blueprint.service_info = setup_state.app.config["DRS_SERVICE_INFO"]
+
+
+@blueprint.record
+def get_config(setup_state):
+    if "CLOUD_PROVIDER_MAP" in setup_state.app.config:
+        blueprint.cloud_provider_map = setup_state.app.config["CLOUD_PROVIDER_MAP"]
