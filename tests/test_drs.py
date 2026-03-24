@@ -433,6 +433,8 @@ def test_bucket_region_in_drs_object(client, user):
     }
 
     with patch(
+        "indexd.utils.get_bucket_regions", return_value=fake_bucket_regions
+    ), patch(
         "indexd.drs.blueprint.get_bucket_regions", return_value=fake_bucket_regions
     ):
         doc = get_doc(urls=["s3://my-test-bucket/path/to/file"])
