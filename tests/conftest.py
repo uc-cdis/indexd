@@ -93,7 +93,7 @@ def combined_default_and_single_table_settings(request):
                 "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
                 echo=True,
                 index_config={
-                    "DEFAULT_PREFIX": "testprefix:",
+                    "DEFAULT_PREFIX": "testprefix/",
                     "PREPEND_PREFIX": True,
                     "ADD_PREFIX_ALIAS": False,
                 },
@@ -108,7 +108,7 @@ def combined_default_and_single_table_settings(request):
                 "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
                 echo=True,
                 index_config={
-                    "DEFAULT_PREFIX": "testprefix:",
+                    "DEFAULT_PREFIX": "testprefix/",
                     "PREPEND_PREFIX": True,
                     "ADD_PREFIX_ALIAS": False,
                 },

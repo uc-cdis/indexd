@@ -5,6 +5,7 @@ from alembic.config import main as alembic_main
 import cdislogging
 import flask
 
+from indexd.config_helper import validate_config
 from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.auth.drivers.alchemy import Base as AuthBase
@@ -40,6 +41,8 @@ def app_init(app, settings=None):
             alembic_main(["--raiseerr", "upgrade", "head"])
     else:
         logger.info("Auto migrations are disabled")
+
+    validate_config(settings)
 
     app.auth = settings["auth"]
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"

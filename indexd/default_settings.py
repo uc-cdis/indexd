@@ -25,7 +25,7 @@ if USE_SINGLE_TABLE is True:
             "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
             echo=True,
             index_config={
-                "DEFAULT_PREFIX": "testprefix:",
+                "DEFAULT_PREFIX": "testprefix/",
                 "PREPEND_PREFIX": True,
                 "ADD_PREFIX_ALIAS": False,
             },
@@ -37,7 +37,7 @@ else:
             "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
             echo=True,
             index_config={
-                "DEFAULT_PREFIX": "testprefix:",
+                "DEFAULT_PREFIX": "testprefix/",
                 "PREPEND_PREFIX": True,
                 "ADD_PREFIX_ALIAS": False,
             },
