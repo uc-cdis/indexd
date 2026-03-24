@@ -2,8 +2,6 @@ from alembic.config import main as alembic_main
 
 
 def test_upgrade(postgres_driver):
-    assert 1 == 0
-
     conn = postgres_driver.engine.connect()
     get_columns = "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'index_record'"
 

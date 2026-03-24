@@ -2,8 +2,6 @@ from alembic.config import main as alembic_main
 
 
 def test_upgrade(postgres_driver):
-    assert 1 == 0
-
     """
     Make sure single table migration created record table and has the correct schema.
     """
