@@ -2,6 +2,8 @@ from alembic.config import main as alembic_main
 
 
 def test_upgrade(postgres_driver):
+    assert 1 == 0
+
     """
     Ensure the migration correctly adds indexes to the record table
     """
