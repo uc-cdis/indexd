@@ -8,6 +8,7 @@ from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
 from unittest.mock import patch
 from indexd.utils import lookup_bucket_region
+from flask import current_app
 
 
 def generate_presigned_url_response(did, status=200, **query_params):
@@ -452,3 +453,4 @@ def test_bucket_region_in_drs_object(client, user):
         assert region_map is not None
         assert "s3://my-test-bucket/path/to/file" in region_map
         assert region_map["s3://my-test-bucket/path/to/file"] == "us-east-1"
+    current_app.cache.clear()
