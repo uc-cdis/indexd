@@ -28,7 +28,12 @@ from contextlib import contextmanager
 from indexd import auth
 from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
-from indexd.index.drivers.alchemy import IndexSchemaVersion, DrsBundleRecord, StatsRecord, update_stats
+from indexd.index.drivers.alchemy import (
+    IndexSchemaVersion,
+    DrsBundleRecord,
+    StatsRecord,
+    update_stats,
+)
 from indexd.index.errors import (
     MultipleRecordsFound,
     NoRecordFound,
@@ -481,8 +486,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     prefix = self.config["DEFAULT_PREFIX"]
                     record.alias = list(set([prefix + record.guid]))
                 session.add(record)
-                session.commit()
                 update_stats(session, 1, size)
+                session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound(
                     'guid "{guid}" already exists'.format(guid=record.guid)
@@ -538,8 +543,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record.authz = authz
 
             session.add(record)
-            session.commit()
             update_stats(session, 1, 0)
+            session.commit()
 
             return record.guid, record.rev, record.baseid
 
@@ -606,8 +611,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record.updated_data = datetime.datetime.utcnow()
 
             session.add(record)
-            session.commit()
             update_stats(session, 0, size)
+            session.commit()
 
             return record.guid, record.rev, record.baseid
 
@@ -1026,6 +1031,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 session.add(record)
+                update_stats(session, 1, record.size)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound("{guid} already exists".format(guid=guid))
@@ -1092,6 +1098,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 session.add(new_record)
+                update_stats(session, 1, 0)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound("{guid} already exists".format(guid=guid))
