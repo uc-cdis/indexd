@@ -8,12 +8,13 @@ from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 from tests.default_test_settings import settings
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope="function")
 def postgres_driver(app):
     """
     Override the default test settings and app configuration to use a
     postgres DB instead of the SQLite DB used in other tests
     """
+
     index_driver = SQLAlchemyIndexDriver(settings["config"]["TEST_DB"])
     alias_driver = SQLAlchemyAliasDriver(settings["config"]["TEST_DB"])
     auth_driver = SQLAlchemyAuthDriver(settings["config"]["TEST_DB"])
@@ -42,7 +43,7 @@ def postgres_driver(app):
 
 
 @pytest.fixture(autouse=True)
-def reset_db():
+def reset_db(postgres_driver):
     alembic_main(["--raiseerr", "downgrade", "base"])
     alembic_main(["--raiseerr", "upgrade", "head"])
 

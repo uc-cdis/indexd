@@ -3,7 +3,6 @@ from alembic.config import main as alembic_main
 
 def test_upgrade(postgres_driver):
     conn = postgres_driver.engine.connect()
-
     # state before migration
     alembic_main(["--raiseerr", "downgrade", "base"])
 
