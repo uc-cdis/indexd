@@ -50,7 +50,11 @@ def get_drs_service_info():
     return flask.jsonify(ret), 200
 
 
-@blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["GET"])
+@blueprint.route(
+    "/ga4gh/drs/v1/objects/<path:object_id>",
+    methods=["GET"],
+    provide_automatic_options=False,
+)
 def get_drs_object(object_id):
     """
     Returns a specific DRSobject with object_id
@@ -64,16 +68,11 @@ def get_drs_object(object_id):
     return flask.jsonify(data), 200
 
 
-@blueprint.route(
-    "/ga4gh/drs/v1/options/objects/<path:object_id>", methods=["OPTIONS"]
-)  # test a (add 'options' to URL)
+@blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["OPTIONS"])
 def get_drs_object_options(object_id):
     """
-    Returns a specific DRSobject metadata with object_id
-    # @blueprint.route("/ga4gh/drs/v1/options/objects/<path:object_id>", methods=["OPTIONS"]) # test a (add 'options' to URL)
-    @blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["OPTIONS"]) #test b: same URL
+    Returns a OPTIONS metadata for specific DRS object
     """
-    print("- inside options... ")
     # Get authz based on guid
     try:
         ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
