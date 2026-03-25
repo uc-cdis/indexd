@@ -30,29 +30,10 @@ def upgrade() -> None:
         sa.Column("year", sa.INTEGER(), autoincrement=False, nullable=False),
     )
     op.create_index("ix_stats_year_month", "stats", ["year", "month"])
-    _seed_stats_table()
 
+    from indexd.stats_table_migration import seed_stats_from_connection
 
-def _seed_stats_table():
-    from datetime import datetime
-
-    bind = op.get_bind()
-    now = datetime.now()
-    count = bind.execute(sa.text("SELECT COUNT(*) FROM index_record")).scalar() or 0
-    total = (
-        bind.execute(
-            sa.text("SELECT COALESCE(SUM(size), 0) FROM index_record")
-        ).scalar()
-        or 0
-    )
-    if count > 0 or total > 0:
-        bind.execute(
-            sa.text(
-                "INSERT INTO stats (total_record_count, total_record_bytes, month, year) "
-                "VALUES (:count, :total, :month, :year)"
-            ),
-            {"count": count, "total": total, "month": now.month, "year": now.year},
-        )
+    seed_stats_from_connection(op.get_bind())
 
 
 def downgrade() -> None:

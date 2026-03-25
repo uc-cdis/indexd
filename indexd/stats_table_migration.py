@@ -1,40 +1,100 @@
-from sqlalchemy import and_
+"""
+Stats-seeding and reconciliation utilities for the indexd stats table.
 
-from .index.drivers.alchemy import StatsRecord
+- migration 9a2169051163_createstatstable uses seed_stats_from_connection with db connection.
+- reconcile_stats uses seed_stats with sqlalchemy.
+"""
+
 from datetime import datetime
 
-try:
-    from .local_settings import settings
-except ImportError:
-    from .default_settings import settings
+from cdislogging import get_logger
+from sqlalchemy import and_, func
+
+logger = get_logger(__name__)
 
 
-# Get the index driver
-driver = settings["config"]["INDEX"]["driver"]
+def seed_stats_from_connection(bind):
+    """Seed the stats table, given a db connection."""
+    import sqlalchemy as sa
 
-
-with driver.session as session:
-    new_stat = StatsRecord()
-
-    # compute new stats
-    new_stat.total_record_count = driver.len()
-    new_stat.total_record_bytes = driver.totalbytes()
-    new_stat.month = datetime.now().month
-    new_stat.year = datetime.now().year
-
-    # Check if stats for current month/year have previously been added
-    query = session.query(StatsRecord).filter(
-        and_(
-            StatsRecord.month == new_stat.month,
-            StatsRecord.year == new_stat.year,)
+    now = datetime.now()
+    count = bind.execute(sa.text("SELECT COUNT(*) FROM index_record")).scalar() or 0
+    total = (
+        bind.execute(
+            sa.text("SELECT COALESCE(SUM(size), 0) FROM index_record")
+        ).scalar()
+        or 0
+    )
+    if count > 0 or total > 0:
+        bind.execute(
+            sa.text(
+                "INSERT INTO stats (total_record_count, total_record_bytes, month, year) "
+                "VALUES (:count, :total, :month, :year)"
+            ),
+            {"count": count, "total": total, "month": now.month, "year": now.year},
+        )
+    logger.info(
+        "seed_stats: month=%d year=%d count=%d bytes=%d",
+        now.month,
+        now.year,
+        count,
+        total,
     )
 
-    existing_record = query.first()
 
-    if existing_record == None:
-        session.add(new_stat)
+def seed_stats(session):
+    """
+    Compute current stats from index_record and upsert into the stats table.
+
+    Args:
+        session: SQLAlchemy ORM session.
+
+    Returns:
+        Tuple of (record_count, total_bytes) that were written.
+    """
+    from indexd.index.drivers.alchemy import IndexRecord, StatsRecord
+
+    now = datetime.now()
+    count = session.query(func.count()).select_from(IndexRecord).scalar() or 0
+    total_bytes = (
+        session.query(func.coalesce(func.sum(IndexRecord.size), 0)).scalar() or 0
+    )
+
+    existing = (
+        session.query(StatsRecord)
+        .filter(and_(StatsRecord.month == now.month, StatsRecord.year == now.year))
+        .with_for_update()
+        .first()
+    )
+
+    if existing:
+        logger.info(
+            "reconcile_stats: month=%d year=%d old_count=%d new_count=%d "
+            "old_bytes=%d new_bytes=%d",
+            now.month,
+            now.year,
+            existing.total_record_count,
+            count,
+            existing.total_record_bytes,
+            total_bytes,
+        )
+        existing.total_record_count = count
+        existing.total_record_bytes = total_bytes
     else:
-        existing_record.total_record_count = new_stat.total_record_count
-        existing_record.total_record_bytes = new_stat.total_record_bytes
+        logger.info(
+            "seed_stats: month=%d year=%d count=%d bytes=%d",
+            now.month,
+            now.year,
+            count,
+            total_bytes,
+        )
+        session.add(
+            StatsRecord(
+                total_record_count=count,
+                total_record_bytes=total_bytes,
+                month=now.month,
+                year=now.year,
+            )
+        )
 
-    session.commit()
+    return (count, total_bytes)
