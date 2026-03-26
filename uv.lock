@@ -1,0 +1,960 @@
+version = 1
+revision = 3
+requires-python = "==3.13.*"
+
+[[package]]
+name = "annotated-types"
+version = "0.7.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/annotated-types/0.7.0/annotated_types-0.7.0.tar.gz", hash = "sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/annotated-types/0.7.0/annotated_types-0.7.0-py3-none-any.whl", hash = "sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53"}
+]
+
+[[package]]
+name = "attrs"
+version = "26.1.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/attrs/26.1.0/attrs-26.1.0.tar.gz", hash = "sha256:d03ceb89cb322a8fd706d4fb91940737b6642aa36998fe130a9bc96c985eff32"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/attrs/26.1.0/attrs-26.1.0-py3-none-any.whl", hash = "sha256:c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309"}
+]
+
+[[package]]
+name = "blinker"
+version = "1.9.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/blinker/1.9.0/blinker-1.9.0.tar.gz", hash = "sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/blinker/1.9.0/blinker-1.9.0-py3-none-any.whl", hash = "sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc"}
+]
+
+[[package]]
+name = "bytecode"
+version = "0.17.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/bytecode/0.17.0/bytecode-0.17.0.tar.gz", hash = "sha256:0c37efa5bd158b1b873f530cceea2c645611d55bd2dc2a4758b09f185749b6fd"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/bytecode/0.17.0/bytecode-0.17.0-py3-none-any.whl", hash = "sha256:64fb10cde1db7ef5cc39bd414ecebd54ba3b40e1c4cf8121ca5e72f170916ff8"}
+]
+
+[[package]]
+name = "certifi"
+version = "2026.2.25"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/certifi/2026.2.25/certifi-2026.2.25.tar.gz", hash = "sha256:e887ab5cee78ea814d3472169153c2d12cd43b14bd03329a39a9c6e2e80bfba7"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/certifi/2026.2.25/certifi-2026.2.25-py3-none-any.whl", hash = "sha256:027692e4402ad994f1c42e52a4997a9763c646b73e4096e4d5d6db8af1d6f0fa"}
+]
+
+[[package]]
+name = "charset-normalizer"
+version = "3.4.6"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6.tar.gz", hash = "sha256:1ae6b62897110aa7c79ea2f5dd38d1abca6db663687c0b1ad9aed6f6bae3d9d6"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:11afb56037cbc4b1555a34dd69151e8e069bee82e613a73bef6e714ce733585f"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:423fb7e748a08f854a08a222b983f4df1912b1daedce51a72bd24fe8f26a1843"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-manylinux2014_ppc64le.manylinux_2_17_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:d73beaac5e90173ac3deb9928a74763a6d230f494e4bfb422c217a0ad8e629bf"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-manylinux2014_s390x.manylinux_2_17_s390x.manylinux_2_28_s390x.whl", hash = "sha256:d60377dce4511655582e300dc1e5a5f24ba0cb229005a1d5c8d0cb72bb758ab8"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:530e8cebeea0d76bdcf93357aa5e41336f48c3dc709ac52da2bb167c5b8271d9"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-manylinux_2_31_armv7l.whl", hash = "sha256:a26611d9987b230566f24a0a125f17fe0de6a6aff9f25c9f564aaa2721a5fb88"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:34315ff4fc374b285ad7f4a0bf7dcbfe769e1b104230d40f49f700d4ab6bbd84"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:5f8ddd609f9e1af8c7bd6e2aca279c931aefecd148a14402d4e368f3171769fd"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-musllinux_1_2_armv7l.whl", hash = "sha256:80d0a5615143c0b3225e5e3ef22c8d5d51f3f72ce0ea6fb84c943546c7b25b6c"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-musllinux_1_2_ppc64le.whl", hash = "sha256:92734d4d8d187a354a556626c221cd1a892a4e0802ccb2af432a1d85ec012194"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:613f19aa6e082cf96e17e3ffd89383343d0d589abda756b7764cf78361fd41dc"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-musllinux_1_2_s390x.whl", hash = "sha256:2b1a63e8224e401cafe7739f77efd3f9e7f5f2026bda4aead8e59afab537784f"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:6cceb5473417d28edd20c6c984ab6fee6c6267d38d906823ebfe20b03d607dc2"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-win32.whl", hash = "sha256:d7de2637729c67d67cf87614b566626057e95c303bc0a55ffe391f5205e7003d"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-win_amd64.whl", hash = "sha256:572d7c822caf521f0525ba1bce1a622a0b85cf47ffbdae6c9c19e3b5ac3c4389"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-cp313-cp313-win_arm64.whl", hash = "sha256:a4474d924a47185a06411e0064b803c68be044be2d60e50e8bddcc2649957c1f"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/charset-normalizer/3.4.6/charset_normalizer-3.4.6-py3-none-any.whl", hash = "sha256:947cf925bc916d90adba35a64c82aace04fa39b46b52d4630ece166655905a69"}
+]
+
+[[package]]
+name = "click"
+version = "8.3.1"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "colorama", marker = "sys_platform == 'win32'"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/click/8.3.1/click-8.3.1.tar.gz", hash = "sha256:12ff4785d337a1bb490bb7e9c2b1ee5da3112e94a8622f26a6c77f5d2fc6842a"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/click/8.3.1/click-8.3.1-py3-none-any.whl", hash = "sha256:981153a64e25f12d547d3426c367a4857371575ee7ad18df2a6183ab0545b2a6"}
+]
+
+[[package]]
+name = "colorama"
+version = "0.4.6"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/colorama/0.4.6/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/colorama/0.4.6/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"}
+]
+
+[[package]]
+name = "colorlog"
+version = "6.10.1"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "colorama", marker = "sys_platform == 'win32'"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/colorlog/6.10.1/colorlog-6.10.1.tar.gz", hash = "sha256:eb4ae5cb65fe7fec7773c2306061a8e63e02efc2c72eba9d27b0fa23c94f1321"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/colorlog/6.10.1/colorlog-6.10.1-py3-none-any.whl", hash = "sha256:2d7e8348291948af66122cff006c9f8da6255d224e7cf8e37d8de2df3bad8c9c"}
+]
+
+[[package]]
+name = "coverage"
+version = "7.13.5"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5.tar.gz", hash = "sha256:c81f6515c4c40141f83f502b07bbfa5c240ba25bbe73da7b33f1e5b6120ff179"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:5ec4af212df513e399cf11610cc27063f1586419e814755ab362e50a85ea69c1"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:941617e518602e2d64942c88ec8499f7fbd49d3f6c4327d3a71d43a1973032f3"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-manylinux1_i686.manylinux_2_28_i686.manylinux_2_5_i686.whl", hash = "sha256:da305e9937617ee95c2e39d8ff9f040e0487cbf1ac174f777ed5eddd7a7c1f26"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:78e696e1cc714e57e8b25760b33a8b1026b7048d270140d25dafe1b0a1ee05a3"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:02ca0eed225b2ff301c474aeeeae27d26e2537942aa0f87491d3e147e784a82b"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-manylinux2014_ppc64le.manylinux_2_17_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:04690832cbea4e4663d9149e05dba142546ca05cb1848816760e7f58285c970a"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:0590e44dd2745c696a778f7bab6aa95256de2cbc8b8cff4f7db8ff09813d6969"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:d7cfad2d6d81dd298ab6b89fe72c3b7b05ec7544bdda3b707ddaecff8d25c161"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:e092b9499de38ae0fbfbc603a74660eb6ff3e869e507b50d85a13b6db9863e15"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-musllinux_1_2_ppc64le.whl", hash = "sha256:48c39bc4a04d983a54a705a6389512883d4a3b9862991b3617d547940e9f52b1"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:2d3807015f138ffea1ed9afeeb8624fd781703f2858b62a8dd8da5a0994c57b6"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:ee2aa19e03161671ec964004fb74b2257805d9710bf14a5c704558b9d8dbaf17"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-win32.whl", hash = "sha256:ce1998c0483007608c8382f4ff50164bfc5bd07a2246dd272aa4043b75e61e85"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-win_amd64.whl", hash = "sha256:631efb83f01569670a5e866ceb80fe483e7c159fac6f167e6571522636104a0b"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313-win_arm64.whl", hash = "sha256:f4cd16206ad171cbc2470dbea9103cf9a7607d5fe8c242fdf1edf36174020664"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:0428cbef5783ad91fe240f673cc1f76b25e74bbfe1a13115e4aa30d3f538162d"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:e0b216a19534b2427cc201a26c25da4a48633f29a487c61258643e89d28200c0"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-manylinux1_i686.manylinux_2_28_i686.manylinux_2_5_i686.whl", hash = "sha256:972a9cd27894afe4bc2b1480107054e062df08e671df7c2f18c205e805ccd806"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:4b59148601efcd2bac8c4dbf1f0ad6391693ccf7a74b8205781751637076aee3"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:505d7083c8b0c87a8fa8c07370c285847c1f77739b22e299ad75a6af6c32c5c9"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-manylinux2014_ppc64le.manylinux_2_17_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:60365289c3741e4db327e7baff2a4aaacf22f788e80fa4683393891b70a89fbd"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:1b88c69c8ef5d4b6fe7dea66d6636056a0f6a7527c440e890cf9259011f5e606"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:5b13955d31d1633cf9376908089b7cebe7d15ddad7aeaabcbe969a595a97e95e"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-musllinux_1_2_i686.whl", hash = "sha256:f70c9ab2595c56f81a89620e22899eea8b212a4041bd728ac6f4a28bf5d3ddd0"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-musllinux_1_2_ppc64le.whl", hash = "sha256:084b84a8c63e8d6fc7e3931b316a9bcafca1458d753c539db82d31ed20091a87"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-musllinux_1_2_riscv64.whl", hash = "sha256:ad14385487393e386e2ea988b09d62dd42c397662ac2dabc3832d71253eee479"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:7f2c47b36fe7709a6e83bfadf4eefb90bd25fbe4014d715224c4316f808e59a2"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-win32.whl", hash = "sha256:67e9bc5449801fad0e5dff329499fb090ba4c5800b86805c80617b4e29809b2a"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-win_amd64.whl", hash = "sha256:da86cdcf10d2519e10cabb8ac2de03da1bcb6e4853790b7fbd48523332e3a819"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-cp313-cp313t-win_arm64.whl", hash = "sha256:0ecf12ecb326fe2c339d93fc131816f3a7367d223db37817208905c89bded911"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/coverage/7.13.5/coverage-7.13.5-py3-none-any.whl", hash = "sha256:34b02417cf070e173989b3db962f7ed56d2f644307b2cf9d5a0f258e13084a61"}
+]
+
+[[package]]
+name = "ddtrace"
+version = "4.0.4"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "bytecode"},
+  {name = "envier"},
+  {name = "opentelemetry-api"},
+  {name = "wrapt"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/ddtrace/4.0.4/ddtrace-4.0.4.tar.gz", hash = "sha256:6fceb050f7611345b9f79b875ae7d9a56650dbb3743281dc7ad94da96b8473b8"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/ddtrace/4.0.4/ddtrace-4.0.4-cp313-cp313-macosx_12_0_arm64.whl", hash = "sha256:6de731a0d68d2f0b7f8aacc9a2dc5cbea13a735517a35267ad204a2430ed760a"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/ddtrace/4.0.4/ddtrace-4.0.4-cp313-cp313-macosx_12_0_x86_64.whl", hash = "sha256:60557eaed8924d41f296011b44b895c3f053811e3db143ea5743d8d4186eefcf"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/ddtrace/4.0.4/ddtrace-4.0.4-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:d4e835a4dbdfccc8b926681f572acc981108affc733d5605ac915a1bdc80c0eb"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/ddtrace/4.0.4/ddtrace-4.0.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:6619f358a3f967bfde6bffa959ff72e3b7e0120668c0821478aa701eb1e85ac0"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/ddtrace/4.0.4/ddtrace-4.0.4-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:4ec46b434c43871a927dc30b83f07876d4a96b194e3796408178fe7a7c307676"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/ddtrace/4.0.4/ddtrace-4.0.4-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:f0ff678bf0e98b27b9f957131e3171c13b8c7a6126f045b4b286c23478f22aa0"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/ddtrace/4.0.4/ddtrace-4.0.4-cp313-cp313-win32.whl", hash = "sha256:a25d2e8851e71d8c5d834cae9eab5c5d93d8b79a1af9b9282a48848a8be3439c"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/ddtrace/4.0.4/ddtrace-4.0.4-cp313-cp313-win_amd64.whl", hash = "sha256:d6e61e36ba0dee87a8ff0012096997b6909f8fcd77a8ef093dcb3cd5011bf42c"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/ddtrace/4.0.4/ddtrace-4.0.4-cp313-cp313-win_arm64.whl", hash = "sha256:22be0efe07c42756ce60ff62a72985fd5379426367733ad717e41d09be6e31a7"}
+]
+
+[[package]]
+name = "deprecated"
+version = "1.3.1"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "wrapt"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/deprecated/1.3.1/deprecated-1.3.1.tar.gz", hash = "sha256:b1b50e0ff0c1fddaa5708a2c6b0a6588bb09b892825ab2b214ac9ea9d92a5223"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/deprecated/1.3.1/deprecated-1.3.1-py2.py3-none-any.whl", hash = "sha256:597bfef186b6f60181535a29fbe44865ce137a5079f295b479886c82729d5f3f"}
+]
+
+[[package]]
+name = "envier"
+version = "0.6.1"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/envier/0.6.1/envier-0.6.1.tar.gz", hash = "sha256:3309a01bb3d8850c9e7a31a5166d5a836846db2faecb79b9cb32654dd50ca9f9"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/envier/0.6.1/envier-0.6.1-py3-none-any.whl", hash = "sha256:73609040a76be48bbcb97074d9969666484aa0de706183a6e9ef773156a8a6a9"}
+]
+
+[[package]]
+name = "flask"
+version = "3.1.3"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "blinker"},
+  {name = "click"},
+  {name = "itsdangerous"},
+  {name = "jinja2"},
+  {name = "markupsafe"},
+  {name = "werkzeug"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/flask/3.1.3/flask-3.1.3.tar.gz", hash = "sha256:0ef0e52b8a9cd932855379197dd8f94047b359ca0a78695144304cb45f87c9eb"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/flask/3.1.3/flask-3.1.3-py3-none-any.whl", hash = "sha256:f4bcbefc124291925f1a26446da31a5178f9483862233b23c0c96a20701f670c"}
+]
+
+[[package]]
+name = "greenlet"
+version = "3.3.2"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/greenlet/3.3.2/greenlet-3.3.2.tar.gz", hash = "sha256:2eaf067fc6d886931c7962e8c6bede15d2f01965560f3359b27c80bde2d151f2"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/greenlet/3.3.2/greenlet-3.3.2-cp313-cp313-macosx_11_0_universal2.whl", hash = "sha256:aa6ac98bdfd716a749b84d4034486863fd81c3abde9aa3cf8eff9127981a4ae4"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/greenlet/3.3.2/greenlet-3.3.2-cp313-cp313-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ab0c7e7901a00bc0a7284907273dc165b32e0d109a6713babd04471327ff7986"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/greenlet/3.3.2/greenlet-3.3.2-cp313-cp313-manylinux_2_24_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:d248d8c23c67d2291ffd47af766e2a3aa9fa1c6703155c099feb11f526c63a92"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/greenlet/3.3.2/greenlet-3.3.2-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:b6997d360a4e6a4e936c0f9625b1c20416b8a0ea18a8e19cabbefc712e7397ab"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/greenlet/3.3.2/greenlet-3.3.2-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:64970c33a50551c7c50491671265d8954046cb6e8e2999aacdd60e439b70418a"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/greenlet/3.3.2/greenlet-3.3.2-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:1a9172f5bf6bd88e6ba5a84e0a68afeac9dc7b6b412b245dd64f52d83c81e55b"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/greenlet/3.3.2/greenlet-3.3.2-cp313-cp313-win_amd64.whl", hash = "sha256:a7945dd0eab63ded0a48e4dcade82939783c172290a7903ebde9e184333ca124"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/greenlet/3.3.2/greenlet-3.3.2-cp313-cp313-win_arm64.whl", hash = "sha256:394ead29063ee3515b4e775216cb756b2e3b4a7e55ae8fd884f17fa579e6b327"}
+]
+
+[[package]]
+name = "gunicorn"
+version = "25.1.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "packaging"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/gunicorn/25.1.0/gunicorn-25.1.0.tar.gz", hash = "sha256:1426611d959fa77e7de89f8c0f32eed6aa03ee735f98c01efba3e281b1c47616"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/gunicorn/25.1.0/gunicorn-25.1.0-py3-none-any.whl", hash = "sha256:d0b1236ccf27f72cfe14bce7caadf467186f19e865094ca84221424e839b8b8b"}
+]
+
+[[package]]
+name = "idna"
+version = "3.11"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/idna/3.11/idna-3.11.tar.gz", hash = "sha256:795dafcc9c04ed0c1fb032c2aa73654d8e8c5023a7df64a53f39190ada629902"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/idna/3.11/idna-3.11-py3-none-any.whl", hash = "sha256:771a87f49d9defaf64091e6e6fe9c18d4833f140bd19464795bc32d966ca37ea"}
+]
+
+[[package]]
+name = "importlib-metadata"
+version = "8.7.1"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "zipp"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/importlib-metadata/8.7.1/importlib_metadata-8.7.1.tar.gz", hash = "sha256:49fef1ae6440c182052f407c8d34a68f72efc36db9ca90dc0113398f2fdde8bb"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/importlib-metadata/8.7.1/importlib_metadata-8.7.1-py3-none-any.whl", hash = "sha256:5a1f80bf1daa489495071efbb095d75a634cf28a8bc299581244063b53176151"}
+]
+
+[[package]]
+name = "indexd"
+source = {editable = "."}
+dependencies = [
+  {name = "ddtrace"},
+  {name = "flask"},
+  {name = "gunicorn"},
+  {name = "json-log-formatter"},
+  {name = "jsonschema"},
+  {name = "logstick"},
+  {name = "psycopg2"},
+  {name = "requests"},
+  {name = "setproctitle"},
+  {name = "sqlalchemy"},
+  {name = "sqlalchemy-utils"},
+  {name = "typing-extensions"},
+  {name = "werkzeug"},
+  {name = "zipp"}
+]
+
+[package.metadata]
+requires-dist = [
+  {name = "ddtrace", specifier = "~=4.0.2"},
+  {name = "flask", specifier = ">=2.2"},
+  {name = "gunicorn", specifier = ">=23.0.0"},
+  {name = "json-log-formatter", specifier = ">=1.1"},
+  {name = "jsonschema", specifier = ">4.17"},
+  {name = "logstick", specifier = ">=0.1.6"},
+  {name = "openapi-spec-validator", marker = "extra == 'dev'"},
+  {name = "psycopg2", specifier = ">=2.7"},
+  {name = "pytest", marker = "extra == 'dev'"},
+  {name = "pytest-cov", marker = "extra == 'dev'"},
+  {name = "pytest-env", marker = "extra == 'dev'"},
+  {name = "pytest-flask", marker = "extra == 'dev'"},
+  {name = "pyyaml", marker = "extra == 'dev'"},
+  {name = "requests", specifier = ">=2.32.4"},
+  {name = "setproctitle", specifier = ">=1.3.4"},
+  {name = "sqlalchemy", specifier = ">=2.0"},
+  {name = "sqlalchemy-utils", specifier = ">=0.32"},
+  {name = "typing-extensions"},
+  {name = "werkzeug", specifier = ">=3.1.4"},
+  {name = "zipp", specifier = ">=3.19.1"}
+]
+provides-extras = ["dev"]
+
+[package.optional-dependencies]
+dev = [
+  {name = "openapi-spec-validator"},
+  {name = "pytest"},
+  {name = "pytest-cov"},
+  {name = "pytest-env"},
+  {name = "pytest-flask"},
+  {name = "pyyaml"}
+]
+
+[[package]]
+name = "iniconfig"
+version = "2.3.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/iniconfig/2.3.0/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/iniconfig/2.3.0/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12"}
+]
+
+[[package]]
+name = "itsdangerous"
+version = "2.2.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/itsdangerous/2.2.0/itsdangerous-2.2.0.tar.gz", hash = "sha256:e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/itsdangerous/2.2.0/itsdangerous-2.2.0-py3-none-any.whl", hash = "sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef"}
+]
+
+[[package]]
+name = "jinja2"
+version = "3.1.6"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "markupsafe"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/jinja2/3.1.6/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/jinja2/3.1.6/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"}
+]
+
+[[package]]
+name = "json-log-formatter"
+version = "1.1.1"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/json-log-formatter/1.1.1/json_log_formatter-1.1.1.tar.gz", hash = "sha256:0815e3b4469e5c79cf3f6dc8a0613ba6601f4a7464f85ba03655cfa6e3e17d10"}
+
+[[package]]
+name = "jsonschema"
+version = "4.24.1"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "attrs"},
+  {name = "jsonschema-specifications"},
+  {name = "referencing"},
+  {name = "rpds-py"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/jsonschema/4.24.1/jsonschema-4.24.1.tar.gz", hash = "sha256:fe45a130cc7f67cd0d67640b4e7e3e2e666919462ae355eda238296eafeb4b5d"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/jsonschema/4.24.1/jsonschema-4.24.1-py3-none-any.whl", hash = "sha256:6b916866aa0b61437785f1277aa2cbd63512e8d4b47151072ef13292049b4627"}
+]
+
+[[package]]
+name = "jsonschema-path"
+version = "0.4.5"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "pathable"},
+  {name = "pyyaml"},
+  {name = "referencing"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/jsonschema-path/0.4.5/jsonschema_path-0.4.5.tar.gz", hash = "sha256:c6cd7d577ae290c7defd4f4029e86fdb248ca1bd41a07557795b3c95e5144918"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/jsonschema-path/0.4.5/jsonschema_path-0.4.5-py3-none-any.whl", hash = "sha256:7d77a2c3f3ec569a40efe5c5f942c44c1af2a6f96fe0866794c9ef5b8f87fd65"}
+]
+
+[[package]]
+name = "jsonschema-specifications"
+version = "2025.9.1"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "referencing"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/jsonschema-specifications/2025.9.1/jsonschema_specifications-2025.9.1.tar.gz", hash = "sha256:b540987f239e745613c7a9176f3edb72b832a4ac465cf02712288397832b5e8d"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/jsonschema-specifications/2025.9.1/jsonschema_specifications-2025.9.1-py3-none-any.whl", hash = "sha256:98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe"}
+]
+
+[[package]]
+name = "lazy-object-proxy"
+version = "1.12.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0.tar.gz", hash = "sha256:1f5a462d92fd0cfb82f1fab28b51bfb209fabbe6aabf7f0d51472c0c124c0c61"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:86fd61cb2ba249b9f436d789d1356deae69ad3231dc3c0f17293ac535162672e"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:81d1852fb30fab81696f93db1b1e55a5d1ff7940838191062f5f56987d5fcc3e"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:be9045646d83f6c2664c1330904b245ae2371b5c57a3195e4028aedc9f999655"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:67f07ab742f1adfb3966c40f630baaa7902be4222a17941f3d85fd1dae5565ff"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:75ba769017b944fcacbf6a80c18b2761a1795b03f8899acdad1f1c39db4409be"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0-cp313-cp313-win_amd64.whl", hash = "sha256:7b22c2bbfb155706b928ac4d74c1a63ac8552a55ba7fff4445155523ea4067e1"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:4a79b909aa16bde8ae606f06e6bbc9d3219d2e57fb3e0076e17879072b742c65"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0-cp313-cp313t-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:338ab2f132276203e404951205fe80c3fd59429b3a724e7b662b2eb539bb1be9"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0-cp313-cp313t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:8c40b3c9faee2e32bfce0df4ae63f4e73529766893258eca78548bac801c8f66"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:717484c309df78cedf48396e420fa57fc8a2b1f06ea889df7248fdd156e58847"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:a6b7ea5ea1ffe15059eb44bcbcb258f97bcb40e139b88152c40d07b1a1dfc9ac"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/lazy-object-proxy/1.12.0/lazy_object_proxy-1.12.0-cp313-cp313t-win_amd64.whl", hash = "sha256:08c465fb5cd23527512f9bd7b4c7ba6cec33e28aad36fbbe46bf7b858f9f3f7f"}
+]
+
+[[package]]
+name = "logstick"
+version = "0.3.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "colorama"},
+  {name = "colorlog"},
+  {name = "deprecated"},
+  {name = "rich"},
+  {name = "structlog"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/logstick/0.3.0/logstick-0.3.0.tar.gz", hash = "sha256:5465ac2feef43342d7d1a29afcd252987af2ce99451f707807e1f88fbcaa5103"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/logstick/0.3.0/logstick-0.3.0-py3-none-any.whl", hash = "sha256:ef769b140a9329bcaee390fa66a59c4756658595397d9937693058b6374cf43d"}
+]
+
+[[package]]
+name = "markdown-it-py"
+version = "4.0.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "mdurl"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markdown-it-py/4.0.0/markdown_it_py-4.0.0.tar.gz", hash = "sha256:cb0a2b4aa34f932c007117b194e945bd74e0ec24133ceb5bac59009cda1cb9f3"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markdown-it-py/4.0.0/markdown_it_py-4.0.0-py3-none-any.whl", hash = "sha256:87327c59b172c5011896038353a81343b6754500a08cd7a4973bb48c6d578147"}
+]
+
+[[package]]
+name = "markupsafe"
+version = "3.0.3"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3.tar.gz", hash = "sha256:722695808f4b6457b320fdc131280796bdceb04ab50fe1795cd540799ebe1698"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:e1cf1972137e83c5d4c136c43ced9ac51d0e124706ee1c8aa8532c1287fa8795"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:116bb52f642a37c115f517494ea5feb03889e04df47eeff5b130b1808ce7c219"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:133a43e73a802c5562be9bbcd03d090aa5a1fe899db609c29e8c8d815c5f6de6"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ccfcd093f13f0f0b7fdd0f198b90053bf7b2f02a3927a30e63f3ccc9df56b676"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:509fa21c6deb7a7a273d629cf5ec029bc209d1a51178615ddf718f5918992ab9"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:a4afe79fb3de0b7097d81da19090f4df4f8d3a2b3adaa8764138aac2e44f3af1"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:795e7751525cae078558e679d646ae45574b47ed6e7771863fcc079a6171a0fc"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:8485f406a96febb5140bfeca44a73e3ce5116b2501ac54fe953e488fb1d03b12"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313-win32.whl", hash = "sha256:bdd37121970bfd8be76c5fb069c7751683bdf373db1ed6c010162b2a130248ed"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313-win_amd64.whl", hash = "sha256:9a1abfdc021a164803f4d485104931fb8f8c1efd55bc6b748d2f5774e78b62c5"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313-win_arm64.whl", hash = "sha256:7e68f88e5b8799aa49c85cd116c932a1ac15caaa3f5db09087854d218359e485"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:218551f6df4868a8d527e3062d0fb968682fe92054e89978594c28e642c43a73"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:3524b778fe5cfb3452a09d31e7b5adefeea8c5be1d43c4f810ba09f2ceb29d37"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:4e885a3d1efa2eadc93c894a21770e4bc67899e3543680313b09f139e149ab19"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8709b08f4a89aa7586de0aadc8da56180242ee0ada3999749b183aa23df95025"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313t-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:b8512a91625c9b3da6f127803b166b629725e68af71f8184ae7e7d54686a56d6"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:9b79b7a16f7fedff2495d684f2b59b0457c3b493778c9eed31111be64d58279f"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313t-musllinux_1_2_riscv64.whl", hash = "sha256:12c63dfb4a98206f045aa9563db46507995f7ef6d83b2f68eda65c307c6829eb"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:8f71bc33915be5186016f675cd83a1e08523649b0e33efdb898db577ef5bb009"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313t-win32.whl", hash = "sha256:69c0b73548bc525c8cb9a251cddf1931d1db4d2258e9599c28c07ef3580ef354"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313t-win_amd64.whl", hash = "sha256:1b4b79e8ebf6b55351f0d91fe80f893b4743f104bff22e90697db1590e47a218"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/markupsafe/3.0.3/markupsafe-3.0.3-cp313-cp313t-win_arm64.whl", hash = "sha256:ad2cf8aa28b8c020ab2fc8287b0f823d0a7d8630784c31e9ee5edea20f406287"}
+]
+
+[[package]]
+name = "mdurl"
+version = "0.1.2"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/mdurl/0.1.2/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/mdurl/0.1.2/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"}
+]
+
+[[package]]
+name = "openapi-schema-validator"
+version = "0.8.1"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "jsonschema"},
+  {name = "jsonschema-specifications"},
+  {name = "pydantic"},
+  {name = "pydantic-settings"},
+  {name = "referencing"},
+  {name = "rfc3339-validator"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/openapi-schema-validator/0.8.1/openapi_schema_validator-0.8.1.tar.gz", hash = "sha256:4c57266ce8cbfa37bb4eb4d62cdb7d19356c3a468e3535743c4562863e1790da"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/openapi-schema-validator/0.8.1/openapi_schema_validator-0.8.1-py3-none-any.whl", hash = "sha256:0f5859794c5bfa433d478dc5ac5e5768d50adc56b14380c8a6fd3a8113e89c9b"}
+]
+
+[[package]]
+name = "openapi-spec-validator"
+version = "0.8.4"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "jsonschema"},
+  {name = "jsonschema-path"},
+  {name = "lazy-object-proxy"},
+  {name = "openapi-schema-validator"},
+  {name = "pydantic"},
+  {name = "pydantic-settings"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/openapi-spec-validator/0.8.4/openapi_spec_validator-0.8.4.tar.gz", hash = "sha256:8bb324b9b08b9b368b1359dec14610c60a8f3a3dd63237184eb04456d4546f49"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/openapi-spec-validator/0.8.4/openapi_spec_validator-0.8.4-py3-none-any.whl", hash = "sha256:cf905117063d7c4d495c8a5a167a1f2a8006da6ffa8ba234a7ed0d0f11454d51"}
+]
+
+[[package]]
+name = "opentelemetry-api"
+version = "1.40.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "importlib-metadata"},
+  {name = "typing-extensions"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/opentelemetry-api/1.40.0/opentelemetry_api-1.40.0.tar.gz", hash = "sha256:159be641c0b04d11e9ecd576906462773eb97ae1b657730f0ecf64d32071569f"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/opentelemetry-api/1.40.0/opentelemetry_api-1.40.0-py3-none-any.whl", hash = "sha256:82dd69331ae74b06f6a874704be0cfaa49a1650e1537d4a813b86ecef7d0ecf9"}
+]
+
+[[package]]
+name = "packaging"
+version = "26.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/packaging/26.0/packaging-26.0.tar.gz", hash = "sha256:00243ae351a257117b6a241061796684b084ed1c516a08c48a3f7e147a9d80b4"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/packaging/26.0/packaging-26.0-py3-none-any.whl", hash = "sha256:b36f1fef9334a5588b4166f8bcd26a14e521f2b55e6b9de3aaa80d3ff7a37529"}
+]
+
+[[package]]
+name = "pathable"
+version = "0.5.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pathable/0.5.0/pathable-0.5.0.tar.gz", hash = "sha256:d81938348a1cacb525e7c75166270644782c0fb9c8cecc16be033e71427e0ef1"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pathable/0.5.0/pathable-0.5.0-py3-none-any.whl", hash = "sha256:646e3d09491a6351a0c82632a09c02cdf70a252e73196b36d8a15ba0a114f0a6"}
+]
+
+[[package]]
+name = "pluggy"
+version = "1.6.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pluggy/1.6.0/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pluggy/1.6.0/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746"}
+]
+
+[[package]]
+name = "psycopg2"
+version = "2.9.11"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/psycopg2/2.9.11/psycopg2-2.9.11.tar.gz", hash = "sha256:964d31caf728e217c697ff77ea69c2ba0865fa41ec20bb00f0977e62fdcc52e3"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/psycopg2/2.9.11/psycopg2-2.9.11-cp313-cp313-win_amd64.whl", hash = "sha256:8dc379166b5b7d5ea66dcebf433011dfc51a7bb8a5fc12367fa05668e5fc53c8"}
+]
+
+[[package]]
+name = "pydantic"
+version = "2.12.5"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "annotated-types"},
+  {name = "pydantic-core"},
+  {name = "typing-extensions"},
+  {name = "typing-inspection"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic/2.12.5/pydantic-2.12.5.tar.gz", hash = "sha256:4d351024c75c0f085a9febbb665ce8c0c6ec5d30e903bdb6394b7ede26aebb49"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic/2.12.5/pydantic-2.12.5-py3-none-any.whl", hash = "sha256:e561593fccf61e8a20fc46dfc2dfe075b8be7d0188df33f221ad1f0139180f9d"}
+]
+
+[[package]]
+name = "pydantic-core"
+version = "2.41.5"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "typing-extensions"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5.tar.gz", hash = "sha256:08daa51ea16ad373ffd5e7606252cc32f07bc72b28284b6bc9c6df804816476e"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:941103c9be18ac8daf7b7adca8228f8ed6bb7a1849020f643b3a14d15b1924d9"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:112e305c3314f40c93998e567879e887a3160bb8689ef3d2c04b6cc62c33ac34"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0cbaad15cb0c90aa221d43c00e77bb33c93e8d36e0bf74760cd00e732d10a6a0"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:03ca43e12fab6023fc79d28ca6b39b05f794ad08ec2feccc59a339b02f2b3d33"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:dc799088c08fa04e43144b164feb0c13f9a0bc40503f8df3e9fde58a3c0c101e"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:97aeba56665b4c3235a0e52b2c2f5ae9cd071b8a8310ad27bddb3f7fb30e9aa2"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:406bf18d345822d6c21366031003612b9c77b3e29ffdb0f612367352aab7d586"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:b93590ae81f7010dbe380cdeab6f515902ebcbefe0b9327cc4804d74e93ae69d"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-musllinux_1_1_aarch64.whl", hash = "sha256:01a3d0ab748ee531f4ea6c3e48ad9dac84ddba4b0d82291f87248f2f9de8d740"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-musllinux_1_1_armv7l.whl", hash = "sha256:6561e94ba9dacc9c61bce40e2d6bdc3bfaa0259d3ff36ace3b1e6901936d2e3e"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-musllinux_1_1_x86_64.whl", hash = "sha256:915c3d10f81bec3a74fbd4faebe8391013ba61e5a1a8d48c4455b923bdda7858"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-win32.whl", hash = "sha256:650ae77860b45cfa6e2cdafc42618ceafab3a2d9a3811fcfbd3bbf8ac3c40d36"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-win_amd64.whl", hash = "sha256:79ec52ec461e99e13791ec6508c722742ad745571f234ea6255bed38c6480f11"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-core/2.41.5/pydantic_core-2.41.5-cp313-cp313-win_arm64.whl", hash = "sha256:3f84d5c1b4ab906093bdc1ff10484838aca54ef08de4afa9de0f5f14d69639cd"}
+]
+
+[[package]]
+name = "pydantic-settings"
+version = "2.13.1"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "pydantic"},
+  {name = "python-dotenv"},
+  {name = "typing-inspection"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-settings/2.13.1/pydantic_settings-2.13.1.tar.gz", hash = "sha256:b4c11847b15237fb0171e1462bf540e294affb9b86db4d9aa5c01730bdbe4025"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pydantic-settings/2.13.1/pydantic_settings-2.13.1-py3-none-any.whl", hash = "sha256:d56fd801823dbeae7f0975e1f8c8e25c258eb75d278ea7abb5d9cebb01b56237"}
+]
+
+[[package]]
+name = "pygments"
+version = "2.19.2"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pygments/2.19.2/pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pygments/2.19.2/pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b"}
+]
+
+[[package]]
+name = "pytest"
+version = "9.0.2"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "colorama", marker = "sys_platform == 'win32'"},
+  {name = "iniconfig"},
+  {name = "packaging"},
+  {name = "pluggy"},
+  {name = "pygments"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pytest/9.0.2/pytest-9.0.2.tar.gz", hash = "sha256:75186651a92bd89611d1d9fc20f0b4345fd827c41ccd5c299a868a05d70edf11"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pytest/9.0.2/pytest-9.0.2-py3-none-any.whl", hash = "sha256:711ffd45bf766d5264d487b917733b453d917afd2b0ad65223959f59089f875b"}
+]
+
+[[package]]
+name = "pytest-cov"
+version = "7.1.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "coverage"},
+  {name = "pluggy"},
+  {name = "pytest"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pytest-cov/7.1.0/pytest_cov-7.1.0.tar.gz", hash = "sha256:30674f2b5f6351aa09702a9c8c364f6a01c27aae0c1366ae8016160d1efc56b2"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pytest-cov/7.1.0/pytest_cov-7.1.0-py3-none-any.whl", hash = "sha256:a0461110b7865f9a271aa1b51e516c9a95de9d696734a2f71e3e78f46e1d4678"}
+]
+
+[[package]]
+name = "pytest-env"
+version = "1.6.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "pytest"},
+  {name = "python-dotenv"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pytest-env/1.6.0/pytest_env-1.6.0.tar.gz", hash = "sha256:ac02d6fba16af54d61e311dd70a3c61024a4e966881ea844affc3c8f0bf207d3"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pytest-env/1.6.0/pytest_env-1.6.0-py3-none-any.whl", hash = "sha256:1e7f8a62215e5885835daaed694de8657c908505b964ec8097a7ce77b403d9a3"}
+]
+
+[[package]]
+name = "pytest-flask"
+version = "1.3.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "flask"},
+  {name = "pytest"},
+  {name = "werkzeug"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pytest-flask/1.3.0/pytest-flask-1.3.0.tar.gz", hash = "sha256:58be1c97b21ba3c4d47e0a7691eb41007748506c36bf51004f78df10691fa95e"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pytest-flask/1.3.0/pytest_flask-1.3.0-py3-none-any.whl", hash = "sha256:c0e36e6b0fddc3b91c4362661db83fa694d1feb91fa505475be6732b5bc8c253"}
+]
+
+[[package]]
+name = "python-dotenv"
+version = "1.2.2"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/python-dotenv/1.2.2/python_dotenv-1.2.2.tar.gz", hash = "sha256:2c371a91fbd7ba082c2c1dc1f8bf89ca22564a087c2c287cd9b662adde799cf3"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/python-dotenv/1.2.2/python_dotenv-1.2.2-py3-none-any.whl", hash = "sha256:1d8214789a24de455a8b8bd8ae6fe3c6b69a5e3d64aa8a8e5d68e694bbcb285a"}
+]
+
+[[package]]
+name = "pyyaml"
+version = "6.0.3"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pyyaml/6.0.3/pyyaml-6.0.3.tar.gz", hash = "sha256:d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pyyaml/6.0.3/pyyaml-6.0.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:8da9669d359f02c0b91ccc01cac4a67f16afec0dac22c2ad09f46bee0697eba8"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pyyaml/6.0.3/pyyaml-6.0.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:2283a07e2c21a2aa78d9c4442724ec1eb15f5e42a723b99cb3d822d48f5f7ad1"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pyyaml/6.0.3/pyyaml-6.0.3-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ee2922902c45ae8ccada2c5b501ab86c36525b883eff4255313a253a3160861c"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pyyaml/6.0.3/pyyaml-6.0.3-cp313-cp313-manylinux2014_s390x.manylinux_2_17_s390x.manylinux_2_28_s390x.whl", hash = "sha256:a33284e20b78bd4a18c8c2282d549d10bc8408a2a7ff57653c0cf0b9be0afce5"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pyyaml/6.0.3/pyyaml-6.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:0f29edc409a6392443abf94b9cf89ce99889a1dd5376d94316ae5145dfedd5d6"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pyyaml/6.0.3/pyyaml-6.0.3-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:f7057c9a337546edc7973c0d3ba84ddcdf0daa14533c2065749c9075001090e6"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pyyaml/6.0.3/pyyaml-6.0.3-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:eda16858a3cab07b80edaf74336ece1f986ba330fdb8ee0d6c0d68fe82bc96be"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pyyaml/6.0.3/pyyaml-6.0.3-cp313-cp313-win32.whl", hash = "sha256:d0eae10f8159e8fdad514efdc92d74fd8d682c933a6dd088030f3834bc8e6b26"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pyyaml/6.0.3/pyyaml-6.0.3-cp313-cp313-win_amd64.whl", hash = "sha256:79005a0d97d5ddabfeeea4cf676af11e647e41d81c9a7722a193022accdb6b7c"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/pyyaml/6.0.3/pyyaml-6.0.3-cp313-cp313-win_arm64.whl", hash = "sha256:5498cd1645aa724a7c71c8f378eb29ebe23da2fc0d7a08071d89469bf1d2defb"}
+]
+
+[[package]]
+name = "referencing"
+version = "0.37.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "attrs"},
+  {name = "rpds-py"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/referencing/0.37.0/referencing-0.37.0.tar.gz", hash = "sha256:44aefc3142c5b842538163acb373e24cce6632bd54bdb01b21ad5863489f50d8"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/referencing/0.37.0/referencing-0.37.0-py3-none-any.whl", hash = "sha256:381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231"}
+]
+
+[[package]]
+name = "requests"
+version = "2.32.5"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "certifi"},
+  {name = "charset-normalizer"},
+  {name = "idna"},
+  {name = "urllib3"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/requests/2.32.5/requests-2.32.5.tar.gz", hash = "sha256:dbba0bac56e100853db0ea71b82b4dfd5fe2bf6d3754a8893c3af500cec7d7cf"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/requests/2.32.5/requests-2.32.5-py3-none-any.whl", hash = "sha256:2462f94637a34fd532264295e186976db0f5d453d1cdd31473c85a6a161affb6"}
+]
+
+[[package]]
+name = "rfc3339-validator"
+version = "0.1.4"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "six"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rfc3339-validator/0.1.4/rfc3339_validator-0.1.4.tar.gz", hash = "sha256:138a2abdf93304ad60530167e51d2dfb9549521a836871b88d7f4695d0022f6b"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rfc3339-validator/0.1.4/rfc3339_validator-0.1.4-py2.py3-none-any.whl", hash = "sha256:24f6ec1eda14ef823da9e36ec7113124b39c04d50a4d3d3a3c2859577e7791fa"}
+]
+
+[[package]]
+name = "rich"
+version = "14.3.3"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "markdown-it-py"},
+  {name = "pygments"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rich/14.3.3/rich-14.3.3.tar.gz", hash = "sha256:b8daa0b9e4eef54dd8cf7c86c03713f53241884e814f4e2f5fb342fe520f639b"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rich/14.3.3/rich-14.3.3-py3-none-any.whl", hash = "sha256:793431c1f8619afa7d3b52b2cdec859562b950ea0d4b6b505397612db8d5362d"}
+]
+
+[[package]]
+name = "rpds-py"
+version = "0.30.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0.tar.gz", hash = "sha256:dd8ff7cf90014af0c0f787eea34794ebf6415242ee1d6fa91eaba725cc441e84"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:f83424d738204d9770830d35290ff3273fbb02b41f919870479fab14b9d303b2"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:e7536cd91353c5273434b4e003cbda89034d67e7710eab8761fd918ec6c69cf8"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2771c6c15973347f50fece41fc447c054b7ac2ae0502388ce3b6738cd366e3d4"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:0a59119fc6e3f460315fe9d08149f8102aa322299deaa5cab5b40092345c2136"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:76fec018282b4ead0364022e3c54b60bf368b9d926877957a8624b58419169b7"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:692bef75a5525db97318e8cd061542b5a79812d711ea03dbc1f6f8dbb0c5f0d2"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9027da1ce107104c50c81383cae773ef5c24d296dd11c99e2629dbd7967a20c6"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-manylinux_2_31_riscv64.whl", hash = "sha256:9cf69cdda1f5968a30a359aba2f7f9aa648a9ce4b580d6826437f2b291cfc86e"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:a4796a717bf12b9da9d3ad002519a86063dcac8988b030e405704ef7d74d2d9d"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:5d4c2aa7c50ad4728a094ebd5eb46c452e9cb7edbfdb18f9e1221f597a73e1e7"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:ba81a9203d07805435eb06f536d95a266c21e5b2dfbf6517748ca40c98d19e31"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:945dccface01af02675628334f7cf49c2af4c1c904748efc5cf7bbdf0b579f95"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-win32.whl", hash = "sha256:b40fb160a2db369a194cb27943582b38f79fc4887291417685f3ad693c5a1d5d"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-win_amd64.whl", hash = "sha256:806f36b1b605e2d6a72716f321f20036b9489d29c51c91f4dd29a3e3afb73b15"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313-win_arm64.whl", hash = "sha256:d96c2086587c7c30d44f31f42eae4eac89b60dabbac18c7669be3700f13c3ce1"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-macosx_10_12_x86_64.whl", hash = "sha256:eb0b93f2e5c2189ee831ee43f156ed34e2a89a78a66b98cadad955972548be5a"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:922e10f31f303c7c920da8981051ff6d8c1a56207dbdf330d9047f6d30b70e5e"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cdc62c8286ba9bf7f47befdcea13ea0e26bf294bda99758fd90535cbaf408000"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:47f9a91efc418b54fb8190a6b4aa7813a23fb79c51f4bb84e418f5476c38b8db"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:1f3587eb9b17f3789ad50824084fa6f81921bbf9a795826570bda82cb3ed91f2"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:39c02563fc592411c2c61d26b6c5fe1e51eaa44a75aa2c8735ca88b0d9599daa"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:51a1234d8febafdfd33a42d97da7a43f5dcb120c1060e352a3fbc0c6d36e2083"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-manylinux_2_31_riscv64.whl", hash = "sha256:eb2c4071ab598733724c08221091e8d80e89064cd472819285a9ab0f24bcedb9"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:6bdfdb946967d816e6adf9a3d8201bfad269c67efe6cefd7093ef959683c8de0"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:c77afbd5f5250bf27bf516c7c4a016813eb2d3e116139aed0096940c5982da94"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-musllinux_1_2_i686.whl", hash = "sha256:61046904275472a76c8c90c9ccee9013d70a6d0f73eecefd38c1ae7c39045a08"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:4c5f36a861bc4b7da6516dbdf302c55313afa09b81931e8280361a4f6c9a2d27"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-win32.whl", hash = "sha256:3d4a69de7a3e50ffc214ae16d79d8fbb0922972da0356dcf4d0fdca2878559c6"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/rpds-py/0.30.0/rpds_py-0.30.0-cp313-cp313t-win_amd64.whl", hash = "sha256:f14fc5df50a716f7ece6a80b6c78bb35ea2ca47c499e422aa4463455dd96d56d"}
+]
+
+[[package]]
+name = "setproctitle"
+version = "1.3.7"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7.tar.gz", hash = "sha256:bc2bc917691c1537d5b9bca1468437176809c7e11e5694ca79a9ca12345dcb9e"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:c3736b2a423146b5e62230502e47e08e68282ff3b69bcfe08a322bee73407922"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:3384e682b158d569e85a51cfbde2afd1ab57ecf93ea6651fe198d0ba451196ee"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:0564a936ea687cd24dffcea35903e2a20962aa6ac20e61dd3a207652401492dd"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:a5d1cb3f81531f0eb40e13246b679a1bdb58762b170303463cb06ecc296f26d0"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313-manylinux2014_ppc64le.manylinux_2_17_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:a7d159e7345f343b44330cbba9194169b8590cb13dae940da47aa36a72aa9929"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:0b5074649797fd07c72ca1f6bff0406f4a42e1194faac03ecaab765ce605866f"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313-musllinux_1_2_ppc64le.whl", hash = "sha256:61e96febced3f61b766115381d97a21a6265a0f29188a791f6df7ed777aef698"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:047138279f9463f06b858e579cc79580fbf7a04554d24e6bddf8fe5dddbe3d4c"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313-win32.whl", hash = "sha256:7f47accafac7fe6535ba8ba9efd59df9d84a6214565108d0ebb1199119c9cbbd"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313-win_amd64.whl", hash = "sha256:fe5ca35aeec6dc50cabab9bf2d12fbc9067eede7ff4fe92b8f5b99d92e21263f"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313t-macosx_10_13_universal2.whl", hash = "sha256:10e92915c4b3086b1586933a36faf4f92f903c5554f3c34102d18c7d3f5378e9"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:de879e9c2eab637f34b1a14c4da1e030c12658cdc69ee1b3e5be81b380163ce5"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313t-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:c18246d88e227a5b16248687514f95642505000442165f4b7db354d39d0e4c29"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:7081f193dab22df2c36f9fc6d113f3793f83c27891af8fe30c64d89d9a37e152"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313t-manylinux2014_ppc64le.manylinux_2_17_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:9cc9b901ce129350637426a89cfd650066a4adc6899e47822e2478a74023ff7c"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:80e177eff2d1ec172188d0d7fd9694f8e43d3aab76a6f5f929bee7bf7894e98b"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313t-musllinux_1_2_ppc64le.whl", hash = "sha256:23e520776c445478a67ee71b2a3c1ffdafbe1f9f677239e03d7e2cc635954e18"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:5fa1953126a3b9bd47049d58c51b9dac72e78ed120459bd3aceb1bacee72357c"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313t-win32.whl", hash = "sha256:4a5e212bf438a4dbeece763f4962ad472c6008ff6702e230b4f16a037e2f6f29"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/setproctitle/1.3.7/setproctitle-1.3.7-cp313-cp313t-win_amd64.whl", hash = "sha256:cf2727b733e90b4f874bac53e3092aa0413fe1ea6d4f153f01207e6ce65034d9"}
+]
+
+[[package]]
+name = "six"
+version = "1.17.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/six/1.17.0/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/six/1.17.0/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"}
+]
+
+[[package]]
+name = "sqlalchemy"
+version = "2.0.48"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "greenlet", marker = "platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'"},
+  {name = "typing-extensions"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48.tar.gz", hash = "sha256:5ca74f37f3369b45e1f6b7b06afb182af1fd5dde009e4ffd831830d98cbe5fe7"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:e3070c03701037aa418b55d36532ecb8f8446ed0135acb71c678dbdf12f5b6e4"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:2645b7d8a738763b664a12a1542c89c940daa55196e8d73e55b169cc5c99f65f"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:b19151e76620a412c2ac1c6f977ab1b9fa7ad43140178345136456d5265b32ed"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:5b193a7e29fd9fa56e502920dca47dffe60f97c863494946bd698c6058a55658"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:36ac4ddc3d33e852da9cb00ffb08cea62ca05c39711dc67062ca2bb1fae35fd8"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313-win32.whl", hash = "sha256:389b984139278f97757ea9b08993e7b9d1142912e046ab7d82b3fbaeb0209131"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313-win_amd64.whl", hash = "sha256:d612c976cbc2d17edfcc4c006874b764e85e990c29ce9bd411f926bbfb02b9a2"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:69f5bc24904d3bc3640961cddd2523e361257ef68585d6e364166dfbe8c78fae"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:fd08b90d211c086181caed76931ecfa2bdfc83eea3cfccdb0f82abc6c4b876cb"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:1ccd42229aaac2df431562117ac7e667d702e8e44afdb6cf0e50fa3f18160f0b"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:f0dcbc588cd5b725162c076eb9119342f6579c7f7f55057bb7e3c6ff27e13121"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313t-win32.whl", hash = "sha256:9764014ef5e58aab76220c5664abb5d47d5bc858d9debf821e55cfdd0f128485"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-cp313-cp313t-win_amd64.whl", hash = "sha256:e2f35b4cccd9ed286ad62e0a3c3ac21e06c02abc60e20aa51a3e305a30f5fa79"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy/2.0.48/sqlalchemy-2.0.48-py3-none-any.whl", hash = "sha256:a66fe406437dd65cacd96a72689a3aaaecaebbcd62d81c5ac1c0fdbeac835096"}
+]
+
+[[package]]
+name = "sqlalchemy-utils"
+version = "0.42.1"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "sqlalchemy"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy-utils/0.42.1/sqlalchemy_utils-0.42.1.tar.gz", hash = "sha256:881f9cd9e5044dc8f827bccb0425ce2e55490ce44fc0bb848c55cc8ee44cc02e"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/sqlalchemy-utils/0.42.1/sqlalchemy_utils-0.42.1-py3-none-any.whl", hash = "sha256:243cfe1b3a1dae3c74118ae633f1d1e0ed8c787387bc33e556e37c990594ac80"}
+]
+
+[[package]]
+name = "structlog"
+version = "25.5.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/structlog/25.5.0/structlog-25.5.0.tar.gz", hash = "sha256:098522a3bebed9153d4570c6d0288abf80a031dfdb2048d59a49e9dc2190fc98"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/structlog/25.5.0/structlog-25.5.0-py3-none-any.whl", hash = "sha256:a8453e9b9e636ec59bd9e79bbd4a72f025981b3ba0f5837aebf48f02f37a7f9f"}
+]
+
+[[package]]
+name = "typing-extensions"
+version = "4.15.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/typing-extensions/4.15.0/typing_extensions-4.15.0.tar.gz", hash = "sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/typing-extensions/4.15.0/typing_extensions-4.15.0-py3-none-any.whl", hash = "sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548"}
+]
+
+[[package]]
+name = "typing-inspection"
+version = "0.4.2"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "typing-extensions"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/typing-inspection/0.4.2/typing_inspection-0.4.2.tar.gz", hash = "sha256:ba561c48a67c5958007083d386c3295464928b01faa735ab8547c5692e87f464"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/typing-inspection/0.4.2/typing_inspection-0.4.2-py3-none-any.whl", hash = "sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7"}
+]
+
+[[package]]
+name = "urllib3"
+version = "2.6.3"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/urllib3/2.6.3/urllib3-2.6.3.tar.gz", hash = "sha256:1b62b6884944a57dbe321509ab94fd4d3b307075e0c2eae991ac71ee15ad38ed"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/urllib3/2.6.3/urllib3-2.6.3-py3-none-any.whl", hash = "sha256:bf272323e553dfb2e87d9bfd225ca7b0f467b919d7bbd355436d3fd37cb0acd4"}
+]
+
+[[package]]
+name = "werkzeug"
+version = "3.1.6"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+dependencies = [
+  {name = "markupsafe"}
+]
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/werkzeug/3.1.6/werkzeug-3.1.6.tar.gz", hash = "sha256:210c6bede5a420a913956b4791a7f4d6843a43b6fcee4dfa08a65e93007d0d25"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/werkzeug/3.1.6/werkzeug-3.1.6-py3-none-any.whl", hash = "sha256:7ddf3357bb9564e407607f988f683d72038551200c704012bb9a4c523d42f131"}
+]
+
+[[package]]
+name = "wrapt"
+version = "2.1.2"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2.tar.gz", hash = "sha256:3996a67eecc2c68fd47b4e3c564405a5777367adfd9b8abb58387b63ee83b21e"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:787fd6f4d67befa6fe2abdffcbd3de2d82dfc6fb8a6d850407c53332709d030b"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:4bdf26e03e6d0da3f0e9422fd36bcebf7bc0eeb55fdf9c727a09abc6b9fe472e"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:bbac24d879aa22998e87f6b3f481a5216311e7d53c7db87f189a7a0266dafffb"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:16997dfb9d67addc2e3f41b62a104341e80cac52f91110dece393923c0ebd5ca"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:162e4e2ba7542da9027821cb6e7c5e068d64f9a10b5f15512ea28e954893a267"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:f29c827a8d9936ac320746747a016c4bc66ef639f5cd0d32df24f5eacbf9c69f"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:a9dd9813825f7ecb018c17fd147a01845eb330254dff86d3b5816f20f4d6aaf8"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:6f8dbdd3719e534860d6a78526aafc220e0241f981367018c2875178cf83a413"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313-win32.whl", hash = "sha256:5c35b5d82b16a3bc6e0a04349b606a0582bc29f573786aebe98e0c159bc48db6"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313-win_amd64.whl", hash = "sha256:f8bc1c264d8d1cf5b3560a87bbdd31131573eb25f9f9447bb6252b8d4c44a3a1"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313-win_arm64.whl", hash = "sha256:3beb22f674550d5634642c645aba4c72a2c66fb185ae1aebe1e955fae5a13baf"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:0fc04bc8664a8bc4c8e00b37b5355cffca2535209fba1abb09ae2b7c76ddf82b"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:a9b9d50c9af998875a1482a038eb05755dfd6fe303a313f6a940bb53a83c3f18"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313t-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:2d3ff4f0024dd224290c0eabf0240f1bfc1f26363431505fb1b0283d3b08f11d"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:3278c471f4468ad544a691b31bb856374fbdefb7fee1a152153e64019379f015"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313t-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:a8914c754d3134a3032601c6984db1c576e6abaf3fc68094bb8ab1379d75ff92"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:ff95d4264e55839be37bafe1536db2ab2de19da6b65f9244f01f332b5286cfbf"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313t-musllinux_1_2_riscv64.whl", hash = "sha256:76405518ca4e1b76fbb1b9f686cff93aebae03920cc55ceeec48ff9f719c5f67"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:c0be8b5a74c5824e9359b53e7e58bef71a729bacc82e16587db1c4ebc91f7c5a"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313t-win32.whl", hash = "sha256:f01277d9a5fc1862f26f7626da9cf443bebc0abd2f303f41c5e995b15887dabd"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313t-win_amd64.whl", hash = "sha256:84ce8f1c2104d2f6daa912b1b5b039f331febfeee74f8042ad4e04992bd95c8f"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-cp313-cp313t-win_arm64.whl", hash = "sha256:a93cd767e37faeddbe07d8fc4212d5cba660af59bdb0f6372c93faaa13e6e679"},
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/wrapt/2.1.2/wrapt-2.1.2-py3-none-any.whl", hash = "sha256:b8fd6fa2b2c4e7621808f8c62e8317f4aae56e59721ad933bac5239d913cf0e8"}
+]
+
+[[package]]
+name = "zipp"
+version = "3.23.0"
+source = {registry = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"}
+sdist = {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/zipp/3.23.0/zipp-3.23.0.tar.gz", hash = "sha256:a07157588a12518c9d4034df3fbbee09c814741a33ff63c05fa29d26a2404166"}
+wheels = [
+  {url = "https://nexus.osdc.io/repository/pypi-gdc-releases/packages/zipp/3.23.0/zipp-3.23.0-py3-none-any.whl", hash = "sha256:071652d6115ed432f5ce1d34c336c0adfd6a884660d1e9712a256d3d3bd4b14e"}
+]

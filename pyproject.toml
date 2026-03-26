@@ -8,7 +8,6 @@ dynamic = [
   "version",
   "description",
   "readme",
-  "requires-python",
   "authors",
   "maintainers",
   "keywords",
@@ -21,6 +20,7 @@ dynamic = [
   "dependencies",
   "optional-dependencies"
 ]
+requires-python = "~=3.13.0"
 
 [tool.coverage.html]
 title = "indexd coverage report"
@@ -92,3 +92,7 @@ keep-runtime-typing = true
 [tool.setuptools_scm]
 local_scheme = "versionista-local-format"
 version_scheme = "versionista-format"
+
+[[tool.uv.index]]
+name = "nexus"
+url = "https://nexus.osdc.io/repository/pypi-gdc-releases/simple"

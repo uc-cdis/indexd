@@ -671,7 +671,7 @@ def test_driver_get_fails_with_invalid_id(index_driver, database_conn):
 
 
 def test_driver_update_record_simple_data(index_driver, database_conn):
-    did, baseid, rev, form = insert_base_data(database_conn)
+    did, _baseid, rev, _form = insert_base_data(database_conn)
 
     update_size = 256
     file_name = "test"
@@ -795,7 +795,7 @@ def test_driver_update_record_urls_metadata(index_driver, database_conn):
     """
     Tests updating of a record.
     """
-    did, baseid, rev, form = insert_base_data(database_conn)
+    did, _baseid, rev, _form = insert_base_data(database_conn)
 
     update_urls_metadata = {
         "a": {

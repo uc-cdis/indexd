@@ -15,7 +15,7 @@ repos:
       - id: no-commit-to-branch
         args: [--branch, develop, --branch, master, --pattern, release/.*]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.10
+    rev: v0.15.7
     hooks:
       - id: ruff
         args: [--fix]
@@ -27,13 +27,13 @@ repos:
         args: [--mapping, '2', --sequence, '4', --offset, '2', --width, '80']
         exclude: ^helm/templates/|^\.gitlab-ci.yml|^\.travis.yml
   - repo: https://github.com/pappasam/toml-sort
-    rev: v0.24.2
+    rev: v0.24.3
     hooks:
       - id: toml-sort
         args: [--in-place]
         exclude: pyproject.toml
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.20.0
+    rev: v3.21.2
     hooks:
       - id: pyupgrade
   - repo: https://github.com/Yelp/detect-secrets

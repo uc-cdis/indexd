@@ -14,12 +14,15 @@ ARG GIT_BRANCH_NAME
 ENV CI_COMMIT_REF_NAME=$GIT_BRANCH_NAME \
     PIP_INDEX_URL=$PIP_INDEX_URL
 
+# When looking for its virtual environment, uv will not respect VIRTUAL_ENV. It expects its
+# virtualenv to be in a `.venv` subdirectory, even if we provide an explicit path to `uv venv`.
+# This environment variable overrides where uv expects its virtual environment to be.
+ENV UV_PROJECT_ENVIRONMENT='/venv'
+
 WORKDIR /${SERVICE_NAME}
 
 COPY . .
-RUN pip install versionista>=1.1.0 \
-    && python3 -m setuptools_scm \
-    && pip install --no-deps -r requirements.txt .
+RUN uv sync --locked --no-dev --no-editable
 
 FROM ${REGISTRY}/ncigdc/${PYTHON_VERSION}:${BASE_VERSION}
 ARG NAME
