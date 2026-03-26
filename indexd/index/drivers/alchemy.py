@@ -307,6 +307,21 @@ class DrsBundleRecord(Base):
         return ret
 
 
+class StatsRecord(Base):
+    """
+    Stats table row representation.
+    """
+
+    __tablename__ = "stats"
+    sid = Column(BigInteger, autoincrement=True, primary_key=True)
+    total_record_count = Column(BigInteger)
+    total_record_bytes = Column(BigInteger)
+    month = Column(Integer)
+    year = Column(Integer)
+
+    __table_args__ = (Index("ix_stats_year_month", "year", "month"),)
+
+
 def create_urls_metadata(urls_metadata, record, session):
     """
     create url metadata record in database
@@ -325,6 +340,46 @@ def get_record_if_exists(did, session):
     If no record found, returns None.
     """
     return session.query(IndexRecord).filter(IndexRecord.did == did).first()
+
+
+def update_stats(session, number, size=None):
+    now = datetime.datetime.now()
+
+    if size is None:
+        size = 0
+
+    query = (
+        session.query(StatsRecord)
+        .filter(
+            or_(
+                and_(
+                    StatsRecord.month <= now.month,
+                    StatsRecord.year == now.year,
+                ),
+                StatsRecord.year < now.year,
+            )
+        )
+        .order_by(StatsRecord.year.desc(), StatsRecord.month.desc())
+        .with_for_update()
+    )
+
+    record = query.first()
+
+    if record and record.month == now.month and record.year == now.year:
+        record.total_record_count += number
+        record.total_record_bytes += size
+    else:
+        new_record = StatsRecord()
+        new_record.month = now.month
+        new_record.year = now.year
+        new_record.total_record_bytes = size
+        new_record.total_record_count = number
+
+        if record:
+            new_record.total_record_bytes += record.total_record_bytes
+            new_record.total_record_count += record.total_record_count
+
+        session.add(new_record)
 
 
 class SQLAlchemyIndexDriver(IndexDriverABC):
@@ -783,6 +838,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
                 if self.config.get("ADD_PREFIX_ALIAS"):
                     self.add_prefix_alias(record, session)
+                update_stats(session, 1, size)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound(
@@ -843,6 +899,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             session.add(base_version)
             session.add(record)
+            update_stats(session, 1, 0)
             session.commit()
 
             return record.did, record.rev, record.baseid
@@ -933,6 +990,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.updated_date = datetime.datetime.utcnow()
 
             session.add(record)
+            update_stats(session, 0, size)
             session.commit()
 
             return record.did, record.rev, record.baseid
@@ -1283,6 +1341,10 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 if key not in composite_fields:
                     # No special logic needed for other updates.
                     # ie file_name, version, etc
+
+                    # update stats for a change in file size
+                    if key == "size":
+                        update_stats(session, 0, value - record.size)
                     setattr(record, key, value)
 
             record.rev = str(uuid.uuid4())[:8]
@@ -1312,6 +1374,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise RevisionMismatch("revision mismatch")
 
             auth.authorize("delete", [u.resource for u in record.authz])
+
+            size = record.size if record.size is not None else 0
+            update_stats(session, -1, -1 * size)
 
             session.delete(record)
 
@@ -1400,6 +1465,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 session.add(record)
                 create_urls_metadata(urls_metadata, record, session)
+                update_stats(session, 1, record.size)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound("{did} already exists".format(did=did))
@@ -1470,6 +1536,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 session.add(new_record)
+                update_stats(session, 1, 0)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound("{did} already exists".format(did=did))
@@ -1793,6 +1860,34 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound("Multiple bundles found")
 
             session.delete(record)
+
+    def get_stats(self, month=None, year=None):
+        now = datetime.datetime.now()
+
+        if month is None and year is None:
+            month = now.month
+            year = now.year
+
+        with self.session as session:
+            try:
+                stats = (
+                    session.query(StatsRecord)
+                    .filter(
+                        or_(
+                            and_(
+                                StatsRecord.month <= int(month),
+                                StatsRecord.year == int(year),
+                            ),
+                            StatsRecord.year < int(year),
+                        )
+                    )
+                    .order_by(StatsRecord.year.desc(), StatsRecord.month.desc())
+                    .first()
+                )
+                return (stats.total_record_count, stats.total_record_bytes)
+            except Exception as e:
+                self.logger.warning(f"Failed to get stats: {e}")
+                return (None, None)
 
 
 def migrate_1(session, **kwargs):

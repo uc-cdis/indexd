@@ -161,3 +161,11 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         Returns the number of unique records stored by backend.
         """
         raise NotImplementedError("TODO")
+
+    @abc.abstractmethod
+    def get_stats(self, month=None, year=None):
+        """
+        Return pre-computed (record_count, total_bytes) for the given month/year.
+        Defaults to current month/year if not specified.
+        """
+        raise NotImplementedError("TODO")

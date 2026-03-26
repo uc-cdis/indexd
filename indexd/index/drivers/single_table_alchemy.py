@@ -28,7 +28,12 @@ from contextlib import contextmanager
 from indexd import auth
 from indexd.errors import UserError, AuthError
 from indexd.index.driver import IndexDriverABC
-from indexd.index.drivers.alchemy import IndexSchemaVersion, DrsBundleRecord
+from indexd.index.drivers.alchemy import (
+    IndexSchemaVersion,
+    DrsBundleRecord,
+    StatsRecord,
+    update_stats,
+)
 from indexd.index.errors import (
     MultipleRecordsFound,
     NoRecordFound,
@@ -481,6 +486,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     prefix = self.config["DEFAULT_PREFIX"]
                     record.alias = list(set([prefix + record.guid]))
                 session.add(record)
+                update_stats(session, 1, size)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound(
@@ -537,6 +543,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record.authz = authz
 
             session.add(record)
+            update_stats(session, 1, 0)
             session.commit()
 
             return record.guid, record.rev, record.baseid
@@ -604,6 +611,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record.updated_data = datetime.datetime.utcnow()
 
             session.add(record)
+            update_stats(session, 0, size)
             session.commit()
 
             return record.guid, record.rev, record.baseid
@@ -911,6 +919,10 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 if key not in composite_fields:
                     # No special logic needed for other updates.
                     # ie file_name, version, etc
+
+                    # update stats for a change in file size
+                    if key == "size":
+                        update_stats(session, 0, value - record.size)
                     setattr(record, key, value)
 
             record.rev = str(uuid.uuid4())[:8]
@@ -940,6 +952,9 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 raise RevisionMismatch("revision mismatch")
 
             auth.authorize("delete", record.authz)
+
+            size = record.size if record.size is not None else 0
+            update_stats(session, -1, -1 * size)
 
             session.delete(record)
 
@@ -1016,6 +1031,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 session.add(record)
+                update_stats(session, 1, record.size)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound("{guid} already exists".format(guid=guid))
@@ -1082,6 +1098,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 session.add(new_record)
+                update_stats(session, 1, 0)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound("{guid} already exists".format(guid=guid))
@@ -1245,6 +1262,34 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         """
         with self.session as session:
             return session.execute(select([func.count()]).select_from(Record)).scalar()
+
+    def get_stats(self, month=None, year=None):
+        now = datetime.datetime.now()
+
+        if month is None and year is None:
+            month = now.month
+            year = now.year
+
+        with self.session as session:
+            try:
+                stats = (
+                    session.query(StatsRecord)
+                    .filter(
+                        or_(
+                            and_(
+                                StatsRecord.month <= int(month),
+                                StatsRecord.year == int(year),
+                            ),
+                            StatsRecord.year < int(year),
+                        )
+                    )
+                    .order_by(StatsRecord.year.desc(), StatsRecord.month.desc())
+                    .first()
+                )
+                return (stats.total_record_count, stats.total_record_bytes)
+            except Exception as e:
+                self.logger.warning(f"Failed to get stats: {e}")
+                return (None, None)
 
     def add_bundle(
         self,
