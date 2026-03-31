@@ -234,8 +234,7 @@ def get_urls():
         size=size, ids=ids, hashes=hashes, start=start, limit=limit
     )
 
-    ret = {"urls": urls, "limit": limit,
-           "start": start, "size": size, "hashes": hashes}
+    ret = {"urls": urls, "limit": limit, "start": start, "size": size, "hashes": hashes}
 
     return flask.jsonify(ret), 200
 
@@ -350,8 +349,7 @@ def update_all_index_record_versions(record):
     acl = request_json.get("acl")
     authz = request_json.get("authz")
     # authorization and error handling done in driver
-    ret = blueprint.index_driver.update_all_versions(
-        record, acl=acl, authz=authz)
+    ret = blueprint.index_driver.update_all_versions(record, acl=acl, authz=authz)
 
     return flask.jsonify(ret), 200
 
@@ -362,13 +360,12 @@ def get_latest_index_record_versions(record):
     Get the latest record version
     """
     has_version = flask.request.args.get("has_version", "").lower() == "true"
-    ret = blueprint.index_driver.get_latest_version(
-        record, has_version=has_version)
+    ret = blueprint.index_driver.get_latest_version(record, has_version=has_version)
 
     return flask.jsonify(ret), 200
 
 
-# /index
+## /index
 
 
 @blueprint.route("/index/<path:record>", methods=["GET"])
@@ -415,8 +412,7 @@ def post_index_record():
         content_updated_date = content_created_date
 
     if content_updated_date is not None and content_created_date is None:
-        raise UserError(
-            "Cannot set content_updated_date without content_created_date")
+        raise UserError("Cannot set content_updated_date without content_created_date")
 
     if content_updated_date is not None and content_created_date is not None:
         if content_updated_date < content_created_date:
@@ -648,10 +644,10 @@ def stats():
         filecount, totalfilesize = blueprint.index_driver.get_stats()
     elif month is None or year is None:
         raise UserError(
-            "Please call this endpoint with both month/year or neither month/year")
+            "Please call this endpoint with both month/year or neither month/year"
+        )
     else:
-        filecount, totalfilesize = blueprint.index_driver.get_stats(
-            month, year)
+        filecount, totalfilesize = blueprint.index_driver.get_stats(month, year)
 
     base = {"fileCount": filecount, "totalFileSize": totalfilesize}
 
@@ -715,20 +711,17 @@ def post_bundle():
     name = flask.request.json.get("name")
     bundles = flask.request.json.get("bundles")
     bundle_id = flask.request.json.get("bundle_id")
-    size = flask.request.json.get(
-        "size") if flask.request.json.get("size") else 0
+    size = flask.request.json.get("size") if flask.request.json.get("size") else 0
     description = (
         flask.request.json.get("description")
         if flask.request.json.get("description")
         else ""
     )
     version = (
-        flask.request.json.get(
-            "version") if flask.request.json.get("version") else ""
+        flask.request.json.get("version") if flask.request.json.get("version") else ""
     )
     aliases = (
-        flask.request.json.get(
-            "aliases") if flask.request.json.get("aliases") else []
+        flask.request.json.get("aliases") if flask.request.json.get("aliases") else []
     )
 
     if len(bundles) == 0:
@@ -785,8 +778,7 @@ def get_bundle_record_list():
     """
 
     form = (
-        flask.request.args.get("form") if flask.request.args.get(
-            "form") else "bundle"
+        flask.request.args.get("form") if flask.request.args.get("form") else "bundle"
     )
 
     return get_index(form=form)
