@@ -26,6 +26,10 @@ tox:
     POSTGRES_USER: test
     POSTGRES_PASSWORD: test
     POSTGRES_HOST_AUTH_METHOD: trust
+  before_script:
+    - mkdir -p /usr/share/man/man1
+    - dnf -y install java-11-amazon-corretto-headless
+    - dnf upgrade wget
 
 .deploy-service-with-salt:
   before_script:
