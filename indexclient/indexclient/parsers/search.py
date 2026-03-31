@@ -1,12 +1,11 @@
 import sys
 import json
 import logging
-import argparse
 import warnings
 
 import requests
 
-from indexclient.indexclient import errors
+from .. import errors
 
 
 def search_record(host, port, limit, start, size, hashes, **kwargs):

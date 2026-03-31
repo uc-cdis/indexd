@@ -7,9 +7,18 @@ except ImportError:
 
 def test_import_index():
     """
-    Try to import the index package.
+    Try to import the indexclient packages.
     """
     import indexclient
+    import indexclient.indexclient
+    import indexclient.indexclient.client
+    import indexclient.indexclient.errors
+    import indexclient.indexclient.parsers
+    import indexclient.indexclient.parsers.info
+    import indexclient.indexclient.parsers.name
+    import indexclient.indexclient.parsers.retrieve
+    import indexclient.indexclient.parsers.search
+    import indexclient.indexclient.parsers.update
 
 
 @patch("indexclient.indexclient.client.handle_error")
