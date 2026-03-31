@@ -4,7 +4,7 @@ import warnings
 
 import requests
 
-from indexclient.indexclient.errors import BaseIndexError
+from .errors import BaseIndexError
 
 MAX_RETRIES = 10
 
