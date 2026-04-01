@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "wheel", "setuptools_scm>=7", "versionista>=1.1.0"]
+requires = ["setuptools>=61", "setuptools-scm>=7"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -90,8 +90,7 @@ known-first-party = ["indexd"]
 keep-runtime-typing = true
 
 [tool.setuptools_scm]
-local_scheme = "versionista-local-format"
-version_scheme = "versionista-format"
+fallback_version = "0.0.0"
 
 [[tool.uv.index]]
 name = "nexus"
