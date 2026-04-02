@@ -2,6 +2,8 @@ from .index.drivers.alchemy import SQLAlchemyIndexDriver
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
 from .index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
+from os import environ
+import json
 
 
 CONFIG = {}
@@ -83,11 +85,15 @@ CONFIG["DRS_SERVICE_INFO"] = {
     },
 }
 
-CONFIG["CLOUD_PROVIDER_MAP"] = {
-    "s3": "aws",
-    "gs": "gcp",
-    "az": "azure",
-}
+cloud_provider_map = environ.get("CLOUD_PROVIDER_MAP", None)
+if cloud_provider_map:
+    CONFIG["CLOUD_PROVIDER_MAP"] = json.loads(cloud_provider_map)
+else:
+    CONFIG["CLOUD_PROVIDER_MAP"] = {
+        "s3": "aws",
+        "gs": "gcp",
+        "az": "azure",
+    }
 
 AUTH = SQLAlchemyAuthDriver(
     "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
