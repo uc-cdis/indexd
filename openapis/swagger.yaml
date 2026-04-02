@@ -895,7 +895,7 @@ paths:
         - in: query
           name: month
           type: integer
-          description: Month for which data is to be returned.  (Either both month and year or neither must be provided)
+          description: Month for which data is to be returned. (Either both month and year or neither must be provided)
           required: false
         - in: query
           name: year
