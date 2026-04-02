@@ -2,13 +2,14 @@
 Util to reconcile the indexd stats table.
 
 Recomputes record count and total bytes from the index_record table
-and upserts the current month's StatsRecord row.  Logs the delta.
+and upserts the current month's StatsRecord row. Logs the delta.
 """
 
 import argparse
 import sys
 
 from cdislogging import get_logger
+from indexd.stats_table_migration import seed_stats
 
 logger = get_logger(__name__, log_level="info")
 
@@ -22,8 +23,6 @@ def main(path):
         from indexd.default_settings import settings
 
     driver = settings["config"]["INDEX"]["driver"]
-
-    from indexd.stats_table_migration import seed_stats
 
     with driver.session as session:
         count, total_bytes = seed_stats(session)
