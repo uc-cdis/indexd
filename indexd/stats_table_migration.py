@@ -7,32 +7,29 @@ Stats-seeding and reconciliation utilities for the indexd stats table.
 
 from datetime import datetime
 
+import sqlalchemy as sa
 from cdislogging import get_logger
 from sqlalchemy import and_, func
+
+from indexd.index.drivers.alchemy import IndexRecord, StatsRecord
 
 logger = get_logger(__name__)
 
 
 def seed_stats_from_connection(bind):
     """Seed the stats table, given a db connection."""
-    import sqlalchemy as sa
-
     now = datetime.now()
-    count = bind.execute(sa.text("SELECT COUNT(*) FROM index_record")).scalar() or 0
-    total = (
-        bind.execute(
-            sa.text("SELECT COALESCE(SUM(size), 0) FROM index_record")
-        ).scalar()
-        or 0
+    count = bind.execute(sa.text("SELECT COUNT(*) FROM index_record")).scalar()
+    total = bind.execute(
+        sa.text("SELECT COALESCE(SUM(size), 0) FROM index_record")
+    ).scalar()
+    bind.execute(
+        sa.text(
+            "INSERT INTO stats (total_record_count, total_record_bytes, month, year) "
+            "VALUES (:count, :total, :month, :year)"
+        ),
+        {"count": count, "total": total, "month": now.month, "year": now.year},
     )
-    if count > 0 or total > 0:
-        bind.execute(
-            sa.text(
-                "INSERT INTO stats (total_record_count, total_record_bytes, month, year) "
-                "VALUES (:count, :total, :month, :year)"
-            ),
-            {"count": count, "total": total, "month": now.month, "year": now.year},
-        )
     logger.info(
         "seed_stats: month=%d year=%d count=%d bytes=%d",
         now.month,
@@ -52,13 +49,9 @@ def seed_stats(session):
     Returns:
         Tuple of (record_count, total_bytes) that were written.
     """
-    from indexd.index.drivers.alchemy import IndexRecord, StatsRecord
-
     now = datetime.now()
-    count = session.query(func.count()).select_from(IndexRecord).scalar() or 0
-    total_bytes = (
-        session.query(func.coalesce(func.sum(IndexRecord.size), 0)).scalar() or 0
-    )
+    count = session.query(func.count()).select_from(IndexRecord).scalar()
+    total_bytes = session.query(func.coalesce(func.sum(IndexRecord.size), 0)).scalar()
 
     existing = (
         session.query(StatsRecord)
