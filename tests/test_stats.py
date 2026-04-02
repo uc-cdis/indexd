@@ -7,7 +7,6 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from unittest.mock import MagicMock
 
-import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
@@ -134,7 +133,7 @@ def test_concurrent_stat_updates(
     with ThreadPoolExecutor(max_workers=num_threads) as pool:
         futures = [pool.submit(worker) for _ in range(num_threads)]
         for f in as_completed(futures):
-            f.result()  # re-raise any exceptions
+            f.result()
 
     # Verify totals
     session = Session()
@@ -147,6 +146,46 @@ def test_concurrent_stat_updates(
     expected_bytes = baseline_bytes + (num_threads * increments_per_thread * 100)
     assert row.total_record_count == expected_count
     assert row.total_record_bytes == expected_bytes
+    session.close()
+    engine.dispose()
+
+
+def test_update_stats_carries_over_from_previous_month(
+    combined_default_and_single_table_settings,
+):
+    """
+    When update_stats() runs and the most recent stats row is from a previous
+    month, it should create a new row for the current month whose totals are
+    the previous row's totals + the new increment.
+    """
+    engine = create_engine(POSTGRES_CONNECTION)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    now = datetime.datetime.now()
+
+    session.add(
+        StatsRecord(
+            total_record_count=10,
+            total_record_bytes=1000,
+            month=1,
+            year=2000,
+        )
+    )
+    session.commit()
+
+    update_stats(session, 3, 300)
+    session.commit()
+
+    row = (
+        session.query(StatsRecord)
+        .filter(StatsRecord.month == now.month, StatsRecord.year == now.year)
+        .first()
+    )
+    assert row is not None
+    assert row.total_record_count == 13
+    assert row.total_record_bytes == 1300
+
     session.close()
     engine.dispose()
 
