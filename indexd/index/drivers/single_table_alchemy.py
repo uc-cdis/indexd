@@ -32,6 +32,7 @@ from indexd.index.drivers.alchemy import (
     IndexSchemaVersion,
     DrsBundleRecord,
     StatsRecord,
+    get_stats,
     update_stats,
 )
 from indexd.index.errors import (
@@ -486,7 +487,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     prefix = self.config["DEFAULT_PREFIX"]
                     record.alias = list(set([prefix + record.guid]))
                 session.add(record)
-                update_stats(session, 1, size)
+                update_stats(session, 1, size or 0)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound(
@@ -611,7 +612,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record.updated_data = datetime.datetime.utcnow()
 
             session.add(record)
-            update_stats(session, 0, size)
+            update_stats(session, 0, size or 0)
             session.commit()
 
             return record.guid, record.rev, record.baseid
@@ -919,10 +920,6 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 if key not in composite_fields:
                     # No special logic needed for other updates.
                     # ie file_name, version, etc
-
-                    # update stats for a change in file size
-                    if key == "size":
-                        update_stats(session, 0, value - record.size)
                     setattr(record, key, value)
 
             record.rev = str(uuid.uuid4())[:8]
@@ -1031,7 +1028,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 session.add(record)
-                update_stats(session, 1, record.size)
+                update_stats(session, 1, record.size or 0)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound("{guid} already exists".format(guid=guid))
@@ -1264,32 +1261,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             return session.execute(select([func.count()]).select_from(Record)).scalar()
 
     def get_stats(self, month=None, year=None):
-        now = datetime.datetime.now()
-
-        if month is None and year is None:
-            month = now.month
-            year = now.year
-
         with self.session as session:
-            try:
-                stats = (
-                    session.query(StatsRecord)
-                    .filter(
-                        or_(
-                            and_(
-                                StatsRecord.month <= int(month),
-                                StatsRecord.year == int(year),
-                            ),
-                            StatsRecord.year < int(year),
-                        )
-                    )
-                    .order_by(StatsRecord.year.desc(), StatsRecord.month.desc())
-                    .first()
-                )
-                return (stats.total_record_count, stats.total_record_bytes)
-            except Exception as e:
-                self.logger.warning(f"Failed to get stats: {e}")
-                return (None, None)
+            return get_stats(session, self.logger, month, year)
 
     def add_bundle(
         self,
