@@ -1,11 +1,9 @@
 import sys
 import json
-import logging
-import argparse
 
 import requests
 
-from indexclient.indexclient import errors
+from .. import errors
 
 
 def retrieve_record(host, port, did, **kwargs):

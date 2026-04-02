@@ -1,11 +1,10 @@
 import sys
 import json
-import argparse
 import warnings
 
 import requests
 
-from indexclient.indexclient import errors
+from .. import errors
 
 
 # DEPRECATED 11/2019 -- interacts with old `/alias/` endpoint.

@@ -1,10 +1,9 @@
 import sys
 import json
-import argparse
 
 import requests
 
-from indexclient.indexclient.errors import BaseIndexError
+from .. import errors
 
 
 def update_record(host, port, did, rev, size, hashes, urls, **kwargs):
