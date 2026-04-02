@@ -19,7 +19,6 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "stats",
-        sa.Column("sid", sa.BIGINT(), autoincrement=True, primary_key=True),
         sa.Column(
             "total_record_count", sa.BIGINT(), autoincrement=False, nullable=False
         ),
@@ -28,8 +27,8 @@ def upgrade() -> None:
         ),
         sa.Column("month", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.Column("year", sa.INTEGER(), autoincrement=False, nullable=False),
+        sa.PrimaryKeyConstraint("month", "year"),
     )
-    op.create_index("ix_stats_year_month", "stats", ["year", "month"])
 
     from indexd.stats_table_migration import seed_stats_from_connection
 
@@ -37,5 +36,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("ix_stats_year_month", table_name="stats")
     op.drop_table("stats")
