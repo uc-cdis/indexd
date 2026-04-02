@@ -1262,7 +1262,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
     def get_stats(self, month=None, year=None):
         with self.session as session:
-            return get_stats(session, self.logger, month, year)
+            return get_stats(session, month, year)
 
     def add_bundle(
         self,

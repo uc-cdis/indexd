@@ -376,7 +376,7 @@ def update_stats(session, additional_records, additional_bytes):
         session.add(new_record)
 
 
-def get_stats(session, logger, month=None, year=None):
+def get_stats(session, month=None, year=None):
     """
     Query the stats table for the most recent row on or before the given month/year.
 
@@ -1891,7 +1891,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     def get_stats(self, month=None, year=None):
         with self.session as session:
-            return get_stats(session, self.logger, month, year)
+            return get_stats(session, month, year)
 
 
 def migrate_1(session, **kwargs):
