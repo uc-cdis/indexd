@@ -7,6 +7,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from unittest.mock import MagicMock
 
+import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
@@ -18,6 +19,12 @@ from indexd.index.drivers.alchemy import (
 )
 from indexd.stats_table_migration import seed_stats, seed_stats_from_connection
 from tests.conftest import POSTGRES_CONNECTION
+
+
+@pytest.fixture
+def client(combined_default_and_single_table_settings):
+    """Override pytest-flask's client to use the parametrized app (multi-table or single-table)."""
+    return combined_default_and_single_table_settings.test_client()
 
 
 def get_doc(size=123):
