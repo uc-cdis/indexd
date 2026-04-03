@@ -340,6 +340,8 @@ def get_record_if_exists(did, session):
 
 
 def update_stats(session, additional_records, additional_bytes):
+    if additional_bytes is None:
+        additional_bytes = 0
     now = datetime.datetime.now()
 
     query = (
@@ -382,7 +384,6 @@ def get_stats(session, month=None, year=None):
 
     Args:
         session: SQLAlchemy ORM session.
-        logger: Logger instance.
         month: Month to query (defaults to current month).
         year: Year to query (defaults to current year).
 
@@ -410,6 +411,13 @@ def get_stats(session, month=None, year=None):
         .first()
     )
     if stats is None:
+        # This is the case where stats row exists.
+        # NOTE: The Alembic migration seeds the stats table automatically on first deploy,
+        # so this should be rare (e.g. a manual intervention).
+        # We COULD fall back to a COUNT(*)/SUM(size) on index_record (expensive)
+        # In this case fix the root cause by running the reconciliation command,
+        # which recomputes stats from index_record and backfills the stats table:
+        #   python bin/reconcile_stats.py
         return (0, 0)
     return (stats.total_record_count, stats.total_record_bytes)
 
@@ -870,7 +878,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
                 if self.config.get("ADD_PREFIX_ALIAS"):
                     self.add_prefix_alias(record, session)
-                update_stats(session, 1, size or 0)
+                update_stats(session, 1, size)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound(
@@ -1022,7 +1030,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             record.updated_date = datetime.datetime.utcnow()
 
             session.add(record)
-            update_stats(session, 0, size or 0)
+            update_stats(session, 0, size)
             session.commit()
 
             return record.did, record.rev, record.baseid
@@ -1493,7 +1501,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             try:
                 session.add(record)
                 create_urls_metadata(urls_metadata, record, session)
-                update_stats(session, 1, record.size or 0)
+                update_stats(session, 1, record.size)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound("{did} already exists".format(did=did))

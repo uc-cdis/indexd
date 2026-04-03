@@ -487,7 +487,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     prefix = self.config["DEFAULT_PREFIX"]
                     record.alias = list(set([prefix + record.guid]))
                 session.add(record)
-                update_stats(session, 1, size or 0)
+                update_stats(session, 1, size)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound(
@@ -612,7 +612,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             record.updated_data = datetime.datetime.utcnow()
 
             session.add(record)
-            update_stats(session, 0, size or 0)
+            update_stats(session, 0, size)
             session.commit()
 
             return record.guid, record.rev, record.baseid
@@ -1028,7 +1028,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 session.add(record)
-                update_stats(session, 1, record.size or 0)
+                update_stats(session, 1, record.size)
                 session.commit()
             except IntegrityError:
                 raise MultipleRecordsFound("{guid} already exists".format(guid=guid))

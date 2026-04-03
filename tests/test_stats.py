@@ -16,7 +16,7 @@ from indexd.index.drivers.alchemy import (
     StatsRecord,
     update_stats,
 )
-from indexd.stats_table_migration import seed_stats, seed_stats_from_connection
+from indexd.stats_utils import seed_stats, seed_stats_from_connection
 from tests.conftest import POSTGRES_CONNECTION
 
 

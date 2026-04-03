@@ -30,7 +30,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("month", "year"),
     )
 
-    from indexd.stats_table_migration import seed_stats_from_connection
+    from indexd.stats_utils import seed_stats_from_connection
 
     seed_stats_from_connection(op.get_bind())
 

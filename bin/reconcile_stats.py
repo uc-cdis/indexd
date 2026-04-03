@@ -9,7 +9,7 @@ import argparse
 import sys
 
 from cdislogging import get_logger
-from indexd.stats_table_migration import seed_stats
+from indexd.stats_utils import seed_stats
 
 logger = get_logger(__name__, log_level="info")
 
