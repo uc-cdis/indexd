@@ -279,6 +279,30 @@ _and/or_
 
 Similar to other Gen3 services, users must pass along their Access Token in the form of a JWT in the `Authorization` header of their request to the Indexd API. Indexd will check that the user is authorized for the items in the `authz` field by passing along your token and the action you're trying to do to the [Arborist](https://github.com/uc-cdis/arborist) service.
 
+## Stats Endpoint
+
+The `GET /_stats` endpoint returns pre-computed statistics (total file count and total file size) from a dedicated `stats` table. This avoids expensive full-table `COUNT(*)`/`SUM(size)` scans on the main `index_record` table.
+
+Stats are updated incrementally on every record create, update, or delete operation. The stats table also supports historical queries by month and year.
+
+**Usage:**
+
+```
+# Current month stats
+GET /_stats
+
+# Historical stats for a specific month
+GET /_stats?month=6&year=2025
+```
+
+Both `month` and `year` must be provided together, or neither. Providing only one returns a 400 error.
+
+**Reconciliation:** If stats drift from the actual data (e.g., due to manual database edits), use the reconciliation command to recompute stats:
+
+```bash
+python bin/reconcile_stats.py
+```
+
 ## Standards and Governance
 
 CTDS (maintainers of Indexd) are working with the not-for-profit Open Commons Consortium to assign Data GUID Prefixes to organizations that would like to run a Data GUID service.

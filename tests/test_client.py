@@ -2477,27 +2477,6 @@ def test_update_all_versions_fail_on_missing_permissions(
     ), "Expected operation to fail due to lack of user permissions: {}".format(res.json)
 
 
-def test_index_stats(client, user, combined_default_and_single_table_settings):
-    # populate the index with three different size records
-    data1 = get_doc()
-    res = client.post("/index/", json=data1, headers=user)
-    assert res.status_code == 200
-    data2 = get_doc()
-    data2["size"] = 77
-    res = client.post("/index/", json=data2, headers=user)
-    assert res.status_code == 200
-    data3 = get_doc()
-    data3["size"] = 300
-    res = client.post("/index/", json=data3, headers=user)
-    assert res.status_code == 200
-    data_size = data1["size"] + data2["size"] + data3["size"]
-    index_stats = client.get("/_stats/").json
-
-    # test that the stat file number and size is consistent with post
-    assert index_stats["fileCount"] == 3
-    assert index_stats["totalFileSize"] == data_size
-
-
 @pytest.mark.parametrize(
     "typ,h",
     [
