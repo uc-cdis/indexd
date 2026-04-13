@@ -8,6 +8,8 @@ Create Date: 2024-05-15 23:06:19.088629
 from alembic import op
 import sqlalchemy as sa
 
+from indexd.stats_utils import seed_stats_from_connection
+
 
 # revision identifiers, used by Alembic.
 revision = "9a2169051163"
@@ -29,8 +31,6 @@ def upgrade() -> None:
         sa.Column("year", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.PrimaryKeyConstraint("month", "year"),
     )
-
-    from indexd.stats_utils import seed_stats_from_connection
 
     seed_stats_from_connection(op.get_bind())
 

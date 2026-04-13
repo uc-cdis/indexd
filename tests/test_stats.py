@@ -327,6 +327,32 @@ def test_historical_gap_query(client, combined_default_and_single_table_settings
     assert data["totalFileSize"] == 5000
 
 
+def test_query_before_first_row(client, combined_default_and_single_table_settings):
+    """
+    Insert a stats row for 2020. Querying for 2010 should return counts of 0.
+    """
+    engine = create_engine(POSTGRES_CONNECTION)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    session.add(
+        StatsRecord(
+            total_record_count=50,
+            total_record_bytes=5000,
+            month=1,
+            year=2020,
+        )
+    )
+    session.commit()
+    session.close()
+    engine.dispose()
+
+    res = client.get("/_stats/?month=2&year=2010")
+    assert res.status_code == 200
+    data = res.json
+    assert data["fileCount"] == 0
+    assert data["totalFileSize"] == 0
+
+
 def test_query_requires_both_month_and_year(
     client, combined_default_and_single_table_settings
 ):

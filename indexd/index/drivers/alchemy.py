@@ -411,7 +411,7 @@ def get_stats(session, month=None, year=None):
         .first()
     )
     if stats is None:
-        # NOTE: This is the case where stats no row exists.
+        # NOTE: This is the case where no stats row exists.
         # This can happen when querying a historical period before the earliest stats row
         # (e.g. stats table was seeded in 2025 but the caller queries for 2020), or if the
         # table is empty (e.g. seed migration hasn't run or table was manually cleared).
