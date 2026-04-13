@@ -411,11 +411,12 @@ def get_stats(session, month=None, year=None):
         .first()
     )
     if stats is None:
-        # This is the case where stats row exists.
-        # NOTE: The Alembic migration seeds the stats table automatically on first deploy,
-        # so this should be rare (e.g. a manual intervention).
-        # We COULD fall back to a COUNT(*)/SUM(size) on index_record (expensive)
-        # In this case fix the root cause by running the reconciliation command,
+        # NOTE: This is the case where stats no row exists.
+        # This can happen when querying a historical period before the earliest stats row
+        # (e.g. stats table was seeded in 2025 but the caller queries for 2020), or if the
+        # table is empty (e.g. seed migration hasn't run or table was manually cleared).
+        #
+        # If manual intervention is needed, re-seed the reconciliation command,
         # which recomputes stats from index_record and backfills the stats table:
         #   python bin/reconcile_stats.py
         return (0, 0)
