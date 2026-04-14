@@ -2,6 +2,7 @@ import os
 import re
 import flask
 import json
+from cdislogging import get_logger
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
@@ -9,18 +10,21 @@ from indexd.errors import IndexdUnexpectedError
 from indexd.utils import reverse_url, lookup_bucket_region, get_bucket_regions
 from flask import current_app as app
 
+logger = get_logger(__name__)
+
 blueprint = flask.Blueprint("drs", __name__)
 
 blueprint.config = dict()
 blueprint.index_driver = None
 blueprint.service_info = {}
 blueprint.cloud_provider_map = {}
+blueprint.max_bulk_request_length = 100
 
 
 @blueprint.route("/ga4gh/drs/v1/service-info", methods=["GET"])
 def get_drs_service_info():
     """
-    Returns DRS compliant service information
+    Returns DRS 1.5 compliant service information
     """
 
     reverse_domain_name = reverse_url(url=os.environ["HOSTNAME"])
@@ -28,11 +32,11 @@ def get_drs_service_info():
     ret = {
         "id": reverse_domain_name,
         "name": "DRS System",
-        "version": "1.0.3",
+        "version": "1.5.0",
         "type": {
             "group": "org.ga4gh",
             "artifact": "drs",
-            "version": "1.0.3",
+            "version": "1.5.0",
         },
         "organization": {
             "name": "CTDS",
@@ -40,6 +44,7 @@ def get_drs_service_info():
         },
     }
 
+    # Merge config overrides (e.g. from DRS_SERVICE_INFO env var)
     if blueprint.service_info:
         for key, value in blueprint.service_info.items():
             if key in ret:
@@ -48,6 +53,30 @@ def get_drs_service_info():
                         ret[key][inner_key] = inner_value
                 else:
                     ret[key] = value
+
+    # Fetch stats from stats table
+    object_count = None
+    total_object_size = None
+    try:
+        object_count, total_object_size = blueprint.index_driver.get_stats()
+    except Exception as e:
+        logger.warning(f"Could not retrieve stats for service-info response: {e}")
+
+    # Build drs sub-object
+    max_bulk = blueprint.max_bulk_request_length
+
+    drs_info = {
+        "maxBulkRequestLength": max_bulk,
+    }
+    if object_count is not None:
+        drs_info["objectCount"] = object_count
+    if total_object_size is not None:
+        drs_info["totalObjectSize"] = total_object_size
+
+    ret["drs"] = drs_info
+
+    # Backward compat: root-level maxBulkRequestLength (deprecated in DRS 1.5)
+    ret["maxBulkRequestLength"] = max_bulk
 
     return flask.jsonify(ret), 200
 
@@ -416,8 +445,14 @@ def get_config(setup_state):
     if "DRS_SERVICE_INFO" in setup_state.app.config:
         blueprint.service_info = setup_state.app.config["DRS_SERVICE_INFO"]
 
-
 @blueprint.record
 def get_config(setup_state):
     if "CLOUD_PROVIDER_MAP" in setup_state.app.config:
         blueprint.cloud_provider_map = setup_state.app.config["CLOUD_PROVIDER_MAP"]
+
+
+@blueprint.record
+def get_bulk_config(setup_state):
+    blueprint.max_bulk_request_length = setup_state.app.config.get(
+        "MAX_BULK_REQUEST_LENGTH", 100
+    )
