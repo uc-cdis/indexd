@@ -1,11 +1,9 @@
 import flask
-import json
 
-import tests.conftest
-import requests
 import responses
 from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
+
 from unittest.mock import patch
 from indexd.utils import lookup_bucket_region
 from flask import current_app
@@ -34,12 +32,16 @@ def get_doc(
     has_description=True,
     has_content_created_date=True,
     has_content_updated_date=True,
+    authz: str | None = None,
 ):
+    if authz is None:
+        authz = "/gen3/programs/a/projects/b"
     doc = {
         "form": "object",
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "authz": [authz],
     }
     if has_version:
         doc["version"] = "1"
@@ -454,3 +456,58 @@ def test_bucket_region_in_drs_object(client, user):
         assert "s3://my-test-bucket/path/to/file" in region_map
         assert region_map["s3://my-test-bucket/path/to/file"] == "us-east-1"
     current_app.cache.clear()
+
+
+def test_auth_options(client, user, combined_default_and_single_table_settings):
+    """Tests that OPTIONS endpoint returns expected static return after successful authz lookup"""
+
+    print("=== beginning of test === ")
+    # Get test set-up doc, doc did, and define expected info
+    data = get_doc()
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    expected_info = {
+        "drs_object_id": doc_did,
+        "bearer_auth_issuers": ["https://gen3.datacommons.io"],
+        "passport_auth_issuers": ["https://ras/foo/bar"],
+        "supported_types": ["BearerAuth", "PassportAuth"],
+    }
+
+    # Call OPTIONS endpoint
+    print("~~ BEFORE")
+    res_1 = client.options(
+        "ga4gh/drs/v1/options/objects/" + doc_did
+    )  # test a (add 'options' to URL)
+    # res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did) # test b (same URL)
+    print("~~ AFTER")
+
+    # Check that response has expected results
+    print("=== end of test prints === ")
+    assert res_1.json is not None
+    assert res_1.status_code == 200
+    assert res_1.json == expected_info
+    # assert 'a' == 'b' # force failure
+
+
+def test_auth_options_index_not_found(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that OPTIONS endpoint returns appropriate 'index not found' error when appropriate"""
+
+    # Check that OPTIONS call fails as index cannot be found
+    doc_did = "unknownguid"
+    res_1 = client.options("ga4gh/drs/v1/options/objects/" + doc_did)
+    assert res_1._status_code == 404
+    assert res_1.json["status_code"] == 404
+
+
+def test_auth_options_unexpected_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that OPTIONS endpoint returns approproate 'unexpected error' message when
+    an unexpected error occurs"""
+
+    # Check that OPTIONS call with unexpected error (object id is valid, but path is invalid)
+    data = get_doc(authz="unknown/path")
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    res_1 = client.options("ga4gh/drs/v1/options/objects/" + doc_did)
+    assert res_1._status_code == 500

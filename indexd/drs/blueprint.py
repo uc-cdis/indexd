@@ -66,6 +66,38 @@ def get_drs_object(object_id):
     return flask.jsonify(data), 200
 
 
+@blueprint.route(
+    "/ga4gh/drs/v1/options/objects/<path:object_id>", methods=["OPTIONS"]
+)  # test a (add 'options' to URL)
+def get_drs_object_options(object_id):
+    """
+    Returns a specific DRSobject metadata with object_id
+    # @blueprint.route("/ga4gh/drs/v1/options/objects/<path:object_id>", methods=["OPTIONS"]) # test a (add 'options' to URL)
+    @blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["OPTIONS"]) #test b: same URL
+    """
+    print("- inside options... ")
+    # Get authz based on guid
+    try:
+        ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
+        authz = ret["authz"][0]
+    except IndexNoRecordFound as err:
+        return handle_no_index_record_error(err)
+
+    # Get static authz metadata based on blueprint
+    try:
+        # Get static authz metadata
+        authz_metadata = blueprint.drs_authorization_metadata
+        # If static match detected, update with object id
+        if authz in authz_metadata.keys():
+            authz_metadata[authz].update({"drs_object_id": object_id})
+            return flask.jsonify(authz_metadata[authz]), 200
+        return flask.jsonify(data), 200
+
+    # Otherwise return unexpected error
+    except IndexdUnexpectedError as err:
+        return handle_unexpected_error(err)
+
+
 @blueprint.route("/ga4gh/drs/v1/objects", methods=["GET"])
 def list_drs_records():
     limit = flask.request.args.get("limit")
@@ -143,9 +175,7 @@ def indexd_to_drs(record, expand=False):
     did = (
         record["id"]
         if "id" in record
-        else record["did"]
-        if "did" in record
-        else record["bundle_id"]
+        else record["did"] if "did" in record else record["bundle_id"]
     )
 
     self_uri = create_drs_uri(did)
@@ -159,9 +189,7 @@ def indexd_to_drs(record, expand=False):
     version = (
         record["version"]
         if "version" in record
-        else record["rev"]
-        if "rev" in record
-        else ""
+        else record["rev"] if "rev" in record else ""
     )
 
     index_updated_time = (
@@ -179,9 +207,7 @@ def indexd_to_drs(record, expand=False):
     alias = (
         record["alias"]
         if "alias" in record
-        else json.loads(record["aliases"])
-        if "aliases" in record
-        else []
+        else json.loads(record["aliases"]) if "aliases" in record else []
     )
 
     bucket_regions = get_bucket_regions()
@@ -279,9 +305,7 @@ def bundle_to_drs(record, expand=False, is_content=False):
     did = (
         record["id"]
         if "id" in record
-        else record["did"]
-        if "did" in record
-        else record["bundle_id"]
+        else record["did"] if "did" in record else record["bundle_id"]
     )
 
     drs_uri = create_drs_uri(did)
@@ -298,9 +322,7 @@ def bundle_to_drs(record, expand=False, is_content=False):
     contents = (
         record["contents"]
         if "contents" in record
-        else record["bundle_data"]
-        if "bundle_data" in record
-        else []
+        else record["bundle_data"] if "bundle_data" in record else []
     )
 
     if not expand and isinstance(contents, list):
@@ -316,16 +338,12 @@ def bundle_to_drs(record, expand=False, is_content=False):
         aliases = (
             record["alias"]
             if "alias" in record
-            else json.loads(record["aliases"])
-            if "aliases" in record
-            else []
+            else json.loads(record["aliases"]) if "aliases" in record else []
         )
         version = (
             record["version"]
             if "version" in record
-            else record["rev"]
-            if "rev" in record
-            else ""
+            else record["rev"] if "rev" in record else ""
         )
         # version = record["version"] if "version" in record else ""
         drs_object["checksums"] = parse_checksums(record, drs_object)
@@ -409,12 +427,12 @@ def handle_unexpected_error(err):
 def get_config(setup_state):
     index_config = setup_state.app.config["INDEX"]
     blueprint.index_driver = index_config["driver"]
-
-
-@blueprint.record
-def get_config(setup_state):
     if "DRS_SERVICE_INFO" in setup_state.app.config:
         blueprint.service_info = setup_state.app.config["DRS_SERVICE_INFO"]
+    if "DRS_AUTHORIZATION_METADATA" in setup_state.app.config:
+        blueprint.drs_authorization_metadata = setup_state.app.config[
+            "DRS_AUTHORIZATION_METADATA"
+        ]
 
 
 @blueprint.record
