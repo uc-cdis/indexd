@@ -553,7 +553,6 @@ def test_bulk_auth_options_unexpected_error(
 
 def test_auth_options(client, user, combined_default_and_single_table_settings):
     """Tests that OPTIONS endpoint returns expected static return after successful authz lookup"""
-
     # Get test set-up doc, doc did, and define expected info
     data = get_doc()
     doc_did = client.post("/index", json=data, headers=user).json["did"]
@@ -563,12 +562,8 @@ def test_auth_options(client, user, combined_default_and_single_table_settings):
         "passport_auth_issuers": ["https://ras/foo/bar"],
         "supported_types": ["BearerAuth", "PassportAuth"],
     }
-
     # Call OPTIONS endpoint
-    res_1 = client.options(
-        "ga4gh/drs/v1/options/objects/" + doc_did
-    )  # test a (add 'options' to URL)
-    # res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did) # test b (same URL)
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
 
     # Check that response has expected results
     assert res_1.json is not None
@@ -580,10 +575,9 @@ def test_auth_options_index_not_found(
     client, user, combined_default_and_single_table_settings
 ):
     """Tests that OPTIONS endpoint returns appropriate 'index not found' error when appropriate"""
-
     # Check that OPTIONS call fails as index cannot be found
     doc_did = "unknownguid"
-    res_1 = client.options("ga4gh/drs/v1/options/objects/" + doc_did)
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
     assert res_1._status_code == 404
     assert res_1.json["status_code"] == 404
 
@@ -593,9 +587,8 @@ def test_auth_options_unexpected_error(
 ):
     """Tests that OPTIONS endpoint returns approproate 'unexpected error' message when
     an unexpected error occurs"""
-
     # Check that OPTIONS call with unexpected error (object id is valid, but path is invalid)
     data = get_doc(authz="unknown/path")
     doc_did = client.post("/index", json=data, headers=user).json["did"]
-    res_1 = client.options("ga4gh/drs/v1/options/objects/" + doc_did)
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
     assert res_1._status_code == 500
