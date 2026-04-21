@@ -9,6 +9,7 @@ from tests.test_bundles import get_bundle_doc
 from unittest.mock import patch
 from indexd.utils import lookup_bucket_region
 from flask import current_app
+from indexd.drs.blueprint import blueprint as drs_blueprint
 
 
 def generate_presigned_url_response(did, status=200, **query_params):
@@ -358,51 +359,43 @@ def test_get_drs_with_encoded_slash(
 
 def test_drs_service_info_endpoint(client, combined_default_and_single_table_settings):
     """
-    Test drs service endpoint with drs service info friendly distribution information
+    Test drs service endpoint returns DRS 1.5 compliant response
     """
     app = flask.Flask(__name__)
-
-    expected_info = {
-        "id": "io.fictitious-commons",
-        "name": "DRS System",
-        "type": {
-            "group": "org.ga4gh",
-            "artifact": "drs",
-            "version": "1.0.3",
-        },
-        "version": "1.0.3",
-        "organization": {
-            "name": "CTDS",
-            "url": "https://fictitious-commons.io",
-        },
-    }
 
     res = client.get("/ga4gh/drs/v1/service-info")
 
     assert res.status_code == 200
-    assert res.json == expected_info
+    data = res.json
+
+    assert data["id"] == "io.fictitious-commons"
+    assert data["name"] == "DRS System"
+    assert data["type"]["group"] == "org.ga4gh"
+    assert data["type"]["artifact"] == "drs"
+    assert data["type"]["version"] == "1.5.0"
+    assert data["version"] == "1.5.0"
+    assert data["organization"]["name"] == "CTDS"
+    assert data["organization"]["url"] == "https://fictitious-commons.io"
+
+    assert "drs" in data
+    assert "maxBulkRequestLength" in data["drs"]
+    assert isinstance(data["drs"]["maxBulkRequestLength"], int)
+    assert data["drs"]["maxBulkRequestLength"] > 0
+    assert data["maxBulkRequestLength"] == data["drs"]["maxBulkRequestLength"]
+
+    assert "objectCount" in data["drs"]
+    assert isinstance(data["drs"]["objectCount"], int)
+    assert "totalObjectSize" in data["drs"]
+    assert isinstance(data["drs"]["totalObjectSize"], int)
 
 
 def test_drs_service_info_no_information_configured(
     client, combined_default_and_single_table_settings
 ):
     """
-    Test drs service info endpoint when dist is not configured in the indexd config file
+    Test drs service info endpoint when DRS_SERVICE_INFO is not configured.
+    Should still return DRS 1.5 compliant response with hardcoded defaults.
     """
-    expected_info = {
-        "id": "io.fictitious-commons",
-        "name": "DRS System",
-        "type": {
-            "group": "org.ga4gh",
-            "artifact": "drs",
-            "version": "1.0.3",
-        },
-        "version": "1.0.3",
-        "organization": {
-            "name": "CTDS",
-            "url": "https://fictitious-commons.io",
-        },
-    }
     backup = settings["config"]["DRS_SERVICE_INFO"].copy()
 
     try:
@@ -411,9 +404,69 @@ def test_drs_service_info_no_information_configured(
         res = client.get("/ga4gh/drs/v1/service-info")
 
         assert res.status_code == 200
-        assert res.json == expected_info
+        data = res.json
+
+        assert data["id"] == "io.fictitious-commons"
+        assert data["name"] == "DRS System"
+        assert data["type"]["artifact"] == "drs"
+        assert data["type"]["version"] == "1.5.0"
+        assert data["version"] == "1.5.0"
+
+        assert "drs" in data
+        assert "maxBulkRequestLength" in data["drs"]
+        assert data["maxBulkRequestLength"] == data["drs"]["maxBulkRequestLength"]
     finally:
         settings["config"]["DRS_SERVICE_INFO"] = backup
+
+
+def test_service_info_stats_reflect_records(
+    client, user, combined_default_and_single_table_settings
+):
+    """
+    Test that service-info objectCount and totalObjectSize reflect actual records.
+    After creating records, stats should increase accordingly.
+    """
+    # Get baseline stats
+    res = client.get("/ga4gh/drs/v1/service-info")
+    assert res.status_code == 200
+    baseline_count = res.json["drs"]["objectCount"]
+    baseline_size = res.json["drs"]["totalObjectSize"]
+
+    # Create two records
+    doc1 = get_doc()  # size=123
+    doc2 = get_doc()  # size=123
+    res1 = client.post("/index/", json=doc1, headers=user)
+    assert res1.status_code == 200
+    res2 = client.post("/index/", json=doc2, headers=user)
+    assert res2.status_code == 200
+
+    # Verify stats increased
+    res = client.get("/ga4gh/drs/v1/service-info")
+    assert res.status_code == 200
+    data = res.json
+    assert data["drs"]["objectCount"] == baseline_count + 2
+    assert data["drs"]["totalObjectSize"] == baseline_size + 123 + 123
+
+
+def test_service_info_custom_bulk_limit(
+    client, combined_default_and_single_table_settings
+):
+    """
+    Test that modifying max_bulk_request_length on the blueprint is reflected
+    in both drs.maxBulkRequestLength and root maxBulkRequestLength.
+    """
+    original = drs_blueprint.max_bulk_request_length
+    try:
+        drs_blueprint.max_bulk_request_length = 42
+
+        res = client.get("/ga4gh/drs/v1/service-info")
+        assert res.status_code == 200
+        data = res.json
+
+        assert data["drs"]["maxBulkRequestLength"] == 42
+        assert data["maxBulkRequestLength"] == 42
+    finally:
+        drs_blueprint.max_bulk_request_length = original
 
 
 def test_bucket_region_lookup():

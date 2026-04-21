@@ -16,9 +16,9 @@ CONFIG["DRS_SERVICE_INFO"] = {
     "type": {
         "group": "org.ga4gh",
         "artifact": "drs",
-        "version": "1.0.3",
+        "version": "1.5.0",
     },
-    "version": "1.0.3",
+    "version": "1.5.0",
     "organization": {
         "name": "CTDS",
         "url": "https://fictitious-commons.io",

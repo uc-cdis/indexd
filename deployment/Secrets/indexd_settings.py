@@ -35,6 +35,10 @@ drs_service_info = environ.get("DRS_SERVICE_INFO", None)
 if drs_service_info:
     CONFIG["DRS_SERVICE_INFO"] = json.loads(drs_service_info)
 
+max_bulk = environ.get("MAX_BULK_REQUEST_LENGTH", None)
+if max_bulk:
+    CONFIG["MAX_BULK_REQUEST_LENGTH"] = int(max_bulk)
+
 if USE_SINGLE_TABLE is True:
     CONFIG["INDEX"] = {
         "driver": SingleTableSQLAlchemyIndexDriver(
