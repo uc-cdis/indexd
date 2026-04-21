@@ -3,6 +3,13 @@ import flask
 import responses
 from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
+import json
+import requests
+import tests.conftest
+from indexd.index.errors import NoRecordFound as IndexNoRecordFound
+from indexd.errors import IndexdUnexpectedError
+import pytest
+
 
 from unittest.mock import patch
 from flask import current_app
@@ -417,10 +424,136 @@ def test_drs_service_info_no_information_configured(
         settings["config"]["DRS_SERVICE_INFO"] = backup
 
 
+def test_bulk_auth_options(client, user, combined_default_and_single_table_settings):
+    """Tests that bulk OPTIONS endpoint returns expected static return after successful authz lookup"""
+
+    # Get test set-up docs, dids from those docs, & define expected info
+    dids = [
+        client.post("/index/", json=get_doc(), headers=user).json["did"]
+        for _ in range(3)
+    ]
+    # Define expected results
+    resolved_drs_objects = []
+    for did in dids:
+        resolved_drs_objects.append(
+            {
+                "drs_object_id": did,
+                "bearer_auth_issuers": ["https://gen3.datacommons.io"],
+                "passport_auth_issuers": ["https://ras/foo/bar"],
+                "supported_types": ["BearerAuth", "PassportAuth"],
+            }
+        )
+    expected_json = {
+        "summary": {"requested": 3, "resolved": 3, "unresolved": 0},
+        "unresolved_drs_objects": [],
+        "resolved_drs_objects": resolved_drs_objects,
+    }
+
+    # Call bulk options
+    data = {"bulk_object_ids": dids}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Define expected results
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    assert (
+        test_json["unresolved_drs_objects"] == expected_json["unresolved_drs_objects"]
+    )
+    assert test_json["resolved_drs_objects"] == expected_json["resolved_drs_objects"]
+    assert res_1.status_code == 200
+
+
+def test_bulk_auth_options_index_not_found(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk OPTIONS endpoint returns expected static return after one index not found"""
+
+    # Get test set-up docs, dids from those docs, & define expected info
+    dids = [
+        client.post("/index/", json=get_doc(), headers=user).json["did"]
+        for _ in range(2)
+    ]
+    # Define expected results
+    resolved_drs_objects = []
+    for did in dids:
+        resolved_drs_objects.append(
+            {
+                "drs_object_id": did,
+                "bearer_auth_issuers": ["https://gen3.datacommons.io"],
+                "passport_auth_issuers": ["https://ras/foo/bar"],
+                "supported_types": ["BearerAuth", "PassportAuth"],
+            }
+        )
+    invalid_guid = "testprefix/invalid123"
+    expected_json = {
+        "summary": {"requested": 3, "resolved": 2, "unresolved": 1},
+        "unresolved_drs_objects": [{"error_code": 404, "object_ids": [invalid_guid]}],
+        "resolved_drs_objects": resolved_drs_objects,
+    }
+
+    dids.append(invalid_guid)  # Add 1 invalid guid for the unresolved case
+
+    # Call bulk options
+    data = {"bulk_object_ids": dids}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Define expected results
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    assert (
+        test_json["unresolved_drs_objects"] == expected_json["unresolved_drs_objects"]
+    )
+    assert test_json["resolved_drs_objects"] == expected_json["resolved_drs_objects"]
+    assert res_1.status_code == 200
+
+
+def test_bulk_auth_options_unexpected_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk OPTIONS endpoint returns expected static return after unexpected error"""
+
+    # Get test set-up docs, dids from those docs, & define expected info
+    # Define one resolvable doc
+    data_one = get_doc()
+    doc_did_one = client.post("/index", json=data_one, headers=user).json["did"]
+    # Define unresolved doc
+    data_two = get_doc(authz="unknown/path")
+    doc_did_two = client.post("/index", json=data_two, headers=user).json["did"]
+    # Define test dids list
+    dids = [doc_did_one, doc_did_two]
+
+    # Define expected results
+    resolved_drs_objects = [
+        {
+            "drs_object_id": doc_did_one,
+            "bearer_auth_issuers": ["https://gen3.datacommons.io"],
+            "passport_auth_issuers": ["https://ras/foo/bar"],
+            "supported_types": ["BearerAuth", "PassportAuth"],
+        }
+    ]
+    expected_json = {
+        "summary": {"requested": 2, "resolved": 1, "unresolved": 1},
+        "unresolved_drs_objects": [{"error_code": 500, "object_ids": [doc_did_two]}],
+        "resolved_drs_objects": resolved_drs_objects,
+    }
+
+    # Call bulk options
+    data = {"bulk_object_ids": dids}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Define expected results
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    assert (
+        test_json["unresolved_drs_objects"] == expected_json["unresolved_drs_objects"]
+    )
+    assert test_json["resolved_drs_objects"] == expected_json["resolved_drs_objects"]
+    assert res_1.status_code == 200
+
+
 def test_auth_options(client, user, combined_default_and_single_table_settings):
     """Tests that OPTIONS endpoint returns expected static return after successful authz lookup"""
 
-    print("=== beginning of test === ")
     # Get test set-up doc, doc did, and define expected info
     data = get_doc()
     doc_did = client.post("/index", json=data, headers=user).json["did"]
@@ -432,15 +565,12 @@ def test_auth_options(client, user, combined_default_and_single_table_settings):
     }
 
     # Call OPTIONS endpoint
-    print("~~ BEFORE")
     res_1 = client.options(
         "ga4gh/drs/v1/options/objects/" + doc_did
     )  # test a (add 'options' to URL)
     # res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did) # test b (same URL)
-    print("~~ AFTER")
 
     # Check that response has expected results
-    print("=== end of test prints === ")
     assert res_1.json is not None
     assert res_1.status_code == 200
     assert res_1.json == expected_info

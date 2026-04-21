@@ -2,6 +2,7 @@ import os
 import re
 import flask
 import json
+from indexd.bulk.blueprint import bulk_get_documents
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
@@ -52,7 +53,11 @@ def get_drs_service_info():
     return flask.jsonify(ret), 200
 
 
-@blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["GET"])
+@blueprint.route(
+    "/ga4gh/drs/v1/objects/<path:object_id>",
+    methods=["GET"],
+    provide_automatic_options=False,
+)
 def get_drs_object(object_id):
     """
     Returns a specific DRSobject with object_id
@@ -66,14 +71,10 @@ def get_drs_object(object_id):
     return flask.jsonify(data), 200
 
 
-@blueprint.route(
-    "/ga4gh/drs/v1/options/objects/<path:object_id>", methods=["OPTIONS"]
-)  # test a (add 'options' to URL)
+@blueprint.route("/ga4gh/drs/v1/options/objects/<path:object_id>", methods=["OPTIONS"])
 def get_drs_object_options(object_id):
     """
     Returns a specific DRSobject metadata with object_id
-    # @blueprint.route("/ga4gh/drs/v1/options/objects/<path:object_id>", methods=["OPTIONS"]) # test a (add 'options' to URL)
-    @blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["OPTIONS"]) #test b: same URL
     """
     # Get authz based on guid
     try:
@@ -85,18 +86,22 @@ def get_drs_object_options(object_id):
     # Get static authz metadata based on blueprint
     try:
         # Get static authz metadata
-        authz_metadata = blueprint.drs_authorization_metadata
-        # If static match detected, update with object id
-        if authz in authz_metadata.keys():
-            authz_metadata[authz].update({"drs_object_id": object_id})
-            return flask.jsonify(authz_metadata[authz]), 200
+        authz_metadata = copy.deepcopy(blueprint.drs_authorization_metadata)
+        # Return unexpcted error if static match not detected
+        if authz not in authz_metadata.keys():
+            return handle_unexpected_error(IndexdUnexpectedError)
+        # Otherwise, match exists & we can updated with object id
+        authz_metadata[authz].update({"drs_object_id": object_id})
+        return flask.jsonify(authz_metadata[authz]), 200
 
-    # Otherwise return unexpected error
+    # Return unexpected error if error thrown earlier in process
     except IndexdUnexpectedError as err:
         return handle_unexpected_error(err)
 
 
-@blueprint.route("/ga4gh/drs/v1/objects", methods=["GET"])
+@blueprint.route(
+    "/ga4gh/drs/v1/objects", methods=["GET"], provide_automatic_options=False
+)
 def list_drs_records():
     limit = flask.request.args.get("limit")
     start = flask.request.args.get("start")
@@ -133,6 +138,81 @@ def list_drs_records():
     }
 
     return flask.jsonify(ret), 200
+
+
+@blueprint.route("/ga4gh/drs/v1/objects", methods=["OPTIONS"])
+def list_drs_records_options():
+    """Returns OPTIONS metadata for each provided DRS object
+    dids: list of str object ids (ex. ['123','456'])"""
+
+    # Get data from json body
+    data = flask.request.get_json(force=True)
+    # Prepare return defaults
+    total_requested = len(data["bulk_object_ids"])
+    summary = {
+        "requested": total_requested,
+        "resolved": 0,
+        "unresolved": total_requested,  # nothing is resolved at the start
+    }
+    unresolved_drs_objects = []
+    resolved_drs_objects = []
+    missing_error_guids = []  # 404
+    unexpected_error_guids = []  # 500
+
+    # Return unexpected error if unhandled issue encountered...
+    try:
+        # Bulk retrieve docs from id list
+        id_list = data["bulk_object_ids"]
+        docs = blueprint.index_driver.get_bulk(id_list)
+        doc_dids = [doc["did"] for doc in docs]
+
+        # Annotate if an original id(s) is not returned in bulk call (record as unresolved, index not found)
+        for i in id_list:
+            if i not in doc_dids:
+                missing_error_guids.append(i)
+        # Check the authz for each returned object:
+        resolved_count = 0
+        for doc in docs:
+            try:
+                # Get static authz metadata and confirm info matches
+                authz = doc["authz"][0]
+                authz_metadata = copy.deepcopy(blueprint.drs_authorization_metadata)
+                # If static match not confirmed, record as unexpected error & continue to next
+                if authz not in authz_metadata.keys():
+                    unexpected_error_guids.append(doc["did"])
+                    continue
+                # otherwise update with object id and save info for return
+                authz_metadata[authz].update({"drs_object_id": doc["did"]})
+                resolved_drs_objects.append(authz_metadata[authz])
+                resolved_count = resolved_count + 1
+
+            #  Record unexpected errors & continue to next
+            except:
+                unexpected_error_guids.append(doc["did"])
+                continue
+        # Update summary counts
+        summary["resolved"] = resolved_count
+        summary["unresolved"] = total_requested - resolved_count
+        # Update unresolved list details
+        if len(missing_error_guids) > 0:
+            unresolved_drs_objects.append(
+                {"error_code": 404, "object_ids": missing_error_guids}
+            )
+        if len(unexpected_error_guids) > 0:
+            unresolved_drs_objects.append(
+                {"error_code": 500, "object_ids": unexpected_error_guids}
+            )
+        # Update compiled results
+        compiled_info = {}
+        compiled_info["summary"] = summary
+        compiled_info["unresolved_drs_objects"] = unresolved_drs_objects
+        compiled_info["resolved_drs_objects"] = resolved_drs_objects
+
+    # Otherwise major unexpected error encountered, return defaults
+    except IndexdUnexpectedError as err:
+        return handle_unexpected_error(err)
+
+    return flask.jsonify(compiled_info), 200
 
 
 def create_drs_uri(did):
