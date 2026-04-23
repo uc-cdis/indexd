@@ -2,7 +2,6 @@ from .index.drivers.alchemy import SQLAlchemyIndexDriver
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
 from .index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
-from os import environ
 import json
 
 

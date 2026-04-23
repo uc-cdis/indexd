@@ -94,7 +94,7 @@ def get_drs_object_options(object_id):
         return flask.jsonify(authz_metadata[authz]), 200
     # Otherwise catch unknown error
     except Exception as err:
-        raise exception
+        return handle_unexpected_error(err)
 
 
 @blueprint.route(
@@ -145,20 +145,24 @@ def list_drs_records_options():
 
     # Get data from json body
     data = flask.request.get_json(force=True)
-    # Prepare return defaults
-    total_requested = len(data["bulk_object_ids"])
-    summary = {
-        "requested": total_requested,
-        "resolved": 0,
-        "unresolved": total_requested,  # nothing is resolved at the start
-    }
-    unresolved_drs_objects = []
-    resolved_drs_objects = []
-    missing_error_guids = []  # 404
-    unexpected_error_guids = []  # 500
+
+    # Exit with malformed error return if missing object id key
+    if "bulk_object_ids" not in data:
+        return handle_user_error("Request is malformed. Missing bulk object ids.")
 
     # Return unexpected error if unhandled issue encountered...
     try:
+        # Prepare return defaults
+        total_requested = len(data["bulk_object_ids"])
+        unresolved_drs_objects = []
+        resolved_drs_objects = []
+        missing_error_guids = []  # 404
+        unexpected_error_guids = []  # 500
+        summary = {
+            "requested": total_requested,
+            "resolved": 0,
+            "unresolved": total_requested,  # nothing is resolved at the start
+        }
         # Bulk retrieve docs from id list
         id_list = data["bulk_object_ids"]
         docs = blueprint.index_driver.get_bulk(id_list)

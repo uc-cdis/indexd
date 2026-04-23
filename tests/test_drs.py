@@ -466,7 +466,9 @@ def test_bulk_auth_options(client, user, combined_default_and_single_table_setti
 def test_bulk_auth_options_index_not_found(
     client, user, combined_default_and_single_table_settings
 ):
-    """Tests that bulk OPTIONS endpoint returns expected static return after one index not found"""
+    """Tests that bulk OPTIONS endpoint returns expected static return after one index not found.
+    Request overall is successful (200) in this test scenario becuase guid with error
+    was correctly handled."""
 
     # Get test set-up docs, dids from those docs, & define expected info
     dids = [
@@ -510,7 +512,9 @@ def test_bulk_auth_options_index_not_found(
 def test_bulk_auth_options_unexpected_error(
     client, user, combined_default_and_single_table_settings
 ):
-    """Tests that bulk OPTIONS endpoint returns expected static return after unexpected error"""
+    """Tests that bulk OPTIONS endpoint returns expected static return after unexpected error.
+    Request overall is successful (200) in this test scenario becuase guid with error was correctly handled.
+    """
 
     # Get test set-up docs, dids from those docs, & define expected info
     # Define one resolvable doc
@@ -551,6 +555,22 @@ def test_bulk_auth_options_unexpected_error(
     assert res_1.status_code == 200
 
 
+def test_bulk_auth_options_malformed_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk OPTIONS endpoint returns appropriate 'request malformed' 400 error.
+    Request overall is NOT successful (400) in this test scenario becuase error is fundamental
+    (no guids were available)."""
+
+    # Call bulk options with missing bulk object ids key value pair
+    data = {}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Define expected results
+    assert res_1.status_code == 400
+    assert res_1.json["msg"] == "Request is malformed. Missing bulk object ids."
+
+
 def test_auth_options(client, user, combined_default_and_single_table_settings):
     """Tests that OPTIONS endpoint returns expected static return after successful authz lookup"""
     # Get test set-up doc, doc did, and define expected info
@@ -574,7 +594,7 @@ def test_auth_options(client, user, combined_default_and_single_table_settings):
 def test_auth_options_index_not_found(
     client, user, combined_default_and_single_table_settings
 ):
-    """Tests that OPTIONS endpoint returns appropriate 'index not found' error when appropriate"""
+    """Tests that OPTIONS endpoint returns appropriate 'index not found' error"""
     # Check that OPTIONS call fails as index cannot be found
     doc_did = "unknownguid"
     res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
@@ -592,3 +612,17 @@ def test_auth_options_unexpected_error(
     doc_did = client.post("/index", json=data, headers=user).json["did"]
     res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
     assert res_1._status_code == 500
+
+
+def test_auth_options_malformed_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that OPTIONS endpoint returns approproate 'malformed error' message (400)
+    if did missing."""
+
+    doc_did = ""
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 400
+
+    res_1 = client.options("ga4gh/drs/v1/objects/")
+    assert res_1._status_code == 400
