@@ -193,11 +193,11 @@ def list_drs_records_options():
         # Update unresolved list details
         if len(missing_error_guids) > 0:
             unresolved_drs_objects.append(
-                {"error_code": 404, "object_ids": missing_error_guids}
+                {"error_code": 404, "object_ids": sorted(missing_error_guids)}
             )
         if len(unexpected_error_guids) > 0:
             unresolved_drs_objects.append(
-                {"error_code": 500, "object_ids": unexpected_error_guids}
+                {"error_code": 500, "object_ids": sorted(unexpected_error_guids)}
             )
         # Update compiled results
         compiled_info = {}
