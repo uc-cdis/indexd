@@ -140,8 +140,42 @@ def list_drs_records():
 
 @blueprint.route("/ga4gh/drs/v1/objects", methods=["OPTIONS"])
 def list_drs_records_options():
-    """Returns OPTIONS metadata for each provided DRS object
-    dids: list of str object ids (ex. ['123','456'])"""
+    """Returns OPTIONS metadata for each provided DRS object id (drs object id = did)
+
+    dids: list of str object ids (ex. ['123','456'])
+
+    A response for a call with 6 dids where 2 were successfully resolved, 2 were not found,
+    and 2 encountered an unexpected error would look like:
+
+    {
+        "summary": {
+            "requested": 6,
+            "resolved": 2,
+            "unresolved": 4,
+        },
+        "unresolved_drs_objects": [
+                {"error_code": 404, "object_ids": [did3, did4]},
+                {"error_code": 500, "object_ids": [did5, did6]}
+            ],
+        "resolved_drs_objects": [
+                {
+                    "drs_object_id": "did1",
+                    "bearer_auth_issuers": ["sample"],
+                    "passport_auth_issuers": ["sample"],
+                    "supported_types": ["BearerAuth", "PassportAuth"]
+                },
+                {
+                    "drs_object_id": "did2",
+                    "bearer_auth_issuers": ["sample"],
+                    "passport_auth_issuers": ["sample"],
+                    "supported_types": ["BearerAuth", "PassportAuth"]
+                },
+            ],
+    }
+
+    A malformed call (i.e. providing no did list) would result in a 400 response:
+    {'msg': 'Request is malformed. Missing bulk object ids.', 'status_code': 400}
+    """
 
     # Get data from json body
     data = flask.request.get_json(force=True)
