@@ -2,6 +2,7 @@ from .index.drivers.alchemy import SQLAlchemyIndexDriver
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
 from .index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
+import json
 
 
 CONFIG = {}
@@ -88,3 +89,11 @@ AUTH = SQLAlchemyAuthDriver(
 )
 
 settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE}
+
+CONFIG["DRS_AUTHORIZATION_METADATA"] = {
+    "/gen3/programs/a/projects/b": {
+        "supported_types": ["BearerAuth", "PassportAuth"],
+        "passport_auth_issuers": ["https://ras/foo/bar"],
+        "bearer_auth_issuers": ["https://gen3.datacommons.io"],
+    }
+}
