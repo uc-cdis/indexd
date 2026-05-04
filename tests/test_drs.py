@@ -31,10 +31,11 @@ def generate_presigned_url_response(did, status=200, **query_params):
 
 def get_doc(
     has_version=True,
-    urls=list(),
+    urls=None,
     has_description=True,
     has_content_created_date=True,
     has_content_updated_date=True,
+    urls_metadata=None,
 ):
     doc = {
         "form": "object",
@@ -44,8 +45,9 @@ def get_doc(
     }
     if has_version:
         doc["version"] = "1"
-    if urls:
-        doc["urls"] = urls
+    doc["urls"] = urls or []
+    if urls_metadata:
+        doc["urls_metadata"] = urls_metadata
     if has_description:
         doc["description"] = "A description"
     if has_content_updated_date:
@@ -491,7 +493,17 @@ def test_bucket_region_in_drs_object(client, user):
     ), patch(
         "indexd.drs.blueprint.get_bucket_regions", return_value=fake_bucket_regions
     ):
-        doc = get_doc(urls=["s3://my-test-bucket/path/to/file"])
+        doc = get_doc(
+            urls=[
+                "s3://my-test-bucket/path/to/file",
+                "s3://another-bucket-phs000000-c1/path/to/file",
+                "gs://last-bucket/path/to/file",
+            ],
+            urls_metadata={
+                "s3://another-bucket-phs000000-c1/path/to/file": {"available": False},
+                "gs://last-bucket/path/to/file": {"region": "mx-central-1"},
+            },
+        )
 
         res = client.post("/index/", json=doc, headers=user)
         assert res.status_code == 200
@@ -502,8 +514,21 @@ def test_bucket_region_in_drs_object(client, user):
         assert drs_res.status_code == 200
         drs_json = drs_res.json
 
-        region_map = drs_json.get("region")
-        assert region_map is not None
-        assert "s3://my-test-bucket/path/to/file" in region_map
-        assert region_map["s3://my-test-bucket/path/to/file"] == "us-east-1"
+        access_methods = drs_json.get("access_methods")
+        assert len(access_methods) == 3
+        # Test default for available, derived cloud and with region lookup
+        access_method = access_methods[0]
+        assert access_method.get("region") == "us-east-1"
+        assert access_method.get("available") == True
+        assert access_method.get("cloud") == "aws"
+        # Test default for available, derived cloud and with region lookup
+        access_method = access_methods[1]
+        assert access_method.get("region") == "us-west-2"
+        assert access_method.get("available") == False
+        assert access_method.get("cloud") == "aws"
+        # Test override for region
+        access_method = access_methods[2]
+        assert access_method.get("region") == "mx-central-1"
+        assert access_method.get("available") == True
+        assert access_method.get("cloud") == "gcp"
     current_app.cache.clear()

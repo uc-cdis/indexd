@@ -216,31 +216,24 @@ def indexd_to_drs(record, expand=False):
     bucket_regions = get_bucket_regions()
 
     region = {}
+    urls_metadata = record.get("urls_metadata", {})
+    for url, meta in urls_metadata.items():
+        if isinstance(meta, dict) and meta.get("region"):
+            region[url] = meta["region"]
 
     if "urls" in record and record["urls"]:
         for url in record["urls"]:
-            if url.startswith("s3://"):
+            if url.startswith("s3://") and url not in region:
                 bucket_name = url.split("/")[2]
                 matched_region = lookup_bucket_region(bucket_name, bucket_regions)
                 if matched_region:
                     region[url] = matched_region
-                break
-
-    if not region:
-        try:
-            urls_metadata = record.get("urls_metadata", {})
-            for url, meta in urls_metadata.items():
-                if isinstance(meta, dict) and meta.get("region"):
-                    region[url] = meta["region"]
-                    break
-        except Exception as e:
-            app.logger.warning(f"Unable to get region field for record {did}: {e}")
 
     available = {}
 
     for url, url_meta in record.get("urls_metadata", {}).items():
         if isinstance(url_meta, dict) and url_meta.get("available"):
-            available[url] = url_meta["available"]
+            available[url] = url_meta["available"].lower() == "true"
         else:
             available[url] = True  # default to True if not specified
 
@@ -259,8 +252,6 @@ def indexd_to_drs(record, expand=False):
         "form": form,
         "checksums": [],
         "description": description,
-        "region": region,
-        "available": available,
     }
 
     if "description" in record:
@@ -289,6 +280,8 @@ def indexd_to_drs(record, expand=False):
                     "cloud": cloud,
                     "access_url": {"url": location},
                     "access_id": location_type,
+                    "available": available.get(location, True),
+                    "region": region.get(location, ""),
                 }
             )
 
@@ -444,6 +437,7 @@ def get_config(setup_state):
 def get_config(setup_state):
     if "DRS_SERVICE_INFO" in setup_state.app.config:
         blueprint.service_info = setup_state.app.config["DRS_SERVICE_INFO"]
+
 
 @blueprint.record
 def get_config(setup_state):
