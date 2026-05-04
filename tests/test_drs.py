@@ -1,11 +1,18 @@
 import flask
-import json
 
-import tests.conftest
-import requests
 import responses
 from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
+import json
+import requests
+import tests.conftest
+from indexd.index.errors import NoRecordFound as IndexNoRecordFound
+from indexd.errors import IndexdUnexpectedError
+import pytest
+
+
+from unittest.mock import patch
+from flask import current_app
 from unittest.mock import patch
 from indexd.utils import lookup_bucket_region
 from flask import current_app
@@ -35,13 +42,17 @@ def get_doc(
     has_description=True,
     has_content_created_date=True,
     has_content_updated_date=True,
+    authz: str | None = None,
     urls_metadata=None,
 ):
+    if authz is None:
+        authz = "/gen3/programs/a/projects/b"
     doc = {
         "form": "object",
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "authz": [authz],
     }
     if has_version:
         doc["version"] = "1"
@@ -419,6 +430,330 @@ def test_drs_service_info_no_information_configured(
         assert data["maxBulkRequestLength"] == data["drs"]["maxBulkRequestLength"]
     finally:
         settings["config"]["DRS_SERVICE_INFO"] = backup
+
+
+def bulk_auth_options_test_setup(
+    user, client, n_200: int = 0, n_404: int = 0, n_500: int = 0
+) -> tuple[list[str], dict[str, str], dict[str, str], dict[str, str]]:
+    """Returns list of dids, expected response, 404 response dict, and 500 response dict for auth options testing.
+    Specify the number of dummy dids to create, otherwise params assumed to be 0."""
+
+    # Initialize variables
+    dids_200: list[str] = []
+    dids_404: list[str] = []
+    dids_500: list[str] = []
+    unresolved_drs_objects = []
+    resolved_drs_objects: list[dict[str, str]] = []
+    resolved_response_dict = {
+        "drs_object_id": "placeholder",
+        "bearer_auth_issuers": ["https://gen3.datacommons.io"],
+        "passport_auth_issuers": ["https://ras/foo/bar"],
+        "supported_types": ["BearerAuth", "PassportAuth"],
+    }
+
+    # Create resolvable dids
+    for n in range(0, n_200):
+        data = get_doc()
+        doc_did = client.post("/index", json=data, headers=user).json["did"]
+        dids_200.append(doc_did)
+        resolved_response_dict.update({"drs_object_id": doc_did})
+        resolved_drs_objects.append(dict(resolved_response_dict))
+
+    # Create "index not found" dids
+    for n in range(0, n_404):
+        dids_404.append("testprefix/invalid" + str(n))
+
+    # Create "unexpected error" dids
+    for n in range(0, n_500):
+        data = get_doc(authz="unknown/path" + str(n))
+        doc_did = client.post("/index", json=data, headers=user).json["did"]
+        dids_500.append(doc_did)
+
+    # Define expected results (sorting lists avoids flaky ordering)
+    expected_500_dict = {}
+    expected_404_dict = {}
+    if len(dids_500) > 0:
+        expected_500_dict = {"error_code": 500, "object_ids": sorted(dids_500)}
+        unresolved_drs_objects.append(expected_500_dict)
+    if len(dids_404) > 0:
+        expected_404_dict = {"error_code": 404, "object_ids": sorted(dids_404)}
+        unresolved_drs_objects.append(expected_404_dict)
+
+    expected_json = {
+        "summary": {
+            "requested": n_200 + n_404 + n_500,
+            "resolved": n_200,
+            "unresolved": n_404 + n_500,
+        },
+        "unresolved_drs_objects": unresolved_drs_objects,
+        "resolved_drs_objects": resolved_drs_objects,
+    }
+    all_dids = dids_200 + dids_500 + dids_404
+    return all_dids, expected_json, expected_404_dict, expected_500_dict
+
+
+def test_bulk_auth_options(client, user, combined_default_and_single_table_settings):
+    """Tests that bulk OPTIONS endpoint returns expected return after successful authz lookup"""
+
+    # Test set up
+    did_list, expected_json, expected_404_dict, expected_500_dict = (
+        bulk_auth_options_test_setup(user, client, n_200=3, n_404=0, n_500=0)
+    )
+
+    # Call bulk options
+    data = {"bulk_object_ids": did_list}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Check results
+    assert res_1.status_code == 200
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    for entry in test_json["resolved_drs_objects"]:
+        assert entry in expected_json["resolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == len(
+        expected_json["unresolved_drs_objects"]
+    )
+    assert test_json["unresolved_drs_objects"] == []
+
+
+def test_bulk_auth_options_index_not_found(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk OPTIONS endpoint returns expected static return after one index not found.
+    Request overall is successful (200) in this test scenario becuase guid with error
+    was correctly handled."""
+
+    # Test set up
+    did_list, expected_json, expected_404_dict, expected_500_dict = (
+        bulk_auth_options_test_setup(user, client, n_200=2, n_404=1, n_500=0)
+    )
+    # Call bulk options
+    data = {"bulk_object_ids": did_list}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Check results
+    assert res_1.status_code == 200
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    assert test_json["summary"]["resolved"] == 2
+    assert test_json["summary"]["unresolved"] == 1
+    for entry in test_json["resolved_drs_objects"]:
+        assert entry in expected_json["resolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == len(
+        expected_json["unresolved_drs_objects"]
+    )
+    assert expected_404_dict in test_json["unresolved_drs_objects"]
+
+
+def test_bulk_auth_options_unexpected_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk OPTIONS endpoint returns expected static return after unexpected error.
+    Request overall is successful (200) in this test scenario becuase guid with error was correctly handled.
+    """
+    # Test set up
+    did_list, expected_json, expected_404_dict, expected_500_dict = (
+        bulk_auth_options_test_setup(user, client, n_200=2, n_404=0, n_500=1)
+    )
+    # Call bulk options
+    data = {"bulk_object_ids": did_list}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Check results
+    assert res_1.status_code == 200
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    assert test_json["summary"]["resolved"] == 2
+    assert test_json["summary"]["unresolved"] == 1
+    for entry in test_json["resolved_drs_objects"]:
+        assert entry in expected_json["resolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == len(
+        expected_json["unresolved_drs_objects"]
+    )
+    assert expected_500_dict in test_json["unresolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == 1
+
+
+def test_bulk_auth_options_malformed_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk OPTIONS endpoint returns appropriate 'request malformed' 400 error.
+    Request overall is NOT successful (400) in this test scenario becuase error is fundamental
+    (no guids were available)."""
+
+    # Call bulk options with missing bulk object ids key value pair
+    data = {}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Define expected results
+    assert res_1.status_code == 400
+    assert res_1.json["msg"] == "Request is malformed. Missing bulk object ids."
+
+
+def test_bulk_auth_options_mixed(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk OPTIONS endpoint returns expected static return after resolvable guids,
+    unexpected error, AND index not found error. Request overall is successful (200) becuase errors handled.
+    """
+    # Test set up
+    did_list, expected_json, expected_404_dict, expected_500_dict = (
+        bulk_auth_options_test_setup(user, client, n_200=2, n_404=2, n_500=2)
+    )
+    # Call bulk options
+    data = {"bulk_object_ids": did_list}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Check results
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    for entry in test_json["resolved_drs_objects"]:
+        assert entry in expected_json["resolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == len(
+        expected_json["unresolved_drs_objects"]
+    )
+    assert expected_404_dict in test_json["unresolved_drs_objects"]
+    assert expected_500_dict in test_json["unresolved_drs_objects"]
+
+
+def test_bulk_auth_options_failures_mixed(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk OPTIONS endpoint returns expected static return after
+    unexpected error AND index not found error. No guids resolved in this scenario.
+    Request overall is successful (200) becuase errors handled.
+    """
+    # Test set up
+    did_list, expected_json, expected_404_dict, expected_500_dict = (
+        bulk_auth_options_test_setup(user, client, n_200=0, n_404=2, n_500=2)
+    )
+    # Call bulk options
+    data = {"bulk_object_ids": did_list}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Check results
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    for entry in test_json["resolved_drs_objects"]:
+        assert entry in expected_json["resolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == len(
+        expected_json["unresolved_drs_objects"]
+    )
+    assert expected_404_dict in test_json["unresolved_drs_objects"]
+    assert expected_500_dict in test_json["unresolved_drs_objects"]
+
+
+def test_bulk_auth_options_failures_index_not_found(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk OPTIONS endpoint returns expected static return after ONLY
+    multiple index not found errors (404). Request overall is successful (200) becuase errors handled.
+    """
+
+    # Get test set-up docs, dids from those docs, & define expected info
+    did_list, expected_json, expected_404_dict, expected_500_dict = (
+        bulk_auth_options_test_setup(user, client, n_200=0, n_404=2, n_500=0)
+    )
+
+    # Call bulk options
+    data = {"bulk_object_ids": did_list}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Check results
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    for entry in test_json["resolved_drs_objects"]:
+        assert entry in expected_json["resolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == len(
+        expected_json["unresolved_drs_objects"]
+    )
+    assert expected_404_dict in test_json["unresolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == 1
+
+
+def test_bulk_auth_options_failures_unexpected_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk OPTIONS endpoint returns expected static return after ONLY
+    multiple unexpected errors. Request overall is successful (200) becuase errors handled.
+    """
+
+    # Get test set-up docs, dids from those docs, & define expected info
+    did_list, expected_json, expected_404_dict, expected_500_dict = (
+        bulk_auth_options_test_setup(user, client, n_200=0, n_404=0, n_500=2)
+    )
+
+    # Call bulk options
+    data = {"bulk_object_ids": did_list}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Check results
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    for entry in test_json["resolved_drs_objects"]:
+        assert entry in expected_json["resolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == len(
+        expected_json["unresolved_drs_objects"]
+    )
+    assert expected_500_dict in test_json["unresolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == 1
+
+
+def test_auth_options(client, user, combined_default_and_single_table_settings):
+    """Tests that OPTIONS endpoint returns expected static return after successful authz lookup"""
+    # Get test set-up doc, doc did, and define expected info
+    data = get_doc()
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    expected_info = {
+        "drs_object_id": doc_did,
+        "bearer_auth_issuers": ["https://gen3.datacommons.io"],
+        "passport_auth_issuers": ["https://ras/foo/bar"],
+        "supported_types": ["BearerAuth", "PassportAuth"],
+    }
+    # Call OPTIONS endpoint
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+
+    # Check that response has expected results
+    assert res_1.json is not None
+    assert res_1.status_code == 200
+    assert res_1.json == expected_info
+
+
+def test_auth_options_index_not_found(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that OPTIONS endpoint returns appropriate 'index not found' error"""
+    # Check that OPTIONS call fails as index cannot be found
+    doc_did = "unknownguid"
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 404
+    assert res_1.json["status_code"] == 404
+
+
+def test_auth_options_unexpected_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that OPTIONS endpoint returns approproate 'unexpected error' message when
+    an unexpected error occurs"""
+    # Check that OPTIONS call with unexpected error (object id is valid, but path is invalid)
+    data = get_doc(authz="unknown/path")
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 500
+
+
+def test_auth_options_malformed_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that OPTIONS endpoint returns approproate 'malformed error' message (400)
+    if did missing."""
+
+    doc_did = ""
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 400
+
+    res_1 = client.options("ga4gh/drs/v1/objects/")
+    assert res_1._status_code == 400
 
 
 def test_service_info_stats_reflect_records(

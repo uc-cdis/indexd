@@ -2,11 +2,15 @@ import os
 import re
 import flask
 import json
+import copy
+from indexd.bulk.blueprint import bulk_get_documents
 from cdislogging import get_logger
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
+from indexd.utils import reverse_url
+from flask import current_app as app
 from indexd.utils import reverse_url, lookup_bucket_region, get_bucket_regions
 from flask import current_app as app
 
@@ -81,7 +85,11 @@ def get_drs_service_info():
     return flask.jsonify(ret), 200
 
 
-@blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["GET"])
+@blueprint.route(
+    "/ga4gh/drs/v1/objects/<path:object_id>",
+    methods=["GET"],
+    provide_automatic_options=False,
+)
 def get_drs_object(object_id):
     """
     Returns a specific DRSobject with object_id
@@ -95,7 +103,34 @@ def get_drs_object(object_id):
     return flask.jsonify(data), 200
 
 
-@blueprint.route("/ga4gh/drs/v1/objects", methods=["GET"])
+@blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["OPTIONS"])
+def get_drs_object_options(object_id):
+    """
+    Returns a specific DRSobject metadata with object_id
+    """
+    # Get authz based on guid
+    try:
+        ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
+        authz = ret["authz"][0]
+    # Handle known type error
+    except IndexNoRecordFound as err:
+        return handle_no_index_record_error(err)
+
+    # Get static authz metadata based on blueprint
+    try:
+        # Get static authz metadata
+        authz_metadata = copy.deepcopy(blueprint.drs_authorization_metadata)
+        # Otherwise, match exists & we can updated with object id
+        authz_metadata[authz].update({"drs_object_id": object_id})
+        return flask.jsonify(authz_metadata[authz]), 200
+    # Otherwise catch unknown error
+    except Exception as err:
+        return handle_unexpected_error(err)
+
+
+@blueprint.route(
+    "/ga4gh/drs/v1/objects", methods=["GET"], provide_automatic_options=False
+)
 def list_drs_records():
     limit = flask.request.args.get("limit")
     start = flask.request.args.get("start")
@@ -132,6 +167,114 @@ def list_drs_records():
     }
 
     return flask.jsonify(ret), 200
+
+
+@blueprint.route("/ga4gh/drs/v1/objects", methods=["OPTIONS"])
+def list_drs_records_options():
+    """Returns OPTIONS metadata for each provided DRS object id (drs object id = did)
+
+    dids: list of str object ids (ex. ['123','456'])
+
+    A response for a call with 6 dids where 2 were successfully resolved, 2 were not found,
+    and 2 encountered an unexpected error would look like:
+
+    {
+        "summary": {
+            "requested": 6,
+            "resolved": 2,
+            "unresolved": 4,
+        },
+        "unresolved_drs_objects": [
+                {"error_code": 404, "object_ids": [did3, did4]},
+                {"error_code": 500, "object_ids": [did5, did6]}
+            ],
+        "resolved_drs_objects": [
+                {
+                    "drs_object_id": "did1",
+                    "bearer_auth_issuers": ["sample"],
+                    "passport_auth_issuers": ["sample"],
+                    "supported_types": ["BearerAuth", "PassportAuth"]
+                },
+                {
+                    "drs_object_id": "did2",
+                    "bearer_auth_issuers": ["sample"],
+                    "passport_auth_issuers": ["sample"],
+                    "supported_types": ["BearerAuth", "PassportAuth"]
+                },
+            ],
+    }
+
+    A malformed call (i.e. providing no did list) would result in a 400 response:
+    {'msg': 'Request is malformed. Missing bulk object ids.', 'status_code': 400}
+    """
+
+    # Get data from json body
+    data = flask.request.get_json(force=True)
+
+    # Exit with malformed error return if missing object id key
+    if "bulk_object_ids" not in data:
+        return handle_user_error("Request is malformed. Missing bulk object ids.")
+
+    # Return unexpected error if unhandled issue encountered...
+    try:
+        # Prepare return defaults
+        total_requested = len(data["bulk_object_ids"])
+        unresolved_drs_objects = []
+        resolved_drs_objects = []
+        missing_error_guids = []  # 404
+        unexpected_error_guids = []  # 500
+        summary = {
+            "requested": total_requested,
+            "resolved": 0,
+            "unresolved": total_requested,  # nothing is resolved at the start
+        }
+        # Bulk retrieve docs from id list
+        id_list = data["bulk_object_ids"]
+        docs = blueprint.index_driver.get_bulk(id_list)
+        doc_dids = [doc["did"] for doc in docs]
+
+        # Annotate if an original id(s) is not returned in bulk call (record as unresolved, index not found)
+        for i in id_list:
+            if i not in doc_dids:
+                missing_error_guids.append(i)
+        # Check the authz for each returned object:
+        resolved_count = 0
+        for doc in docs:
+            # Get static authz metadata and confirm info matches
+            authz = doc["authz"][0]
+            authz_metadata = copy.deepcopy(blueprint.drs_authorization_metadata)
+            # If static match not confirmed, record as unexpected error & continue to next
+            if authz not in authz_metadata.keys():
+                unexpected_error_guids.append(doc["did"])
+                continue
+            # otherwise update with object id and save info for return
+            authz_metadata[authz].update({"drs_object_id": doc["did"]})
+            resolved_drs_objects.append(authz_metadata[authz])
+            resolved_count = resolved_count + 1
+
+        # Update summary counts
+        summary["resolved"] = resolved_count
+        summary["unresolved"] = total_requested - resolved_count
+        # Update unresolved list details
+        if len(missing_error_guids) > 0:
+            unresolved_drs_objects.append(
+                {"error_code": 404, "object_ids": sorted(missing_error_guids)}
+            )
+        if len(unexpected_error_guids) > 0:
+            unresolved_drs_objects.append(
+                {"error_code": 500, "object_ids": sorted(unexpected_error_guids)}
+            )
+        # Update compiled results
+        compiled_info = {}
+        compiled_info["summary"] = summary
+        compiled_info["unresolved_drs_objects"] = unresolved_drs_objects
+        compiled_info["resolved_drs_objects"] = resolved_drs_objects
+
+    # If unexpected error encountered, return defaults
+    except Exception as err:
+        return handle_unexpected_error(err)
+
+    return flask.jsonify(compiled_info), 200
 
 
 def create_drs_uri(did):
@@ -172,9 +315,7 @@ def indexd_to_drs(record, expand=False):
     did = (
         record["id"]
         if "id" in record
-        else record["did"]
-        if "did" in record
-        else record["bundle_id"]
+        else record["did"] if "did" in record else record["bundle_id"]
     )
 
     self_uri = create_drs_uri(did)
@@ -188,9 +329,7 @@ def indexd_to_drs(record, expand=False):
     version = (
         record["version"]
         if "version" in record
-        else record["rev"]
-        if "rev" in record
-        else ""
+        else record["rev"] if "rev" in record else ""
     )
 
     index_updated_time = (
@@ -208,9 +347,7 @@ def indexd_to_drs(record, expand=False):
     alias = (
         record["alias"]
         if "alias" in record
-        else json.loads(record["aliases"])
-        if "aliases" in record
-        else []
+        else json.loads(record["aliases"]) if "aliases" in record else []
     )
 
     bucket_regions = get_bucket_regions()
@@ -307,9 +444,7 @@ def bundle_to_drs(record, expand=False, is_content=False):
     did = (
         record["id"]
         if "id" in record
-        else record["did"]
-        if "did" in record
-        else record["bundle_id"]
+        else record["did"] if "did" in record else record["bundle_id"]
     )
 
     drs_uri = create_drs_uri(did)
@@ -326,9 +461,7 @@ def bundle_to_drs(record, expand=False, is_content=False):
     contents = (
         record["contents"]
         if "contents" in record
-        else record["bundle_data"]
-        if "bundle_data" in record
-        else []
+        else record["bundle_data"] if "bundle_data" in record else []
     )
 
     if not expand and isinstance(contents, list):
@@ -344,16 +477,12 @@ def bundle_to_drs(record, expand=False, is_content=False):
         aliases = (
             record["alias"]
             if "alias" in record
-            else json.loads(record["aliases"])
-            if "aliases" in record
-            else []
+            else json.loads(record["aliases"]) if "aliases" in record else []
         )
         version = (
             record["version"]
             if "version" in record
-            else record["rev"]
-            if "rev" in record
-            else ""
+            else record["rev"] if "rev" in record else ""
         )
         # version = record["version"] if "version" in record else ""
         drs_object["checksums"] = parse_checksums(record, drs_object)
@@ -437,16 +566,12 @@ def handle_unexpected_error(err):
 def get_config(setup_state):
     index_config = setup_state.app.config["INDEX"]
     blueprint.index_driver = index_config["driver"]
-
-
-@blueprint.record
-def get_config(setup_state):
     if "DRS_SERVICE_INFO" in setup_state.app.config:
         blueprint.service_info = setup_state.app.config["DRS_SERVICE_INFO"]
-
-
-@blueprint.record
-def get_config(setup_state):
+    if "DRS_AUTHORIZATION_METADATA" in setup_state.app.config:
+        blueprint.drs_authorization_metadata = setup_state.app.config[
+            "DRS_AUTHORIZATION_METADATA"
+        ]
     if "CLOUD_PROVIDER_MAP" in setup_state.app.config:
         blueprint.cloud_provider_map = setup_state.app.config["CLOUD_PROVIDER_MAP"]
 
