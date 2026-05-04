@@ -482,7 +482,7 @@ def test_bucket_region_lookup():
     assert lookup_bucket_region("nonexistent-bucket", fake_bucket_regions) == ""
 
 
-def test_bucket_region_in_drs_object(client, user):
+def test_access_method_in_drs_object(client, user):
     fake_bucket_regions = {
         "my-test-bucket": "us-east-1",
         "another-bucket-.*": "us-west-2",
