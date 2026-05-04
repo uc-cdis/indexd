@@ -327,7 +327,7 @@ As part of setting up your [local development environment](docs/local_dev_enviro
 python3 -m pytest -vv --cov=indexd --cov-report xml --junitxml="test-results.xml" tests
 ```
 
-### Quickstart with Helm
+### Quickstart with Helm!
 
 You can now deploy individual services via Helm!
 Please refer to the Helm quickstart guide HERE (https://github.com/uc-cdis/indexd/blob/master/docs/quickstart_helm.md)
