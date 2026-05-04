@@ -1,6 +1,9 @@
 import logging
 import re
 from urllib.parse import urlparse
+import os
+import requests
+from flask import current_app as app
 
 
 def hint_match(record, hints):
@@ -210,3 +213,47 @@ def reverse_url(url):
     reversed_segments = reversed(segments)
     res = ".".join(reversed_segments)
     return res
+
+
+FENCE_SERVICE = os.environ.get("FENCE_SERVICE_URL", "http://fence-service")
+
+
+def lookup_bucket_region(bucket_name, bucket_regions):
+    """
+    Resolve a bucket name to a region.
+    Exact match first, then simple prefix fallback.
+    """
+    if bucket_name in bucket_regions:
+        return bucket_regions[bucket_name]
+
+    # remove regexp for prefix matching to remove snyk vulnerability
+    for pattern, region in bucket_regions.items():
+        if pattern.endswith(".*") and bucket_name.startswith(pattern[:-2]):
+            return region
+
+    return ""
+
+
+def get_bucket_regions():
+    cached = getattr(app, "cache", None)
+    if cached:
+        hit = cached.get("bucket_regions")
+        if hit:
+            return hit
+
+    url = f"{FENCE_SERVICE}/data/buckets"
+    data = {}
+
+    try:
+        resp = requests.get(url)
+        resp.raise_for_status()
+        data = resp.json().get("S3_BUCKETS") or {}
+    except Exception as e:
+        app.logger.warning(f"Failed to fetch bucket regions from Fence: {e}")
+
+    regions = {k: v.get("region", "") for k, v in data.items()}
+
+    if cached:
+        cached.set("bucket_regions", regions)
+
+    return regions

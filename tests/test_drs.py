@@ -13,6 +13,10 @@ import pytest
 
 from unittest.mock import patch
 from flask import current_app
+from unittest.mock import patch
+from indexd.utils import lookup_bucket_region
+from flask import current_app
+from indexd.drs.blueprint import blueprint as drs_blueprint
 
 
 def generate_presigned_url_response(did, status=200, **query_params):
@@ -34,11 +38,12 @@ def generate_presigned_url_response(did, status=200, **query_params):
 
 def get_doc(
     has_version=True,
-    urls=list(),
+    urls=None,
     has_description=True,
     has_content_created_date=True,
     has_content_updated_date=True,
     authz: str | None = None,
+    urls_metadata=None,
 ):
     if authz is None:
         authz = "/gen3/programs/a/projects/b"
@@ -51,8 +56,9 @@ def get_doc(
     }
     if has_version:
         doc["version"] = "1"
-    if urls:
-        doc["urls"] = urls
+    doc["urls"] = urls or []
+    if urls_metadata:
+        doc["urls_metadata"] = urls_metadata
     if has_description:
         doc["description"] = "A description"
     if has_content_updated_date:
@@ -366,51 +372,43 @@ def test_get_drs_with_encoded_slash(
 
 def test_drs_service_info_endpoint(client, combined_default_and_single_table_settings):
     """
-    Test drs service endpoint with drs service info friendly distribution information
+    Test drs service endpoint returns DRS 1.5 compliant response
     """
     app = flask.Flask(__name__)
-
-    expected_info = {
-        "id": "io.fictitious-commons",
-        "name": "DRS System",
-        "type": {
-            "group": "org.ga4gh",
-            "artifact": "drs",
-            "version": "1.0.3",
-        },
-        "version": "1.0.3",
-        "organization": {
-            "name": "CTDS",
-            "url": "https://fictitious-commons.io",
-        },
-    }
 
     res = client.get("/ga4gh/drs/v1/service-info")
 
     assert res.status_code == 200
-    assert res.json == expected_info
+    data = res.json
+
+    assert data["id"] == "io.fictitious-commons"
+    assert data["name"] == "DRS System"
+    assert data["type"]["group"] == "org.ga4gh"
+    assert data["type"]["artifact"] == "drs"
+    assert data["type"]["version"] == "1.5.0"
+    assert data["version"] == "1.5.0"
+    assert data["organization"]["name"] == "CTDS"
+    assert data["organization"]["url"] == "https://fictitious-commons.io"
+
+    assert "drs" in data
+    assert "maxBulkRequestLength" in data["drs"]
+    assert isinstance(data["drs"]["maxBulkRequestLength"], int)
+    assert data["drs"]["maxBulkRequestLength"] > 0
+    assert data["maxBulkRequestLength"] == data["drs"]["maxBulkRequestLength"]
+
+    assert "objectCount" in data["drs"]
+    assert isinstance(data["drs"]["objectCount"], int)
+    assert "totalObjectSize" in data["drs"]
+    assert isinstance(data["drs"]["totalObjectSize"], int)
 
 
 def test_drs_service_info_no_information_configured(
     client, combined_default_and_single_table_settings
 ):
     """
-    Test drs service info endpoint when dist is not configured in the indexd config file
+    Test drs service info endpoint when DRS_SERVICE_INFO is not configured.
+    Should still return DRS 1.5 compliant response with hardcoded defaults.
     """
-    expected_info = {
-        "id": "io.fictitious-commons",
-        "name": "DRS System",
-        "type": {
-            "group": "org.ga4gh",
-            "artifact": "drs",
-            "version": "1.0.3",
-        },
-        "version": "1.0.3",
-        "organization": {
-            "name": "CTDS",
-            "url": "https://fictitious-commons.io",
-        },
-    }
     backup = settings["config"]["DRS_SERVICE_INFO"].copy()
 
     try:
@@ -419,7 +417,17 @@ def test_drs_service_info_no_information_configured(
         res = client.get("/ga4gh/drs/v1/service-info")
 
         assert res.status_code == 200
-        assert res.json == expected_info
+        data = res.json
+
+        assert data["id"] == "io.fictitious-commons"
+        assert data["name"] == "DRS System"
+        assert data["type"]["artifact"] == "drs"
+        assert data["type"]["version"] == "1.5.0"
+        assert data["version"] == "1.5.0"
+
+        assert "drs" in data
+        assert "maxBulkRequestLength" in data["drs"]
+        assert data["maxBulkRequestLength"] == data["drs"]["maxBulkRequestLength"]
     finally:
         settings["config"]["DRS_SERVICE_INFO"] = backup
 
@@ -746,3 +754,135 @@ def test_auth_options_malformed_error(
 
     res_1 = client.options("ga4gh/drs/v1/objects/")
     assert res_1._status_code == 400
+
+
+def test_service_info_stats_reflect_records(
+    client, user, combined_default_and_single_table_settings
+):
+    """
+    Test that service-info objectCount and totalObjectSize reflect actual records.
+    After creating records, stats should increase accordingly.
+    """
+    # Get baseline stats
+    res = client.get("/ga4gh/drs/v1/service-info")
+    assert res.status_code == 200
+    baseline_count = res.json["drs"]["objectCount"]
+    baseline_size = res.json["drs"]["totalObjectSize"]
+
+    # Create two records
+    doc1 = get_doc()  # size=123
+    doc2 = get_doc()  # size=123
+    res1 = client.post("/index/", json=doc1, headers=user)
+    assert res1.status_code == 200
+    res2 = client.post("/index/", json=doc2, headers=user)
+    assert res2.status_code == 200
+
+    # Verify stats increased
+    res = client.get("/ga4gh/drs/v1/service-info")
+    assert res.status_code == 200
+    data = res.json
+    assert data["drs"]["objectCount"] == baseline_count + 2
+    assert data["drs"]["totalObjectSize"] == baseline_size + 123 + 123
+
+
+def test_service_info_custom_bulk_limit(
+    client, combined_default_and_single_table_settings
+):
+    """
+    Test that modifying max_bulk_request_length on the blueprint is reflected
+    in both drs.maxBulkRequestLength and root maxBulkRequestLength.
+    """
+    original = drs_blueprint.max_bulk_request_length
+    try:
+        drs_blueprint.max_bulk_request_length = 42
+
+        res = client.get("/ga4gh/drs/v1/service-info")
+        assert res.status_code == 200
+        data = res.json
+
+        assert data["drs"]["maxBulkRequestLength"] == 42
+        assert data["maxBulkRequestLength"] == 42
+    finally:
+        drs_blueprint.max_bulk_request_length = original
+
+
+def test_bucket_region_lookup():
+    fake_bucket_regions = {
+        "exact-bucket": "us-east-1",
+        "regex-bucket-.*": "us-west-2",
+    }
+
+    assert lookup_bucket_region("exact-bucket", fake_bucket_regions) == "us-east-1"
+    assert lookup_bucket_region("regex-bucket-123", fake_bucket_regions) == "us-west-2"
+    assert lookup_bucket_region("nonexistent-bucket", fake_bucket_regions) == ""
+
+
+def test_access_method_in_drs_object(client, user):
+    fake_bucket_regions = {
+        "my-test-bucket": "us-east-1",
+        "another-bucket-.*": "us-west-2",
+    }
+
+    with patch(
+        "indexd.utils.get_bucket_regions", return_value=fake_bucket_regions
+    ), patch(
+        "indexd.drs.blueprint.get_bucket_regions", return_value=fake_bucket_regions
+    ):
+        urls = [
+            "s3://my-test-bucket/path/to/file",
+            "s3://another-bucket-phs000000-c1/path/to/file",
+            "gs://last-bucket/path/to/file",
+        ]
+
+        doc = get_doc(
+            urls=urls,
+            urls_metadata={
+                urls[1]: {"available": False},
+                urls[2]: {"region": "mx-central-1"},
+            },
+        )
+
+        res = client.post("/index/", json=doc, headers=user)
+        assert res.status_code == 200
+        did = res.json["did"]
+
+        drs_res = client.get(f"/ga4gh/drs/v1/objects/{did}")
+        assert drs_res.status_code == 200
+        drs_json = drs_res.json
+
+        # Build actual dict keyed by URL
+        actual = {
+            m["access_url"]["url"]: {
+                "region": m.get("region"),
+                "available": m.get("available"),
+                "cloud": m.get("cloud"),
+            }
+            for m in drs_json["access_methods"]
+        }
+
+        expected = {
+            urls[0]: {
+                "region": "us-east-1",
+                "available": True,
+                "cloud": "aws",
+            },
+            urls[1]: {
+                "region": "us-west-2",
+                "available": False,
+                "cloud": "aws",
+            },
+            urls[2]: {
+                "region": "mx-central-1",
+                "available": True,
+                "cloud": "gcp",
+            },
+        }
+
+        for url, expected_access_method in expected.items():
+            assert actual[url] == expected_access_method, {
+                "url": url,
+                "actual": actual[url],
+                "expected": expected_access_method,
+            }
+
+    current_app.cache.clear()
