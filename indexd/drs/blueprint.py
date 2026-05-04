@@ -232,10 +232,16 @@ def indexd_to_drs(record, expand=False):
     available = {}
 
     for url, url_meta in record.get("urls_metadata", {}).items():
-        if isinstance(url_meta, dict) and url_meta.get("available"):
-            available[url] = url_meta["available"].lower() == "true"
+        if isinstance(url_meta, dict) and "available" in url_meta:
+            value = url_meta["available"]
+            if isinstance(value, bool):
+                available[url] = value
+            elif isinstance(value, str):
+                available[url] = value.lower() == "true"
+            else:
+                available[url] = bool(value)
         else:
-            available[url] = True  # default to True if not specified
+            available[url] = True
 
     drs_object = {
         "id": did,

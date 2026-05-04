@@ -493,42 +493,61 @@ def test_access_method_in_drs_object(client, user):
     ), patch(
         "indexd.drs.blueprint.get_bucket_regions", return_value=fake_bucket_regions
     ):
+        urls = [
+            "s3://my-test-bucket/path/to/file",
+            "s3://another-bucket-phs000000-c1/path/to/file",
+            "gs://last-bucket/path/to/file",
+        ]
+
         doc = get_doc(
-            urls=[
-                "s3://my-test-bucket/path/to/file",
-                "s3://another-bucket-phs000000-c1/path/to/file",
-                "gs://last-bucket/path/to/file",
-            ],
+            urls=urls,
             urls_metadata={
-                "s3://another-bucket-phs000000-c1/path/to/file": {"available": False},
-                "gs://last-bucket/path/to/file": {"region": "mx-central-1"},
+                urls[1]: {"available": False},
+                urls[2]: {"region": "mx-central-1"},
             },
         )
 
         res = client.post("/index/", json=doc, headers=user)
         assert res.status_code == 200
-
         did = res.json["did"]
 
         drs_res = client.get(f"/ga4gh/drs/v1/objects/{did}")
         assert drs_res.status_code == 200
         drs_json = drs_res.json
 
-        access_methods = drs_json.get("access_methods")
-        assert len(access_methods) == 3
-        # Test default for available, derived cloud and with region lookup
-        access_method = access_methods[0]
-        assert access_method.get("region") == "us-east-1"
-        assert access_method.get("available") == True
-        assert access_method.get("cloud") == "aws"
-        # Test default for available, derived cloud and with region lookup
-        access_method = access_methods[1]
-        assert access_method.get("region") == "us-west-2"
-        assert access_method.get("available") == False
-        assert access_method.get("cloud") == "aws"
-        # Test override for region
-        access_method = access_methods[2]
-        assert access_method.get("region") == "mx-central-1"
-        assert access_method.get("available") == True
-        assert access_method.get("cloud") == "gcp"
+        # Build actual dict keyed by URL
+        actual = {
+            m["access_url"]["url"]: {
+                "region": m.get("region"),
+                "available": m.get("available"),
+                "cloud": m.get("cloud"),
+            }
+            for m in drs_json["access_methods"]
+        }
+
+        expected = {
+            urls[0]: {
+                "region": "us-east-1",
+                "available": True,
+                "cloud": "aws",
+            },
+            urls[1]: {
+                "region": "us-west-2",
+                "available": False,
+                "cloud": "aws",
+            },
+            urls[2]: {
+                "region": "mx-central-1",
+                "available": True,
+                "cloud": "gcp",
+            },
+        }
+
+        for url, expected_access_method in expected.items():
+            assert actual[url] == expected_access_method, {
+                "url": url,
+                "actual": actual[url],
+                "expected": expected_access_method,
+            }
+
     current_app.cache.clear()
