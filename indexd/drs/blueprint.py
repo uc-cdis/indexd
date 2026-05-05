@@ -171,6 +171,93 @@ def list_drs_records():
     return flask.jsonify(ret), 200
 
 
+@blueprint.route(
+    "/ga4gh/drs/v1/objects", methods=["POST"], provide_automatic_options=False
+)
+def get_drs_objects():
+    """Returns DRS objects for each provided DRS object id."""
+
+    data = flask.request.get_json(force=True)
+
+    if "bulk_object_ids" not in data:
+        return handle_user_error("Request is malformed. Missing bulk object ids.")
+
+    try:
+        id_list = data["bulk_object_ids"]
+        total_requested = len(id_list)
+
+        summary = {
+            "requested": total_requested,
+            "resolved": 0,
+            "unresolved": total_requested,
+        }
+
+        unresolved_drs_objects = []
+        resolved_drs_objects = []
+
+        missing_error_guids = []
+        unexpected_error_guids = []
+
+        docs = blueprint.index_driver.get_bulk(id_list)
+        doc_dids = [doc["did"] for doc in docs]
+
+        for object_id in id_list:
+            if object_id not in doc_dids:
+                missing_error_guids.append(object_id)
+
+        resolved_count = 0
+
+        for doc in docs:
+            did = doc["did"]
+
+            try:
+                drs_object = indexd_to_drs(doc, expand=True)
+
+                authz = doc["authz"][0]
+                authz_metadata = copy.deepcopy(blueprint.drs_authorization_metadata)
+
+                if authz not in authz_metadata:
+                    unexpected_error_guids.append(did)
+                    continue
+
+                authorization_info = authz_metadata[authz]
+                authorization_info.update({"drs_object_id": did})
+
+                for access_method in drs_object.get("access_methods", []):
+                    access_method["authorizations"] = copy.deepcopy(authorization_info)
+
+                resolved_drs_objects.append(drs_object)
+                resolved_count += 1
+
+            except Exception:
+                logger.exception(f"Unable to resolve DRS object {did}")
+                unexpected_error_guids.append(did)
+
+        summary["resolved"] = resolved_count
+        summary["unresolved"] = total_requested - resolved_count
+
+        if missing_error_guids:
+            unresolved_drs_objects.append(
+                {"error_code": 404, "object_ids": sorted(missing_error_guids)}
+            )
+
+        if unexpected_error_guids:
+            unresolved_drs_objects.append(
+                {"error_code": 500, "object_ids": sorted(unexpected_error_guids)}
+            )
+
+        compiled_info = {
+            "summary": summary,
+            "unresolved_drs_objects": unresolved_drs_objects,
+            "resolved_drs_objects": resolved_drs_objects,
+        }
+
+    except Exception as err:
+        return handle_unexpected_error(err)
+
+    return flask.jsonify(compiled_info), 200
+
+
 @blueprint.route("/ga4gh/drs/v1/objects", methods=["OPTIONS"])
 def list_drs_records_options():
     """Returns OPTIONS metadata for each provided DRS object id (drs object id = did)
