@@ -1,5 +1,7 @@
 import os
 import re
+from urllib.parse import urlparse
+
 import flask
 import json
 import copy
@@ -415,7 +417,7 @@ def indexd_to_drs(record, expand=False):
             location_type = location.split(":")[
                 0
             ]  # (s3, gs, ftp, gsiftp, globus, htsget, https, file)
-            cloud = blueprint.cloud_provider_map.get(location_type)
+            cloud = get_cloud_provider(location)
 
             drs_object["access_methods"].append(
                 {
@@ -432,6 +434,28 @@ def indexd_to_drs(record, expand=False):
     drs_object["checksums"] = parse_checksums(record, drs_object)
 
     return drs_object
+
+
+def get_cloud_provider(location):
+    location_type = location.split(":")[0]
+    value = blueprint.cloud_provider_map.get(location_type)
+
+    if isinstance(value, str) and value:
+        return value
+
+    elif isinstance(value, dict):
+        parsed = urlparse(location)
+        location_key = f"{parsed.netloc}{parsed.path}"
+
+        for prefix, provider in value.items():
+            if location_key.startswith(prefix):
+                return provider
+
+    logger.warning(
+        f"Unable to determine cloud provider for {location} "
+        f"from CLOUD_PROVIDER_MAP. Setting to 'Unknown'"
+    )
+    return "Unknown"
 
 
 def bundle_to_drs(record, expand=False, is_content=False):

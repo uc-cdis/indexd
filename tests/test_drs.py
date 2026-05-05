@@ -17,6 +17,7 @@ from unittest.mock import patch
 from indexd.utils import lookup_bucket_region
 from flask import current_app
 from indexd.drs.blueprint import blueprint as drs_blueprint
+from indexd.drs.blueprint import get_cloud_provider
 
 
 def generate_presigned_url_response(did, status=200, **query_params):
@@ -886,3 +887,64 @@ def test_access_method_in_drs_object(client, user):
             }
 
     current_app.cache.clear()
+
+
+def test_get_cloud_provider_string_mapping():
+    original = drs_blueprint.cloud_provider_map
+    try:
+        drs_blueprint.cloud_provider_map = {
+            "s3": "aws",
+            "gs": "gcp",
+            "az": "azure",
+        }
+
+        assert get_cloud_provider("s3://my-bucket/path/to/file") == "aws"
+        assert get_cloud_provider("gs://my-bucket/path/to/file") == "gcp"
+        assert get_cloud_provider("az://my-container/path/to/file") == "azure"
+    finally:
+        drs_blueprint.cloud_provider_map = original
+
+
+def test_get_cloud_provider_unknown_protocol():
+    original = drs_blueprint.cloud_provider_map
+    try:
+        drs_blueprint.cloud_provider_map = {
+            "s3": "aws",
+            "gs": "gcp",
+        }
+
+        assert get_cloud_provider("ftp://example.com/path/to/file") == "Unknown"
+    finally:
+        drs_blueprint.cloud_provider_map = original
+
+
+def test_get_cloud_provider_empty_string_mapping_returns_unknown():
+    original = drs_blueprint.cloud_provider_map
+    try:
+        drs_blueprint.cloud_provider_map = {
+            "s3": "",
+        }
+
+        assert get_cloud_provider("s3://my-bucket/path/to/file") == "Unknown"
+    finally:
+        drs_blueprint.cloud_provider_map = original
+
+
+def test_get_cloud_provider_https_prefix_matching():
+    original = drs_blueprint.cloud_provider_map
+    try:
+        drs_blueprint.cloud_provider_map = {
+            "https": {
+                "m3.aicommons.com/ai": "aws",
+                "storage.googleapis.com": "gcp",
+            },
+        }
+
+        assert get_cloud_provider("https://storage.googleapis.com/bucket/file") == "gcp"
+
+        assert get_cloud_provider("https://m3.aicommons.com/ai/some/file") == "aws"
+
+        assert get_cloud_provider("https://m3.aicommons.com/other/file") == "Unknown"
+
+    finally:
+        drs_blueprint.cloud_provider_map = original
