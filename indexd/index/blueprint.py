@@ -637,8 +637,17 @@ def stats():
     Return indexed data stats.
     """
 
-    filecount = blueprint.index_driver.len()
-    totalfilesize = blueprint.index_driver.totalbytes()
+    month = flask.request.args.get("month")
+    year = flask.request.args.get("year")
+
+    if month is None and year is None:
+        filecount, totalfilesize = blueprint.index_driver.get_stats()
+    elif month is None or year is None:
+        raise UserError(
+            "Please call this endpoint with both month/year or neither month/year"
+        )
+    else:
+        filecount, totalfilesize = blueprint.index_driver.get_stats(month, year)
 
     base = {"fileCount": filecount, "totalFileSize": totalfilesize}
 
