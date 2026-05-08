@@ -1,31 +1,47 @@
 import os
 import sys
+import cdislogging
 
 from alembic.config import main as alembic_main
-import cdislogging
-import flask
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 from indexd.config_helper import validate_config
 from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.auth.drivers.alchemy import Base as AuthBase
-from .bulk.blueprint import blueprint as indexd_bulk_blueprint
-from .index.blueprint import blueprint as indexd_index_blueprint
-from .alias.blueprint import blueprint as indexd_alias_blueprint
-from .dos.blueprint import blueprint as indexd_dos_blueprint
-from .drs.blueprint import blueprint as indexd_guid_blueprint
-from .guid.blueprint import blueprint as indexd_drs_blueprint
-from .blueprint import blueprint as cross_blueprint
-from indexd.urls.blueprint import blueprint as index_urls_blueprint
+
+from .blueprint import router as cross_router, set_cross_config
+from .alias.blueprint import router as indexd_alias_router, set_alias_config
+from .bulk.blueprint import router as indexd_bulk_router, set_bulk_config
+from .dos.blueprint import router as indexd_dos_router, set_dos_config
+from .drs.blueprint import router as indexd_drs_router, set_drs_config
+from .guid.blueprint import router as indexd_guid_router, set_guid_config
+from .index.blueprint import router as indexd_index_router, set_index_config
+from .urls.blueprint import router as index_urls_router, set_urls_config
+
+from indexd.errors import IndexdUnexpectedError, UserError
+from indexd.alias.errors import (
+    NoRecordFound as AliasNoRecordFound,
+    MultipleRecordsFound as AliasMultipleRecordsFound,
+    RevisionMismatch as AliasRevisionMismatch,
+)
+from indexd.auth.errors import AuthError, AuthzError
+from indexd.index.errors import (
+    UnhealthyCheck,
+    MultipleRecordsFound as IndexMultipleRecordsFound,
+    RevisionMismatch as IndexRevisionMismatch,
+    NoRecordFound as IndexNoRecordFound,
+)
 
 logger = cdislogging.get_logger(__name__)
 
 
 def app_init(app, settings=None):
-    app.url_map.strict_slashes = False
     if not settings:
         from .default_settings import settings
-    app.config.update(settings["config"])
+
+    app.settings = settings
 
     if settings.get("AUTO_MIGRATE", True):
         engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
@@ -44,19 +60,29 @@ def app_init(app, settings=None):
     validate_config(settings)
 
     app.auth = settings["auth"]
-    app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
-    app.register_blueprint(indexd_bulk_blueprint)
-    app.register_blueprint(indexd_index_blueprint)
-    app.register_blueprint(indexd_alias_blueprint)
-    app.register_blueprint(indexd_dos_blueprint)
-    app.register_blueprint(indexd_drs_blueprint)
-    app.register_blueprint(indexd_guid_blueprint)
-    app.register_blueprint(cross_blueprint)
-    app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
+    app.hostname = os.environ.get("HOSTNAME")
+
+    set_cross_config(app)
+    set_alias_config(app)
+    set_bulk_config(app)
+    set_dos_config(app)
+    set_drs_config(app)
+    set_guid_config(app)
+    set_index_config(app)
+    set_urls_config(app)
+
+    app.include_router(cross_router)
+    app.include_router(indexd_alias_router)
+    app.include_router(indexd_bulk_router)
+    app.include_router(indexd_dos_router)
+    app.include_router(indexd_drs_router)
+    app.include_router(indexd_guid_router)
+    app.include_router(indexd_index_router)
+    app.include_router(index_urls_router, prefix="/_query/urls")
 
 
 def get_app(settings=None):
-    app = flask.Flask("indexd")
+    app = FastAPI(title="indexd")
 
     if "INDEXD_SETTINGS" in os.environ:
         sys.path.append(os.environ["INDEXD_SETTINGS"])
@@ -68,5 +94,51 @@ def get_app(settings=None):
             pass
 
     app_init(app, settings)
+
+    @app.exception_handler(IndexdUnexpectedError)
+    async def handle_indexd_unexpected_error(request, exc: IndexdUnexpectedError):
+        return JSONResponse(status_code=exc.code, content={"error": exc.message})
+
+    @app.exception_handler(UserError)
+    async def handle_user_error(request, exc: UserError):
+        return JSONResponse(status_code=400, content={"error": str(exc)})
+
+    @app.exception_handler(AliasNoRecordFound)
+    async def handle_alias_no_record_found(request, exc: AliasNoRecordFound):
+        return JSONResponse(status_code=404, content={"error": str(exc)})
+
+    @app.exception_handler(AliasMultipleRecordsFound)
+    async def handle_alias_multiple_records_found(
+        request, exc: AliasMultipleRecordsFound
+    ):
+        return JSONResponse(status_code=409, content={"error": str(exc)})
+
+    @app.exception_handler(AliasRevisionMismatch)
+    async def handle_alias_revision_mismatch(request, exc: AliasRevisionMismatch):
+        return JSONResponse(status_code=409, content={"error": str(exc)})
+
+    @app.exception_handler(AuthError)
+    async def handle_auth_error(request, exc: AuthError):
+        return JSONResponse(status_code=403, content={"error": str(exc)})
+
+    @app.exception_handler(AuthzError)
+    async def handle_authz_error(request, exc: AuthzError):
+        return JSONResponse(status_code=401, content={"error": str(exc)})
+
+    @app.exception_handler(UnhealthyCheck)
+    async def handle_unhealthy_check(request, exc: UnhealthyCheck):
+        return JSONResponse(status_code=500, content={"error": "Unhealthy"})
+
+    @app.exception_handler(IndexNoRecordFound)
+    async def handle_index_no_record(request, exc: IndexNoRecordFound):
+        return JSONResponse(status_code=404, content={"error": str(exc)})
+
+    @app.exception_handler(IndexMultipleRecordsFound)
+    async def handle_index_multiple_records_found(request, exc):
+        return JSONResponse(status_code=409, content={"error": str(exc)})
+
+    @app.exception_handler(IndexRevisionMismatch)
+    async def handle_index_revision_mismatch(request, exc):
+        return JSONResponse(status_code=409, content={"error": str(exc)})
 
     return app

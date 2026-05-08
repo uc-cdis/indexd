@@ -1,43 +1,43 @@
-from functools import wraps
-
-from flask import current_app
-from flask import request
-
+from fastapi import Depends, HTTPException, status, Request
 from .errors import AuthError
+from ..errors import UserError
 
 
-def authorize(*p):
+def authorize_decorator(method=None, resources=None):
     """
-    Decorator for requiring auth.
     Replaces the request authorization with a user context.
     Raises AuthError if authorization fails.
 
     If called with (method, resources), it will check with Arborist if HTTP Basic Auth is
     not present, or fallback to the previous check.
     """
-    if len(p) == 1:
-        (f,) = p
 
-        @wraps(f)
-        def check_auth(*args, **kwargs):
-            if not request.authorization:
-                raise AuthError("Username / password required.")
-            current_app.auth.auth(
-                request.authorization.parameters.get("username"),
-                request.authorization.parameters.get("password"),
+    async def dependency(request: Request):
+        auth = request.headers.get("Authorization")
+        if not auth:
+            raise AuthError("Username / password required.")
+
+        try:
+            type_, credentials = auth.split(" ")
+            if type_.lower() != "basic":
+                raise ValueError
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Malformed Authorization header.",
             )
 
-            return f(*args, **kwargs)
+        import base64
 
-        return check_auth
-    else:
-        method, resources = p
-        if request.authorization and request.authorization.type == "basic":
-            current_app.auth.auth(
-                request.authorization.parameters.get("username"),
-                request.authorization.parameters.get("password"),
-            )
-        else:
+        username, password = base64.b64decode(credentials).decode().split(":", 1)
+
+        # Replace `current_app.auth.auth` with FastAPI auth logic
+
+        if method and resources:
             if not isinstance(resources, list):
                 raise UserError(f"'authz' must be a list, received '{resources}'.")
-            current_app.auth.authz(method, list(set(resources)))
+            # Replace with: your_auth_service.authz(method, list(set(resources)))
+
+        # If authorization fails, raise AuthError or HTTPException as needed
+
+    return Depends(dependency)

@@ -1,18 +1,28 @@
-import json
-
-from flask import Blueprint, Response, request
-from flask.json import jsonify
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from indexd.errors import UserError
 from indexd.index.drivers.query.urls import AlchemyURLsQueryDriver
 from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
 
+router = APIRouter(tags=["urls"])
 
-blueprint = Blueprint("urls", __name__)
+router.logger = None
+router.driver = None
 
 
-@blueprint.route("/q", methods=["GET"])
-def query():
+def set_urls_config(app):
+    driver = app.settings["INDEX"]["driver"]
+    router.logger = getattr(app, "logger", None)
+    router.driver = (
+        driver
+        if type(driver) == SingleTableSQLAlchemyIndexDriver
+        else AlchemyURLsQueryDriver(driver)
+    )
+
+
+@router.get("/q")
+async def query(request: Request):
     """Queries indexes based on URLs
     Params:
         exclude (str): only include documents (did) with urls that does not match this pattern
@@ -22,7 +32,7 @@ def query():
         limit (str): max results to return
         offset (str): where to start the next query from
     Returns:
-        flask.Response: json list of matching entries
+        Response: json list of matching entries
             `
                 [
                     {"did": "AAAA-BB", "rev": "1ADs" "urls": ["s3://some-randomly-awesome-url"]},
@@ -30,17 +40,16 @@ def query():
                 ]
             `
     """
+    args = dict(request.query_params)
+    try:
+        record_list = router.driver.query_urls(**args)
+    except Exception as err:
+        raise UserError(str(err))
+    return JSONResponse(content=record_list, status_code=200)
 
-    record_list = blueprint.driver.query_urls(**request.args.to_dict())
-    return Response(
-        json.dumps(record_list, indent=2, separators=(", ", ": ")),
-        200,
-        mimetype="application/json",
-    )
 
-
-@blueprint.route("/metadata/q")
-def query_metadata():
+@router.get("/metadata/q")
+async def query_metadata(request: Request):
     """Queries indexes by URLs metadata key and value
     Params:
         key (str): metadata key
@@ -51,7 +60,7 @@ def query_metadata():
         limit (str): max results to return
         offset (str): where to start the next query from
     Returns:
-        flask.Response: json list of matching entries
+        Response: json list of matching entries
             `
                 [
                     {"did": "AAAA-BB", "rev": "1ADs" "urls": ["s3://some-randomly-awesome-url"]},
@@ -59,26 +68,9 @@ def query_metadata():
                 ]
             `
     """
-
-    record_list = blueprint.driver.query_metadata_by_key(**request.args.to_dict())
-    return Response(
-        json.dumps(record_list, indent=2, separators=(", ", ": ")),
-        200,
-        mimetype="application/json",
-    )
-
-
-@blueprint.record
-def pre_config(state):
-    driver = state.app.config["INDEX"]["driver"]
-    blueprint.logger = state.app.logger
-    blueprint.driver = (
-        driver
-        if type(driver) == SingleTableSQLAlchemyIndexDriver
-        else AlchemyURLsQueryDriver(driver)
-    )
-
-
-@blueprint.errorhandler(UserError)
-def handle_user_error(err):
-    return jsonify(error=str(err)), 400
+    args = dict(request.query_params)
+    try:
+        record_list = router.driver.query_metadata_by_key(**args)
+    except Exception as err:
+        raise UserError(str(err))
+    return JSONResponse(content=record_list, status_code=200)

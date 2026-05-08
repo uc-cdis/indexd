@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "indexd"
-version = "6.0.0"
+version = "6.1.0"
 description = "Gen3 Indexing Service"
 authors = ["CTDS UChicago <cdis@uchicago.edu>"]
 license = "Apache-2.0"
@@ -21,7 +21,6 @@ hsclient = {git = "https://github.com/uc-cdis/hsclient", rev = "1.0.0"}
 indexclient = ">=2.1.0"
 jsonschema = "^3.2"
 gunicorn = ">=22.0.0"
-flask = "^2.3.3"
 sqlalchemy = "^1.4.0"
 sqlalchemy-utils = "^0.37.3"
 PyYAML = ">=5.3,<7"
@@ -29,16 +28,18 @@ gitpython = "^3.1.45"
 requests = "^2.32.5"
 setuptools = "^80.9.0"
 psycopg2-binary = "^2.9.11"
+fastapi = "^0.135.1"
+uvicorn = "^0.41.0"
 
 [tool.poetry.group.dev.dependencies]
 coveralls = "^3.0.1"
 mock = "^4.0.2"
-pytest = "^6.2.4"
+pytest = "^9.0.3"
 pytest-cov = "^2.12.0"
-pytest-flask = "^1.2.0"
 responses = "^0.13.0"
 swagger_spec_validator = "^2.6.0"
 deptry = "^0.23.1"
+starlette = "^1.0.0"
 
 
 [build-system]

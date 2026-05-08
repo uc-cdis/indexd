@@ -22,6 +22,7 @@ from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
 
+from starlette.testclient import TestClient
 
 POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 
@@ -33,9 +34,7 @@ def clear_database():
     Clean up test data from unit test
     """
     engine = create_engine(POSTGRES_CONNECTION)
-
     with engine.connect() as conn:
-        index_driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
         # IndexD table needs to be delete in this order to avoid foreign key constraint error
         table_delete_order = [
             "index_record_url_metadata",
@@ -53,24 +52,12 @@ def clear_database():
             "base_version",
             "record",
         ]
-
         for table_name in table_delete_order:
-            delete_statement = f"DELETE FROM {table_name}"
-            conn.execute(delete_statement)
-
-        # Clear the Alias records
-        alias_driver = SQLAlchemyAliasDriver(POSTGRES_CONNECTION)
+            conn.execute(f"DELETE FROM {table_name}")
         for model in alias_base.__subclasses__():
-            table = model.__table__
-            delete_statement = table.delete()
-            conn.execute(delete_statement)
-
-        # Clear the Auth records
-        auth_driver = SQLAlchemyAuthDriver(POSTGRES_CONNECTION)
+            conn.execute(model.__table__.delete())
         for model in auth_base.__subclasses__():
-            table = model.__table__
-            delete_statement = table.delete()
-            conn.execute(delete_statement)
+            conn.execute(model.__table__.delete())
 
 
 @pytest.fixture(scope="function", params=["default_settings", "single_table_settings"])
@@ -78,19 +65,16 @@ def combined_default_and_single_table_settings(request):
     """
     Fixture to run a unit test with both multi-table and single-table driver
     """
-
-    # Load the default settings
     from indexd import default_settings
     from tests import default_test_settings
 
     importlib.reload(default_settings)
     importlib.reload(default_test_settings)
-
     if request.param == "default_settings":
         default_settings.settings["use_single_table"] = False
         default_settings.settings["config"]["INDEX"] = {
             "driver": SQLAlchemyIndexDriver(
-                "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+                POSTGRES_CONNECTION,
                 echo=True,
                 index_config={
                     "DEFAULT_PREFIX": "testprefix/",
@@ -99,13 +83,12 @@ def combined_default_and_single_table_settings(request):
                 },
             )
         }
-
     # Load the single-table settings
     elif request.param == "single_table_settings":
         default_settings.settings["use_single_table"] = True
         default_settings.settings["config"]["INDEX"] = {
             "driver": SingleTableSQLAlchemyIndexDriver(
-                "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+                POSTGRES_CONNECTION,
                 echo=True,
                 index_config={
                     "DEFAULT_PREFIX": "testprefix/",
@@ -114,13 +97,13 @@ def combined_default_and_single_table_settings(request):
                 },
             )
         }
-
     default_settings.settings = {
         **default_settings.settings,
         **default_test_settings.settings,
     }
-    yield get_app(default_settings.settings)
-
+    app = get_app(default_settings.settings)
+    client = TestClient(app)
+    yield client
     try:
         clear_database()
     except Exception as e:
@@ -137,9 +120,9 @@ def app():
         **default_settings.settings,
         **default_test_settings.settings,
     }
-
-    yield get_app()
-
+    appobj = get_app()
+    client = TestClient(appobj)
+    yield client
     try:
         clear_database()
     except Exception as e:
@@ -154,17 +137,15 @@ def user(app):
         driver.add("test", "test")
     except Exception as e:
         logger.error(f"Failed to add test users with error {e}")
-
-    yield {
-        "Authorization": ("Basic " + base64.b64encode(b"test:test").decode("ascii")),
+    header = {
+        "Authorization": "Basic " + base64.b64encode(b"test:test").decode("ascii"),
         "Content-Type": "application/json",
     }
-
+    yield header
     try:
         driver.delete("test")
     except Exception as e:
         logger.error(f"Failed to delete test user with error {e}")
-
     engine.dispose()
 
 
@@ -197,12 +178,6 @@ def use_mock_authz(request):
     """
 
     def _use_mock_authz(allowed_permissions=None):
-        """
-        Args:
-            allowed_permissions (list of (string, list) tuples), (optional):
-                Only authorize the listed (method, resources) tuples.
-                By default, authorize all requests.
-        """
         if allowed_permissions is None:
             mock_authz = lambda *x: x
         else:
@@ -212,12 +187,10 @@ def use_mock_authz(request):
                 for resource in resources:
                     if (method, resource) not in allowed_permissions:
                         raise AuthError(
-                            "Mock indexd.auth.authz: ({},{}) is not one of the allowed permissions: {}".format(
-                                method, resource, allowed_permissions
-                            )
+                            f"Mock indexd.auth.authz: ({method},{resource}) is not in allowed permissions ({allowed_permissions})"
                         )
 
-        patched_authz = patch("flask.current_app.auth.authz", mock_authz)
+        patched_authz = patch("indexd.auth.authz", mock_authz)
         patched_authz.start()
         request.addfinalizer(patched_authz.stop)
 
@@ -234,15 +207,12 @@ def mock_arborist_requests(app, request):
     or a 200 response depending on the dict value.
     """
     arborist_base_url = "arborist"
-    app.auth.arborist = ArboristClient(arborist_base_url=arborist_base_url)
+    app.app.auth.arborist = ArboristClient(arborist_base_url=arborist_base_url)
 
     def do_patch(resource_method_to_authorized={}):
-        # Resource/Method to authorized: { RESOURCE: { METHOD: True/False } }
-
         def make_mock_response(method, url, *args, **kwargs):
             method = method.upper()
             mocked_response = mock.MagicMock(requests.Response)
-
             if url != f"{arborist_base_url}/auth/request":
                 mocked_response.status_code = 404
                 mocked_response.text = "NOT FOUND"
@@ -253,8 +223,8 @@ def mock_arborist_requests(app, request):
                 authz_res, authz_met = None, None
                 authz_requests = kwargs["json"]["requests"]
                 if authz_requests:
-                    authz_res = kwargs["json"]["requests"][0]["resource"]
-                    authz_met = kwargs["json"]["requests"][0]["action"]["method"]
+                    authz_res = authz_requests[0]["resource"]
+                    authz_met = authz_requests[0]["action"]["method"]
                 authorized = resource_method_to_authorized.get(authz_res, {}).get(
                     authz_met, False
                 )
@@ -266,7 +236,6 @@ def mock_arborist_requests(app, request):
         patch_method = patch(
             "gen3authz.client.arborist.client.httpx.Client.request", mocked_method
         )
-
         patch_method.start()
         request.addfinalizer(patch_method.stop)
 
