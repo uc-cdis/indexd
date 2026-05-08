@@ -543,12 +543,25 @@ async def health_check():
 
 
 @router.get("/_stats")
-async def stats():
+async def stats(request: Request):
     """
     Return indexed data stats.
     """
     filecount = router.index_driver.len()
     totalfilesize = router.index_driver.totalbytes()
+
+    month = request.query_params.get("month")
+    year = request.query_params.get("year")
+
+    if month is None and year is None:
+        filecount, totalfilesize = router.index_driver.get_stats()
+    elif month is None or year is None:
+        raise UserError(
+            "Please call this endpoint with both month/year or neither month/year"
+        )
+    else:
+        filecount, totalfilesize = router.index_driver.get_stats(month, year)
+
     base = {"fileCount": filecount, "totalFileSize": totalfilesize}
     return JSONResponse(content=base, status_code=200)
 

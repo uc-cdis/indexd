@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException, status
 from fastapi.responses import JSONResponse
 
-from indexclient.client import IndexClient
+from indexclient.indexclient.client import IndexClient
 from doiclient.client import DOIClient
 from dosclient.client import DOSClient
 from hsclient.client import HSClient

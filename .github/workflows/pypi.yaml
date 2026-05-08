@@ -1,0 +1,18 @@
+name: PyPI
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  PyPIPoetryPublish:
+    name: PyPI Poetry Publish
+    uses: uc-cdis/.github/.github/workflows/python_package_index_publish.yaml@master
+    with:
+        PYTHON_VERSION: '3.13'
+        DO_TEST_PUBLISH_FIRST: true
+        PACKAGE_DIRECTORY: 'indexclient'
+    secrets:
+      PYPI_TEST_API_TOKEN: ${{ secrets.PYPI_TEST_API_TOKEN }}
+      PYPI_PROD_API_TOKEN: ${{ secrets.PYPI_PROD_API_TOKEN }}
