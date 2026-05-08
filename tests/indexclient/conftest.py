@@ -1,4 +1,3 @@
-import json
 import requests
 from urllib.parse import urlparse
 
@@ -11,8 +10,7 @@ from tests.conftest import clear_database
 
 # TODO: PD-125 Use indexd_client fixture in place of the client fixture for all tests
 @pytest.fixture(scope="function")
-def indexd_client(app, monkeypatch, user):
-    flask_client = app.test_client()
+def indexd_client(test_client, monkeypatch, user):
     baseurl = "http://indexd"
 
     def request(method, url, **kwargs):
@@ -29,18 +27,18 @@ def indexd_client(app, monkeypatch, user):
             headers = kwargs.setdefault("headers", {})
             headers.setdefault("Content-Type", "application/json")
             headers["Authorization"] = user["Authorization"]
-        flask_resp = flask_client.open(
+        test_resp = test_client.open(
             path=parsed.path,
             method=method,
             **kwargs,
         )
 
         resp = requests.Response()
-        resp.status_code = flask_resp.status_code
-        resp._content = flask_resp.get_data()
-        resp.headers = flask_resp.headers
+        resp.status_code = test_resp.status_code
+        resp._content = test_resp.get_data()
+        resp.headers = test_resp.headers
         resp.url = url
-        resp.reason = flask_resp.status
+        resp.reason = test_resp.status
         return resp
 
     monkeypatch.setattr(

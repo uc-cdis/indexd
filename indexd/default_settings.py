@@ -59,7 +59,7 @@ CONFIG["DIST"] = [
         "hints": [".*ROCKS.*"],
         "type": "indexd",
     },
-    {"name": "DX DOI", "host": "https://doi.org/", "hints": ["10\..*"], "type": "doi"},
+    {"name": "DX DOI", "host": "https://doi.org/", "hints": [r"10\..*"], "type": "doi"},
     {
         "name": "DOS System",
         "host": "https://example.com/api/ga4gh/dos/v1/",
