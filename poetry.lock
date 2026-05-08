@@ -948,18 +948,6 @@ files = [
 all = ["mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2)"]
 
 [[package]]
-name = "indexclient"
-version = "6.1.1"
-description = ""
-optional = false
-python-versions = "<4.0,>=3.13"
-groups = ["main"]
-files = [
-    {file = "indexclient-6.1.1-py3-none-any.whl", hash = "sha256:c5019ce1190f03fbd58d009bc414efa5823c209adebd260a290955a5632b78ac"},
-    {file = "indexclient-6.1.1.tar.gz", hash = "sha256:53514076d8d77e3f9283e52bc93f8fbe3f8a3038ddfb8c0a1a8681509568d082"},
-]
-
-[[package]]
 name = "iniconfig"
 version = "2.3.0"
 description = "brain-dead simple config-ini parsing"
@@ -1989,4 +1977,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13,<4.0"
-content-hash = "cf1f099561d961624b39de14970256d8a2b81b2ec002861b2b41560199781609"
+content-hash = "374a327f61b9df051be2f50cd22ae0a62ed3378cb42050fcb9a493e0792f2899"
