@@ -27,6 +27,7 @@ from contextlib import contextmanager
 
 from indexd import auth
 from indexd.errors import UserError
+from indexd.auth.errors import AuthError
 from indexd.index.driver import IndexDriverABC
 from indexd.index.drivers.alchemy import (
     IndexSchemaVersion,
