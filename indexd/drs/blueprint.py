@@ -14,7 +14,7 @@ router.service_info = {}
 
 
 def set_drs_config(app):
-    index_config = app.settings["INDEX"]
+    index_config = app.settings["config"]["INDEX"]
     router.index_driver = index_config["driver"]
     router.service_info = app.settings.get("DRS_SERVICE_INFO", {})
 

@@ -18,8 +18,8 @@ router.dist = []
 
 
 def set_cross_config(app):
-    index_config = app.settings["INDEX"]
-    alias_config = app.settings["ALIAS"]
+    index_config = app.settings["config"]["INDEX"]
+    alias_config = app.settings["config"]["ALIAS"]
     router.index_driver = index_config["driver"]
     router.alias_driver = alias_config["driver"]
     router.dist = app.settings.get("DIST", [])

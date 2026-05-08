@@ -8,7 +8,7 @@ router.index_driver = None
 
 
 def set_guid_config(app):
-    router.index_driver = app.settings["INDEX"]["driver"]
+    router.index_driver = app.settings["config"]["INDEX"]["driver"]
 
 
 @router.get("/guid/mint")

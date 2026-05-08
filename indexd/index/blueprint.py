@@ -38,7 +38,7 @@ ACCEPTABLE_HASHES = {
 
 
 def set_index_config(app):
-    router.index_driver = app.settings["INDEX"]["driver"]
+    router.index_driver = app.settings["config"]["INDEX"]["driver"]
     router.dist = app.settings.get("DIST", [])
 
 

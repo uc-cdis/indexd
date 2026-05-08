@@ -13,7 +13,7 @@ router = APIRouter(tags=["alias"])
 
 
 def set_alias_config(app):
-    alias_config = app.settings["ALIAS"]
+    alias_config = app.settings["config"]["ALIAS"]
     router.alias_driver = alias_config["driver"]
 
 

@@ -12,7 +12,7 @@ router.driver = None
 
 
 def set_urls_config(app):
-    driver = app.settings["INDEX"]["driver"]
+    driver = app.settings["config"]["INDEX"]["driver"]
     router.logger = getattr(app, "logger", None)
     router.driver = (
         driver

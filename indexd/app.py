@@ -60,7 +60,7 @@ def app_init(app, settings=None):
     validate_config(settings)
 
     app.auth = settings["auth"]
-    app.hostname = os.environ.get("HOSTNAME")
+    app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
 
     set_cross_config(app)
     set_alias_config(app)
