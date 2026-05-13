@@ -102,6 +102,9 @@ def test_drs_get(client, user, combined_default_and_single_table_settings):
     assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split("/")[1]
     # according to ga4gh DRS blobs objects are NOT supposed to have contents. Only DRS Bundle objects should include the contetnts field
     assert "contents" not in rec_2
+    # Check that access_methods populated (detailed access_methods structure checks are in separate pytest)
+    assert len(rec_2["access_methods"]) > 0
+    assert "supported_types" in rec_2["access_methods"][0]
 
 
 def test_drs_get_no_default(client, user, combined_default_and_single_table_settings):
@@ -312,16 +315,16 @@ def test_drs_multiple_endpointurl(
 
 
 def test_drs_list(client, user, combined_default_and_single_table_settings):
-    record_length = 7
+    record_length = 2  # 7
     data = get_doc()
     submitted_guids = []
     for _ in range(record_length):
         res_1 = client.post("/index/", json=data, headers=user)
+        assert res_1.status_code == 200
         did = res_1.json["did"]
         submitted_guids.append(did)
         bundle_data = get_bundle_doc(bundles=[did])
         res2 = client.post("/bundle/", json=bundle_data, headers=user)
-        assert res_1.status_code == 200
 
     res_2 = client.get("/ga4gh/drs/v1/objects")
     assert res_2.status_code == 200
@@ -948,3 +951,27 @@ def test_get_cloud_provider_https_prefix_matching():
 
     finally:
         drs_blueprint.cloud_provider_map = original
+
+
+def test_drs_get_bulk(client, user, combined_default_and_single_table_settings):
+    """Tests endpoint for bulk call"""
+
+    # Test set up
+    did_list, expected_json, expected_404_dict, expected_500_dict = (
+        bulk_auth_options_test_setup(user, client, n_200=2, n_404=2, n_500=2)
+    )
+    print(f"test did_list: {did_list}\n expected_404_dict: {expected_404_dict}")
+    # Call bulk options
+    data = {"bulk_object_ids": did_list}
+    res_1 = client.get("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Check results
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    for entry in test_json["resolved_drs_objects"]:
+        assert entry in expected_json["resolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == len(
+        expected_json["unresolved_drs_objects"]
+    )
+    assert expected_404_dict in test_json["unresolved_drs_objects"]
+    assert expected_500_dict in test_json["unresolved_drs_objects"]

@@ -25,6 +25,7 @@ blueprint.index_driver = None
 blueprint.service_info = {}
 blueprint.cloud_provider_map = {}
 blueprint.max_bulk_request_length = 100
+blueprint.drs_authorization_metadata = {}
 
 
 @blueprint.route("/ga4gh/drs/v1/service-info", methods=["GET"])
@@ -111,23 +112,8 @@ def get_drs_object_options(object_id):
     Returns a specific DRSobject metadata with object_id
     """
     # Get authz based on guid
-    try:
-        ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
-        authz = ret["authz"][0]
-    # Handle known type error
-    except IndexNoRecordFound as err:
-        return handle_no_index_record_error(err)
-
-    # Get static authz metadata based on blueprint
-    try:
-        # Get static authz metadata
-        authz_metadata = copy.deepcopy(blueprint.drs_authorization_metadata)
-        # Otherwise, match exists & we can updated with object id
-        authz_metadata[authz].update({"drs_object_id": object_id})
-        return flask.jsonify(authz_metadata[authz]), 200
-    # Otherwise catch unknown error
-    except Exception as err:
-        return handle_unexpected_error(err)
+    authz_metadata = resolve_single_object_auth(object_id)
+    return flask.jsonify(authz_metadata)
 
 
 @blueprint.route(
@@ -167,7 +153,7 @@ def list_drs_records():
     ret = {
         "drs_objects": [indexd_to_drs(record, True) for record in records],
     }
-
+    # WIP - update to use bulk resolution
     return flask.jsonify(ret), 200
 
 
@@ -178,84 +164,11 @@ def get_drs_objects():
     """Returns DRS objects for each provided DRS object id."""
 
     data = flask.request.get_json(force=True)
-
+    # Exit with malformed error return if missing object id
     if "bulk_object_ids" not in data:
         return handle_user_error("Request is malformed. Missing bulk object ids.")
-
-    try:
-        id_list = data["bulk_object_ids"]
-        total_requested = len(id_list)
-
-        summary = {
-            "requested": total_requested,
-            "resolved": 0,
-            "unresolved": total_requested,
-        }
-
-        unresolved_drs_objects = []
-        resolved_drs_objects = []
-
-        missing_error_guids = []
-        unexpected_error_guids = []
-
-        docs = blueprint.index_driver.get_bulk(id_list)
-        doc_dids = [doc["did"] for doc in docs]
-
-        for object_id in id_list:
-            if object_id not in doc_dids:
-                missing_error_guids.append(object_id)
-
-        resolved_count = 0
-
-        for doc in docs:
-            did = doc["did"]
-
-            try:
-                drs_object = indexd_to_drs(doc, expand=True)
-
-                authz = doc["authz"][0]
-                authz_metadata = copy.deepcopy(blueprint.drs_authorization_metadata)
-
-                if authz not in authz_metadata:
-                    unexpected_error_guids.append(did)
-                    continue
-
-                authorization_info = authz_metadata[authz]
-                authorization_info.update({"drs_object_id": did})
-
-                for access_method in drs_object.get("access_methods", []):
-                    access_method["authorizations"] = copy.deepcopy(authorization_info)
-
-                resolved_drs_objects.append(drs_object)
-                resolved_count += 1
-
-            except Exception:
-                logger.exception(f"Unable to resolve DRS object {did}")
-                unexpected_error_guids.append(did)
-
-        summary["resolved"] = resolved_count
-        summary["unresolved"] = total_requested - resolved_count
-
-        if missing_error_guids:
-            unresolved_drs_objects.append(
-                {"error_code": 404, "object_ids": sorted(missing_error_guids)}
-            )
-
-        if unexpected_error_guids:
-            unresolved_drs_objects.append(
-                {"error_code": 500, "object_ids": sorted(unexpected_error_guids)}
-            )
-
-        compiled_info = {
-            "summary": summary,
-            "unresolved_drs_objects": unresolved_drs_objects,
-            "resolved_drs_objects": resolved_drs_objects,
-        }
-
-    except Exception as err:
-        return handle_unexpected_error(err)
-
-    return flask.jsonify(compiled_info), 200
+    ret = resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
+    return flask.jsonify(ret), 200
 
 
 @blueprint.route("/ga4gh/drs/v1/objects", methods=["OPTIONS"])
@@ -304,64 +217,12 @@ def list_drs_records_options():
     if "bulk_object_ids" not in data:
         return handle_user_error("Request is malformed. Missing bulk object ids.")
 
-    # Return unexpected error if unhandled issue encountered...
     try:
-        # Prepare return defaults
-        total_requested = len(data["bulk_object_ids"])
-        unresolved_drs_objects = []
-        resolved_drs_objects = []
-        missing_error_guids = []  # 404
-        unexpected_error_guids = []  # 500
-        summary = {
-            "requested": total_requested,
-            "resolved": 0,
-            "unresolved": total_requested,  # nothing is resolved at the start
-        }
-        # Bulk retrieve docs from id list
-        id_list = data["bulk_object_ids"]
-        docs = blueprint.index_driver.get_bulk(id_list)
-        doc_dids = [doc["did"] for doc in docs]
-
-        # Annotate if an original id(s) is not returned in bulk call (record as unresolved, index not found)
-        for i in id_list:
-            if i not in doc_dids:
-                missing_error_guids.append(i)
-        # Check the authz for each returned object:
-        resolved_count = 0
-        for doc in docs:
-            # Get static authz metadata and confirm info matches
-            authz = doc["authz"][0]
-            authz_metadata = copy.deepcopy(blueprint.drs_authorization_metadata)
-            # If static match not confirmed, record as unexpected error & continue to next
-            if authz not in authz_metadata.keys():
-                unexpected_error_guids.append(doc["did"])
-                continue
-            # otherwise update with object id and save info for return
-            authz_metadata[authz].update({"drs_object_id": doc["did"]})
-            resolved_drs_objects.append(authz_metadata[authz])
-            resolved_count = resolved_count + 1
-
-        # Update summary counts
-        summary["resolved"] = resolved_count
-        summary["unresolved"] = total_requested - resolved_count
-        # Update unresolved list details
-        if len(missing_error_guids) > 0:
-            unresolved_drs_objects.append(
-                {"error_code": 404, "object_ids": sorted(missing_error_guids)}
-            )
-        if len(unexpected_error_guids) > 0:
-            unresolved_drs_objects.append(
-                {"error_code": 500, "object_ids": sorted(unexpected_error_guids)}
-            )
-        # Update compiled results
-        compiled_info = {}
-        compiled_info["summary"] = summary
-        compiled_info["unresolved_drs_objects"] = unresolved_drs_objects
-        compiled_info["resolved_drs_objects"] = resolved_drs_objects
+        compiled_info = resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
 
     # If unexpected error encountered, return defaults
     except Exception as err:
-        return handle_unexpected_error(err)
+        raise UnexpectedIndexError(err)
 
     return flask.jsonify(compiled_info), 200
 
@@ -392,9 +253,102 @@ def create_drs_uri(did):
     return self_uri
 
 
+def resolve_single_object_auth(object_id: str) -> dict:
+    """Returns dict with object's authorization metadata"""
+
+    # Extract authz metadata for object id
+    try:
+        ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
+        authz_metadata = blueprint.drs_authorization_metadata
+        # If index driver could get info for object_id but authz is empty, use default bearer info
+        if ret["authz"] == []:
+            authz_metadata_details = {
+                "supported_types": ["BearerAuth"],
+                "bearer_auth_issuers": [blueprint.default_bearer_issuer],
+            }
+        # Otherwise, use first issuer info in authz list
+        else:
+            authz = ret["authz"][0]
+            authz_metadata_details = authz_metadata[authz]
+        authz_metadata_details.update({"drs_object_id": object_id})
+        return authz_metadata_details
+
+    except Exception as err:
+        # If error occurs, check if this is a 404 case with invalid guid
+        doc_list = blueprint.index_driver.get_bulk([object_id])
+        doc_dids = [doc["did"] for doc in doc_list]
+        if doc_dids == []:
+            raise IndexNoRecordFound(err)
+        else:
+            raise UnexpectedIndexError(err)
+
+
+def resolve_bulk_object_auth(id_list: list[str]) -> dict:
+    """Returns compiled dict of authorization metadata"""
+
+    # Return unexpected error if unhandled issue encountered...
+    # Prepare return defaults
+    total_requested = len(id_list)
+    unresolved_drs_objects = []
+    resolved_drs_objects = []
+    missing_error_guids = []  # 404
+    unexpected_error_guids = []  # 500
+    summary = {
+        "requested": total_requested,
+        "resolved": 0,
+        "unresolved": total_requested,  # nothing is resolved at the start
+    }
+    # Bulk retrieve docs from id list
+    docs = blueprint.index_driver.get_bulk(id_list)
+    doc_dids = [doc["did"] for doc in docs]
+
+    # Annotate if an original id(s) is not returned in bulk call (record as unresolved, index not found)
+    for i in id_list:
+        if i not in doc_dids:
+            missing_error_guids.append(i)
+    # Check the authz for each returned object:
+    resolved_count = 0
+    for doc in docs:
+        # Resolve individual
+        guid = doc["did"]
+        if guid in missing_error_guids:
+            continue
+        try:
+            authorization = resolve_single_object_auth(object_id=guid)
+        # Handle unexpected error and continue
+        except Exception as err:
+            unexpected_error_guids.append(guid)
+            continue
+        # If not unexpected error found, but we know auth is None, treat as 500
+        if authorization is None:
+            unexpected_error_guids.append(guid)
+            continue
+        resolved_drs_objects.append(authorization)
+        resolved_count = resolved_count + 1
+
+    # Update summary counts
+    summary["resolved"] = resolved_count
+    summary["unresolved"] = total_requested - resolved_count
+    # Update unresolved list details
+    if len(missing_error_guids) > 0:
+        unresolved_drs_objects.append(
+            {"error_code": 404, "object_ids": sorted(missing_error_guids)}
+        )
+    if len(unexpected_error_guids) > 0:
+        unresolved_drs_objects.append(
+            {"error_code": 500, "object_ids": sorted(unexpected_error_guids)}
+        )
+    # Update compiled results
+    compiled_info = {}
+    compiled_info["summary"] = summary
+    compiled_info["unresolved_drs_objects"] = unresolved_drs_objects
+    compiled_info["resolved_drs_objects"] = resolved_drs_objects
+    return compiled_info
+
+
 def indexd_to_drs(record, expand=False):
     """
-    Convert record to ga4gh-compilant format
+    Convert record to ga4gh-compilant format. Includes access_methods resolution.
 
     Args:
         record(dict): json object record
@@ -439,6 +393,24 @@ def indexd_to_drs(record, expand=False):
         else json.loads(record["aliases"]) if "aliases" in record else []
     )
 
+    # Define current drs_object dict description
+    drs_object = {
+        "id": did,
+        "mime_type": "application/json",
+        "name": name,
+        "index_created_time": index_created_time,
+        "index_updated_time": index_updated_time,
+        "created_time": content_created_date,
+        "updated_time": content_updated_date,
+        "size": record["size"],
+        "aliases": alias,
+        "self_uri": self_uri,
+        "version": version,
+        "form": form,
+        "checksums": [],
+        "description": description,
+    }
+    # Get access method dict for each url
     bucket_regions = get_bucket_regions()
 
     region = {}
@@ -468,27 +440,6 @@ def indexd_to_drs(record, expand=False):
                 available[url] = bool(value)
         else:
             available[url] = True
-
-    drs_object = {
-        "id": did,
-        "mime_type": "application/json",
-        "name": name,
-        "index_created_time": index_created_time,
-        "index_updated_time": index_updated_time,
-        "created_time": content_created_date,
-        "updated_time": content_updated_date,
-        "size": record["size"],
-        "aliases": alias,
-        "self_uri": self_uri,
-        "version": version,
-        "form": form,
-        "checksums": [],
-        "description": description,
-    }
-
-    if "description" in record:
-        drs_object["description"] = record["description"]
-
     if "bundle_data" in record:
         drs_object["contents"] = []
         for bundle in record["bundle_data"]:
@@ -497,9 +448,10 @@ def indexd_to_drs(record, expand=False):
                 bundle_object.pop("contents", None)
             drs_object["contents"].append(bundle_object)
 
-    # access_methods mapping
     if "urls" in record:
-        drs_object["access_methods"] = []
+        # Add access_method key-value pair (required to append url info)
+        if "access_methods" not in record:
+            drs_object["access_methods"] = []
         for location in record["urls"]:
             location_type = location.split(":")[
                 0
@@ -516,6 +468,21 @@ def indexd_to_drs(record, expand=False):
                     "region": region.get(location, ""),
                 }
             )
+
+    # Add authorization metadata to access_methods if record object id NOT a bundle
+    # Auth metadata is optional for bundles
+    # if 'bundle_data' not in record:
+    if form == "object":
+        authorizations = resolve_single_object_auth(object_id=did)
+        # If access methods currently empty (no url metadata), append auth metadata directly
+        if "access_methods" not in drs_object:
+            drs_object["access_methods"] = [authorizations]
+        # Otherwise, embed authorization into each existing url metadata dictionary that already exists in the list
+        else:
+            drs_object["access_methods"] = [
+                entry.update({"authorizations": authorizations})
+                for entry in drs_object["access_methods"]
+            ]
 
     # parse out checksums
     drs_object["checksums"] = parse_checksums(record, drs_object)
@@ -682,6 +649,10 @@ def get_config(setup_state):
     if "DRS_AUTHORIZATION_METADATA" in setup_state.app.config:
         blueprint.drs_authorization_metadata = setup_state.app.config[
             "DRS_AUTHORIZATION_METADATA"
+        ]
+    if "DEFAULT_BEARER_ISSUER" in setup_state.app.config:
+        blueprint.default_bearer_issuer = setup_state.app.config[
+            "DEFAULT_BEARER_ISSUER"
         ]
     if "CLOUD_PROVIDER_MAP" in setup_state.app.config:
         blueprint.cloud_provider_map = setup_state.app.config["CLOUD_PROVIDER_MAP"]

@@ -32,6 +32,7 @@ CONFIG["DRS_AUTHORIZATION_METADATA"] = {
         "bearer_auth_issuers": ["https://gen3.datacommons.io"],
     }
 }
+CONFIG["DEFAULT_BEARER_ISSUER"] = "test_default"
 
 os.environ["PRESIGNED_FENCE_URL"] = "https://fictitious-commons.io/"
 os.environ["HOSTNAME"] = "fictitious-commons.io"

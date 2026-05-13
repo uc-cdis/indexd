@@ -112,3 +112,5 @@ CONFIG["DRS_AUTHORIZATION_METADATA"] = {
         "bearer_auth_issuers": ["https://gen3.datacommons.io"],
     }
 }
+
+CONFIG["DEFAULT_BEARER_ISSUER"] = "test_default"
