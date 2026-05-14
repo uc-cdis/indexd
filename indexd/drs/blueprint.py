@@ -177,13 +177,13 @@ def list_drs_records_options():
 
     dids: list of str object ids (ex. ['123','456'])
 
-    A response for a call with 6 dids where 2 were successfully resolved, 2 were not found,
+    A response for a call with 5 dids where 3 were successfully resolved, 2 were not found,
     and 2 encountered an unexpected error would look like:
 
     {
         "summary": {
-            "requested": 6,
-            "resolved": 2,
+            "requested": 5,
+            "resolved": 3,
             "unresolved": 4,
         },
         "unresolved_drs_objects": [
@@ -202,6 +202,12 @@ def list_drs_records_options():
                     "bearer_auth_issuers": ["sample"],
                     "passport_auth_issuers": ["sample"],
                     "supported_types": ["BearerAuth", "PassportAuth"]
+                },
+                {
+                    "drs_object_id": "did3",
+                    "bearer_auth_issuers": [],
+                    "passport_auth_issuers": [],
+                    "supported_types": []
                 },
             ],
     }
@@ -259,28 +265,69 @@ def resolve_single_object_auth(object_id: str) -> dict:
     # Extract authz metadata for object id
     try:
         ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
-        authz_metadata = blueprint.drs_authorization_metadata
-        # If index driver could get info for object_id but authz is empty, use default bearer info
+        authz_path_list = ret["authz"]
+        authz_metadata = copy.deepcopy(blueprint.drs_authorization_metadata)
+        # If index driver could get info for object_id but authz is empty
         if ret["authz"] == []:
             authz_metadata_details = {
-                "supported_types": ["BearerAuth"],
-                "bearer_auth_issuers": [blueprint.default_bearer_issuer],
+                "supported_types": [],
+                "bearer_auth_issuers": [],
+                "passport_auth_issuers": [],
             }
-        # Otherwise, use first issuer info in authz list
+        # Otherwise, extract auth info
         else:
-            authz = ret["authz"][0]
-            authz_metadata_details = authz_metadata[authz]
-        authz_metadata_details.update({"drs_object_id": object_id})
-        return authz_metadata_details
-
+            # Build authorization metadata return as we go
+            compiled_authorization_metadata = {
+                "drs_object_id": object_id,
+                "supported_types": [],
+            }
+            # A guid might have multiple authorization paths...
+            passport_auth_issuers = []
+            bearer_auth_issuers = []
+            supported_types = []
+            # Get auth metadata (issuer info) for each path
+            for authz in authz_path_list:
+                # Handle open access scenario...
+                if "/programs/open_access/projects" in authz:
+                    authz_metadata_details = {
+                        "supported_types": ["BearerAuth"],
+                        "bearer_auth_issuers": [blueprint.default_bearer_issuer],
+                    }
+                # Otherwise, extract path-specific issuer from metadata
+                else:
+                    authz_metadata_details = authz_metadata[authz]
+                    # Reduce issuer list(s) to a sorted set to address potential duplicates..
+                    if "passport_auth_issuers" in authz_metadata_details:
+                        passport_auth_issuers = sorted(
+                            set(authz_metadata_details["passport_auth_issuers"]).union(
+                                set(passport_auth_issuers)
+                            )
+                        )
+                    if "bearer_auth_issuers" in authz_metadata_details:
+                        bearer_auth_issuers = sorted(
+                            set(authz_metadata_details["bearer_auth_issuers"]).union(
+                                set(bearer_auth_issuers)
+                            )
+                        )
+            compiled_authorization_metadata.update(
+                {"passport_auth_issuers": passport_auth_issuers}
+            )
+            compiled_authorization_metadata.update(
+                {"bearer_auth_issuers": bearer_auth_issuers}
+            )
+            # Update supported_types
+            if passport_auth_issuers != []:
+                supported_types.append("PassportAuth")
+            if bearer_auth_issuers != []:
+                supported_types.append("BearerAuth")
+            compiled_authorization_metadata.update(
+                {"supported_types": sorted(supported_types)}
+            )
+        return compiled_authorization_metadata
+    except IndexNoRecordFound as err:
+        raise IndexNoRecordFound(err)
     except Exception as err:
-        # If error occurs, check if this is a 404 case with invalid guid
-        doc_list = blueprint.index_driver.get_bulk([object_id])
-        doc_dids = [doc["did"] for doc in doc_list]
-        if doc_dids == []:
-            raise IndexNoRecordFound(err)
-        else:
-            raise UnexpectedIndexError(err)
+        raise UnexpectedIndexError(err)
 
 
 def resolve_bulk_object_auth(id_list: list[str]) -> dict:
@@ -473,11 +520,14 @@ def indexd_to_drs(record, expand=False):
     # Auth metadata is optional for bundles
     # if 'bundle_data' not in record:
     if form == "object":
+        did = record["did"]
         authorizations = resolve_single_object_auth(object_id=did)
         # If access methods currently empty (no url metadata), append auth metadata directly
         if "access_methods" not in drs_object:
             drs_object["access_methods"] = [authorizations]
         # Otherwise, embed authorization into each existing url metadata dictionary that already exists in the list
+        elif drs_object["access_methods"] == []:
+            drs_object["access_methods"] = [authorizations]
         else:
             drs_object["access_methods"] = [
                 entry.update({"authorizations": authorizations})

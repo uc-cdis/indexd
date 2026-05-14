@@ -347,7 +347,7 @@ def test_get_drs_record_not_found(
     client, user, combined_default_and_single_table_settings
 ):
     # test exception raised at nonexistent
-    fake_did = "testprefix/d96bab16-c4e1-44ac-923a-04328b6fe78f"
+    fake_did = "testprefix/fake_did"
     res = client.get("/ga4gh/drs/v1/objects/" + fake_did)
     assert res.status_code == 404
 
@@ -439,7 +439,7 @@ def test_drs_service_info_no_information_configured(
 def bulk_auth_options_test_setup(
     user, client, n_200: int = 0, n_404: int = 0, n_500: int = 0
 ) -> tuple[list[str], dict[str, str], dict[str, str], dict[str, str]]:
-    """Returns list of dids, expected response, 404 response dict, and 500 response dict for auth options testing.
+    """Returns list of dids, expected response and 404 response dict dict for auth options testing.
     Specify the number of dummy dids to create, otherwise params assumed to be 0."""
 
     # Initialize variables
@@ -450,9 +450,11 @@ def bulk_auth_options_test_setup(
     resolved_drs_objects: list[dict[str, str]] = []
     resolved_response_dict = {
         "drs_object_id": "placeholder",
-        "bearer_auth_issuers": ["https://gen3.datacommons.io"],
-        "passport_auth_issuers": ["https://ras/foo/bar"],
-        "supported_types": ["BearerAuth", "PassportAuth"],
+        "bearer_auth_issuers": sorted(["https://gen3.datacommons.io", "sample_url"]),
+        "passport_auth_issuers": sorted(
+            ["https://ras/foo/bar", "https://ras/foo/bar/bar"]
+        ),
+        "supported_types": sorted(["BearerAuth", "PassportAuth"]),
     }
 
     # Create resolvable dids
@@ -710,9 +712,11 @@ def test_auth_options(client, user, combined_default_and_single_table_settings):
     doc_did = client.post("/index", json=data, headers=user).json["did"]
     expected_info = {
         "drs_object_id": doc_did,
-        "bearer_auth_issuers": ["https://gen3.datacommons.io"],
-        "passport_auth_issuers": ["https://ras/foo/bar"],
-        "supported_types": ["BearerAuth", "PassportAuth"],
+        "bearer_auth_issuers": sorted(["https://gen3.datacommons.io", "sample_url"]),
+        "passport_auth_issuers": sorted(
+            ["https://ras/foo/bar", "https://ras/foo/bar/bar"]
+        ),
+        "supported_types": sorted(["BearerAuth", "PassportAuth"]),
     }
     # Call OPTIONS endpoint
     res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
@@ -955,16 +959,13 @@ def test_get_cloud_provider_https_prefix_matching():
 
 def test_drs_get_bulk(client, user, combined_default_and_single_table_settings):
     """Tests endpoint for bulk call"""
-
     # Test set up
     did_list, expected_json, expected_404_dict, expected_500_dict = (
         bulk_auth_options_test_setup(user, client, n_200=2, n_404=2, n_500=2)
     )
-    print(f"test did_list: {did_list}\n expected_404_dict: {expected_404_dict}")
     # Call bulk options
     data = {"bulk_object_ids": did_list}
     res_1 = client.get("ga4gh/drs/v1/objects", json=data, headers=user)
-
     # Check results
     test_json = res_1.json
     assert test_json["summary"] == expected_json["summary"]

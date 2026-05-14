@@ -28,9 +28,30 @@ CONFIG["DRS_SERVICE_INFO"] = {
 CONFIG["DRS_AUTHORIZATION_METADATA"] = {
     "/gen3/programs/a/projects/b": {
         "supported_types": ["BearerAuth", "PassportAuth"],
-        "passport_auth_issuers": ["https://ras/foo/bar"],
-        "bearer_auth_issuers": ["https://gen3.datacommons.io"],
-    }
+        "passport_auth_issuers": [
+            "https://ras/foo/bar",
+            "https://ras/foo/bar",
+            "https://ras/foo/bar/bar",
+        ],
+        "bearer_auth_issuers": [
+            "https://gen3.datacommons.io",
+            "https://gen3.datacommons.io",
+            "sample_url",
+        ],
+    },
+    "/gen3/programs/c/projects/d": {
+        "supported_types": ["BearerAuth", "PassportAuth"],
+        "passport_auth_issuers": [
+            "sample_url_c_one",
+            "sample_url_c_one",
+            "sample_url_c_two",
+        ],
+        "bearer_auth_issuers": [
+            "sample_url_d_one",
+            "sample_url_d_one",
+            "sample_url_d_two",
+        ],
+    },
 }
 CONFIG["DEFAULT_BEARER_ISSUER"] = "test_default"
 
