@@ -16,14 +16,44 @@ CONFIG["DRS_SERVICE_INFO"] = {
     "type": {
         "group": "org.ga4gh",
         "artifact": "drs",
-        "version": "1.0.3",
+        "version": "1.5.0",
     },
-    "version": "1.0.3",
+    "version": "1.5.0",
     "organization": {
         "name": "CTDS",
         "url": "https://fictitious-commons.io",
     },
 }
+
+CONFIG["DRS_AUTHORIZATION_METADATA"] = {
+    "/gen3/programs/a/projects/b": {
+        "supported_types": ["BearerAuth", "PassportAuth"],
+        "passport_auth_issuers": [
+            "https://ras/foo/bar",
+            "https://ras/foo/bar",
+            "https://ras/foo/bar/bar",
+        ],
+        "bearer_auth_issuers": [
+            "https://gen3.datacommons.io",
+            "https://gen3.datacommons.io",
+            "sample_url",
+        ],
+    },
+    "/gen3/programs/c/projects/d": {
+        "supported_types": ["BearerAuth", "PassportAuth"],
+        "passport_auth_issuers": [
+            "sample_url_c_one",
+            "sample_url_c_one",
+            "sample_url_c_two",
+        ],
+        "bearer_auth_issuers": [
+            "sample_url_d_one",
+            "sample_url_d_one",
+            "sample_url_d_two",
+        ],
+    },
+}
+CONFIG["DEFAULT_BEARER_ISSUER"] = "test_default"
 
 os.environ["PRESIGNED_FENCE_URL"] = "https://fictitious-commons.io/"
 os.environ["HOSTNAME"] = "fictitious-commons.io"
@@ -34,6 +64,6 @@ settings = {"config": CONFIG, "auth": AUTH}
 psql_port = os.environ["PGPORT"] if os.environ.get("PGPORT") else "5432"
 
 # database used by the `/tests/postgres` tests
-settings["config"][
-    "TEST_DB"
-] = "postgresql://postgres:postgres@localhost:{0}/indexd_tests".format(psql_port)
+settings["config"]["TEST_DB"] = (
+    "postgresql://postgres:postgres@localhost:{0}/indexd_tests".format(psql_port)
+)

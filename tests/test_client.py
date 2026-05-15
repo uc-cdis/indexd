@@ -10,7 +10,11 @@ from tests.default_test_settings import settings
 
 
 def get_doc(
-    has_metadata=True, has_baseid=False, has_urls_metadata=False, has_version=False
+    has_metadata=True,
+    has_baseid=False,
+    has_urls_metadata=False,
+    has_version=False,
+    has_available=False,
 ):
     doc = {
         "form": "object",
@@ -22,8 +26,21 @@ def get_doc(
         doc["metadata"] = {"project_id": "bpa-UChicago"}
     if has_baseid:
         doc["baseid"] = "e044a62c-fd60-4203-b1e5-a62d1005f027"
-    if has_urls_metadata:
-        doc["urls_metadata"] = {"s3://endpointurl/bucket/key": {"state": "uploaded"}}
+    if has_urls_metadata and not has_available:
+        doc["urls_metadata"] = {
+            "s3://endpointurl/bucket/key": {
+                "state": "uploaded",
+                "cloud": "aws",
+            }
+        }
+    if has_urls_metadata and has_available:
+        doc["urls_metadata"] = {
+            "s3://endpointurl/bucket/key": {
+                "state": "available",
+                "cloud": "aws",
+                "available": "true",
+            }
+        }
     if has_version:
         doc["version"] = "1"
     return doc
@@ -1411,7 +1428,7 @@ def test_cant_update_inexistent_blank_record(
 
 
 def test_update_urls_metadata(client, user, combined_default_and_single_table_settings):
-    data = get_doc(has_urls_metadata=True)
+    data = get_doc(has_urls_metadata=True, has_available=True)
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
     rec = res.json
@@ -1421,7 +1438,7 @@ def test_update_urls_metadata(client, user, combined_default_and_single_table_se
     rec_2 = res_2.json
     assert rec_2["urls_metadata"] == data["urls_metadata"]
 
-    updated = {"urls_metadata": {data["urls"][0]: {"test": "b"}}}
+    updated = {"urls_metadata": {data["urls"][0]: {"test": "b", "cloud": "aws"}}}
     res = client.put(
         "/index/{}?rev={}".format(rec_2["did"], rec_2["rev"]),
         json=updated,
@@ -1432,6 +1449,11 @@ def test_update_urls_metadata(client, user, combined_default_and_single_table_se
     res_3 = client.get("/index/" + rec["did"])
     assert res_3.status_code == 200
     rec_3 = res_3.json
+    updated = {
+        "urls_metadata": {
+            data["urls"][0]: {"test": "b", "cloud": "aws", "available": True}
+        }
+    }
     assert rec_3["urls_metadata"] == updated["urls_metadata"]
 
 
@@ -2867,3 +2889,27 @@ def test_check_urls_metadata_partially_missing_metadata(
 
     for key in rec["urls_metadata"]:
         assert key in urls
+
+
+def test_check_cloud_field(client, user, combined_default_and_single_table_settings):
+    """
+    Checks that the cloud field is correctly set based on the url provided
+    """
+    data = get_doc(has_urls_metadata=True)
+    data["urls"] = [
+        "s3://endpointurl/bucket/key",
+        "gs://endpointurl/bucket/key",
+    ]
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    did = rec["did"]
+
+    res = client.get("/ga4gh/drs/v1/objects/" + did, headers=user)
+    assert res.status_code == 200
+    rec = res.json
+    print(rec)
+    clouds = []
+    for i in range(len(rec["access_methods"])):
+        clouds.append(rec["access_methods"][i]["cloud"])
+    assert "aws" in clouds

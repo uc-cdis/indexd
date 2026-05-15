@@ -1,11 +1,23 @@
 import flask
-import json
 
-import tests.conftest
-import requests
 import responses
 from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
+import json
+import requests
+import tests.conftest
+from indexd.index.errors import NoRecordFound as IndexNoRecordFound
+from indexd.errors import IndexdUnexpectedError
+import pytest
+
+
+from unittest.mock import patch
+from flask import current_app
+from unittest.mock import patch
+from indexd.utils import lookup_bucket_region
+from flask import current_app
+from indexd.drs.blueprint import blueprint as drs_blueprint
+from indexd.drs.blueprint import get_cloud_provider
 
 
 def generate_presigned_url_response(did, status=200, **query_params):
@@ -27,21 +39,27 @@ def generate_presigned_url_response(did, status=200, **query_params):
 
 def get_doc(
     has_version=True,
-    urls=list(),
+    urls=None,
     has_description=True,
     has_content_created_date=True,
     has_content_updated_date=True,
+    authz: list[str] | None = None,
+    urls_metadata=None,
 ):
+    if authz is None:
+        authz = ["/gen3/programs/a/projects/b"]
     doc = {
         "form": "object",
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "authz": authz,
     }
     if has_version:
         doc["version"] = "1"
-    if urls:
-        doc["urls"] = urls
+    doc["urls"] = urls or []
+    if urls_metadata:
+        doc["urls_metadata"] = urls_metadata
     if has_description:
         doc["description"] = "A description"
     if has_content_updated_date:
@@ -84,6 +102,9 @@ def test_drs_get(client, user, combined_default_and_single_table_settings):
     assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split("/")[1]
     # according to ga4gh DRS blobs objects are NOT supposed to have contents. Only DRS Bundle objects should include the contetnts field
     assert "contents" not in rec_2
+    # Check that access_methods populated (detailed access_methods structure checks are in separate pytest)
+    assert len(rec_2["access_methods"]) > 0
+    assert "supported_types" in rec_2["access_methods"][0]
 
 
 def test_drs_get_no_default(client, user, combined_default_and_single_table_settings):
@@ -294,41 +315,54 @@ def test_drs_multiple_endpointurl(
 
 
 def test_drs_list(client, user, combined_default_and_single_table_settings):
-    record_length = 7
+    n_objects = 2
     data = get_doc()
     submitted_guids = []
-    for _ in range(record_length):
+    for _ in range(n_objects):
         res_1 = client.post("/index/", json=data, headers=user)
+        assert res_1.status_code == 200
         did = res_1.json["did"]
         submitted_guids.append(did)
         bundle_data = get_bundle_doc(bundles=[did])
         res2 = client.post("/bundle/", json=bundle_data, headers=user)
-        assert res_1.status_code == 200
 
     res_2 = client.get("/ga4gh/drs/v1/objects")
     assert res_2.status_code == 200
     rec_2 = res_2.json
-    assert len(rec_2["drs_objects"]) == 2 * record_length
+    assert len(rec_2["drs_objects"]) == 2 * n_objects
     assert submitted_guids.sort() == [r["id"] for r in rec_2["drs_objects"]].sort()
-
+    # Check that access methods in bulk call are formatted as expected
+    n_entries_with_access_method = 0
+    entry_with_access_methods = []
+    for entry in rec_2["drs_objects"]:
+        if "access_methods" in list(entry.keys()):
+            n_entries_with_access_method = n_entries_with_access_method + 1
+            entry_with_access_methods.append(entry)
+    assert n_entries_with_access_method == n_objects
+    for entry in entry_with_access_methods:
+        assert entry["access_methods"][0] == {
+            "drs_object_id": entry["id"],
+            "supported_types": ["BearerAuth", "PassportAuth"],
+            "bearer_auth_issuers": ["https://gen3.datacommons.io", "sample_url"],
+            "passport_auth_issuers": ["https://ras/foo/bar", "https://ras/foo/bar/bar"],
+        }
     res_3 = client.get("/ga4gh/drs/v1/objects/?form=bundle")
     assert res_3.status_code == 200
     rec_3 = res_3.json
-    assert len(rec_3["drs_objects"]) == record_length
+    assert len(rec_3["drs_objects"]) == n_objects
 
     res_4 = client.get("/ga4gh/drs/v1/objects/?form=object")
     assert res_4.status_code == 200
     rec_4 = res_4.json
-    assert len(rec_4["drs_objects"]) == record_length
-
-
-def test_get_drs_record_not_found(
-    client, user, combined_default_and_single_table_settings
-):
-    # test exception raised at nonexistent
-    fake_did = "testprefix/d96bab16-c4e1-44ac-923a-04328b6fe78f"
-    res = client.get("/ga4gh/drs/v1/objects/" + fake_did)
-    assert res.status_code == 404
+    assert len(rec_4["drs_objects"]) == n_objects
+    # Check that access methods in bulk call are formatted as expected
+    for entry in rec_4["drs_objects"]:
+        assert entry["access_methods"][0] == {
+            "drs_object_id": entry["id"],
+            "supported_types": ["BearerAuth", "PassportAuth"],
+            "bearer_auth_issuers": ["https://gen3.datacommons.io", "sample_url"],
+            "passport_auth_issuers": ["https://ras/foo/bar", "https://ras/foo/bar/bar"],
+        }
 
 
 def test_get_drs_with_encoded_slash(
@@ -355,51 +389,43 @@ def test_get_drs_with_encoded_slash(
 
 def test_drs_service_info_endpoint(client, combined_default_and_single_table_settings):
     """
-    Test drs service endpoint with drs service info friendly distribution information
+    Test drs service endpoint returns DRS 1.5 compliant response
     """
     app = flask.Flask(__name__)
-
-    expected_info = {
-        "id": "io.fictitious-commons",
-        "name": "DRS System",
-        "type": {
-            "group": "org.ga4gh",
-            "artifact": "drs",
-            "version": "1.0.3",
-        },
-        "version": "1.0.3",
-        "organization": {
-            "name": "CTDS",
-            "url": "https://fictitious-commons.io",
-        },
-    }
 
     res = client.get("/ga4gh/drs/v1/service-info")
 
     assert res.status_code == 200
-    assert res.json == expected_info
+    data = res.json
+
+    assert data["id"] == "io.fictitious-commons"
+    assert data["name"] == "DRS System"
+    assert data["type"]["group"] == "org.ga4gh"
+    assert data["type"]["artifact"] == "drs"
+    assert data["type"]["version"] == "1.5.0"
+    assert data["version"] == "1.5.0"
+    assert data["organization"]["name"] == "CTDS"
+    assert data["organization"]["url"] == "https://fictitious-commons.io"
+
+    assert "drs" in data
+    assert "maxBulkRequestLength" in data["drs"]
+    assert isinstance(data["drs"]["maxBulkRequestLength"], int)
+    assert data["drs"]["maxBulkRequestLength"] > 0
+    assert data["maxBulkRequestLength"] == data["drs"]["maxBulkRequestLength"]
+
+    assert "objectCount" in data["drs"]
+    assert isinstance(data["drs"]["objectCount"], int)
+    assert "totalObjectSize" in data["drs"]
+    assert isinstance(data["drs"]["totalObjectSize"], int)
 
 
 def test_drs_service_info_no_information_configured(
     client, combined_default_and_single_table_settings
 ):
     """
-    Test drs service info endpoint when dist is not configured in the indexd config file
+    Test drs service info endpoint when DRS_SERVICE_INFO is not configured.
+    Should still return DRS 1.5 compliant response with hardcoded defaults.
     """
-    expected_info = {
-        "id": "io.fictitious-commons",
-        "name": "DRS System",
-        "type": {
-            "group": "org.ga4gh",
-            "artifact": "drs",
-            "version": "1.0.3",
-        },
-        "version": "1.0.3",
-        "organization": {
-            "name": "CTDS",
-            "url": "https://fictitious-commons.io",
-        },
-    }
     backup = settings["config"]["DRS_SERVICE_INFO"].copy()
 
     try:
@@ -408,6 +434,441 @@ def test_drs_service_info_no_information_configured(
         res = client.get("/ga4gh/drs/v1/service-info")
 
         assert res.status_code == 200
-        assert res.json == expected_info
+        data = res.json
+
+        assert data["id"] == "io.fictitious-commons"
+        assert data["name"] == "DRS System"
+        assert data["type"]["artifact"] == "drs"
+        assert data["type"]["version"] == "1.5.0"
+        assert data["version"] == "1.5.0"
+
+        assert "drs" in data
+        assert "maxBulkRequestLength" in data["drs"]
+        assert data["maxBulkRequestLength"] == data["drs"]["maxBulkRequestLength"]
     finally:
         settings["config"]["DRS_SERVICE_INFO"] = backup
+
+
+def test_service_info_stats_reflect_records(
+    client, user, combined_default_and_single_table_settings
+):
+    """
+    Test that service-info objectCount and totalObjectSize reflect actual records.
+    After creating records, stats should increase accordingly.
+    """
+    # Get baseline stats
+    res = client.get("/ga4gh/drs/v1/service-info")
+    assert res.status_code == 200
+    baseline_count = res.json["drs"]["objectCount"]
+    baseline_size = res.json["drs"]["totalObjectSize"]
+
+    # Create two records
+    doc1 = get_doc()  # size=123
+    doc2 = get_doc()  # size=123
+    res1 = client.post("/index/", json=doc1, headers=user)
+    assert res1.status_code == 200
+    res2 = client.post("/index/", json=doc2, headers=user)
+    assert res2.status_code == 200
+
+    # Verify stats increased
+    res = client.get("/ga4gh/drs/v1/service-info")
+    assert res.status_code == 200
+    data = res.json
+    assert data["drs"]["objectCount"] == baseline_count + 2
+    assert data["drs"]["totalObjectSize"] == baseline_size + 123 + 123
+
+
+def test_service_info_custom_bulk_limit(
+    client, combined_default_and_single_table_settings
+):
+    """
+    Test that modifying max_bulk_request_length on the blueprint is reflected
+    in both drs.maxBulkRequestLength and root maxBulkRequestLength.
+    """
+    original = drs_blueprint.max_bulk_request_length
+    try:
+        drs_blueprint.max_bulk_request_length = 42
+
+        res = client.get("/ga4gh/drs/v1/service-info")
+        assert res.status_code == 200
+        data = res.json
+
+        assert data["drs"]["maxBulkRequestLength"] == 42
+        assert data["maxBulkRequestLength"] == 42
+    finally:
+        drs_blueprint.max_bulk_request_length = original
+
+
+def test_bucket_region_lookup():
+    fake_bucket_regions = {
+        "exact-bucket": "us-east-1",
+        "regex-bucket-.*": "us-west-2",
+    }
+
+    assert lookup_bucket_region("exact-bucket", fake_bucket_regions) == "us-east-1"
+    assert lookup_bucket_region("regex-bucket-123", fake_bucket_regions) == "us-west-2"
+    assert lookup_bucket_region("nonexistent-bucket", fake_bucket_regions) == ""
+
+
+def test_access_method_in_drs_object(client, user):
+    fake_bucket_regions = {
+        "my-test-bucket": "us-east-1",
+        "another-bucket-.*": "us-west-2",
+    }
+
+    with patch(
+        "indexd.utils.get_bucket_regions", return_value=fake_bucket_regions
+    ), patch(
+        "indexd.drs.blueprint.get_bucket_regions", return_value=fake_bucket_regions
+    ):
+        urls = [
+            "s3://my-test-bucket/path/to/file",
+            "s3://another-bucket-phs000000-c1/path/to/file",
+            "gs://last-bucket/path/to/file",
+        ]
+
+        doc = get_doc(
+            urls=urls,
+            urls_metadata={
+                urls[1]: {"available": False},
+                urls[2]: {"region": "mx-central-1"},
+            },
+        )
+
+        res = client.post("/index/", json=doc, headers=user)
+        assert res.status_code == 200
+        did = res.json["did"]
+
+        drs_res = client.get(f"/ga4gh/drs/v1/objects/{did}")
+        assert drs_res.status_code == 200
+        drs_json = drs_res.json
+
+        # Build actual dict keyed by URL
+        actual = {
+            m["access_url"]["url"]: {
+                "region": m.get("region"),
+                "available": m.get("available"),
+                "cloud": m.get("cloud"),
+            }
+            for m in drs_json["access_methods"]
+        }
+
+        expected = {
+            urls[0]: {
+                "region": "us-east-1",
+                "available": True,
+                "cloud": "aws",
+            },
+            urls[1]: {
+                "region": "us-west-2",
+                "available": False,
+                "cloud": "aws",
+            },
+            urls[2]: {
+                "region": "mx-central-1",
+                "available": True,
+                "cloud": "gcp",
+            },
+        }
+
+        for url, expected_access_method in expected.items():
+            assert actual[url] == expected_access_method, {
+                "url": url,
+                "actual": actual[url],
+                "expected": expected_access_method,
+            }
+
+    current_app.cache.clear()
+
+
+def test_get_cloud_provider_string_mapping():
+    original = drs_blueprint.cloud_provider_map
+    try:
+        drs_blueprint.cloud_provider_map = {
+            "s3": "aws",
+            "gs": "gcp",
+            "az": "azure",
+        }
+
+        assert get_cloud_provider("s3://my-bucket/path/to/file") == "aws"
+        assert get_cloud_provider("gs://my-bucket/path/to/file") == "gcp"
+        assert get_cloud_provider("az://my-container/path/to/file") == "azure"
+    finally:
+        drs_blueprint.cloud_provider_map = original
+
+
+def test_get_cloud_provider_unknown_protocol():
+    original = drs_blueprint.cloud_provider_map
+    try:
+        drs_blueprint.cloud_provider_map = {
+            "s3": "aws",
+            "gs": "gcp",
+        }
+
+        assert get_cloud_provider("ftp://example.com/path/to/file") == "Unknown"
+    finally:
+        drs_blueprint.cloud_provider_map = original
+
+
+def test_get_cloud_provider_empty_string_mapping_returns_unknown():
+    original = drs_blueprint.cloud_provider_map
+    try:
+        drs_blueprint.cloud_provider_map = {
+            "s3": "",
+        }
+
+        assert get_cloud_provider("s3://my-bucket/path/to/file") == "Unknown"
+    finally:
+        drs_blueprint.cloud_provider_map = original
+
+
+def test_get_cloud_provider_https_prefix_matching():
+    original = drs_blueprint.cloud_provider_map
+    try:
+        drs_blueprint.cloud_provider_map = {
+            "https": {
+                "m3.aicommons.com/ai": "aws",
+                "storage.googleapis.com": "gcp",
+            },
+        }
+
+        assert get_cloud_provider("https://storage.googleapis.com/bucket/file") == "gcp"
+
+        assert get_cloud_provider("https://m3.aicommons.com/ai/some/file") == "aws"
+
+        assert get_cloud_provider("https://m3.aicommons.com/other/file") == "Unknown"
+
+    finally:
+        drs_blueprint.cloud_provider_map = original
+
+
+# === Auth metadata focused tests for single object resolution ===
+def test_single_record_not_found(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that 404 exception raised if object id is not resolveable for single object resolution.
+    Both GET and OPTIONS methods should raise 404."""
+    # Test exception raised at nonexistent
+    fake_did = "testprefix/fake_did"
+    res = client.get("/ga4gh/drs/v1/objects/" + fake_did)
+    assert res.status_code == 404
+    res2 = client.options("/ga4gh/drs/v1/objects/" + fake_did)
+    assert res2.status_code == 404
+
+
+def test_single_path_not_found(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that an empty auth is successfully return if object id is valid (not a 404), BUT
+    associated path is not valid"""
+    # Test set up
+    data = get_doc(authz=["unknown/path"])
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    expected_metadata_details = {
+        "drs_object_id": doc_did,
+        "supported_types": [],
+        "bearer_auth_issuers": [],
+        "passport_auth_issuers": [],
+    }
+    # Test GET
+    res_1 = client.get("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1["access_methods"] == [expected_metadata_details]
+    # Test OPTIONS
+    res_2 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_2._status_code == 200
+    assert res_2.json == expected_metadata_details
+
+
+def test_single_one_path(client, user, combined_default_and_single_table_settings):
+    # Test set up
+    data = get_doc()
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    expected_metadata_details = {
+        "drs_object_id": doc_did,
+        "supported_types": ["BearerAuth", "PassportAuth"],
+        "bearer_auth_issuers": ["https://gen3.datacommons.io", "sample_url"],
+        "passport_auth_issuers": ["https://ras/foo/bar", "https://ras/foo/bar/bar"],
+    }
+    # Test GET
+    res_1 = client.get("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1["access_methods"] == [expected_metadata_details]
+    # Test OPTIONS
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1 == expected_metadata_details
+
+
+def test_single_multi_path(client, user, combined_default_and_single_table_settings):
+    #   # Test set up
+    data = get_doc(authz=["/gen3/programs/a/projects/b", "/gen3/programs/c/projects/d"])
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    expected_metadata_details = {
+        "drs_object_id": doc_did,
+        "supported_types": ["BearerAuth", "PassportAuth"],
+        "bearer_auth_issuers": sorted(
+            [
+                "https://gen3.datacommons.io",
+                "sample_url",
+                "sample_url_d_one",
+                "sample_url_d_two",
+            ]
+        ),
+        "passport_auth_issuers": sorted(
+            [
+                "https://ras/foo/bar",
+                "https://ras/foo/bar/bar",
+                "sample_url_c_one",
+                "sample_url_c_two",
+            ]
+        ),
+    }
+    # Test GET
+    res_1 = client.get("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1["access_methods"] == [expected_metadata_details]
+
+    # Test OPTIONS
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1 == expected_metadata_details
+
+
+def test_single_open_path(client, user, combined_default_and_single_table_settings):
+    #   # Test set up
+    data = get_doc(
+        authz=["/programs/open_access/projects/test", "/gen3/programs/c/projects/d"]
+    )
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    expected_metadata_details = {
+        "drs_object_id": doc_did,
+        "supported_types": ["BearerAuth"],
+        "bearer_auth_issuers": ["test_default"],
+        "passport_auth_issuers": [],
+    }
+    # Test GET
+    res_1 = client.get("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1["access_methods"] == [expected_metadata_details]
+
+    # Test OPTIONS
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1 == expected_metadata_details
+
+
+# === Auth metadata focused tests for bulk object resolution ===
+def bulk_response_test_setup(
+    user, client, n_200: int = 0, n_404: int = 0
+) -> tuple[list[str], dict[str, str], dict[str, str]]:
+    """Returns list of dids, expected response and 404 response dict dict for auth options testing.
+    Specify the number of dummy dids to create, otherwise params assumed to be 0."""
+
+    # Initialize variables
+    dids_200: list[str] = []
+    dids_404: list[str] = []
+    unresolved_drs_objects = []
+    resolved_drs_objects: list[dict[str, str]] = []
+    resolved_response_dict = {
+        "drs_object_id": "placeholder",
+        "bearer_auth_issuers": sorted(["https://gen3.datacommons.io", "sample_url"]),
+        "passport_auth_issuers": sorted(
+            ["https://ras/foo/bar", "https://ras/foo/bar/bar"]
+        ),
+        "supported_types": sorted(["BearerAuth", "PassportAuth"]),
+    }
+
+    # Create resolvable dids
+    for n in range(0, n_200):
+        data = get_doc()
+        doc_did = client.post("/index", json=data, headers=user).json["did"]
+        dids_200.append(doc_did)
+        resolved_response_dict.update({"drs_object_id": doc_did})
+        resolved_drs_objects.append(dict(resolved_response_dict))
+
+    # Create "index not found" dids
+    for n in range(0, n_404):
+        dids_404.append("testprefix/invalid" + str(n))
+
+    # Define expected results (sorting lists avoids flaky ordering)
+    if len(dids_404) > 0:
+        expected_404_dict = {"error_code": 404, "object_ids": sorted(dids_404)}
+        unresolved_drs_objects.append(expected_404_dict)
+
+    expected_json = {
+        "summary": {
+            "requested": n_200 + n_404,
+            "resolved": n_200,
+            "unresolved": n_404,
+        },
+        "unresolved_drs_objects": unresolved_drs_objects,
+        "resolved_drs_objects": resolved_drs_objects,
+    }
+    all_dids = dids_200 + dids_404
+    return all_dids, expected_json, expected_404_dict
+
+
+def test_bulk_post(client, user, combined_default_and_single_table_settings):
+    """Tests endpoint for bulk POST"""
+    # Test set up
+    did_list, expected_json, expected_404_dict = bulk_response_test_setup(
+        user, client, n_200=2, n_404=2
+    )
+    # Call bulk options
+    data = {"bulk_object_ids": did_list}
+    res_1 = client.post("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Check results
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    for entry in test_json["resolved_drs_objects"]:
+        assert entry in expected_json["resolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == len(
+        expected_json["unresolved_drs_objects"]
+    )
+    assert expected_404_dict in test_json["unresolved_drs_objects"]
+
+
+def test_bulk_options(client, user, combined_default_and_single_table_settings):
+    """Tests endpoint for bulk POST"""
+    # Test set up
+    did_list, expected_json, expected_404_dict = bulk_response_test_setup(
+        user, client, n_200=2, n_404=2
+    )
+    # Call bulk options
+    data = {"bulk_object_ids": did_list}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Check results
+    test_json = res_1.json
+    assert test_json["summary"] == expected_json["summary"]
+    for entry in test_json["resolved_drs_objects"]:
+        assert entry in expected_json["resolved_drs_objects"]
+    assert len(test_json["unresolved_drs_objects"]) == len(
+        expected_json["unresolved_drs_objects"]
+    )
+    assert expected_404_dict in test_json["unresolved_drs_objects"]
+
+
+def test_bulk_auth_options_malformed_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk OPTIONS endpoint returns appropriate 'request malformed' 400 error.
+    Request overall is NOT successful (400) in this test scenario becuase error is fundamental
+    (no guids were available)."""
+
+    # Call bulk options with missing bulk object ids key value pair
+    data = {}
+    res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Define expected results
+    assert res_1.status_code == 400
+    assert res_1.json["msg"] == "Request is malformed. Missing bulk object ids."

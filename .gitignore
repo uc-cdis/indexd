@@ -69,3 +69,4 @@ settings.yaml
 *.sq3
 #IDEs
 .idea
+.vscode/
