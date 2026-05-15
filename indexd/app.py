@@ -71,13 +71,20 @@ def app_init(app, settings=None):
     set_index_config(app)
     set_urls_config(app)
 
-    app.include_router(cross_router)
-    app.include_router(indexd_alias_router)
-    app.include_router(indexd_bulk_router)
-    app.include_router(indexd_dos_router)
-    app.include_router(indexd_drs_router)
-    app.include_router(indexd_guid_router)
-    app.include_router(indexd_index_router)
+    routers = [
+        cross_router,
+        indexd_alias_router,
+        indexd_bulk_router,
+        indexd_dos_router,
+        indexd_drs_router,
+        indexd_guid_router,
+        indexd_index_router,
+    ]
+
+    for router in routers:
+        app.include_router(router)
+
+    routers.append(index_urls_router)
     app.include_router(index_urls_router, prefix="/_query/urls")
 
 
@@ -142,6 +149,3 @@ def get_app(settings=None):
         return JSONResponse(status_code=409, content={"error": str(exc)})
 
     return app
-
-
-__all__ = ["app", "routers"]
