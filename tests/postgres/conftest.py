@@ -27,7 +27,7 @@ def postgres_driver(app):
     settings["config"]["INDEX"]["driver"] = index_driver
 
     # update the app
-    for router in routers:
+    for router, opts in routers:
         router.index_driver = index_driver
         router.alias_driver = alias_driver
         router.auth_driver = auth_driver
@@ -36,7 +36,7 @@ def postgres_driver(app):
 
     # revert the changes so the next tests use SQLite
     settings["config"]["INDEX"]["driver"] = index_driver_bk
-    for router in routers:
+    for router, opts in routers:
         router.index_driver = index_driver_bk
         router.alias_driver = alias_driver_bk
         router.auth_driver = auth_driver_bk

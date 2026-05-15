@@ -36,6 +36,17 @@ from indexd.index.errors import (
 
 logger = cdislogging.get_logger(__name__)
 
+routers = [
+    (cross_router, {}),
+    (indexd_alias_router, {}),
+    (indexd_bulk_router, {}),
+    (indexd_dos_router, {}),
+    (indexd_drs_router, {}),
+    (indexd_guid_router, {}),
+    (indexd_index_router, {}),
+    (index_urls_router, {"prefix": "/_query/urls"}),
+]
+
 
 def app_init(app, settings=None):
     if not settings:
@@ -71,21 +82,8 @@ def app_init(app, settings=None):
     set_index_config(app)
     set_urls_config(app)
 
-    routers = [
-        cross_router,
-        indexd_alias_router,
-        indexd_bulk_router,
-        indexd_dos_router,
-        indexd_drs_router,
-        indexd_guid_router,
-        indexd_index_router,
-    ]
-
-    for router in routers:
-        app.include_router(router)
-
-    routers.append(index_urls_router)
-    app.include_router(index_urls_router, prefix="/_query/urls")
+    for router, opts in routers:
+        app.include_router(router, **opts)
 
 
 def get_app(settings=None):
