@@ -104,3 +104,7 @@ settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE
 drs_authorization_metadata = environ.get("DRS_AUTHORIZATION_METADATA", None)
 if drs_authorization_metadata:
     CONFIG["DRS_AUTHORIZATION_METADATA"] = json.loads(drs_authorization_metadata)
+
+default_bearer_issuer = environ.get("DEFAULT_BEARER_ISSUER", None)
+if default_bearer_issuer:
+    CONFIG["DEFAULT_BEARER_ISSUER"] = json.loads(default_bearer_issuer)
