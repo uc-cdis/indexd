@@ -267,63 +267,66 @@ def resolve_single_object_auth(object_id: str) -> dict:
         ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
         authz_path_list = ret["authz"]
         authz_metadata = copy.deepcopy(blueprint.drs_authorization_metadata)
-        # If index driver could get info for object_id but authz is empty
-        if ret["authz"] == []:
-            authz_metadata_details = {
-                "supported_types": [],
-                "bearer_auth_issuers": [],
-                "passport_auth_issuers": [],
-            }
-        # Otherwise, extract auth info
-        else:
-            # Build authorization metadata return as we go
-            compiled_authorization_metadata = {
-                "drs_object_id": object_id,
-                "supported_types": [],
-            }
-            # A guid might have multiple authorization paths...
-            passport_auth_issuers = []
-            bearer_auth_issuers = []
-            supported_types = []
-            # Get auth metadata (issuer info) for each path
-            for authz in authz_path_list:
-                # Handle open access scenario...
-                if "/programs/open_access/projects" in authz:
-                    authz_metadata_details = {
-                        "supported_types": ["BearerAuth"],
-                        "bearer_auth_issuers": [blueprint.default_bearer_issuer],
-                    }
-                # Otherwise, extract path-specific issuer from metadata
-                else:
-                    authz_metadata_details = authz_metadata[authz]
-                    # Reduce issuer list(s) to a sorted set to address potential duplicates..
-                    if "passport_auth_issuers" in authz_metadata_details:
-                        passport_auth_issuers = sorted(
-                            set(authz_metadata_details["passport_auth_issuers"]).union(
-                                set(passport_auth_issuers)
-                            )
-                        )
-                    if "bearer_auth_issuers" in authz_metadata_details:
-                        bearer_auth_issuers = sorted(
-                            set(authz_metadata_details["bearer_auth_issuers"]).union(
-                                set(bearer_auth_issuers)
-                            )
-                        )
-            compiled_authorization_metadata.update(
-                {"passport_auth_issuers": passport_auth_issuers}
-            )
-            compiled_authorization_metadata.update(
-                {"bearer_auth_issuers": bearer_auth_issuers}
-            )
-            # Update supported_types
-            if passport_auth_issuers != []:
-                supported_types.append("PassportAuth")
-            if bearer_auth_issuers != []:
-                supported_types.append("BearerAuth")
-            compiled_authorization_metadata.update(
-                {"supported_types": sorted(supported_types)}
-            )
-        return compiled_authorization_metadata
+
+        # Define default (empty) metadata details to return
+        compiled_metadata_details = {
+            "drs_object_id": object_id,
+            "supported_types": [],
+            "bearer_auth_issuers": [],
+            "passport_auth_issuers": [],
+        }
+
+        authz_path_list_length = len(authz_path_list)
+        # print(any("/programs/open_access/projects" in path for path in auth_path_list))
+        # If index driver found no object auth path info, return empty authz data
+        if authz_path_list_length == 0:
+            return compiled_metadata_details
+        # If auth path is for open project, just return default auth info
+        # Note: if multiple paths exists and one is an open project, only default info is gserviceaccount
+        if any(["/programs/open_access/projects" in path for path in authz_path_list]):
+            compiled_metadata_details["supported_types"] = ["BearerAuth"]
+            compiled_metadata_details["bearer_auth_issuers"] = [
+                blueprint.default_bearer_issuer
+            ]
+            return compiled_metadata_details
+        # If auth path doesn't match config auth data, return empty authz data
+        if authz_path_list_length == 1:
+            path = authz_path_list[0]
+            config_path_list = list(authz_metadata.keys())
+            if path not in config_path_list:
+                return compiled_metadata_details
+        # Otherwise, extract & compile auth metadata details (for each path)
+        compiled_passport_auth_issuers = []
+        compiled_bearer_auth_issuers = []
+        compiled_supported_types = []
+        for authz in authz_path_list:
+            authz_metadata_details = authz_metadata[authz]
+            # Reduce issuer list(s) to a sorted set to address potential duplicates..
+            if "passport_auth_issuers" in authz_metadata_details:
+                compiled_passport_auth_issuers = sorted(
+                    set(authz_metadata_details["passport_auth_issuers"]).union(
+                        set(compiled_passport_auth_issuers)
+                    )
+                )
+            if "bearer_auth_issuers" in authz_metadata_details:
+                compiled_bearer_auth_issuers = sorted(
+                    set(authz_metadata_details["bearer_auth_issuers"]).union(
+                        set(compiled_bearer_auth_issuers)
+                    )
+                )
+        # Update issuer info
+        compiled_metadata_details["passport_auth_issuers"] = (
+            compiled_passport_auth_issuers
+        )
+        compiled_metadata_details["bearer_auth_issuers"] = compiled_bearer_auth_issuers
+        # Update supported_types
+        if compiled_passport_auth_issuers != []:
+            compiled_supported_types.append("PassportAuth")
+        if compiled_bearer_auth_issuers != []:
+            compiled_supported_types.append("BearerAuth")
+        compiled_metadata_details["supported_types"] = sorted(compiled_supported_types)
+        return compiled_metadata_details
+
     except IndexNoRecordFound as err:
         raise IndexNoRecordFound(err)
     except Exception as err:

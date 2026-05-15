@@ -43,17 +43,17 @@ def get_doc(
     has_description=True,
     has_content_created_date=True,
     has_content_updated_date=True,
-    authz: str | None = None,
+    authz: list[str] | None = None,
     urls_metadata=None,
 ):
     if authz is None:
-        authz = "/gen3/programs/a/projects/b"
+        authz = ["/gen3/programs/a/projects/b"]
     doc = {
         "form": "object",
         "size": 123,
         "urls": ["s3://endpointurl/bucket/key"],
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
-        "authz": [authz],
+        "authz": authz,
     }
     if has_version:
         doc["version"] = "1"
@@ -315,7 +315,7 @@ def test_drs_multiple_endpointurl(
 
 
 def test_drs_list(client, user, combined_default_and_single_table_settings):
-    record_length = 2  # 7
+    record_length = 7
     data = get_doc()
     submitted_guids = []
     for _ in range(record_length):
@@ -341,15 +341,6 @@ def test_drs_list(client, user, combined_default_and_single_table_settings):
     assert res_4.status_code == 200
     rec_4 = res_4.json
     assert len(rec_4["drs_objects"]) == record_length
-
-
-def test_get_drs_record_not_found(
-    client, user, combined_default_and_single_table_settings
-):
-    # test exception raised at nonexistent
-    fake_did = "testprefix/fake_did"
-    res = client.get("/ga4gh/drs/v1/objects/" + fake_did)
-    assert res.status_code == 404
 
 
 def test_get_drs_with_encoded_slash(
@@ -705,65 +696,6 @@ def test_bulk_auth_options_failures_unexpected_error(
     assert len(test_json["unresolved_drs_objects"]) == 1
 
 
-def test_auth_options(client, user, combined_default_and_single_table_settings):
-    """Tests that OPTIONS endpoint returns expected static return after successful authz lookup"""
-    # Get test set-up doc, doc did, and define expected info
-    data = get_doc()
-    doc_did = client.post("/index", json=data, headers=user).json["did"]
-    expected_info = {
-        "drs_object_id": doc_did,
-        "bearer_auth_issuers": sorted(["https://gen3.datacommons.io", "sample_url"]),
-        "passport_auth_issuers": sorted(
-            ["https://ras/foo/bar", "https://ras/foo/bar/bar"]
-        ),
-        "supported_types": sorted(["BearerAuth", "PassportAuth"]),
-    }
-    # Call OPTIONS endpoint
-    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
-
-    # Check that response has expected results
-    assert res_1.json is not None
-    assert res_1.status_code == 200
-    assert res_1.json == expected_info
-
-
-def test_auth_options_index_not_found(
-    client, user, combined_default_and_single_table_settings
-):
-    """Tests that OPTIONS endpoint returns appropriate 'index not found' error"""
-    # Check that OPTIONS call fails as index cannot be found
-    doc_did = "unknownguid"
-    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
-    assert res_1._status_code == 404
-    assert res_1.json["status_code"] == 404
-
-
-def test_auth_options_unexpected_error(
-    client, user, combined_default_and_single_table_settings
-):
-    """Tests that OPTIONS endpoint returns approproate 'unexpected error' message when
-    an unexpected error occurs"""
-    # Check that OPTIONS call with unexpected error (object id is valid, but path is invalid)
-    data = get_doc(authz="unknown/path")
-    doc_did = client.post("/index", json=data, headers=user).json["did"]
-    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
-    assert res_1._status_code == 500
-
-
-def test_auth_options_malformed_error(
-    client, user, combined_default_and_single_table_settings
-):
-    """Tests that OPTIONS endpoint returns approproate 'malformed error' message (400)
-    if did missing."""
-
-    doc_did = ""
-    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
-    assert res_1._status_code == 400
-
-    res_1 = client.options("ga4gh/drs/v1/objects/")
-    assert res_1._status_code == 400
-
-
 def test_service_info_stats_reflect_records(
     client, user, combined_default_and_single_table_settings
 ):
@@ -976,3 +908,129 @@ def test_drs_get_bulk(client, user, combined_default_and_single_table_settings):
     )
     assert expected_404_dict in test_json["unresolved_drs_objects"]
     assert expected_500_dict in test_json["unresolved_drs_objects"]
+
+
+# === Test GET method, single object resolution ===
+def test_single_record_not_found(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that 404 exception raised if object id is not resolveable for single object resolution.
+    Both GET and OPTIONS methods should raise 404."""
+    # Test exception raised at nonexistent
+    fake_did = "testprefix/fake_did"
+    res = client.get("/ga4gh/drs/v1/objects/" + fake_did)
+    assert res.status_code == 404
+    res2 = client.options("/ga4gh/drs/v1/objects/" + fake_did)
+    assert res2.status_code == 404
+
+
+def test_single_path_not_found(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that an empty auth is successfully return if object id is valid (not a 404), BUT
+    associated path is not valid"""
+    # Test set up
+    data = get_doc(authz=["unknown/path"])
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    expected_metadata_details = {
+        "drs_object_id": doc_did,
+        "supported_types": [],
+        "bearer_auth_issuers": [],
+        "passport_auth_issuers": [],
+    }
+    # Test GET
+    res_1 = client.get("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1["access_methods"] == [expected_metadata_details]
+    # Test OPTIONS
+    res_2 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_2._status_code == 200
+    assert res_2.json == expected_metadata_details
+
+
+def test_single_one_path(client, user, combined_default_and_single_table_settings):
+    # Test set up
+    data = get_doc()
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    expected_metadata_details = {
+        "drs_object_id": doc_did,
+        "supported_types": ["BearerAuth", "PassportAuth"],
+        "bearer_auth_issuers": ["https://gen3.datacommons.io", "sample_url"],
+        "passport_auth_issuers": ["https://ras/foo/bar", "https://ras/foo/bar/bar"],
+    }
+    # Test GET
+    res_1 = client.get("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1["access_methods"] == [expected_metadata_details]
+    # Test OPTIONS
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1 == expected_metadata_details
+
+
+def test_single_multi_path(client, user, combined_default_and_single_table_settings):
+    #   # Test set up
+    data = get_doc(authz=["/gen3/programs/a/projects/b", "/gen3/programs/c/projects/d"])
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    expected_metadata_details = {
+        "drs_object_id": doc_did,
+        "supported_types": ["BearerAuth", "PassportAuth"],
+        "bearer_auth_issuers": sorted(
+            [
+                "https://gen3.datacommons.io",
+                "sample_url",
+                "sample_url_d_one",
+                "sample_url_d_two",
+            ]
+        ),
+        "passport_auth_issuers": sorted(
+            [
+                "https://ras/foo/bar",
+                "https://ras/foo/bar/bar",
+                "sample_url_c_one",
+                "sample_url_c_two",
+            ]
+        ),
+    }
+    # Test GET
+    res_1 = client.get("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1["access_methods"] == [expected_metadata_details]
+
+    # Test OPTIONS
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1 == expected_metadata_details
+
+
+def test_single_open_path(client, user, combined_default_and_single_table_settings):
+    #   # Test set up
+    data = get_doc(
+        authz=["/programs/open_access/projects/test", "/gen3/programs/c/projects/d"]
+    )
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    expected_metadata_details = {
+        "drs_object_id": doc_did,
+        "supported_types": ["BearerAuth"],
+        "bearer_auth_issuers": ["test_default"],
+        "passport_auth_issuers": [],
+    }
+    # Test GET
+    res_1 = client.get("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1["access_methods"] == [expected_metadata_details]
+
+    # Test OPTIONS
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1 = res_1.json
+    assert res1 == expected_metadata_details
+
+
+# === Test drs auth metadata OPTIONS method, for single object resolution ===
