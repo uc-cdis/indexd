@@ -276,7 +276,6 @@ def resolve_single_object_auth(object_id: str) -> dict:
         }
 
         authz_path_list_length = len(authz_path_list)
-        # print(any("/programs/open_access/projects" in path for path in auth_path_list))
         # If index driver found no object auth path info, return empty authz data
         if authz_path_list_length == 0:
             return compiled_metadata_details
@@ -531,11 +530,8 @@ def indexd_to_drs(record, expand=False):
         elif drs_object["access_methods"] == []:
             drs_object["access_methods"] = [authorizations]
         else:
-            drs_object["access_methods"] = [
+            for entry in drs_object["access_methods"]:
                 entry.update({"authorizations": authorizations})
-                for entry in drs_object["access_methods"]
-            ]
-
     # parse out checksums
     drs_object["checksums"] = parse_checksums(record, drs_object)
 
