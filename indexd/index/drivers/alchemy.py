@@ -24,8 +24,9 @@ from sqlalchemy.orm import joinedload, relationship, sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from indexd import auth
-from indexd.errors import UserError, AuthError
+from indexd.errors import UserError
 from indexd.index.driver import IndexDriverABC
+from indexd.auth.errors import AuthError
 from indexd.index.errors import (
     MultipleRecordsFound,
     NoRecordFound,

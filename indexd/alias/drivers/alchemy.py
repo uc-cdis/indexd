@@ -18,11 +18,8 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from indexd.alias.driver import AliasDriverABC
 
-from indexd.alias.errors import NoRecordFound
-from indexd.alias.errors import MultipleRecordsFound
-from indexd.alias.errors import RevisionMismatch
+from indexd.alias.errors import NoRecordFound, MultipleRecordsFound, RevisionMismatch
 from indexd.utils import migrate_database
-
 
 Base = declarative_base()
 
