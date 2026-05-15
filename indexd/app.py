@@ -142,3 +142,6 @@ def get_app(settings=None):
         return JSONResponse(status_code=409, content={"error": str(exc)})
 
     return app
+
+
+__all__ = ["app", "routers"]

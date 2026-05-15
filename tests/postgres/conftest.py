@@ -2,6 +2,7 @@ import pytest
 
 from alembic.config import main as alembic_main
 
+from indexd.app import routers
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
@@ -26,19 +27,19 @@ def postgres_driver(app):
     settings["config"]["INDEX"]["driver"] = index_driver
 
     # update the app
-    for blueprint in app.blueprints.values():
-        blueprint.index_driver = index_driver
-        blueprint.alias_driver = alias_driver
-        blueprint.auth_driver = auth_driver
+    for router in routers:
+        router.index_driver = index_driver
+        router.alias_driver = alias_driver
+        router.auth_driver = auth_driver
 
     yield index_driver
 
     # revert the changes so the next tests use SQLite
     settings["config"]["INDEX"]["driver"] = index_driver_bk
-    for blueprint in app.blueprints.values():
-        blueprint.index_driver = index_driver_bk
-        blueprint.alias_driver = alias_driver_bk
-        blueprint.auth_driver = auth_driver_bk
+    for router in routers:
+        router.index_driver = index_driver_bk
+        router.alias_driver = alias_driver_bk
+        router.auth_driver = auth_driver_bk
 
 
 @pytest.fixture(autouse=True)
