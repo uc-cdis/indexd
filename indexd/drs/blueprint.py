@@ -153,7 +153,6 @@ def list_drs_records():
     ret = {
         "drs_objects": [indexd_to_drs(record, True) for record in records],
     }
-    # WIP - update to use bulk resolution
     return flask.jsonify(ret), 200
 
 
@@ -161,8 +160,8 @@ def list_drs_records():
     "/ga4gh/drs/v1/objects", methods=["POST"], provide_automatic_options=False
 )
 def get_drs_objects():
-    """Returns DRS objects for each provided DRS object id."""
-
+    """Returns DRS objects for each provided DRS object id.
+    Expects 'bulk_object_ids' in request body"""
     data = flask.request.get_json(force=True)
     # Exit with malformed error return if missing object id
     if "bulk_object_ids" not in data:
