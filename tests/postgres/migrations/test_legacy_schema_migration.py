@@ -82,7 +82,7 @@ def update_version_table_for_testing(tb_name, val):
         )
 
 
-def test_migrate_acls(client, user, postgres_driver):
+def test_migrate_acls(indexd_client, user, postgres_driver):
     data = {
         "form": "object",
         "size": 123,
@@ -92,7 +92,7 @@ def test_migrate_acls(client, user, postgres_driver):
     }
 
     # create the record
-    res = client.post("/index/", json=data, headers=user)
+    res = indexd_client.post("/index/", json=data, headers=user)
     rec = res.json
     assert res.status_code == 200
 
@@ -101,7 +101,7 @@ def test_migrate_acls(client, user, postgres_driver):
         migrate_7(session)
 
     # check that the record has been migrated
-    res = client.get("/" + rec["did"])
+    res = indexd_client.get("/" + rec["did"])
     rec = res.json
     assert res.status_code == 200
     assert rec["acl"] == ["a", "b"]

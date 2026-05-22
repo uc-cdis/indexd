@@ -26,16 +26,14 @@ ALIAS_CONFIG = {
 
 
 def create_app(index_config=None, alias_config=None, dist_config=None):
-    app = FastAPI()
-    app.settings = {
-        "INDEX": index_config,
-        "ALIAS": alias_config,
-        "DIST": dist_config or [],
-    }
+    app = FastAPI(title="indexd")
+    app.settings = {"config": {"DIST": dist_config or []}}
     if index_config:
+        app.settings["config"]["INDEX"] = index_config
         set_index_config(app)
         app.include_router(indexd_index_router)
     if alias_config:
+        app.settings["config"]["ALIAS"] = alias_config
         set_alias_config(app)
         app.include_router(indexd_alias_router)
     set_bulk_config(app)

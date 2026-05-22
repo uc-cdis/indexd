@@ -13,7 +13,8 @@ router = APIRouter(prefix="/bulk", tags=["bulk"])
 
 
 def set_bulk_config(app):
-    router.index_driver = app.settings["config"]["INDEX"]["driver"]
+    if "INDEX" in app.settings["config"]:
+        router.index_driver = app.settings["config"]["INDEX"]["driver"]
 
 
 def get_index_driver():

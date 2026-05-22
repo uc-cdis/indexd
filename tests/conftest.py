@@ -112,7 +112,7 @@ def combined_default_and_single_table_settings(request):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def app():
+def app_client():
     from indexd import default_settings
     from tests import default_test_settings
 
@@ -123,7 +123,7 @@ def app():
     }
     appobj = get_app()
     client = TestClient(appobj)
-    yield client
+    yield appobj, client
     try:
         clear_database()
     except Exception as e:
@@ -131,7 +131,7 @@ def app():
 
 
 @pytest.fixture
-def user(app):
+def user(app_client):
     engine = create_engine(POSTGRES_CONNECTION)
     driver = SQLAlchemyAuthDriver(POSTGRES_CONNECTION)
     try:

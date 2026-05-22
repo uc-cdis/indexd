@@ -37,7 +37,6 @@ from indexd.index.errors import (
 logger = cdislogging.get_logger(__name__)
 
 routers = [
-    (cross_router, {}),
     (indexd_alias_router, {}),
     (indexd_bulk_router, {}),
     (indexd_dos_router, {}),
@@ -45,6 +44,7 @@ routers = [
     (indexd_guid_router, {}),
     (indexd_index_router, {}),
     (index_urls_router, {"prefix": "/_query/urls"}),
+    (cross_router, {}),  # must go at bottom since catch all router
 ]
 
 
