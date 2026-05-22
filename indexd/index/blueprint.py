@@ -2,11 +2,12 @@ import re
 import json
 import hashlib
 import jsonschema
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from ..version_data import VERSION, COMMIT
 from indexd import auth
+from indexd.auth import authorize_decorator
 from indexd.errors import UserError
 from .schema import (
     PUT_RECORD_SCHEMA,
@@ -261,7 +262,7 @@ async def replace_aliases(record: str, request: Request):
         logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
     aliases = [item["value"] for item in aliases_json["aliases"]]
-    router.index_driver.replace_aliases_for_did(aliases, record)
+    router.index_driver.replace_aliases_for_did(aliases, record, request)
     aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
     return JSONResponse(content=aliases_payload, status_code=200)
 
@@ -325,7 +326,7 @@ async def get_index_record(record: str):
     return JSONResponse(content=ret, status_code=200)
 
 
-@router.post("/index/")
+@router.post("/index/", dependencies=[Depends(authorize_decorator)])
 async def post_index_record(request: Request):
     """
     Create a new record.
@@ -336,7 +337,7 @@ async def post_index_record(request: Request):
     except jsonschema.ValidationError as err:
         raise UserError(err)
     authz_val = post_json.get("authz", [])
-    auth.authorize("create", authz_val)
+    auth.authorize("create", authz_val, request)
     did = post_json.get("did")
     form = post_json["form"]
     size = post_json["size"]

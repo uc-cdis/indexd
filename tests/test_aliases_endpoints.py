@@ -45,7 +45,7 @@ def create_record(client, user):
     assert res.status_code == 200
     # The GUID is the "did" (Document IDentifier) returned from a successful
     # POST request.
-    guid = res.get_json()["did"]
+    guid = res.json()["did"]
 
     return guid
 
@@ -112,7 +112,7 @@ def test_global_endpoint_valid_alias(app_client, guid, aliases):
     for alias in aliases:
         res = client.get("/" + url_encode(alias))
         assert res.status_code == 200, res.text
-        record = res.get_json()
+        record = res.json()
         assert record["did"] == guid, f"Did not retrieve correct record for alias"
 
 

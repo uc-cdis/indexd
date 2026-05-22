@@ -1,43 +1,54 @@
-from fastapi import Depends, HTTPException, status, Request
+import base64
 from .errors import AuthError
 from ..errors import UserError
 
+from functools import wraps
+from fastapi import Depends, Request
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from typing import Optional
 
-def authorize_decorator(method=None, resources=None):
+security = HTTPBasic(auto_error=False)
+
+
+def authorize(method: str, resources: list, request: Request):
     """
-    Replaces the request authorization with a user context.
+    Direct authz check (non-decorator). Used when method + resources are known.
+    Checks Arborist if no Basic Auth present, otherwise falls back to basic auth check.
+    """
+    credentials = _get_basic_credentials(request)
+    if credentials:
+        request.app.auth.auth(credentials.username, credentials.password)
+    else:
+        if not isinstance(resources, list):
+            raise UserError(f"'authz' must be a list, received '{resources}'.")
+        request.app.auth.authz(method, list(set(resources)))
+
+
+def authorize_decorator(
+    request: Request, credentials: Optional[HTTPBasicCredentials] = Depends(security)
+):
+    """
+    FastAPI dependency for requiring auth on a route.
+    Use via: dependencies=[Depends(authorize_decorator)]
     Raises AuthError if authorization fails.
-
-    If called with (method, resources), it will check with Arborist if HTTP Basic Auth is
-    not present, or fallback to the previous check.
     """
+    if not credentials:
+        raise AuthError("Username / password required.")
+    request.app.auth.auth(credentials.username, credentials.password)
 
-    async def dependency(request: Request):
-        auth = request.headers.get("Authorization")
-        if not auth:
-            raise AuthError("Username / password required.")
 
-        try:
-            type_, credentials = auth.split(" ")
-            if type_.lower() != "basic":
-                raise ValueError
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Malformed Authorization header.",
-            )
+def _get_basic_credentials(request: Request) -> Optional[HTTPBasicCredentials]:
+    """
+    Extract Basic Auth credentials from request if present.
+    """
+    import base64
 
-        import base64
-
-        username, password = base64.b64decode(credentials).decode().split(":", 1)
-
-        # Replace `current_app.auth.auth` with FastAPI auth logic
-
-        if method and resources:
-            if not isinstance(resources, list):
-                raise UserError(f"'authz' must be a list, received '{resources}'.")
-            # Replace with: your_auth_service.authz(method, list(set(resources)))
-
-        # If authorization fails, raise AuthError or HTTPException as needed
-
-    return Depends(dependency)
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.lower().startswith("basic "):
+        return None
+    try:
+        decoded = base64.b64decode(auth_header[6:]).decode("utf-8")
+        username, password = decoded.split(":", 1)
+        return HTTPBasicCredentials(username=username, password=password)
+    except Exception:
+        return None

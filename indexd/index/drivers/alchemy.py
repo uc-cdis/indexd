@@ -1118,7 +1118,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     f"One or more aliases in request already associated with this or another GUID: {aliases}"
                 )
 
-    def replace_aliases_for_did(self, aliases, did):
+    def replace_aliases_for_did(self, aliases, did, request):
         """
         Replace all aliases for one DID / GUID with new aliases.
         """
@@ -1135,7 +1135,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             # authorization
             try:
                 resources = [u.resource for u in index_record.authz]
-                auth.authorize("update", resources)
+                auth.authorize("update", resources, request)
             except AuthError as err:
                 self.logger.warning(
                     f"Auth error while replacing aliases for did {did}: User not authorized to update one or more of these resources: {resources}"

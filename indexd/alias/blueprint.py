@@ -83,7 +83,6 @@ async def put_alias_record(record: str, request: Request):
     """
     Create or replace an existing record.
     """
-
     body = await request.json()
     try:
         jsonschema.validate(body, PUT_RECORD_SCHEMA)
