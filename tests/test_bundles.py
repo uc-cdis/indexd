@@ -15,7 +15,7 @@ def get_bundle_doc(bundles, bundle_id=None):
 
     if not bundle_id:
         bundle_id = uuid.uuid4()
-    doc["bundle_id"] = bundle_id
+    doc["bundle_id"] = str(bundle_id)
     """
     add options to do bundles and objects
     """
@@ -102,10 +102,10 @@ def test_bundle_get_post_with_optional_fields(
     # Nested bundle shouldn't contain optional fields
     data2 = get_bundle_doc(bundles=[did, did_list[0]])
     res5 = client.post("/bundle/", json=data2, headers=user)
-    did2 = res5.json["bundle_id"]
+    did2 = res5.json()["bundle_id"]
     assert res5.status_code == 200
     res6 = client.get("/bundle/" + did2 + "?expand=true")
-    rec6 = res6.json
+    rec6 = res6.json()
     contents = rec6["contents"]
     for content in contents:
         assert "description" not in content
@@ -287,7 +287,7 @@ def test_bundle_post_no_bundle_data(
     }
     res2 = client.post("/bundle/", json=data, headers=user)
     assert res2.status_code == 400
-    assert res2.json["error"] == "Bundle data required."
+    assert res2.json()["error"] == "Bundle data required."
 
 
 def test_bundle_get(app_client, user, combined_default_and_single_table_settings):

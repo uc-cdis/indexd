@@ -243,7 +243,7 @@ async def append_aliases(record: str, request: Request):
         logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
     aliases = [item["value"] for item in aliases_json["aliases"]]
-    router.index_driver.append_aliases_for_did(aliases, record)
+    router.index_driver.append_aliases_for_did(request, aliases, record)
     aliases = router.index_driver.get_aliases_for_did(record)
     aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
     return JSONResponse(content=aliases_payload, status_code=200)
@@ -262,20 +262,20 @@ async def replace_aliases(record: str, request: Request):
         logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
     aliases = [item["value"] for item in aliases_json["aliases"]]
-    router.index_driver.replace_aliases_for_did(aliases, record, request)
+    router.index_driver.replace_aliases_for_did(request, aliases, record)
     aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
     return JSONResponse(content=aliases_payload, status_code=200)
 
 
 @router.delete("/index/{record:path}/aliases")
-async def delete_all_aliases(record: str):
-    router.index_driver.delete_all_aliases_for_did(record)
+async def delete_all_aliases(record: str, request: Request):
+    router.index_driver.delete_all_aliases_for_did(request, record)
     return JSONResponse(content="Aliases deleted successfully", status_code=200)
 
 
 @router.delete("/index/{record:path}/aliases/{alias:path}")
-async def delete_one_alias(record: str, alias: str):
-    router.index_driver.delete_one_alias_for_did(alias, record)
+async def delete_one_alias(record: str, alias: str, request: Request):
+    router.index_driver.delete_one_alias_for_did(request, alias, record)
     return JSONResponse(content="Aliases deleted successfully", status_code=200)
 
 
@@ -303,7 +303,7 @@ async def update_all_index_record_versions(record: str, request: Request):
         raise UserError(err)
     acl = request_json.get("acl")
     authz = request_json.get("authz")
-    ret = router.index_driver.update_all_versions(record, acl=acl, authz=authz)
+    ret = router.index_driver.update_all_versions(request, record, acl=acl, authz=authz)
     return JSONResponse(content=ret, status_code=200)
 
 
@@ -394,7 +394,7 @@ async def post_index_blank_record(request: Request):
     file_name = body.get("file_name")
     authz = body.get("authz")
     did, rev, baseid = router.index_driver.add_blank_record(
-        uploader=uploader, file_name=file_name, authz=authz
+        request, uploader=uploader, file_name=file_name, authz=authz
     )
     ret = {"did": did, "rev": rev, "baseid": baseid}
     return JSONResponse(content=ret, status_code=201)
@@ -414,7 +414,12 @@ async def add_index_blank_record_version(record: str, request: Request):
     file_name = body.get("file_name")
     authz = body.get("authz")
     did, baseid, rev = router.index_driver.add_blank_version(
-        record, new_did=new_did, uploader=uploader, file_name=file_name, authz=authz
+        request,
+        record,
+        new_did=new_did,
+        uploader=uploader,
+        file_name=file_name,
+        authz=authz,
     )
     ret = {"did": did, "baseid": baseid, "rev": rev}
     return JSONResponse(content=ret, status_code=201)
@@ -432,7 +437,7 @@ async def put_index_blank_record(record: str, request: Request):
     urls = body.get("urls")
     authz = body.get("authz")
     did, rev, baseid = router.index_driver.update_blank_record(
-        did=record, rev=rev, size=size, hashes=hashes, urls=urls, authz=authz
+        request, did=record, rev=rev, size=size, hashes=hashes, urls=urls, authz=authz
     )
     ret = {"did": did, "rev": rev, "baseid": baseid}
     return JSONResponse(content=ret, status_code=200)
@@ -457,7 +462,7 @@ async def put_index_record(record: str, request: Request):
             raise UserError(
                 "content_updated_date cannot come before content_created_date"
             )
-    did, baseid, rev = router.index_driver.update(record, rev, put_json)
+    did, baseid, rev = router.index_driver.update(request, record, rev, put_json)
     ret = {"did": did, "baseid": baseid, "rev": rev}
     return JSONResponse(content=ret, status_code=200)
 
@@ -506,6 +511,7 @@ async def add_index_record_version(record: str, request: Request):
                 "content_updated_date cannot come before content_created_date"
             )
     did, baseid, rev = router.index_driver.add_version(
+        request,
         record,
         form,
         new_did=new_did,
@@ -613,7 +619,7 @@ async def post_bundle(request: Request):
     """
     Create a new bundle
     """
-    auth.authorize("create", ["/services/indexd/bundles"])
+    auth.authorize("create", ["/services/indexd/bundles"], request)
     post_json = await request.json()
     try:
         jsonschema.validate(post_json, BUNDLE_SCHEMA)
@@ -694,10 +700,10 @@ async def get_bundle_record_with_id(bundle_id: str, request: Request):
 
 
 @router.delete("/bundle/{bundle_id:path}")
-async def delete_bundle_record(bundle_id: str):
+async def delete_bundle_record(bundle_id: str, request: Request):
     """
     Delete bundle record given bundle_id
     """
-    auth.authorize("delete", ["/services/indexd/bundles"])
+    auth.authorize("delete", ["/services/indexd/bundles"], request)
     router.index_driver.delete_bundle(bundle_id)
     return JSONResponse(content=None, status_code=200)

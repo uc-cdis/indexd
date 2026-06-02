@@ -4,7 +4,7 @@ import pytest
 # NOTE these tests apply to the '/alias/' endpoint, which is deprecated
 # in favor of the 'index/{GUID}/aliases' endpoint.
 def test_alias_list(client, user):
-    assert client.get("/alias/").json["aliases"] == []
+    assert client.get("/alias/").json()["aliases"] == []
 
 
 def test_get_alias_by_name(client, user):
@@ -121,8 +121,8 @@ def test_alias_create(client, user):
     rec = res.json
     assert rec["name"] == ark
 
-    assert len(client.get("/alias/").json["aliases"]) == 1
-    assert client.get("/alias/" + rec["name"]).json["name"] == ark
+    assert len(client.get("/alias/").json()["aliases"]) == 1
+    assert client.get("/alias/" + rec["name"]).json()["name"] == ark
 
 
 def test_alias_get_global_endpoint(client, user):
@@ -138,7 +138,7 @@ def test_alias_get_global_endpoint(client, user):
     res = client.put("/alias/" + ark, json=data, headers=user)
     assert res.status_code == 200
 
-    assert client.get("/" + ark).json["size"] == 123
+    assert client.get("/" + ark).json()["size"] == 123
 
 
 def test_alias_update(client, user):
@@ -191,4 +191,4 @@ def test_alias_delete(client, user):
     )
     assert res.status_code == 200
 
-    assert len(client.get("/alias/").json["aliases"]) == 0
+    assert len(client.get("/alias/").json()["aliases"]) == 0

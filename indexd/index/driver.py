@@ -75,14 +75,14 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def update(self, did, rev, changing_fields):
+    def update(self, request, did, rev, changing_fields):
         """
         Updates record with new values.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def delete(self, did, rev):
+    def delete(self, request, did, rev):
         """
         Deletes record.
         """
@@ -91,6 +91,7 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def add_version(
         self,
+        request,
         current_did,
         form,
         new_did=None,
