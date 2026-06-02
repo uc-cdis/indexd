@@ -45,24 +45,26 @@ def create_record(client, user):
     assert res.status_code == 200
     # The GUID is the "did" (Document IDentifier) returned from a successful
     # POST request.
-    guid = res.get_json()["did"]
+    guid = res.json()["did"]
 
     return guid
 
 
 @pytest.fixture(scope="function")
-def guid(client, user):
+def guid(app_client, user):
     """
     Creates a record in indexd and returns that record's GUID.
     """
+    _, client = app_client
     return create_record(client, user)
 
 
 @pytest.fixture(scope="function")
-def aliases(client, user, guid):
+def aliases(app_client, user, guid):
     """
     Associates aliases with a GUID in indexd and returns the new aliases.
     """
+    _, client = app_client
     aliases = [
         ".?=G}k@Up3LIlv+p96yaI06,t@?j=ejk[%+",
         'Fa"uW< A"/\'hELmTjH%r%6@Tp^HaB^',
@@ -97,31 +99,39 @@ def unused_aliases():
 
 # GET /{alias}
 # ------------------------
-def test_global_endpoint_valid_alias(client, guid, aliases):
+def test_global_endpoint_valid_alias(app_client, guid, aliases):
     """
     expect query for alias on global endpoint to return the record associated with alias
     """
+    app, client = app_client
+    print(type(app_client))
+    print(app_client)
+    app, client = app_client
+    print(app)
+    print(client)
     for alias in aliases:
         res = client.get("/" + url_encode(alias))
         assert res.status_code == 200, res.text
-        record = res.get_json()
+        record = res.json()
         assert record["did"] == guid, f"Did not retrieve correct record for alias"
 
 
-def test_global_endpoint_nonexistant_alias(client, guid, aliases):
+def test_global_endpoint_nonexistant_alias(app_client, aliases):
     """
     expect query for alias on global endpoint to return 404 for a nonexistant record
     """
+    _, client = app_client
     fake_alias = aliases[0] + "_but_fake"
     res = client.get("/" + url_encode(fake_alias))
     assert res.status_code == 404, f"Request for fake alias should have failed"
 
 
-def test_global_endpoint_alias_guid_collision(client, guid, aliases, user):
+def test_global_endpoint_alias_guid_collision(app_client, guid, user):
     """
     if an alias has the same name as a GUID, the global endpoint should resolve
     to the GUID, not resolve the alias
     """
+    _, client = app_client
     # create a new guid
     guid_A = guid
     guid_B = create_record(client, user)
@@ -134,17 +144,18 @@ def test_global_endpoint_alias_guid_collision(client, guid, aliases, user):
     # to guid_B's record, not to guid_A's record
     res = client.get("/" + url_encode(guid_B))
     assert res.status_code == 200, res.text
-    record = res.get_json()
+    record = res.json()
     assert record["did"] == guid_B
     assert record["did"] != guid_A
 
 
-def test_global_endpoint_alias_endpoint_collision(client, guid, aliases, user):
+def test_global_endpoint_alias_endpoint_collision(app_client, guid, user):
     """
     when an alias shares a name with an endpoint on the root of
     the API, querying that endpoint should function as normal,
     not resolve the alias
     """
+    _, client = app_client
     # associate a new alias named "index/" with guid. "index/" is an endpoint
     # on the root of the api.
     aliases_payload = to_payload(["index"])
@@ -155,7 +166,7 @@ def test_global_endpoint_alias_endpoint_collision(client, guid, aliases, user):
     # an alias.
     res = client.get("index")
     assert res.status_code == 200, res.text
-    body = res.get_json()
+    body = res.json()
     body_is_not_record = body.get("did") is None
     assert (
         body_is_not_record
@@ -164,24 +175,26 @@ def test_global_endpoint_alias_endpoint_collision(client, guid, aliases, user):
 
 # GET /index/{GUID}/aliases
 # -------------------------
-def test_GET_aliases_invalid_GUID(client, guid, aliases):
+def test_GET_aliases_invalid_GUID(app_client, guid):
     """
     expect to return 404 for nonexistant GUID
     """
+    _, client = app_client
     fake_guid = guid + "but_fake"
     alias_endpoint = get_endpoint(fake_guid)
     res = client.get(alias_endpoint)
     assert res.status_code == 404, res.text
 
 
-def test_GET_aliases_valid_GUID(client, guid, aliases):
+def test_GET_aliases_valid_GUID(app_client, guid, aliases):
     """
     expect to return all aliases for a valid GUID
     """
+    _, client = app_client
     alias_endpoint = get_endpoint(guid)
     res = client.get(alias_endpoint)
     assert res.status_code == 200, res.text
-    aliases_in_db = payload_to_list(res.get_json())
+    aliases_in_db = payload_to_list(res.json())
     expected_aliases = aliases
     assert set(aliases_in_db) == set(expected_aliases)
 
@@ -189,18 +202,19 @@ def test_GET_aliases_valid_GUID(client, guid, aliases):
 # POST /index/{GUID}/aliases
 # -------------------------
 def test_POST_aliases_valid_GUID_valid_aliases(
-    client, user, guid, aliases, unused_aliases
+    app_client, user, guid, aliases, unused_aliases
 ):
     """
     normal operation: expect to append to aliases and return list of all aliases
     """
+    _, client = app_client
     new_aliases = unused_aliases
     new_alias_payload = to_payload(new_aliases)
 
     # expect POST to return list of all aliases
     res = client.post(get_endpoint(guid), json=new_alias_payload, headers=user)
     assert res.status_code == 200, res.text
-    aliases_in_db = payload_to_list(res.get_json())
+    aliases_in_db = payload_to_list(res.json())
 
     # expect new aliases to be appended to old aliases
     expected_aliases = aliases + new_aliases
@@ -209,10 +223,11 @@ def test_POST_aliases_valid_GUID_valid_aliases(
     ), f"Expected to append {new_aliases} to {aliases}"
 
 
-def test_POST_aliases_unauthenticated(client, user, guid, aliases, unused_aliases):
+def test_POST_aliases_unauthenticated(app_client, guid, unused_aliases):
     """
     expect request to fail with 403 if user is unauthenticated
     """
+    _, client = app_client
     new_aliases = unused_aliases
     new_aliases_payload = to_payload(new_aliases)
 
@@ -227,10 +242,11 @@ def test_POST_aliases_unauthenticated(client, user, guid, aliases, unused_aliase
     assert res.status_code == 403, res.text
 
 
-def test_POST_aliases_invalid_GUID(client, user, guid, aliases, unused_aliases):
+def test_POST_aliases_invalid_GUID(app_client, user, guid, unused_aliases):
     """
     expect to return 404 and have no effect for nonexistant GUID
     """
+    _, client = app_client
     fake_guid = guid + "but_fake"
     alias_endpoint = get_endpoint(fake_guid)
     new_aliases = unused_aliases
@@ -240,11 +256,14 @@ def test_POST_aliases_invalid_GUID(client, user, guid, aliases, unused_aliases):
     assert res.status_code == 404, res.text
 
 
-def test_POST_aliases_nonunique_aliases(client, user, guid, aliases, unused_aliases):
+def test_POST_aliases_nonunique_aliases(
+    app_client, user, guid, aliases, unused_aliases
+):
     """
     expect to return 409 and have no effect if valid GUID but one or more aliases
     already associated with another GUID
     """
+    _, client = app_client
     guid_A = guid
     guid_B = create_record(client, user)
 
@@ -264,18 +283,19 @@ def test_POST_aliases_nonunique_aliases(client, user, guid, aliases, unused_alia
     # expect aliases that were already associated with guid_A to be unchanged.
     res = client.get(get_endpoint(guid_A))
     assert res.status_code == 200, res.text
-    aliases_in_db = payload_to_list(res.get_json())
+    aliases_in_db = payload_to_list(res.json())
     expected_aliases = aliases
     assert set(aliases_in_db) == set(
         expected_aliases
     ), f"Expected original aliases {aliases} to be in db"
 
 
-def test_POST_aliases_GUID_already_has_alias(client, user, guid, aliases):
+def test_POST_aliases_GUID_already_has_alias(app_client, user, guid, aliases):
     """
     expect to return 409 and have no effect if valid GUID and one or more aliases
     already associated with this GUID
     """
+    _, client = app_client
     # pick a subset of the aliases already associated with this GUID
     subset_old_aliases = aliases[0:1]
 
@@ -287,12 +307,13 @@ def test_POST_aliases_GUID_already_has_alias(client, user, guid, aliases):
 
 
 def test_POST_aliases_duplicate_aliases_in_request(
-    client, user, guid, aliases, unused_aliases
+    app_client, user, guid, aliases, unused_aliases
 ):
     """
     expect to fail with 409 if valid GUID and one or more aliases duplicated
     in request
     """
+    _, client = app_client
     new_aliases = unused_aliases
 
     # duplicate some aliases: pick a subset of the new aliases and
@@ -308,7 +329,7 @@ def test_POST_aliases_duplicate_aliases_in_request(
 
     # expect aliases in db to be unchanged
     res = client.get(get_endpoint(guid))
-    aliases_in_db = payload_to_list(res.get_json())
+    aliases_in_db = payload_to_list(res.json())
     assert res.status_code == 200, res.text
     expected_aliases = aliases
     assert set(aliases_in_db) == set(
@@ -316,10 +337,11 @@ def test_POST_aliases_duplicate_aliases_in_request(
     ), f"Expected original aliases {aliases} to be in db"
 
 
-def test_POST_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
+def test_POST_aliases_valid_GUID_empty_aliases(app_client, user, guid, aliases):
     """
     expect to succeed with no effect if passed an empty list of aliases
     """
+    _, client = app_client
     # POST an empty list of aliases
     empty_aliases = []
     res = client.post(get_endpoint(guid), json=to_payload(empty_aliases), headers=user)
@@ -328,60 +350,62 @@ def test_POST_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
     # expect aliases in db to be unchanged
     res = client.get(get_endpoint(guid))
     assert res.status_code == 200, res.text
-    aliases_in_db = payload_to_list(res.get_json())
+    aliases_in_db = payload_to_list(res.json())
     expected_aliases = aliases
     assert set(aliases_in_db) == set(
         expected_aliases
     ), f"Expected original aliases {aliases} to be in db"
 
 
-def test_POST_no_body(client, user, guid, aliases):
+def test_POST_no_body(app_client, user, guid):
     """
     expect POST with no body in request to fail with 400
     """
+    _, client = app_client
     res = client.post(get_endpoint(guid), headers=user)
     assert res.status_code == 400, res.text
 
 
-def test_POST_bad_content_type(client, user, guid, aliases):
+def test_POST_bad_content_type(app_client, user, guid):
     """
     expect POST with a non-JSON content type (e.g., `text/plain`) to fail with 400
     """
+    _, client = app_client
     res = client.post(get_endpoint(guid), headers=user, content_type="text/plain")
     assert res.status_code == 400, res.text
 
 
 # PUT /index/{GUID}/aliases
 # -------------------------
-def test_PUT_aliases_valid_GUID_valid_aliases(
-    client, user, guid, aliases, unused_aliases
-):
+def test_PUT_aliases_valid_GUID_valid_aliases(app_client, user, guid, unused_aliases):
     """
     normal operation: expect to replace aliases and return list of new aliases
     for this GUID
     """
+    _, client = app_client
     new_aliases = unused_aliases
     new_alias_payload = to_payload(new_aliases)
     # expect PUT to return list of all aliases
     res = client.put(get_endpoint(guid), json=new_alias_payload, headers=user)
     assert res.status_code == 200, res.text
-    aliases_in_db = payload_to_list(res.get_json())
+    aliases_in_db = payload_to_list(res.json())
     new_aliases = unused_aliases
 
     # expect new aliases to have replaced old aliases
     res = client.get(get_endpoint(guid))
     assert res.status_code == 200, res.text
-    aliases_in_db = payload_to_list(res.get_json())
+    aliases_in_db = payload_to_list(res.json())
     expected_aliases = new_aliases
     assert set(aliases_in_db) == set(
         expected_aliases
     ), f"Expect aliases in db to be {new_aliases}"
 
 
-def test_PUT_aliases_unauthenticated(client, user, guid, aliases, unused_aliases):
+def test_PUT_aliases_unauthenticated(app_client, guid, unused_aliases):
     """
     expect request to fail with 403 if user is unauthenticated
     """
+    _, client = app_client
     new_aliases = unused_aliases
     new_aliases_payload = to_payload(new_aliases)
 
@@ -396,10 +420,11 @@ def test_PUT_aliases_unauthenticated(client, user, guid, aliases, unused_aliases
     assert res.status_code == 403, res.text
 
 
-def test_PUT_aliases_invalid_GUID(client, user, guid, aliases, unused_aliases):
+def test_PUT_aliases_invalid_GUID(app_client, user, guid, unused_aliases):
     """
     expect to return 404 and have no effect for nonexistant GUID
     """
+    _, client = app_client
     fake_guid = guid + "but_fake"
     alias_endpoint = get_endpoint(fake_guid)
     new_aliases = unused_aliases
@@ -409,11 +434,12 @@ def test_PUT_aliases_invalid_GUID(client, user, guid, aliases, unused_aliases):
     assert res.status_code == 404, res.text
 
 
-def test_PUT_aliases_nonunique_aliases(client, user, guid, aliases, unused_aliases):
+def test_PUT_aliases_nonunique_aliases(app_client, user, guid, aliases, unused_aliases):
     """
     expect to return 409 and have no effect if valid GUID but one or more aliases
     already associated with another GUID
     """
+    _, client = app_client
     new_aliases = unused_aliases
     # add a subset of the generated aliases to a different GUID.
     other_guid_aliases = [new_aliases[0]]
@@ -431,7 +457,7 @@ def test_PUT_aliases_nonunique_aliases(client, user, guid, aliases, unused_alias
     # expect aliases that were already associated with GUID to be unchanged.
     res = client.get(get_endpoint(guid))
     assert res.status_code == 200, res.text
-    aliases_in_db = payload_to_list(res.get_json())
+    aliases_in_db = payload_to_list(res.json())
     expected_aliases = aliases
     assert set(aliases_in_db) == set(
         expected_aliases
@@ -439,12 +465,13 @@ def test_PUT_aliases_nonunique_aliases(client, user, guid, aliases, unused_alias
 
 
 def test_PUT_aliases_previously_used_valid_alias(
-    client, user, guid, aliases, unused_aliases
+    app_client, user, guid, unused_aliases
 ):
     """
     expect to replace aliases if valid GUID and one or more aliases were once
     associated with a different GUID, but are no longer associated wiht a different GUID.
     """
+    _, client = app_client
     new_aliases = unused_aliases
 
     # add a subset of the generated aliases to a different GUID
@@ -464,11 +491,12 @@ def test_PUT_aliases_previously_used_valid_alias(
     assert res.status_code == 200, res.text
 
 
-def test_PUT_aliases_GUID_already_has_alias(client, user, guid, aliases):
+def test_PUT_aliases_GUID_already_has_alias(app_client, user, guid, aliases):
     """
     expect to replace aliases if valid GUID and one or more aliases already
     associated with this GUID, but not already associated with another GUID
     """
+    _, client = app_client
     # pick a subset of the aliases already associated with this GUID
     subset_old_aliases = aliases[0:1]
 
@@ -481,7 +509,7 @@ def test_PUT_aliases_GUID_already_has_alias(client, user, guid, aliases):
     # expect the aliases of this GUID to be the new subset of the old aliases
     res = client.get(get_endpoint(guid))
     assert res.status_code == 200, res.text
-    aliases_in_db = payload_to_list(res.get_json())
+    aliases_in_db = payload_to_list(res.json())
     expected_aliases = subset_old_aliases
     assert set(aliases_in_db) == set(
         expected_aliases
@@ -489,12 +517,13 @@ def test_PUT_aliases_GUID_already_has_alias(client, user, guid, aliases):
 
 
 def test_PUT_aliases_duplicate_aliases_in_request(
-    client, user, guid, aliases, unused_aliases
+    app_client, user, guid, unused_aliases
 ):
     """
     expect to fail with 409 if valid GUID and one or more aliases duplicated
     in request
     """
+    _, client = app_client
     new_aliases = unused_aliases
 
     # duplicate some aliases: pick a subset of the new aliases and
@@ -509,10 +538,11 @@ def test_PUT_aliases_duplicate_aliases_in_request(
     assert res.status_code == 409, res.json
 
 
-def test_PUT_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
+def test_PUT_aliases_valid_GUID_empty_aliases(app_client, user, guid):
     """
     expect succeed and remove all aliases if passed an empty list of aliases
     """
+    _, client = app_client
     empty_aliases = []
     res = client.put(get_endpoint(guid), json=to_payload(empty_aliases), headers=user)
     assert res.status_code == 200, res.text
@@ -520,49 +550,53 @@ def test_PUT_aliases_valid_GUID_empty_aliases(client, user, guid, aliases):
     # expect aliases in db to be empty
     res = client.get(get_endpoint(guid))
     assert res.status_code == 200, res.text
-    aliases_in_db = payload_to_list(res.get_json())
+    aliases_in_db = payload_to_list(res.json())
     expected_aliases = empty_aliases
     assert set(aliases_in_db) == set(
         expected_aliases
     ), "Expected no aliases to be in db"
 
 
-def test_PUT_no_body(client, user, guid, aliases):
+def test_PUT_no_body(app_client, user, guid):
     """
     expect PUT with no body in request to fail with 400
     """
-    res = client.put(get_endpoint(guid), json=None, headers=user)
+    _, client = app_client
+    res = client.put(get_endpoint(guid), headers=user)
     assert res.status_code == 400, res.text
 
 
-def test_PUT_bad_content_type(client, user, guid, aliases):
+def test_PUT_bad_content_type(app_client, user, guid):
     """
     expect PUT with a non-JSON content type (e.g., `text/plain`) to fail with 400
     """
+    _, client = app_client
     res = client.put(get_endpoint(guid), headers=user, content_type="text/plain")
     assert res.status_code == 400, res.text
 
 
 # DELETE /index/{GUID}/aliases
 # ----------------------------
-def test_DELETE_all_aliases_valid_GUID(client, user, guid, aliases):
+def test_DELETE_all_aliases_valid_GUID(app_client, user, guid):
     """
     normal operation: expect to delete all aliases if valid GUID
     """
+    _, client = app_client
     res = client.delete(get_endpoint(guid), headers=user)
     assert res.status_code == 200, res.text
 
     # expect all aliases to be gone
     res = client.get(get_endpoint(guid))
-    aliases_in_db = payload_to_list(res.get_json())
+    aliases_in_db = payload_to_list(res.json())
     expected_aliases = []
     assert aliases_in_db == expected_aliases, "Expected no aliases to be in db"
 
 
-def test_DELETE_all_aliases_unauthenticated(client, user, guid, aliases):
+def test_DELETE_all_aliases_unauthenticated(app_client, guid):
     """
     expect request to fail with 403 if user is unauthenticated
     """
+    _, client = app_client
     res = client.delete(get_endpoint(guid))
     assert res.status_code == 403, res.text
 
@@ -574,10 +608,11 @@ def test_DELETE_all_aliases_unauthenticated(client, user, guid, aliases):
     assert res.status_code == 403, res.text
 
 
-def test_DELETE_all_aliases_invalid_GUID(client, user, guid, aliases):
+def test_DELETE_all_aliases_invalid_GUID(app_client, user, guid):
     """
     expect to return 404 and have no effect for nonexistant GUID
     """
+    _, client = app_client
     fake_guid = guid + "_but_fake"
     res = client.delete(get_endpoint(fake_guid), headers=user)
     assert res.status_code == 404, res.text
@@ -585,11 +620,12 @@ def test_DELETE_all_aliases_invalid_GUID(client, user, guid, aliases):
 
 # DELETE /index/{GUID}/aliases/{ALIAS}
 # ------------------------------------
-def test_DELETE_one_alias_valid_GUID(client, user, guid, aliases):
+def test_DELETE_one_alias_valid_GUID(app_client, user, guid, aliases):
     """
     normal operation: expect to delete listed alias if valid GUID and
     alias associated with this GUID
     """
+    _, client = app_client
     # pick one alias to delete
     alias_to_delete = aliases[0]
     endpoint = get_endpoint(guid) + "/" + url_encode(alias_to_delete)
@@ -598,15 +634,16 @@ def test_DELETE_one_alias_valid_GUID(client, user, guid, aliases):
 
     # expect that alias to no longer be in this guid's aliases
     res = client.get(get_endpoint(guid))
-    aliases_in_db = payload_to_list(res.get_json())
+    aliases_in_db = payload_to_list(res.json())
     expected_aliases = [a for a in aliases if a != alias_to_delete]
     assert set(aliases_in_db) == set(expected_aliases)
 
 
-def test_DELETE_one_alias_unauthenticated(client, user, guid, aliases):
+def test_DELETE_one_alias_unauthenticated(app_client, guid, aliases):
     """
     expect request to fail with 403 if user is unauthenticated
     """
+    _, client = app_client
     # pick one alias to delete
     alias_to_delete = aliases[0]
     endpoint = get_endpoint(guid) + "/" + url_encode(alias_to_delete)
@@ -623,10 +660,11 @@ def test_DELETE_one_alias_unauthenticated(client, user, guid, aliases):
     assert res.status_code == 403, res.text
 
 
-def test_DELETE_one_alias_invalid_GUID(client, user, guid, aliases):
+def test_DELETE_one_alias_invalid_GUID(app_client, user, guid):
     """
     expect to return 404 and have no effect for nonexistant GUID
     """
+    _, client = app_client
     # pick a nonexistant guid
     fake_guid = guid + "_but_fake"
 
@@ -637,11 +675,12 @@ def test_DELETE_one_alias_invalid_GUID(client, user, guid, aliases):
     assert res.status_code == 404, res.text
 
 
-def test_DELETE_one_alias_GUID_does_not_have_alias(client, user, guid, aliases):
+def test_DELETE_one_alias_GUID_does_not_have_alias(app_client, user, guid):
     """
     expect to return 404 and have no effect if alias not associated
     with this GUID
     """
+    _, client = app_client
     # pick a nonexistant alias to delete on an existing guid
     alias_to_delete = "fake_alias"
     endpoint = get_endpoint(guid) + "/" + url_encode(alias_to_delete)

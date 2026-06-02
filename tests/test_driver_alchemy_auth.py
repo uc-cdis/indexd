@@ -5,7 +5,8 @@ from sqlalchemy import create_engine
 
 import tests.util as util
 
-from indexd.errors import AuthError
+from indexd.auth.errors import AuthError
+
 
 from indexd.auth.drivers.alchemy import SQLAlchemyAuthDriver
 
