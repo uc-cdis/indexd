@@ -416,8 +416,8 @@ def get_stats(session, month=None, year=None):
         # (e.g. stats table was seeded in 2025 but the caller queries for 2020), or if the
         # table is empty (e.g. seed migration hasn't run or table was manually cleared).
         #
-        # If manual intervention is needed, re-seed the reconciliation command,
-        # which recomputes stats from index_record and backfills the stats table:
+        # If manual intervention is needed, re-seed using the reconciliation command,
+        # which recomputes stats from the active record table and backfills stats:
         #   python bin/reconcile_stats.py
         return (0, 0)
     return (stats.total_record_count, stats.total_record_bytes)
