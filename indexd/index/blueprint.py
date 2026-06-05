@@ -24,7 +24,7 @@ from .errors import UnhealthyCheck
 from cdislogging import get_logger
 from indexd.drs.blueprint import bundle_to_drs
 
-logger = get_logger("indexd/index blueprint", log_level="info")
+logger = get_logger(__name__)
 
 blueprint = flask.Blueprint("index", __name__)
 

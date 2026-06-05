@@ -4,6 +4,7 @@ import sys
 from alembic.config import main as alembic_main
 import cdislogging
 import flask
+import logging
 
 from indexd.config_helper import validate_config
 from indexd.index.drivers.alchemy import Base as IndexBase
@@ -18,10 +19,17 @@ from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
 
-logger = cdislogging.get_logger(__name__)
+
+logger = cdislogging.get_logger("indexd", log_level="debug")
+
+
+def warn_about_logger():
+    raise Exception("Use cdislogging.get_logger instead of app.logger")
 
 
 def app_init(app, settings=None):
+    app.__dict__["logger"] = warn_about_logger
+
     app.url_map.strict_slashes = False
     if not settings:
         from .default_settings import settings
@@ -41,6 +49,14 @@ def app_init(app, settings=None):
     else:
         logger.info("Auto migrations are disabled")
 
+    # Alembic may disable existing loggers. Re-apply cdislogging config after migrations.
+    cdislogging.get_logger(
+        "indexd",
+        log_level="debug" if app.config.get("DEBUG") is True else "info",
+    ).disabled = False
+    enable_indexd_loggers()
+    logger.info("indexd logging initialized")
+
     validate_config(settings)
 
     app.auth = settings["auth"]
@@ -53,6 +69,11 @@ def app_init(app, settings=None):
     app.register_blueprint(indexd_guid_blueprint)
     app.register_blueprint(cross_blueprint)
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
+
+
+def enable_indexd_loggers():
+    for name in logging.Logger.manager.loggerDict:
+        logging.getLogger(name).disabled = False
 
 
 def get_app(settings=None):
