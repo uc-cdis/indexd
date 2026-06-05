@@ -816,6 +816,16 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.to_document_dict()
 
+    def get_bulk(self, guid_list, expand=True):
+        """
+        Gets records for the the record ids.
+        """
+        with self.session as session:
+            query = session.query(Record)
+            subquery = query.filter(Record.guid.in_(guid_list))
+            compiled_list = [q.to_document_dict() for q in subquery]
+            return compiled_list
+
     def get_with_nonstrict_prefix(self, guid, expand=True):
         """
         Attempt to retrieve a record both with and without a prefix.

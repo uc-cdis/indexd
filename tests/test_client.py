@@ -2660,7 +2660,14 @@ def test_update_without_changing_fields(
     assert second_doc["version"] != third_doc["version"]
 
 
-def test_bulk_get_documents(client, user, combined_default_and_single_table_settings):
+def test_bulk_get_documents(user, combined_default_and_single_table_settings):
+    """
+    Ensure /bulk/documents returns docs created when requested (in both single and
+    default table settings)
+    """
+    # get the client for the yielded app with different settings
+    client = combined_default_and_single_table_settings.test_client()
+
     # just make a bunch of entries in indexd
     dids = [
         client.post("/index/", json=get_doc(has_baseid=True), headers=user).json["did"]
