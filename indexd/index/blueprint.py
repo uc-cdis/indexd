@@ -224,18 +224,16 @@ async def get_aliases(record: str):
     """
     Get all aliases associated with this DID / GUID
     """
-
     aliases = router.index_driver.get_aliases_for_did(record)
     aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
     return JSONResponse(content=aliases_payload, status_code=200)
 
 
-@router.post("/index/{record:path}/aliases/")
+@router.post("/index/{record:path}/aliases")
 async def append_aliases(record: str, request: Request):
     """
     Append one or more aliases to aliases already associated with this DID / GUID, if any.
     """
-
     aliases_json = await request.json()
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
@@ -254,7 +252,6 @@ async def replace_aliases(record: str, request: Request):
     """
     Replace all aliases associated with this DID / GUID
     """
-
     aliases_json = await request.json()
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)

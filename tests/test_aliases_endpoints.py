@@ -104,11 +104,7 @@ def test_global_endpoint_valid_alias(app_client, guid, aliases):
     expect query for alias on global endpoint to return the record associated with alias
     """
     app, client = app_client
-    print(type(app_client))
-    print(app_client)
     app, client = app_client
-    print(app)
-    print(client)
     for alias in aliases:
         res = client.get("/" + url_encode(alias))
         assert res.status_code == 200, res.text
