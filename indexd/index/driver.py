@@ -75,6 +75,13 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
+    def get_bulk(self, did_list):
+        """
+        Gets records for the the record ids.
+        """
+        raise NotImplementedError("TODO")
+
+    @abc.abstractmethod
     def update(self, did, rev, changing_fields):
         """
         Updates record with new values.

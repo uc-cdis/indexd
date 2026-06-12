@@ -35,6 +35,10 @@ drs_service_info = environ.get("DRS_SERVICE_INFO", None)
 if drs_service_info:
     CONFIG["DRS_SERVICE_INFO"] = json.loads(drs_service_info)
 
+max_bulk = environ.get("MAX_BULK_REQUEST_LENGTH", None)
+if max_bulk:
+    CONFIG["MAX_BULK_REQUEST_LENGTH"] = int(max_bulk)
+
 if USE_SINGLE_TABLE is True:
     CONFIG["INDEX"] = {
         "driver": SingleTableSQLAlchemyIndexDriver(
@@ -86,4 +90,18 @@ AUTH = SQLAlchemyAuthDriver(
     arborist="http://arborist-service/",
 )
 
+cloud_provider_map = environ.get("CLOUD_PROVIDER_MAP", None)
+if cloud_provider_map:
+    CONFIG["CLOUD_PROVIDER_MAP"] = json.loads(cloud_provider_map)
+else:
+    CONFIG["CLOUD_PROVIDER_MAP"] = {
+        "s3": "aws",
+        "gs": "gcp",
+        "az": "azure",
+    }
+
 settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE}
+
+drs_authorization_metadata = environ.get("DRS_AUTHORIZATION_METADATA", None)
+if drs_authorization_metadata:
+    CONFIG["DRS_AUTHORIZATION_METADATA"] = json.loads(drs_authorization_metadata)
