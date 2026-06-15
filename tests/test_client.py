@@ -2751,7 +2751,15 @@ def test_update_without_changing_fields(
 def test_bulk_get_documents(
     app_client, user, combined_default_and_single_table_settings
 ):
+    """
+    Ensure /bulk/documents returns docs created when requested (in both single and
+    default table settings)
+    """
     _, client = app_client
+
+    # get the client for the yielded app with different settings
+    client = combined_default_and_single_table_settings.test_client()
+
     # just make a bunch of entries in indexd
     dids = [
         client.post("/index/", json=get_doc(has_baseid=True), headers=user).json()[

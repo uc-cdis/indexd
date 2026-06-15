@@ -31,18 +31,11 @@ async def bulk_get_documents(
     if not isinstance(ids, list):
         raise UserError("IDs is not a list.")
 
-    with index_driver.session as session:
-        query = session.query(IndexRecord)
-        query = query.options(
-            joinedload(IndexRecord.urls).joinedload(IndexRecordUrl.url_metadata)
-        )
-        query = query.options(joinedload(IndexRecord.acl))
-        query = query.options(joinedload(IndexRecord.authz))
-        query = query.options(joinedload(IndexRecord.hashes))
-        query = query.options(joinedload(IndexRecord.index_metadata))
-        query = query.options(joinedload(IndexRecord.aliases))
-        query = query.filter(IndexRecord.did.in_(ids))
+    # ensure strings
+    guids = [str(guid) for guid in ids]
 
-        docs = [q.to_document_dict() for q in query]
+    docs = blueprint.index_driver.get_bulk(guid_list=guids)
+
+    return flask.Response(json.dumps(docs), 200, mimetype="application/json")
 
     return docs

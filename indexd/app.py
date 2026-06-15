@@ -5,6 +5,7 @@ import cdislogging
 from alembic.config import main as alembic_main
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+import logging
 
 from indexd.config_helper import validate_config
 from indexd.index.drivers.alchemy import Base as IndexBase
@@ -34,7 +35,13 @@ from indexd.index.errors import (
     NoRecordFound as IndexNoRecordFound,
 )
 
-logger = cdislogging.get_logger(__name__)
+
+logger = cdislogging.get_logger("indexd", log_level="debug")
+
+
+def warn_about_logger():
+    raise Exception("Use cdislogging.get_logger instead of app.logger")
+
 
 routers = [
     (indexd_alias_router, {}),
@@ -68,6 +75,14 @@ def app_init(app, settings=None):
     else:
         logger.info("Auto migrations are disabled")
 
+    # Alembic may disable existing loggers. Re-apply cdislogging config after migrations.
+    cdislogging.get_logger(
+        "indexd",
+        log_level="debug" if app.config.get("DEBUG") is True else "info",
+    ).disabled = False
+    enable_indexd_loggers()
+    logger.info("indexd logging initialized")
+
     validate_config(settings)
 
     app.auth = settings["auth"]
@@ -84,6 +99,11 @@ def app_init(app, settings=None):
 
     for router, opts in routers:
         app.include_router(router, **opts)
+
+
+def enable_indexd_loggers():
+    for name in logging.Logger.manager.loggerDict:
+        logging.getLogger(name).disabled = False
 
 
 def get_app(settings=None):
