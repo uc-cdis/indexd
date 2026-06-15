@@ -150,37 +150,16 @@ def user(app_client):
     engine.dispose()
 
 
-@pytest.fixture
-def skip_authz():
-    orig = auth.authorize
-    auth.authorize = lambda *x: x
-    yield
-    auth.authorize = orig
-
-
 @pytest.fixture(scope="function")
-def use_mock_authz(request):
+def use_mock_authz(app_client, request):
     """
-    Fixture for enabling mocking of indexd authz system. Returns a function
-    that, when called, will override indexd's authz to allow the specified permissions.
-    The returned function takes a list of allowed permissions, in the form of
-    a list of tuples of (method, resource).
-    - If allowed_permissions is not specified, all authz requests will succeed.
-    - If allowed_permissions is an empty list, all authz requests will fail.
-
-    Example: Calling `use_mock_authz([("update", "resource_1")])` inside a unit test
-    will mock indexd's authz system to allow all requests to update resource_1 to succeed,
-    and all other requests will fail, regardless of the user.
-    The fixture can be called multiple times in a unit test to change the allowed permissions.
-
-    How is this fixture different from `mock_arborist_requests`? It mocks the
-    whole `indexd.auth.authz` logic, while `mock_arborist_requests` only mocks
-    the requests to arborist.
+    Fixture for enabling mocking of indexd authz system. ...
     """
+    appobj, client = app_client
 
     def _use_mock_authz(allowed_permissions=None):
         if allowed_permissions is None:
-            mock_authz = lambda *x: x
+            mock_authz = lambda method, resources: None
         else:
             assert isinstance(allowed_permissions, list)
 
@@ -191,7 +170,7 @@ def use_mock_authz(request):
                             f"Mock indexd.auth.authz: ({method},{resource}) is not in allowed permissions ({allowed_permissions})"
                         )
 
-        patched_authz = patch("indexd.auth.authz", mock_authz)
+        patched_authz = patch.object(appobj.auth, "authz", side_effect=mock_authz)
         patched_authz.start()
         request.addfinalizer(patched_authz.stop)
 
@@ -199,16 +178,14 @@ def use_mock_authz(request):
 
 
 @pytest.fixture(scope="function")
-def mock_arborist_requests(app, request):
+def mock_arborist_requests(app_client, request):
     """
     This fixture returns a function which you call to mock the call to
-    arborist client's auth_request method.
-    It returns a 401 error unless the resource and method match the provided
-    `resource_method_to_authorized` dict, in which case it returns a 401 error
-    or a 200 response depending on the dict value.
+    arborist client's auth_request method. ...
     """
+    appobj, client = app_client
     arborist_base_url = "arborist"
-    app.app.auth.arborist = ArboristClient(arborist_base_url=arborist_base_url)
+    appobj.auth.arborist = ArboristClient(arborist_base_url=arborist_base_url)
 
     def do_patch(resource_method_to_authorized={}):
         def make_mock_response(method, url, *args, **kwargs):

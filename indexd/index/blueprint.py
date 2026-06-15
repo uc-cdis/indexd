@@ -55,6 +55,7 @@ def validate_hashes(**hashes):
 
 
 @router.get("/index/")
+@router.get("/index")
 async def get_index(request: Request, form: str = None):
     """
     Returns a list of records.
@@ -234,7 +235,11 @@ async def append_aliases(record: str, request: Request):
     """
     Append one or more aliases to aliases already associated with this DID / GUID, if any.
     """
-    aliases_json = await request.json()
+    try:
+        aliases_json = await request.json()
+    except Exception:
+        raise UserError(f"Invalid or Missing JSON body")
+
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
     except jsonschema.ValidationError as err:
@@ -252,7 +257,10 @@ async def replace_aliases(record: str, request: Request):
     """
     Replace all aliases associated with this DID / GUID
     """
-    aliases_json = await request.json()
+    try:
+        aliases_json = await request.json()
+    except Exception:
+        raise UserError(f"Invalid or Missing JSON body")
     try:
         jsonschema.validate(aliases_json, RECORD_ALIAS_SCHEMA)
     except jsonschema.ValidationError as err:
@@ -584,7 +592,7 @@ def get_checksum(data):
     Collect checksums from bundles and objects in the bundle for compute_checksum
     """
     if "hashes" in data:
-        return data["hashes"][list(data["hashes"])[0]]()
+        return data["hashes"][list(data["hashes"])[0]]
     elif "checksums" in data:
         return data["checksums"][0]["checksum"]
     elif "checksum" in data:

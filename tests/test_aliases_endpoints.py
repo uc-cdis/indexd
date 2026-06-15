@@ -367,7 +367,8 @@ def test_POST_bad_content_type(app_client, user, guid):
     expect POST with a non-JSON content type (e.g., `text/plain`) to fail with 400
     """
     _, client = app_client
-    res = client.post(get_endpoint(guid), headers=user, content_type="text/plain")
+    user["headers"] = '{"Content-Type": "text/plain"}'
+    res = client.post(get_endpoint(guid), headers=user)
     assert res.status_code == 400, res.text
 
 
@@ -567,7 +568,8 @@ def test_PUT_bad_content_type(app_client, user, guid):
     expect PUT with a non-JSON content type (e.g., `text/plain`) to fail with 400
     """
     _, client = app_client
-    res = client.put(get_endpoint(guid), headers=user, content_type="text/plain")
+    user["headers"] = '{"Content-Type": "text/plain"}'
+    res = client.put(get_endpoint(guid), headers=user)
     assert res.status_code == 400, res.text
 
 

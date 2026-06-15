@@ -41,7 +41,7 @@ def create_index(client, user):
     i_data = get_index_doc()
     res1 = client.post("/index/", json=i_data, headers=user)
     assert res1.status_code == 200
-    rec1 = res1.json
+    rec1 = res1.json()
     did_list = [rec1["did"]]
 
     return did_list, rec1

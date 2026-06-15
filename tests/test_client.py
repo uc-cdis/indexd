@@ -772,7 +772,7 @@ def test_create_blank_record_with_file_name(
 def test_create_blank_record_with_authz(
     app_client, use_mock_authz, combined_default_and_single_table_settings
 ):
-    _, client = app_client
+    app, client = app_client
     """
     Test that a new blank record can be created with a specified
     authz when the user has the expected access
@@ -1803,7 +1803,8 @@ def test_delete_and_recreate(
     new_data["did"] = old_record["did"]
 
     # delete the old doc
-    res = client.delete(
+    res = client.request(
+        "DELETE",
         f"/index/{old_record['did']}?rev={old_record['rev']}",
         json=old_data,
         headers=user,
@@ -2247,9 +2248,10 @@ def test_index_delete(app_client, user, combined_default_and_single_table_settin
     rec = res.json()
     assert rec["did"]
 
-    res = client.delete(
-        f"/index/{rec['did']}?rev={rec['rev']}", json=data, headers=user
+    res = client.request(
+        "DELETE", f"/index/{rec['did']}?rev={rec['rev']}", json=data, headers=user
     )
+
     assert res.status_code == 200
 
     # make sure its deleted
