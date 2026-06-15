@@ -1,7 +1,7 @@
 """
 Util to reconcile the indexd stats table.
 
-Recomputes record count and total bytes from the `index_record` or `record` (whichever has a higher count) table
+Recomputes record count and total bytes from the index_record table
 and upserts the current month's StatsRecord row. Logs the delta.
 """
 
