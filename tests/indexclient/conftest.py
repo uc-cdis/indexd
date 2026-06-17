@@ -24,8 +24,9 @@ def indexd_client(test_client, monkeypatch, user):
         parsed = urlparse(url)
         kwargs.pop("timeout", None)
 
-        if "params" in kwargs:
-            kwargs["query_string"] = kwargs.pop("params")
+        # Fix: Starlette TestClient uses 'params' not 'query_string'
+        if "query_string" in kwargs:
+            kwargs["params"] = kwargs.pop("query_string")
 
         auth = kwargs.pop("auth", None)
         if auth:
@@ -38,14 +39,12 @@ def indexd_client(test_client, monkeypatch, user):
             url=parsed.path,
             **kwargs,
         )
-
         resp = requests.Response()
         resp.status_code = test_resp.status_code
         resp._content = test_resp.content
         resp.headers = test_resp.headers
         resp.url = url
         resp.reason = getattr(test_resp, "reason", "")
-
         return resp
 
     monkeypatch.setattr(
@@ -69,7 +68,6 @@ def indexd_client(test_client, monkeypatch, user):
         "options",
         lambda url, **kw: request("OPTIONS", url, **kw),
     )
-
     yield IndexClient(baseurl=baseurl, auth=("test", "test"))
     clear_database()
 

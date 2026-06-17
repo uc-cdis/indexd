@@ -10,7 +10,7 @@ from tests.default_test_settings import settings
 
 
 @pytest.fixture(scope="function", autouse=True)
-def postgres_driver(app):
+def postgres_driver(app_client):
     """
     Override the default test settings and app configuration to use a
     postgres DB instead of the SQLite DB used in other tests

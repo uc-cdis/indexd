@@ -955,7 +955,10 @@ def test_driver_update_fails_with_no_records():
 
     with pytest.raises(NoRecordFound):
         driver.update(
-            "some_record_that_does_not_exist", "some_base_version", "some_revision"
+            "some_request",
+            "some_record_that_does_not_exist",
+            "some_base_version",
+            "some_revision",
         )
 
 
