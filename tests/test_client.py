@@ -29,16 +29,18 @@ def get_doc(
     return doc
 
 
-def test_index_list(client, combined_default_and_single_table_settings):
+def test_index_list(app_client, combined_default_and_single_table_settings):
+    _, client = app_client
     res = client.get("/index/")
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["records"] == []
 
 
 def test_index_list_with_params(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data1 = get_doc()
     data1["urls"] = [
         "s3://endpointurl/bucket_2/key_2",
@@ -50,7 +52,7 @@ def test_index_list_with_params(
     }
     res_1 = client.post("/index/", json=data1, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
+    rec_1 = res_1.json()
 
     data2 = get_doc()
     data2["metadata"] = {"project_id": "other-project", "state": "abc", "other": "xxx"}
@@ -60,7 +62,7 @@ def test_index_list_with_params(
     }
     res_2 = client.post("/index/", json=data2, headers=user)
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
 
     data3 = get_doc()
     data3["urls"] = [
@@ -73,23 +75,23 @@ def test_index_list_with_params(
     }
     res_3 = client.post("/index/", json=data3, headers=user)
     assert res_3.status_code == 200
-    rec_3 = res_3.json
+    rec_3 = res_3.json()
 
     data1_by_md = client.get("/index/?metadata=project_id:bpa-UChicago")
     assert data1_by_md.status_code == 200
-    data1_list = data1_by_md.json
+    data1_list = data1_by_md.json()
     ids = [record["did"] for record in data1_list["records"]]
     assert rec_1["did"] in ids
 
     data2_by_md = client.get("/index/?metadata=project_id:other-project")
     assert data2_by_md.status_code == 200
-    data2_list = data2_by_md.json
+    data2_list = data2_by_md.json()
     ids = [record["did"] for record in data2_list["records"]]
     assert rec_2["did"] in ids
 
     data_by_hash = client.get("/index/?hash=md5:8b9942cf415384b27cadf1f4d2d682e5")
     assert data_by_hash.status_code == 200
-    data_list_all = data_by_hash.json
+    data_list_all = data_by_hash.json()
     ids = [record["did"] for record in data_list_all["records"]]
     assert rec_1["did"] in ids
     assert rec_2["did"] in ids
@@ -97,9 +99,9 @@ def test_index_list_with_params(
     # with nonstrict prefix
     stripped = rec_1["did"].split("testprefix/", 1)[1]
     with_prefix = rec_3["did"]
-    data_by_ids = client.get("/index/?ids={},{}".format(stripped, with_prefix))
+    data_by_ids = client.get(f"/index/?ids={stripped},{with_prefix}")
     assert data_by_ids.status_code == 200
-    data_list_all = data_by_ids.json
+    data_list_all = data_by_ids.json()
 
     ids = [record["did"] for record in data_list_all["records"]]
     assert rec_1["did"] in ids
@@ -108,20 +110,22 @@ def test_index_list_with_params(
 
     data_with_limit = client.get("/index/?limit=1")
     assert data_with_limit.status_code == 200
-    data_list_limit = data_with_limit.json
+    data_list_limit = data_with_limit.json()
     assert len(data_list_limit["records"]) == 1
 
     param = {"bucket": {"state": "error", "other": "xxx"}}
 
     data_by_url_md = client.get("/index/?urls_metadata=" + json.dumps(param))
     assert data_by_url_md.status_code == 200
-    data_list = data_by_url_md.json
+    data_list = data_by_url_md.json()
     assert len(data_list["records"]) == 1
     assert data_list["records"][0]["did"] == rec_1["did"]
     assert data_list["records"][0]["urls_metadata"] == data1["urls_metadata"]
 
 
-def test_get_list_form_param(client, user, combined_default_and_single_table_settings):
+def test_get_list_form_param(
+    app_client, user, combined_default_and_single_table_settings
+):
     """
     bundle1
         +-object1
@@ -132,6 +136,7 @@ def test_get_list_form_param(client, user, combined_default_and_single_table_set
     bundlen
         +-objectn
     """
+    _, client = app_client
     n_records = 6
     for _ in range(n_records):
         did_list, _ = create_index(client, user)
@@ -143,23 +148,24 @@ def test_get_list_form_param(client, user, combined_default_and_single_table_set
 
     res3 = client.get("/index/")
     assert res3.status_code == 200
-    rec3 = res3.json
+    rec3 = res3.json()
     assert len(rec3["records"]) == n_records
 
     res3 = client.get("/index/?form=bundle")
     assert res3.status_code == 200
-    rec3 = res3.json
+    rec3 = res3.json()
     assert len(rec3["records"]) == n_records
 
     res3 = client.get("/index/?form=all")
     assert res3.status_code == 200
-    rec3 = res3.json
+    rec3 = res3.json()
     assert len(rec3["records"]) == 2 * n_records
 
 
 def test_get_list_form_with_params(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     n_records = 6
     for _ in range(n_records):
         did_list, _ = create_index(client, user)
@@ -180,7 +186,7 @@ def test_get_list_form_with_params(
     }
     res_1 = client.post("/index/", json=data1, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
+    rec_1 = res_1.json()
 
     data2 = get_doc()
     data2["metadata"] = {"project_id": "other-project", "state": "abc", "other": "xxx"}
@@ -190,17 +196,17 @@ def test_get_list_form_with_params(
     }
     res_2 = client.post("/index/", json=data2, headers=user)
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
 
     data1_by_md = client.get("/index/?metadata=project_id:bpa-UChicago&param=all")
     assert data1_by_md.status_code == 200
-    data1_list = data1_by_md.json
+    data1_list = data1_by_md.json()
     ids = [record["did"] for record in data1_list["records"] if "did" in record]
     assert rec_1["did"] in ids
 
     data2_by_md = client.get("/index/?form=all&metadata=project_id:other-project")
     assert data2_by_md.status_code == 200
-    data2_list = data2_by_md.json
+    data2_list = data2_by_md.json()
     ids = [record["did"] for record in data2_list["records"] if "did" in record]
     assert rec_2["did"] in ids
 
@@ -208,14 +214,14 @@ def test_get_list_form_with_params(
         "/index/?form=all&hash=md5:8b9942cf415384b27cadf1f4d2d682e5"
     )
     assert data_by_hash.status_code == 200
-    data_list_all = data_by_hash.json
+    data_list_all = data_by_hash.json()
     ids = [record["did"] for record in data_list_all["records"] if "did" in record]
     assert rec_1["did"] in ids
     assert rec_2["did"] in ids
 
-    data_by_ids = client.get("/index/?form=all&ids={}".format(rec_1["did"]))
+    data_by_ids = client.get(f"/index/?form=all&ids={rec_1['did']}")
     assert data_by_ids.status_code == 200
-    data_list_all = data_by_ids.json
+    data_list_all = data_by_ids.json()
 
     ids = [record["did"] for record in data_list_all["records"] if "did" in record]
     assert rec_1["did"] in ids
@@ -223,20 +229,23 @@ def test_get_list_form_with_params(
 
     data_with_limit = client.get("/index/?form=all&limit=1")
     assert data_with_limit.status_code == 200
-    data_list_limit = data_with_limit.json
+    data_list_limit = data_with_limit.json()
     assert len(data_list_limit["records"]) == 2
 
     param = {"bucket": {"state": "error", "other": "xxx"}}
 
     data_by_url_md = client.get("/index/?form=all&urls_metadata=" + json.dumps(param))
     assert data_by_url_md.status_code == 200
-    data_list = data_by_url_md.json
+    data_list = data_by_url_md.json()
     assert len(data_list["records"]) == n_records + 1
     ids = [record["did"] for record in data_list["records"] if "did" in record]
     assert rec_1["did"] in ids
 
 
-def test_index_list_by_size(client, user, combined_default_and_single_table_settings):
+def test_index_list_by_size(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     # post two records of different size
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
@@ -244,17 +253,18 @@ def test_index_list_by_size(client, user, combined_default_and_single_table_sett
     data["size"] = 100
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    res = client.get("/index/?size={}".format(data["size"]))
+    res = client.get(f"/index/?size={data['size']}")
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     # assert only one record returned and returned with proper size
     assert len(rec["records"]) == 1
     assert rec["records"][0]["size"] == 100
 
 
 def test_index_list_by_filename(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     # post three records of different name
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
@@ -267,13 +277,16 @@ def test_index_list_by_filename(
     assert res.status_code == 200
     res = client.get("/index/?file_name=" + data["file_name"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     # assert only one record returned and returned with proper name
     assert len(rec["records"]) == 1
     assert rec["records"][0]["file_name"] == data["file_name"]
 
 
-def test_index_list_by_authz(client, user, combined_default_and_single_table_settings):
+def test_index_list_by_authz(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     # post three records of different authz
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
@@ -286,15 +299,16 @@ def test_index_list_by_authz(client, user, combined_default_and_single_table_set
     assert res.status_code == 200
     res = client.get("/index/?authz=" + data["authz"][0])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     # assert only one record returned and returned with proper authz
     assert len(rec["records"]) == 1
     assert sorted(rec["records"][0]["authz"]) == sorted(data["authz"])
 
 
 def test_index_list_by_multiple_authz(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
 
     data["authz"] = ["abc"]
@@ -308,7 +322,7 @@ def test_index_list_by_multiple_authz(
     # query the record with multiple authz elements
     res = client.get("/index/?authz=" + ",".join(data["authz"]))
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert len(rec["records"]) == 1, "Got records: {}".format(
         json.dumps(rec["records"], indent=2)
     )
@@ -316,8 +330,9 @@ def test_index_list_by_multiple_authz(
 
 
 def test_index_list_by_multiple_acl(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
 
     data["acl"] = ["abc"]
@@ -331,14 +346,17 @@ def test_index_list_by_multiple_acl(
     # query the record with multiple ACL elements
     res = client.get("/index/?acl=" + ",".join(data["acl"]))
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert len(rec["records"]) == 1, "Got records: {}".format(
         json.dumps(rec["records"], indent=2)
     )
     assert sorted(rec["records"][0]["acl"]) == sorted(data["acl"])
 
 
-def test_index_list_by_urls(client, user, combined_default_and_single_table_settings):
+def test_index_list_by_urls(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     data = get_doc()
 
     data["urls"] = ["s3://bucket1"]
@@ -356,7 +374,7 @@ def test_index_list_by_urls(client, user, combined_default_and_single_table_sett
     # query the record with a single URL
     res = client.get("/index/?url=s3://bucket2")
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert len(rec["records"]) == 2, "Got records: {}".format(
         json.dumps(rec["records"], indent=2)
     )
@@ -364,7 +382,7 @@ def test_index_list_by_urls(client, user, combined_default_and_single_table_sett
     # query the record with multiple URLs
     res = client.get("/index/?url=s3://bucket2&url=s3://bucket3")
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert len(rec["records"]) == 1, "Got records: {}".format(
         json.dumps(rec["records"], indent=2)
     )
@@ -372,8 +390,9 @@ def test_index_list_by_urls(client, user, combined_default_and_single_table_sett
 
 
 def test_index_list_by_version(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     # post three records of different version
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
@@ -386,30 +405,31 @@ def test_index_list_by_version(
     assert res.status_code == 200
     res = client.get("/index/?version=" + data["version"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     # assert only one record returned and returned with proper version
     assert len(rec["records"]) == 1
     assert rec["records"][0]["version"] == data["version"]
 
 
 def test_index_list_with_params_negate(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
+    rec_1 = res_1.json()
 
     data["metadata"] = {"testkey": "test", "project_id": "negate-project"}
     res_2 = client.post("/index/", json=data, headers=user)
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
 
     data["urls"] = ["s3://endpointurl/bucket_2/key_2", "s3://anotherurl/bucket_2/key_2"]
     data["urls_metadata"] = {"s3://endpointurl/bucket_2/key_2": {"state": "error"}}
     res_3 = client.post("/index/", json=data, headers=user)
     assert res_3.status_code == 200
-    rec_3 = res_3.json
+    rec_3 = res_3.json()
 
     data["urls"] = ["s3://endpointurl/bucket_2/key_2"]
     data["urls_metadata"] = {
@@ -417,25 +437,25 @@ def test_index_list_with_params_negate(
     }
     res_4 = client.post("/index/", json=data, headers=user)
     assert res_4.status_code == 200
-    rec_4 = res_4.json
+    rec_4 = res_4.json()
 
     data["urls"] = ["s3://anotherurl/bucket/key"]
     data["urls_metadata"] = {"s3://anotherurl/bucket/key": {"state": "error"}}
     res_5 = client.post("/index/", json=data, headers=user)
     assert res_5.status_code == 200
-    rec_5 = res_5.json
+    rec_5 = res_5.json()
 
     negate_params = {"metadata": {"testkey": ""}}
     data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
     assert data_neg_param.status_code == 200
-    data_list = data_neg_param.json
+    data_list = data_neg_param.json()
     assert len(data_list["records"]) == 1
     assert data_list["records"][0]["did"] == rec_1["did"]
 
     negate_params = {"metadata": {"project_id": "bpa-UChicago"}}
     data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
     assert data_neg_param.status_code == 200
-    data_list = data_neg_param.json
+    data_list = data_neg_param.json()
     ids = {record["did"] for record in data_list["records"]}
     assert len(ids) == 4
     assert rec_1["did"] not in ids
@@ -448,7 +468,7 @@ def test_index_list_with_params_negate(
     negate_params = {"urls": ["s3://endpointurl/bucket_2/key_2"]}
     data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
     assert data_neg_param.status_code == 200
-    data_list = data_neg_param.json
+    data_list = data_neg_param.json()
     ids = {record["did"] for record in data_list["records"]}
     assert len(ids) == 3
     assert rec_1["did"] in ids
@@ -461,14 +481,14 @@ def test_index_list_with_params_negate(
     negate_params = {"urls_metadata": {"s3://endpointurl/": {}}}
     data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
     assert data_neg_param.status_code == 200
-    data_list = data_neg_param.json
+    data_list = data_neg_param.json()
     assert len(data_list["records"]) == 1
     assert data_list["records"][0]["did"] == rec_5["did"]
 
     negate_params = {"urls_metadata": {"s3://endpointurl/": {}, "s3://anotherurl/": {}}}
     data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
     assert data_neg_param.status_code == 200
-    data_list = data_neg_param.json
+    data_list = data_neg_param.json()
     assert len(data_list["records"]) == 0
 
     # negate url_metadata key
@@ -477,7 +497,7 @@ def test_index_list_with_params_negate(
     }
     data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
     assert data_neg_param.status_code == 200
-    data_list = data_neg_param.json
+    data_list = data_neg_param.json()
     assert len(data_list["records"]) == 1
     assert data_list["records"][0]["did"] == rec_4["did"]
 
@@ -485,7 +505,7 @@ def test_index_list_with_params_negate(
     negate_params = {"urls_metadata": {"s3://endpointurl/": {"state": "uploaded"}}}
     data_neg_param = client.get("/index/?negate_params=" + json.dumps(negate_params))
     assert data_neg_param.status_code == 200
-    data_list = data_neg_param.json
+    data_list = data_neg_param.json()
     ids = {record["did"] for record in data_list["records"]}
     assert len(ids) == 3
     assert rec_1["did"] not in ids
@@ -495,7 +515,10 @@ def test_index_list_with_params_negate(
     assert rec_5["did"] in ids
 
 
-def test_index_list_invalid_param(client, combined_default_and_single_table_settings):
+def test_index_list_invalid_param(
+    app_client, combined_default_and_single_table_settings
+):
+    _, client = app_client
     # test 400 when limit > 1024
     res = client.get("/index/?limit=1025")
     assert res.status_code == 400
@@ -518,8 +541,9 @@ def test_index_list_invalid_param(client, combined_default_and_single_table_sett
 
 
 def test_negate_filter_file_name(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     # post two records of different file name
     data1 = get_doc()
     data1["file_name"] = "test_file_name_1"
@@ -538,13 +562,16 @@ def test_negate_filter_file_name(
     negate_param = {"file_name": data2["file_name"]}
     res = client.get("/index/?negate_params=" + json.dumps(negate_param))
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     # assert record returned with proper non-negated file name
     assert len(rec["records"]) == 1
     assert rec["records"][0]["file_name"] == data1["file_name"]
 
 
-def test_negate_filter_acl(client, user, combined_default_and_single_table_settings):
+def test_negate_filter_acl(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     # post two records of different acl
     data1 = get_doc()
     data1["acl"] = ["read"]
@@ -563,13 +590,16 @@ def test_negate_filter_acl(client, user, combined_default_and_single_table_setti
     negate_param = {"acl": data2["acl"]}
     res = client.get("/index/?negate_params=" + json.dumps(negate_param))
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     # assert record returned with proper non-negated acl
     assert len(rec["records"]) == 1
     assert sorted(rec["records"][0]["acl"]) == sorted(data1["acl"])
 
 
-def test_negate_filter_authz(client, user, combined_default_and_single_table_settings):
+def test_negate_filter_authz(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     # post two records of different authz
     data1 = get_doc()
     data1["authz"] = ["admin"]
@@ -588,15 +618,16 @@ def test_negate_filter_authz(client, user, combined_default_and_single_table_set
     negate_param = {"authz": data2["authz"]}
     res = client.get("/index/?negate_params=" + json.dumps(negate_param))
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     # assert record returned with proper non-negated authz
     assert len(rec["records"]) == 1
     assert sorted(rec["records"][0]["authz"]) == sorted(data1["authz"])
 
 
 def test_negate_filter_version(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     # post two records of different version
     data1 = get_doc()
     data1["version"] = "3"
@@ -615,15 +646,16 @@ def test_negate_filter_version(
     negate_param = {"version": data2["version"]}
     res = client.get("/index/?negate_params=" + json.dumps(negate_param))
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     # assert record returned with proper non-negated version
     assert len(rec["records"]) == 1
     assert rec["records"][0]["version"] == data1["version"]
 
 
 def test_list_entries_with_uploader(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test that return a list of record given uploader
     """
@@ -636,17 +668,17 @@ def test_list_entries_with_uploader(
     data["uploader"] = "uploader_123"
     res_2 = client.post("/index/", json=data, headers=user)
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
 
     data = get_doc()
     data["uploader"] = "uploader_123"
     res_3 = client.post("/index/", json=data, headers=user)
     assert res_3.status_code == 200
-    rec_3 = res_3.json
+    rec_3 = res_3.json()
 
     data_grab = client.get("/index/?uploader=uploader_123")
     assert data_grab.status_code == 200
-    data_list = data_grab.json
+    data_list = data_grab.json()
     assert len(data_list["records"]) == 2
     ids = {record["did"] for record in data_list["records"]}
     assert len(ids) == 2
@@ -657,8 +689,9 @@ def test_list_entries_with_uploader(
 
 
 def test_list_entries_with_uploader_wrong_uploader(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test that returns no record due to wrong uploader id
     """
@@ -678,27 +711,30 @@ def test_list_entries_with_uploader_wrong_uploader(
     assert res.status_code == 200
 
     data_grab = client.get("/index/?uploader=wrong_uploader")
-    data_list = data_grab.json
+    data_list = data_grab.json()
     assert len(data_list["records"]) == 0
 
 
-def test_create_blank_record(client, user, combined_default_and_single_table_settings):
+def test_create_blank_record(
+    app_client, user, combined_default_and_single_table_settings
+):
     """
     Test that new blank records only contain the uploader
     and optionally file_name fields: test without file name
     """
+    _, client = app_client
 
     doc = {"uploader": "uploader_123"}
     res = client.post("/index/blank/", json=doc, headers=user)
     assert res.status_code == 201
-    rec = res.json
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
     assert rec["baseid"]
 
     res = client.get("/index/?uploader=uploader_123")
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["records"][0]["uploader"] == "uploader_123"
     assert not rec["records"][0]["file_name"]
 
@@ -707,8 +743,9 @@ def test_create_blank_record(client, user, combined_default_and_single_table_set
 
 
 def test_create_blank_record_with_file_name(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test that new blank records only contain the uploader
     and optionally file_name fields: test with file name
@@ -717,14 +754,14 @@ def test_create_blank_record_with_file_name(
     doc = {"uploader": "uploader_321", "file_name": "myfile.txt"}
     res = client.post("/index/blank/", json=doc, headers=user)
     assert res.status_code == 201
-    rec = res.json
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
     assert rec["baseid"]
 
     res = client.get("/index/?uploader=uploader_321")
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["records"][0]["uploader"] == "uploader_321"
     assert rec["records"][0]["file_name"] == "myfile.txt"
 
@@ -733,8 +770,9 @@ def test_create_blank_record_with_file_name(
 
 
 def test_create_blank_record_with_authz(
-    client, use_mock_authz, combined_default_and_single_table_settings
+    app_client, use_mock_authz, combined_default_and_single_table_settings
 ):
+    app, client = app_client
     """
     Test that a new blank record can be created with a specified
     authz when the user has the expected access
@@ -746,15 +784,15 @@ def test_create_blank_record_with_authz(
     use_mock_authz([("create", old_authz)])
     doc = {"uploader": "uploader1", "authz": [old_authz]}
     res = client.post("/index/blank/", json=doc)
-    assert res.status_code == 201, res.json
-    rec = res.json
+    assert res.status_code == 201, res.json()
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
     assert rec["baseid"]
 
     res = client.get("/index/" + rec["did"])
-    assert res.status_code == 200, res.json
-    rec = res.json
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["uploader"] == "uploader1"
     assert rec["authz"] == [old_authz]  # authz as provided
     assert_blank(rec, with_authz=True)  # test that record is blank
@@ -764,15 +802,15 @@ def test_create_blank_record_with_authz(
     use_mock_authz([("file_upload", "/data_file")])
     doc = {"uploader": "uploader1", "authz": [new_authz]}
     res = client.post("/index/blank/", json=doc)
-    assert res.status_code == 201, res.json
-    rec = res.json
+    assert res.status_code == 201, res.json()
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
     assert rec["baseid"]
 
     res = client.get("/index/" + rec["did"])
-    assert res.status_code == 200, res.json
-    rec = res.json
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["uploader"] == "uploader1"
     assert rec["authz"] == [new_authz]  # authz as provided
     assert_blank(rec, with_authz=True)  # test that record is blank
@@ -782,10 +820,13 @@ def test_create_blank_record_with_authz(
     use_mock_authz([])
     doc = {"uploader": "uploader1", "authz": [new_authz]}
     res = client.post("/index/blank/", json=doc)
-    assert res.status_code == 403, res.json
+    assert res.status_code == 403, res.json()
 
 
-def test_create_blank_version(client, user, combined_default_and_single_table_settings):
+def test_create_blank_version(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     """
     Test that we can create a new, blank version of a record
     with POST /index/blank/{GUID}. The new blank version should
@@ -803,21 +844,19 @@ def test_create_blank_version(client, user, combined_default_and_single_table_se
     doc["authz"] = mock_authz
     doc["baseid"] = mock_baseid
     res = client.post("/index/", json=doc, headers=user)
-    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
-        res.json
-    )
-    original_doc_guid = res.json["did"]
+    assert res.status_code == 200, f"Failed to add original doc to index: {res.json()}"
+    original_doc_guid = res.json()["did"]
 
     def assert_acl_authz_and_baseid(acl, authz, baseid, guid):
         """
         Helper to GET record with specified guid and assert acl, authz, and
         baseid.
         """
-        res = client.get("/index/{}".format(guid))
+        res = client.get(f"/index/{guid}")
         assert (
             res.status_code == 200
-        ), "Failed to find original doc in index: {}".format(res.json)
-        doc = res.json
+        ), f"Failed to find original doc in index: {res.json()}"
+        doc = res.json()
         assert doc["did"] == guid
         assert doc["rev"]
         assert sorted(doc["acl"]) == sorted(acl)
@@ -829,17 +868,15 @@ def test_create_blank_version(client, user, combined_default_and_single_table_se
 
     # Make a new blank version of the original record
     doc = {"uploader": "uploader_123", "file_name": "test_file"}
-    url = "/index/blank/{}".format(original_doc_guid)
+    url = f"/index/blank/{original_doc_guid}"
     res = client.post(url, json=doc, headers=user)
-    assert res.status_code == 201, "Failed to make new blank version: {}".format(
-        res.json
-    )
+    assert res.status_code == 201, f"Failed to make new blank version: {res.json()}"
 
     #  Confirm that there were no unexpected side effects or changes to the original record
     assert_acl_authz_and_baseid(mock_acl, mock_authz, mock_baseid, original_doc_guid)
 
     # Confirm that the new blank record is in the index
-    new_blank_doc_guid = res.json["did"]
+    new_blank_doc_guid = res.json()["did"]
     new_blank_doc = assert_acl_authz_and_baseid(
         mock_acl, mock_authz, mock_baseid, new_blank_doc_guid
     )
@@ -859,8 +896,9 @@ def test_create_blank_version(client, user, combined_default_and_single_table_se
 
 
 def test_create_blank_version_with_authz(
-    client, user, use_mock_authz, combined_default_and_single_table_settings
+    app_client, user, use_mock_authz, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test that a new version of a blank record can be created with a
     different authz when the user has the expected access
@@ -872,31 +910,31 @@ def test_create_blank_version_with_authz(
     doc = get_doc()
     doc["authz"] = [old_authz]
     res = client.post("/index/", json=doc, headers=user)
-    assert res.status_code == 200, res.json
-    original_guid = res.json["did"]
-    res = client.get("/index/{}".format(original_guid))
-    assert res.status_code == 200, res.json
-    baseid = res.json["baseid"]
-    assert res.json["authz"] == [old_authz]
+    assert res.status_code == 200, res.json()
+    original_guid = res.json()["did"]
+    res = client.get(f"/index/{original_guid}")
+    assert res.status_code == 200, res.json()
+    baseid = res.json()["baseid"]
+    assert res.json()["authz"] == [old_authz]
 
     # - user has create access on the new resource but doesn't
     #   have update access on the old resource
     # should fail to make a new blank version of the original record
     use_mock_authz([("create", new_authz)])
     payload = {"uploader": "uploader1", "authz": [new_authz]}
-    url = "/index/blank/{}".format(original_guid)
+    url = f"/index/blank/{original_guid}"
     res = client.post(url, json=payload)
-    assert res.status_code == 403, res.json
+    assert res.status_code == 403, res.json()
 
     # - user has the required "create" and "update" access
     # make a new blank version of the original record
     use_mock_authz([("create", new_authz), ("update", old_authz)])
-    url = "/index/blank/{}".format(original_guid)
+    url = f"/index/blank/{original_guid}"
     res = client.post(url, json=payload)
-    assert res.status_code == 201, res.json
-    res = client.get("/index/{}".format(res.json["did"]))
-    assert res.status_code == 200, res.json
-    new_version = res.json
+    assert res.status_code == 201, res.json()
+    res = client.get(f"/index/{res.json()['did']}")
+    assert res.status_code == 200, res.json()
+    new_version = res.json()
 
     # check non-blank fields
     assert new_version["did"]
@@ -919,8 +957,9 @@ def test_create_blank_version_with_authz(
 
 
 def test_create_blank_version_specify_did(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test that we can specify the new GUID of a new, blank version of a record
     with POST /index/blank/{GUID}.
@@ -936,15 +975,11 @@ def test_create_blank_version_specify_did(
     doc["authz"] = mock_authz
     doc["baseid"] = mock_baseid
     res = client.post("/index/", json=doc, headers=user)
-    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
-        res.json
-    )
-    original_doc_guid = res.json["did"]
-    res = client.get("/index/{}".format(original_doc_guid))
-    assert res.status_code == 200, "Failed to find original doc in index: {}".format(
-        res.json
-    )
-    original_doc = res.json
+    assert res.status_code == 200, f"Failed to add original doc to index: {res.json()}"
+    original_doc_guid = res.json()["did"]
+    res = client.get(f"/index/{original_doc_guid}")
+    assert res.status_code == 200, f"Failed to find original doc in index: {res.json()}"
+    original_doc = res.json()
     assert sorted(original_doc["acl"]) == sorted(mock_acl)
     assert sorted(original_doc["authz"]) == sorted(mock_authz)
     assert original_doc["baseid"] == mock_baseid
@@ -952,17 +987,14 @@ def test_create_blank_version_specify_did(
     # Make a new blank version of the original record, specifying the guid
     specified_guid = "11111111-1111-1111-1111-111111111111"
     doc = {"uploader": "uploader_123", "file_name": "test_file", "did": specified_guid}
-    url = "/index/blank/{}".format(original_doc["did"])
+    url = f"/index/blank/{original_doc['did']}"
     res = client.post(url, json=doc, headers=user)
-    assert res.status_code == 201, "Failed to make new blank version: {}".format(
-        res.json
-    )
-    blank_doc_guid = res.json["did"]
+    assert res.status_code == 201, f"Failed to make new blank version: {res.json()}"
+    blank_doc_guid = res.json()["did"]
 
     # Confirm that the new blank record is in the index
-    res = client.get("/index/{}".format(blank_doc_guid))
-    assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
-    blank_doc = res.json
+    res = client.get(f"/index/{blank_doc_guid}")
+    assert res.status_code == 200, f"Failed to find blank record: {res.json()}"
     # -----------
 
     # Expect the new version's guid to be the guid we specified
@@ -970,8 +1002,9 @@ def test_create_blank_version_specify_did(
 
 
 def test_create_blank_version_specify_guid_already_exists(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test that if we try to specify the GUID of a new blank version, but the
     new GUID we specified already exists in the index, the operation fails with 409.
@@ -987,52 +1020,47 @@ def test_create_blank_version_specify_guid_already_exists(
     doc["authz"] = mock_authz
     doc["baseid"] = mock_baseid
     res = client.post("/index/", json=doc, headers=user)
-    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
-        res.json
-    )
-    original_doc_guid = res.json["did"]
-    res = client.get("/index/{}".format(original_doc_guid))
-    assert res.status_code == 200, "Failed to find original doc in index: {}".format(
-        res.json
-    )
-    original_doc = res.json
+    assert res.status_code == 200, f"Failed to add original doc to index: {res.json()}"
+    original_doc_guid = res.json()["did"]
+    res = client.get(f"/index/{original_doc_guid}")
+    assert res.status_code == 200, f"Failed to find original doc in index: {res.json()}"
+    original_doc = res.json()
     assert sorted(original_doc["acl"]) == sorted(mock_acl)
     assert sorted(original_doc["authz"]) == sorted(mock_authz)
     assert original_doc["baseid"] == mock_baseid
 
     # Add another, unrelated record to the index
     res = client.post("/index/", json=get_doc(), headers=user)
-    assert res.status_code == 200, "Failed to add original doc to index: {}".format(
-        res.json
-    )
-    preexisting_guid = res.json["did"]
+    assert res.status_code == 200, f"Failed to add original doc to index: {res.json()}"
+    preexisting_guid = res.json()["did"]
     # -----------
 
     # Attempt to create new blank version of doc, specifying the new guid to be
     # a guid that already exists in the index. Expect the operation to fail with 409.
     specified_guid = preexisting_guid
     doc = {"uploader": "uploader_123", "file_name": "test_file", "did": specified_guid}
-    url = "/index/blank/{}".format(original_doc["did"])
+    url = f"/index/blank/{original_doc['did']}"
     res = client.post(url, json=doc, headers=user)
     assert (
         res.status_code == 409
-    ), "Request should have failed with 409 user error: {}".format(res.json)
+    ), f"Request should have failed with 409 user error: {res.json()}"
 
     # Attempt to create new blank version of doc, specifying the new guid to be
     # the guid of the original record we're making a new blank version of.
     # Expect the operation to fail with 409.
     specified_guid = original_doc_guid
     doc = {"uploader": "uploader_123", "file_name": "test_file", "did": specified_guid}
-    url = "/index/blank/{}".format(original_doc["did"])
+    url = f"/index/blank/{original_doc['did']}"
     res = client.post(url, json=doc, headers=user)
     assert (
         res.status_code == 409
-    ), "Request should have failed with 409 user error: {}".format(res.json)
+    ), f"Request should have failed with 409 user error: {res.json()}"
 
 
 def test_create_blank_version_no_existing_record(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test that attempts to create a blank version of a nonexisting GUID
     should fail with 404.
@@ -1041,16 +1069,17 @@ def test_create_blank_version_no_existing_record(
 
     # Make a new blank version of the original record
     doc = {"uploader": "uploader_123", "file_name": "test_file"}
-    url = "/index/blank/{}".format(nonexistant_did)
+    url = f"/index/blank/{nonexistant_did}"
     res = client.post(url, json=doc, headers=user)
     assert (
         res.status_code == 404
-    ), "Expected to fail to create new blank version, instead got {}".format(res.json)
+    ), f"Expected to fail to create new blank version, instead got {res.json()}"
 
 
 def test_create_blank_version_blank_record(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test that attempts to create a blank version of a blank record
     should succeed
@@ -1060,23 +1089,23 @@ def test_create_blank_version_blank_record(
     doc = {"uploader": "uploader_123"}
     res = client.post("/index/blank/", json=doc, headers=user)
     assert res.status_code == 201
-    original_doc = res.json
+    original_doc = res.json()
     assert original_doc["did"]
     assert original_doc["rev"]
 
     # Make a new blank version of the original record
     doc = {"uploader": "uploader_123"}
-    url = "/index/blank/{}".format(original_doc["did"])
+    url = f"/index/blank/{original_doc['did']}"
     res = client.post(url, json=doc, headers=user)
     assert (
         res.status_code == 201
-    ), "Failed to create blank version of blank record, instead got {}".format(res.json)
-    blank_doc_guid = res.json["did"]
+    ), f"Failed to create blank version of blank record, instead got {res.json()}"
+    blank_doc_guid = res.json()["did"]
 
     # Confirm that the new blank record is in the index
-    res = client.get("/index/{}".format(blank_doc_guid))
-    assert res.status_code == 200, "Failed to find blank record: {}".format(res.json)
-    blank_doc = res.json
+    res = client.get(f"/index/{blank_doc_guid}")
+    assert res.status_code == 200, f"Failed to find blank record: {res.json()}"
+    blank_doc = res.json()
     # -----------
 
     # The new blank record should have a GUID and a rev
@@ -1104,8 +1133,9 @@ def test_create_blank_version_blank_record(
 
 
 def test_fill_size_n_hash_for_blank_record(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test that can fill size and hashes for empty record
     """
@@ -1113,31 +1143,30 @@ def test_fill_size_n_hash_for_blank_record(
 
     res = client.post("/index/blank/", json=doc, headers=user)
     assert res.status_code == 201
-    rec = res.json
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
 
     did, rev = rec["did"], rec["rev"]
     updated = {"size": 10, "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"}}
 
-    res = client.put(
-        "/index/blank/{}?rev={}".format(did, rev), headers=user, json=updated
-    )
+    res = client.put(f"/index/blank/{did}?rev={rev}", headers=user, json=updated)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["did"] == did
     assert rec["rev"] != rev
 
     res = client.get("/index/" + did)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["size"] == 10
     assert rec["hashes"]["md5"] == "8b9942cf415384b27cadf1f4d2d981f5"
 
 
 def test_update_blank_record_with_authz(
-    client, user, use_mock_authz, combined_default_and_single_table_settings
+    app_client, user, use_mock_authz, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test that a blank record (WITHOUT AUTHZ) can be updated
     with an authz when the user has the expected access
@@ -1148,8 +1177,8 @@ def test_update_blank_record_with_authz(
     # create a blank record
     doc = {"uploader": "uploader_1"}
     res = client.post("/index/blank/", json=doc, headers=user)
-    assert res.status_code == 201, res.json
-    rec = res.json
+    assert res.status_code == 201, res.json()
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
     did, rev = rec["did"], rec["rev"]
@@ -1160,22 +1189,22 @@ def test_update_blank_record_with_authz(
     to_update = {
         "authz": [new_authz],
     }
-    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
-    assert res.status_code == 403, res.json
+    res = client.put(f"/index/blank/{did}?rev={rev}", json=to_update)
+    assert res.status_code == 403, res.json()
 
     # - user has update access on the new resource
     # update the blank record
     use_mock_authz([("update", new_authz)])
-    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
-    assert res.status_code == 200, res.json
-    rec = res.json
+    res = client.put(f"/index/blank/{did}?rev={rev}", json=to_update)
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["did"] == did
     assert rec["rev"] != rev
     rev = rec["rev"]
 
     res = client.get("/index/" + did)
-    assert res.status_code == 200, res.json
-    rec = res.json
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["authz"] == [new_authz]  # authz as provided
 
     # - user doesn't have update access on the resource:
@@ -1185,21 +1214,22 @@ def test_update_blank_record_with_authz(
     to_update = {
         "authz": [new_authz2],
     }
-    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
-    assert res.status_code == 200, res.json
-    rec = res.json
+    res = client.put(f"/index/blank/{did}?rev={rev}", json=to_update)
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["did"] == did
     assert rec["rev"] != rev
 
     res = client.get("/index/" + did)
-    assert res.status_code == 200, res.json
-    rec = res.json
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["authz"] == [new_authz2]  # authz as provided
 
 
 def test_update_blank_record_with_authz_new(
-    client, user, use_mock_authz, combined_default_and_single_table_settings
+    app_client, user, use_mock_authz, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test that a blank record (WITH AUTHZ) can be updated
     with a different authz when the user has the expected access
@@ -1211,13 +1241,13 @@ def test_update_blank_record_with_authz_new(
     # create a blank record
     doc = {"uploader": "uploader_1", "authz": [old_authz]}
     res = client.post("/index/blank/", json=doc, headers=user)
-    assert res.status_code == 201, res.json
-    rec = res.json
+    assert res.status_code == 201, res.json()
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
     did, rev = rec["did"], rec["rev"]
-    res = client.get("/index/{}".format(did))
-    assert res.json["authz"] == [old_authz]  # authz as provided
+    res = client.get(f"/index/{did}")
+    assert res.json()["authz"] == [old_authz]  # authz as provided
 
     # - user has update access on the new resource but doesn't
     #   have update access on the old resource
@@ -1226,22 +1256,22 @@ def test_update_blank_record_with_authz_new(
     to_update = {
         "authz": [new_authz],
     }
-    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
-    assert res.status_code == 403, res.json
+    res = client.put(f"/index/blank/{did}?rev={rev}", json=to_update)
+    assert res.status_code == 403, res.json()
 
     # - user has the required "update" and "update" access
     # update the blank record
     use_mock_authz([("update", new_authz), ("update", old_authz)])
-    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
-    assert res.status_code == 200, res.json
-    rec = res.json
+    res = client.put(f"/index/blank/{did}?rev={rev}", json=to_update)
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["did"] == did
     assert rec["rev"] != rev
     rev = rec["rev"]
 
     res = client.get("/index/" + did)
-    assert res.status_code == 200, res.json
-    rec = res.json
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["authz"] == [new_authz]  # authz as provided
 
     # - user doesn't have update access on the resources:
@@ -1251,21 +1281,22 @@ def test_update_blank_record_with_authz_new(
     to_update = {
         "authz": [new_authz2],
     }
-    res = client.put("/index/blank/{}?rev={}".format(did, rev), json=to_update)
-    assert res.status_code == 200, res.json
-    rec = res.json
+    res = client.put(f"/index/blank/{did}?rev={rev}", json=to_update)
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["did"] == did
     assert rec["rev"] != rev
 
     res = client.get("/index/" + did)
-    assert res.status_code == 200, res.json
-    rec = res.json
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["authz"] == [new_authz2]  # authz as provided
 
 
 def test_get_empty_acl_authz_record(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test that can get a list of empty acl/authz given uploader
     """
@@ -1275,21 +1306,21 @@ def test_get_empty_acl_authz_record(
     doc = {"uploader": "uploader_123"}
     res_2 = client.post("/index/blank/", json=doc, headers=user)
     assert res_2.status_code == 201
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
 
     doc = {"uploader": "uploader_123"}
     res_3 = client.post("/index/blank/", json=doc, headers=user)
     assert res_3.status_code == 201
-    rec_3 = res_3.json
+    rec_3 = res_3.json()
 
     data_grab = client.get("/index/")
     assert data_grab.status_code == 200
-    data_list = data_grab.json
+    data_list = data_grab.json()
     assert len(data_list["records"]) == 3
 
     data_by_acl_authz = client.get("/index/?uploader=uploader_123&acl=null&authz=null")
     assert data_by_acl_authz.status_code == 200
-    data_list = data_by_acl_authz.json
+    data_list = data_by_acl_authz.json()
 
     assert len(data_list["records"]) == 2
     ids = {record["did"] for record in data_list["records"]}
@@ -1303,8 +1334,9 @@ def test_get_empty_acl_authz_record(
 
 
 def test_get_empty_acl_authz_record_after_fill_size_n_hash(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     """
     Test create blank record -> fill hash and size -> get record with empty or none
     acl/authz
@@ -1313,23 +1345,21 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(
     doc = {"uploader": "uploader_123"}
     res_1 = client.post("/index/blank/", json=doc, headers=user)
     assert res_1.status_code == 201
-    rec_1 = res_1.json
+    rec_1 = res_1.json()
     updated = {"size": 10, "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"}}
     did_1 = rec_1["did"]
     rev_1 = rec_1["rev"]
-    res_2 = client.put(
-        "/index/blank/{}?rev={}".format(did_1, rev_1), headers=user, json=updated
-    )
+    res_2 = client.put(f"/index/blank/{did_1}?rev={rev_1}", headers=user, json=updated)
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
     rev_2 = rec_2["rev"]
     body = {"acl": ["read"], "authz": ["read"]}
-    res_1 = client.put("/index/{}?rev={}".format(did_1, rev_2), headers=user, json=body)
+    res_1 = client.put(f"/index/{did_1}?rev={rev_2}", headers=user, json=body)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
+    rec_1 = res_1.json()
     res_1 = client.get("/index/" + rec_1["did"])
     assert res_1.status_code == 200
-    rec_1 = res_1.json
+    rec_1 = res_1.json()
     assert rec_1["acl"] == ["read"]
     assert rec_1["authz"] == ["read"]
     assert rec_1["did"] == did_1
@@ -1338,7 +1368,7 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(
     doc = {"uploader": "uploader_123"}
     res_2 = client.post("/index/blank/", json=doc, headers=user)
     assert res_2.status_code == 201
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
     did_2 = rec_2["did"]
     updated = {
         "size": 4,
@@ -1346,7 +1376,7 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(
         "urls": ["s3://example/1"],
     }
     res = client.put(
-        "/index/blank/{}?rev={}".format(rec_2["did"], rec_2["rev"]),
+        f"/index/blank/{rec_2['did']}?rev={rec_2['rev']}",
         json=updated,
         headers=user,
     )
@@ -1356,7 +1386,7 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(
     doc = {"uploader": "uploader_123"}
     res_3 = client.post("/index/blank/", json=doc, headers=user)
     assert res_3.status_code == 201
-    rec_3 = res_3.json
+    rec_3 = res_3.json()
     did_3 = rec_3["did"]
     updated = {
         "size": 4,
@@ -1364,7 +1394,7 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(
         "urls": ["s3://example/2"],
     }
     res = client.put(
-        "/index/blank/{}?rev={}".format(rec_3["did"], rec_3["rev"]),
+        f"/index/blank/{rec_3['did']}?rev={rec_3['rev']}",
         json=updated,
         headers=user,
     )
@@ -1372,23 +1402,23 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(
 
     res = client.get("/index/?uploader=uploader_123")
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert len(rec["records"]) == 3
 
     res = client.get("/index/?uploader=uploader_123&acl=read")
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert len(rec["records"]) == 1
     assert rec["records"][0]["did"] == rec_1["did"]
 
     res = client.get("/index/?uploader=uploader_123&acl=write")
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert len(rec["records"]) == 0
 
     res = client.get("/index/?uploader=uploader_123&acl=null")
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert len(rec["records"]) == 2
 
     ids = {record["did"] for record in rec["records"]}
@@ -1398,32 +1428,34 @@ def test_get_empty_acl_authz_record_after_fill_size_n_hash(
 
 
 def test_cant_update_inexistent_blank_record(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     # test that non-existent did throws 400 error
     data = {"size": 123, "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"}}
     fake_did = "testprefix/455ffb35-1b0e-49bd-a4ab-3afe9f3aece9"
     fake_rev = "8d19b5c10"
-    res = client.put(
-        "/index/blank/{}?rev={}".format(fake_did, fake_rev), json=data, headers=user
-    )
+    res = client.put(f"/index/blank/{fake_did}?rev={fake_rev}", json=data, headers=user)
     assert res.status_code == 404
 
 
-def test_update_urls_metadata(client, user, combined_default_and_single_table_settings):
+def test_update_urls_metadata(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     data = get_doc(has_urls_metadata=True)
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
 
     res_2 = client.get("/index/" + rec["did"])
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
     assert rec_2["urls_metadata"] == data["urls_metadata"]
 
     updated = {"urls_metadata": {data["urls"][0]: {"test": "b"}}}
     res = client.put(
-        "/index/{}?rev={}".format(rec_2["did"], rec_2["rev"]),
+        f"/index/{rec_2['did']}?rev={rec_2['rev']}",
         json=updated,
         headers=user,
     )
@@ -1431,7 +1463,7 @@ def test_update_urls_metadata(client, user, combined_default_and_single_table_se
 
     res_3 = client.get("/index/" + rec["did"])
     assert res_3.status_code == 200
-    rec_3 = res_3.json
+    rec_3 = res_3.json()
     assert rec_3["urls_metadata"] == updated["urls_metadata"]
 
 
@@ -1481,7 +1513,7 @@ def test_update_urls_metadata(client, user, combined_default_and_single_table_se
     ],
 )
 def test_urls_metadata_partial_match(
-    client,
+    app_client,
     doc_urls,
     urls_meta,
     params,
@@ -1489,6 +1521,7 @@ def test_urls_metadata_partial_match(
     user,
     combined_default_and_single_table_settings,
 ):
+    _, client = app_client
     url_doc_mapping = {}
     for url_group in doc_urls:
         data = get_doc(has_urls_metadata=True)
@@ -1499,13 +1532,13 @@ def test_urls_metadata_partial_match(
 
         res = client.post("/index/", json=data, headers=user)
         assert res.status_code == 200
-        rec = res.json
+        rec = res.json()
         for url in url_group:
             url_doc_mapping[url] = rec
 
     res = client.get("/index/?urls_metadata=" + json.dumps(params))
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
 
     ids = {r["did"] for r in rec["records"]}
 
@@ -1514,60 +1547,64 @@ def test_urls_metadata_partial_match(
     assert ids == {url_doc_mapping[url]["did"] for url in expected}
 
 
-def test_get_urls(client, user, combined_default_and_single_table_settings):
+def test_get_urls(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     data = get_doc(has_urls_metadata=True)
     response = client.post("/index/", json=data, headers=user)
     assert response.status_code == 200
-    record = response.json
+    record = response.json()
 
     response = client.get("/urls/?ids=" + record["did"])
     assert response.status_code == 200
-    record = response.json
+    record = response.json()
     url = data["urls"][0]
     assert record["urls"][0]["url"] == url
     assert record["urls"][0]["metadata"] == data["urls_metadata"][url]
 
-    response = client.get("/urls/?size={}".format(data["size"]))
+    response = client.get(f"/urls/?size={data['size']}")
     assert response.status_code == 200
-    record = response.json
+    record = response.json()
     url = data["urls"][0]
     assert record["urls"][0]["url"] == url
     assert record["urls"][0]["metadata"] == data["urls_metadata"][url]
 
 
-def test_get_urls_size_0(client, user, combined_default_and_single_table_settings):
+def test_get_urls_size_0(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     data = get_doc(has_urls_metadata=True)
     data["size"] = 0
     response = client.post("/index/", json=data, headers=user)
     assert response.status_code == 200
-    record = response.json
+    record = response.json()
 
-    response = client.get("/urls/?size={}".format(data["size"]))
+    response = client.get(f"/urls/?size={data['size']}")
     assert response.status_code == 200
-    record = response.json
+    record = response.json()
     url = data["urls"][0]
     assert record["urls"][0]["url"] == url
     assert record["urls"][0]["metadata"] == data["urls_metadata"][url]
 
 
-def test_index_create(client, user, combined_default_and_single_table_settings):
+def test_index_create(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     data = get_doc(has_baseid=True)
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["did"]
     assert rec["baseid"] == data["baseid"]
     res = client.get("/index/" + rec["did"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["acl"] == []
     assert rec["authz"] == []
 
 
 def test_index_list_with_start(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = {
         "did": "testprefix/11111111-1111-1111-1111-111111111111",
         "form": "object",
@@ -1577,21 +1614,21 @@ def test_index_list_with_start(
     }
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec1 = res.json
+    rec1 = res.json()
 
     data["did"] = "testprefix/22222222-2222-2222-2222-222222222222"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec2 = res.json
+    rec2 = res.json()
 
     data["did"] = "testprefix/33333333-3333-3333-3333-333333333333"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec3 = res.json
+    rec3 = res.json()
 
     res = client.get("/index/?start=" + rec1["did"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
 
     dids = [record["did"] for record in rec["records"]]
     assert len(rec["records"]) == 2
@@ -1599,7 +1636,10 @@ def test_index_list_with_start(
     assert rec3["did"] in dids
 
 
-def test_index_list_with_page(client, user, combined_default_and_single_table_settings):
+def test_index_list_with_page(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     data = {
         "did": "testprefix/11111111-1111-1111-1111-111111111111",
         "form": "object",
@@ -1609,21 +1649,21 @@ def test_index_list_with_page(client, user, combined_default_and_single_table_se
     }
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec1 = res.json
+    rec1 = res.json()
 
     data["did"] = "testprefix/22222222-2222-2222-2222-222222222222"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec2 = res.json
+    rec2 = res.json()
 
     data["did"] = "testprefix/33333333-3333-3333-3333-333333333333"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec3 = res.json
+    rec3 = res.json()
 
     res = client.get("/index/?page=0&limit=2")
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
 
     dids = [record["did"] for record in rec["records"]]
     assert len(rec["records"]) == 2
@@ -1632,45 +1672,48 @@ def test_index_list_with_page(client, user, combined_default_and_single_table_se
 
     res = client.get("/index/?page=1&limit=2")
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
 
     dids = [record["did"] for record in rec["records"]]
     assert len(rec["records"]) == 1
     assert rec3["did"] in dids
 
 
-def test_unauthorized_create(client, combined_default_and_single_table_settings):
+def test_unauthorized_create(app_client, combined_default_and_single_table_settings):
+    _, client = app_client
     # test that unauthorized post throws 403 error
     data = get_doc()
     res = client.post("/index/", json=data)
     assert res.status_code == 403
 
 
-def test_index_get(client, user, combined_default_and_single_table_settings):
+def test_index_get(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     data = get_doc(has_baseid=True)
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     res_1 = client.get("/index/" + rec["did"])
     assert res_1.status_code == 200
-    rec_1 = res_1.json
+    rec_1 = res_1.json()
     res_2 = client.get("/index/" + rec["baseid"])
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
     assert rec_1["did"] == rec["did"]
     assert rec_2["did"] == rec["did"]
 
 
-def test_get_id(client, user, combined_default_and_single_table_settings):
+def test_get_id(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     # test getting an existing ID
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     response = client.get("/index/" + rec["did"])
     assert response.status_code == 200
-    record = response.json
+    record = response.json()
     assert record["urls"][0] == data["urls"][0]
     assert record["size"] == data["size"]
 
@@ -1682,7 +1725,10 @@ def test_get_id(client, user, combined_default_and_single_table_settings):
     assert res.status_code == 404
 
 
-def test_index_prepend_prefix(client, user, combined_default_and_single_table_settings):
+def test_index_prepend_prefix(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     """
     For index_config =
     {
@@ -1693,11 +1739,11 @@ def test_index_prepend_prefix(client, user, combined_default_and_single_table_se
     # create a new record, check the GUID has the prefix
     data = get_doc()
     res_1 = client.post("/index/", json=data, headers=user)
-    assert res_1.status_code == 200, res_1.json
-    rec_1 = res_1.json
+    assert res_1.status_code == 200, res_1.json()
+    rec_1 = res_1.json()
     res_2 = client.get("/index/" + rec_1["did"])
-    assert res_2.status_code == 200, res_2.json
-    rec_2 = res_2.json
+    assert res_2.status_code == 200, res_2.json()
+    rec_2 = res_2.json()
     assert rec_1["did"] == rec_2["did"]
     assert rec_2["did"].startswith("testprefix/")
 
@@ -1709,15 +1755,16 @@ def test_index_prepend_prefix(client, user, combined_default_and_single_table_se
         "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d981f5"},
     }
     res_3 = client.post("/index/" + rec_1["did"], json=dataNew, headers=user)
-    assert res_3.status_code == 200, res_3.json
-    rec_3 = res_3.json
+    assert res_3.status_code == 200, res_3.json()
+    rec_3 = res_3.json()
     assert rec_3["baseid"] == rec_1["baseid"]
     assert rec_3["did"].startswith("testprefix/")
 
 
 def test_index_get_with_baseid(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data1 = get_doc(has_baseid=True)
     res = client.post("/index/", json=data1, headers=user)
     assert res.status_code == 200
@@ -1725,19 +1772,22 @@ def test_index_get_with_baseid(
     data2 = get_doc(has_baseid=True)
     res_1 = client.post("/index/", json=data2, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
+    rec_1 = res_1.json()
 
     res_2 = client.get("/index/" + data1["baseid"])
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
     assert rec_2["did"] == rec_1["did"]
 
 
-def test_delete_and_recreate(client, user, combined_default_and_single_table_settings):
+def test_delete_and_recreate(
+    app_client, user, combined_default_and_single_table_settings
+):
     """
     Test that you can delete an IndexDocument and be able to
     recreate it with the same fields.
     """
+    _, client = app_client
 
     old_data = get_doc(has_baseid=True)
     new_data = get_doc(has_baseid=True)
@@ -1745,7 +1795,7 @@ def test_delete_and_recreate(client, user, combined_default_and_single_table_set
 
     old_result = client.post("/index/", json=old_data, headers=user)
     assert old_result.status_code == 200
-    old_record = old_result.json
+    old_record = old_result.json()
     assert old_record["did"]
     assert old_record["baseid"] == old_data["baseid"]
 
@@ -1753,8 +1803,9 @@ def test_delete_and_recreate(client, user, combined_default_and_single_table_set
     new_data["did"] = old_record["did"]
 
     # delete the old doc
-    res = client.delete(
-        "/index/{}?rev={}".format(old_record["did"], old_record["rev"]),
+    res = client.request(
+        "DELETE",
+        f"/index/{old_record['did']}?rev={old_record['rev']}",
         json=old_data,
         headers=user,
     )
@@ -1766,7 +1817,7 @@ def test_delete_and_recreate(client, user, combined_default_and_single_table_set
     # create new doc with the same baseid and did
     new_result = client.post("/index/", json=new_data, headers=user)
     assert new_result.status_code == 200
-    new_record = new_result.json
+    new_record = new_result.json()
 
     assert new_record["did"]
     # verify that they are the same
@@ -1777,15 +1828,16 @@ def test_delete_and_recreate(client, user, combined_default_and_single_table_set
     # verify that new data is in the new node
     new_result = client.get("/index/" + new_record["did"])
     assert new_result.status_code == 200
-    new_record = new_result.json
+    new_record = new_result.json()
     assert new_data["baseid"] == new_record["baseid"]
     assert new_data["urls"] == new_record["urls"]
     assert new_data["hashes"]["md5"] == new_record["hashes"]["md5"]
 
 
 def test_index_create_with_multiple_hashes(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
     data["hashes"] = {
         "md5": "8b9942cf415384b27cadf1f4d2d682e5",
@@ -1794,25 +1846,27 @@ def test_index_create_with_multiple_hashes(
 
     result = client.post("/index/", json=data, headers=user)
     assert result.status_code == 200
-    record = result.json
+    record = result.json()
     assert record["did"]
 
 
 def test_index_create_with_valid_did(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
     data["did"] = "3d313755-cbb4-4b08-899d-7bbac1f6e67d"
 
     result = client.post("/index/", json=data, headers=user)
     assert result.status_code == 200
-    record = result.json
+    record = result.json()
     assert record["did"] == "3d313755-cbb4-4b08-899d-7bbac1f6e67d"
 
 
 def test_index_create_with_acl_authz(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = {
         "acl": ["a", "b"],
         "authz": ["x", "y"],
@@ -1824,17 +1878,18 @@ def test_index_create_with_acl_authz(
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     result = client.get("/index/" + rec["did"])
     assert result.status_code == 200
-    record = result.json
+    record = result.json()
     assert sorted(record["acl"]) == ["a", "b"]
     assert sorted(record["authz"]) == ["x", "y"]
 
 
 def test_index_create_with_duplicate_acl_authz(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = {
         "acl": ["a", "b", "a"],
         "authz": ["x", "y", "x"],
@@ -1846,17 +1901,18 @@ def test_index_create_with_duplicate_acl_authz(
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     result = client.get("/index/" + rec["did"])
     assert result.status_code == 200
-    record = result.json
+    record = result.json()
     assert sorted(record["acl"]) == ["a", "b"]
     assert sorted(record["authz"]) == ["x", "y"]
 
 
 def test_index_create_with_invalid_did(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
 
     data["did"] = "3d313755-cbb4-4b0fdfdfd8-899d-7bbac1f6e67dfdd"
@@ -1865,20 +1921,22 @@ def test_index_create_with_invalid_did(
 
 
 def test_index_create_with_prefix(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
     data["did"] = "cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d"
 
     response = client.post("/index/", json=data, headers=user)
     assert response.status_code == 200
-    record = response.json
+    record = response.json()
     assert record["did"] == "cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d"
 
 
 def test_index_create_with_duplicate_did(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
     data["did"] = "3d313755-cbb4-4b08-899d-7bbac1f6e67d"
 
@@ -1889,75 +1947,80 @@ def test_index_create_with_duplicate_did(
 
 
 def test_index_create_with_file_name(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
     data["file_name"] = "abc"
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     res = client.get("/index/" + rec["did"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["file_name"] == "abc"
 
 
 def test_index_create_with_version(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
     data["version"] = "ver_123"
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     res = client.get("/index/" + rec["did"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["version"] == data["version"]
 
 
 def test_create_blank_record_with_baseid(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     doc = {"uploader": "uploader_123", "baseid": "baseid_123"}
 
     res = client.post("/index/blank/", json=doc, headers=user)
     assert res.status_code == 201
-    rec = res.json
+    rec = res.json()
     assert rec["did"]
     res = client.get("/index/?baseid=" + doc["baseid"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert_blank(rec)
 
 
 def test_index_create_with_uploader(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
     data["uploader"] = "uploader_123"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     res = client.get("/index/" + rec["did"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["uploader"] == data["uploader"]
 
 
 def test_index_get_global_endpoint(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     res = client.get("/" + rec["did"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
 
     assert rec["metadata"] == data["metadata"]
     assert rec["form"] == "object"
@@ -1967,7 +2030,7 @@ def test_index_get_global_endpoint(
 
 
 def test_index_add_prefix_alias(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """
     For index_config =
@@ -1976,6 +2039,7 @@ def test_index_add_prefix_alias(
         "ADD_PREFIX_ALIAS": True
     }
     """
+    _, client = app_client
     try:
         # ensure ADD_PREFIX_ALIAS is True
         previous_add_alias_cfg = settings["config"]["INDEX"]["driver"].config[
@@ -1987,11 +2051,11 @@ def test_index_add_prefix_alias(
 
         res = client.post("/index/", json=data, headers=user)
         assert res.status_code == 200
-        rec = res.json
+        rec = res.json()
 
         res_2 = client.get("/testprefix/" + rec["did"])
         assert res_2.status_code == 200
-        rec_2 = res_2.json
+        rec_2 = res_2.json()
         assert rec_2["did"] == rec["did"]
     finally:
         settings["config"]["INDEX"]["driver"].config[
@@ -1999,15 +2063,16 @@ def test_index_add_prefix_alias(
         ] = previous_add_alias_cfg
 
 
-def test_index_update(client, user, combined_default_and_single_table_settings):
+def test_index_update(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     # create record
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
-    assert client.get("/index/" + rec["did"]).json["metadata"] == data["metadata"]
+    assert client.get("/index/" + rec["did"]).json()["metadata"] == data["metadata"]
 
     # update record
     dataNew = get_doc()
@@ -2019,16 +2084,16 @@ def test_index_update(client, user, combined_default_and_single_table_settings):
     dataNew["acl"] = ["a", "b"]
     dataNew["authz"] = ["x", "y"]
     res_2 = client.put(
-        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=dataNew, headers=user
+        f"/index/{rec['did']}?rev={rec['rev']}", json=dataNew, headers=user
     )
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
     assert rec_2["rev"] != rec["rev"]
 
     # check record was updated
     response = client.get("/index/" + rec_2["did"])
     assert response.status_code == 200
-    record = response.json
+    record = response.json()
     assert record["metadata"] == dataNew["metadata"]
     assert sorted(record["acl"]) == sorted(dataNew["acl"])
     assert sorted(record["authz"]) == sorted(dataNew["authz"])
@@ -2038,7 +2103,7 @@ def test_index_update(client, user, combined_default_and_single_table_settings):
     data["did"] = "cdis:3d313755-cbb4-4b08-899d-7bbac1f6e67d"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
 
@@ -2049,16 +2114,17 @@ def test_index_update(client, user, combined_default_and_single_table_settings):
         "version": "ver123",
     }
     res_2 = client.put(
-        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=dataNew, headers=user
+        f"/index/{rec['did']}?rev={rec['rev']}", json=dataNew, headers=user
     )
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
     assert rec_2["rev"] != rec["rev"]
 
 
 def test_index_update_with_authz_check(
-    client, user, use_mock_authz, combined_default_and_single_table_settings
+    app_client, user, use_mock_authz, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     old_authz = "/programs/A"
     new_authz = "/programs/B"
 
@@ -2066,8 +2132,8 @@ def test_index_update_with_authz_check(
     data = get_doc()
     data["authz"] = [old_authz]
     res = client.post("/index/", json=data, headers=user)
-    assert res.status_code == 200, res.json
-    rec = res.json
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
     rev = rec["rev"]
@@ -2075,35 +2141,36 @@ def test_index_update_with_authz_check(
     # user doesn't have all the required access: cannot update record
     use_mock_authz([("update", new_authz)])
     to_update = {"authz": [new_authz]}
-    res = client.put("/index/{}?rev={}".format(rec["did"], rev), json=to_update)
-    assert res.status_code == 403, res.json
+    res = client.put(f"/index/{rec['did']}?rev={rev}", json=to_update)
+    assert res.status_code == 403, res.json()
 
     # user has all the required access: can update record
     use_mock_authz([("update", new_authz), ("update", old_authz)])
     to_update = {"authz": [new_authz]}
-    res = client.put("/index/{}?rev={}".format(rec["did"], rev), json=to_update)
-    assert res.status_code == 200, res.json
-    rec = res.json
+    res = client.put(f"/index/{rec['did']}?rev={rev}", json=to_update)
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["rev"] != rev
 
     # check record was updated
     res = client.get("/index/" + rec["did"])
-    assert res.status_code == 200, res.json
-    rec = res.json
+    assert res.status_code == 200, res.json()
+    rec = res.json()
     assert rec["authz"] == [new_authz]
 
 
 def test_index_update_duplicate_acl_authz(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
-    assert client.get("/index/" + rec["did"]).json["metadata"] == data["metadata"]
+    assert client.get("/index/" + rec["did"]).json()["metadata"] == data["metadata"]
     dataNew = get_doc()
     del dataNew["hashes"]
     del dataNew["size"]
@@ -2113,88 +2180,94 @@ def test_index_update_duplicate_acl_authz(
     dataNew["acl"] = ["c", "d", "c"]
     dataNew["authz"] = ["x", "y", "x"]
     res_2 = client.put(
-        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=dataNew, headers=user
+        f"/index/{rec['did']}?rev={rec['rev']}", json=dataNew, headers=user
     )
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
     assert rec_2["rev"] != rec["rev"]
     response = client.get("/index/" + rec["did"])
     assert response.status_code == 200
-    record = response.json
+    record = response.json()
     assert record["metadata"] == dataNew["metadata"]
     assert sorted(record["acl"]) == ["c", "d"]
     assert sorted(record["authz"]) == ["x", "y"]
 
 
 def test_update_uploader_field(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
     data["uploader"] = "uploader_123"
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
 
     res = client.get("/index/" + rec["did"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["uploader"] == "uploader_123"
 
     updated = {"uploader": "new_uploader"}
     res = client.put(
-        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=updated, headers=user
+        f"/index/{rec['did']}?rev={rec['rev']}", json=updated, headers=user
     )
     assert res.status_code == 200
 
     res = client.get("/index/" + rec["did"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["uploader"] == "new_uploader"
 
     updated = {"uploader": None}
     res = client.put(
-        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=updated, headers=user
+        f"/index/{rec['did']}?rev={rec['rev']}", json=updated, headers=user
     )
     assert res.status_code == 200
 
     res = client.get("/index/" + rec["did"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["uploader"] is None
 
 
-def test_index_delete(client, user, combined_default_and_single_table_settings):
+def test_index_delete(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     data = get_doc(has_metadata=False, has_baseid=False)
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
 
     res = client.get("/index/" + rec["did"])
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["did"]
 
-    res = client.delete(
-        "/index/{}?rev={}".format(rec["did"], rec["rev"]), json=data, headers=user
+    res = client.request(
+        "DELETE", f"/index/{rec['did']}?rev={rec['rev']}", json=data, headers=user
     )
+
     assert res.status_code == 200
 
     # make sure its deleted
-    res = client.get("/index/{}?rev={}".format(rec["did"], rec["rev"]))
+    res = client.get(f"/index/{rec['did']}?rev={rec['rev']}")
     assert res.status_code == 404
 
 
-def test_create_index_version(client, user, combined_default_and_single_table_settings):
+def test_create_index_version(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     data = get_doc(has_metadata=False, has_baseid=False)
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["did"]
     assert rec["rev"]
     assert rec["baseid"]
@@ -2212,63 +2285,67 @@ def test_create_index_version(client, user, combined_default_and_single_table_se
 
     res_2 = client.post("/index/" + rec["did"], json=dataNew, headers=user)
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
     assert rec_2["baseid"] == rec["baseid"]
     assert rec_2["did"] == dataNew["did"]
 
 
-def test_get_latest_version(client, user, combined_default_and_single_table_settings):
+def test_get_latest_version(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     data = get_doc(has_metadata=False, has_baseid=False, has_version=True)
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
+    rec_1 = res_1.json()
     assert rec_1["did"]
 
     data = get_doc(has_metadata=False, has_baseid=False, has_version=False)
     res_2 = client.post("/index/" + rec_1["did"], json=data, headers=user)
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
 
-    res_3 = client.get("/index/{}/latest".format(rec_2["did"]))
+    res_3 = client.get(f"/index/{rec_2['did']}/latest")
     assert res_3.status_code == 200
-    rec_3 = res_3.json
+    rec_3 = res_3.json()
     assert rec_3["did"] == rec_2["did"]
 
-    res_4 = client.get("/index/{}/latest".format(rec_1["baseid"]))
+    res_4 = client.get(f"/index/{rec_1['baseid']}/latest")
     assert res_4.status_code == 200
-    rec_4 = res_4.json
+    rec_4 = res_4.json()
     assert rec_4["did"] == rec_2["did"]
 
-    res_5 = client.get("/index/{}/latest?has_version=True".format(rec_1["baseid"]))
+    res_5 = client.get(f"/index/{rec_1['baseid']}/latest?has_version=True")
     assert res_5.status_code == 200
-    rec_5 = res_5.json
+    rec_5 = res_5.json()
     assert rec_5["did"] == rec_1["did"]
 
 
-def test_get_all_versions(client, user, combined_default_and_single_table_settings):
+def test_get_all_versions(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     dids = []
 
     # create 1st version
     data = get_doc(has_metadata=False, has_baseid=False)
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec1 = res.json
+    rec1 = res.json()
     assert rec1["did"]
     dids.append(rec1["did"])
 
     # create 2nd version
     res = client.post("/index/" + rec1["did"], json=data, headers=user)
     assert res.status_code == 200
-    rec2 = res.json
+    rec2 = res.json()
     assert rec2["did"]
     dids.append(rec2["did"])
 
     # make sure all versions are returned when hitting the /versions endpoint
-    res = client.get("/index/{}/versions".format(rec1["did"]))
-    recs1 = res.json
+    res = client.get(f"/index/{rec1['did']}/versions")
+    recs1 = res.json()
     assert len(recs1) == 2
-    res = client.get("/index/{}/versions".format(rec1["baseid"]))
-    recs2 = res.json
+    res = client.get(f"/index/{rec1['baseid']}/versions")
+    recs2 = res.json()
     assert len(recs2) == 2
     assert recs1 == recs1
 
@@ -2277,7 +2354,10 @@ def test_get_all_versions(client, user, combined_default_and_single_table_settin
         assert record["did"] == dids[int(i)], "record id does not match"
 
 
-def test_update_all_versions(client, user, combined_default_and_single_table_settings):
+def test_update_all_versions(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     dids = []
     mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
     mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
@@ -2293,39 +2373,38 @@ def test_update_all_versions(client, user, combined_default_and_single_table_set
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec1 = res.json
+    rec1 = res.json()
     assert rec1["did"]
     dids.append(rec1["did"])
 
     # create 2nd version
     res = client.post("/index/" + rec1["did"], json=data, headers=user)
     assert res.status_code == 200
-    rec2 = res.json
+    rec2 = res.json()
     assert rec2["did"]
     dids.append(rec2["did"])
     # ----------
 
     # Update all versions
     update_data = {"acl": mock_acl_B, "authz": mock_authz_B}
-    res = client.put(
-        "/index/{}/versions".format(rec1["did"]), json=update_data, headers=user
-    )
-    assert res.status_code == 200, "Failed to update all version: {}".format(res.json)
+    res = client.put(f"/index/{rec1['did']}/versions", json=update_data, headers=user)
+    assert res.status_code == 200, f"Failed to update all version: {res.json()}"
     # Expect the GUIDs of all updated versions to be returned by the request,
     # in order of version creation
-    assert dids == [record["did"] for record in res.json]
+    assert dids == [record["did"] for record in res.json()]
 
     # Expect all versions to have the new acl/authz
-    res = client.get("/index/{}/versions".format(rec1["did"]))
+    res = client.get(f"/index/{rec1['did']}/versions")
     assert res.status_code == 200, "Failed to get all versions"
-    for _, version in res.json.items():
+    for _, version in res.json().items():
         assert sorted(version["acl"]) == sorted(mock_acl_B)
         assert sorted(version["authz"]) == sorted(mock_authz_B)
 
 
 def test_update_all_versions_using_baseid(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
     mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
     mock_authz_A = ["mock_authz_A1", "mock_authz_A2"]
@@ -2340,55 +2419,53 @@ def test_update_all_versions_using_baseid(
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec1 = res.json
+    rec1 = res.json()
     assert rec1["did"]
     baseid = rec1["baseid"]
 
     # create 2nd version
     res = client.post("/index/" + rec1["did"], json=data, headers=user)
     assert res.status_code == 200
-    rec2 = res.json
+    rec2 = res.json()
     assert rec2["baseid"] == baseid
     # ----------
 
     # Update all versions
     update_data = {"acl": mock_acl_B, "authz": mock_authz_B}
-    res = client.put(
-        "/index/{}/versions".format(baseid), json=update_data, headers=user
-    )
-    assert res.status_code == 200, "Failed to update all version: {}".format(res.json)
+    res = client.put(f"/index/{baseid}/versions", json=update_data, headers=user)
+    assert res.status_code == 200, f"Failed to update all version: {res.json()}"
 
     # Expect all versions to have the new acl/authz
-    res = client.get("/index/{}/versions".format(rec1["did"]))
+    res = client.get(f"/index/{rec1['did']}/versions")
     assert res.status_code == 200, "Failed to get all versions"
-    for _, version in res.json.items():
+    for _, version in res.json().items():
         assert sorted(version["acl"]) == sorted(mock_acl_B)
         assert sorted(version["authz"]) == sorted(mock_authz_B)
 
 
 def test_update_all_versions_guid_not_found(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     bad_guid = "00000000-0000-0000-0000-000000000000"
 
     update_data = {"acl": ["mock_acl"], "authz": ["mock_authz"]}
-    res = client.put(
-        "/index/{}/versions".format(bad_guid), json=update_data, headers=user
-    )
+    res = client.put(f"/index/{bad_guid}/versions", json=update_data, headers=user)
     # Expect the operation to fail with 404 -- Guid not found
     assert (
         res.status_code == 404
-    ), "Expected update operation to fail with 404: {}".format(res.json)
+    ), f"Expected update operation to fail with 404: {res.json()}"
 
 
 def test_update_all_versions_fail_on_bad_metadata(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """
     When making an update request, endpoint should return 400 (User error) if
     the metadata to update contains any fields that cannot be updated across all versions.
     Currently the only allowed fields are ('acl', 'authz').
     """
+    _, client = app_client
     mock_acl_A = ["mock_acl_A1", "mock_acl_A2"]
     mock_acl_B = ["mock_acl_B1", "mock_acl_B2"]
     mock_authz_A = ["mock_authz_A1", "mock_authz_A2"]
@@ -2403,42 +2480,41 @@ def test_update_all_versions_fail_on_bad_metadata(
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec1 = res.json
+    rec1 = res.json()
     assert rec1["did"]
     baseid = rec1["baseid"]
 
     # create 2nd version
     res = client.post("/index/" + rec1["did"], json=data, headers=user)
     assert res.status_code == 200
-    rec2 = res.json
+    rec2 = res.json()
     assert rec2["baseid"] == baseid
     # ----------
 
     # Update all versions
     update_data = {"urls": ["url_A"], "acl": mock_acl_B, "authz": mock_authz_B}
-    res = client.put(
-        "/index/{}/versions".format(baseid), json=update_data, headers=user
-    )
+    res = client.put(f"/index/{baseid}/versions", json=update_data, headers=user)
     # Expect the operation to fail with 400
     assert (
         res.status_code == 400
-    ), "Expected update operation to fail with 400: {}".format(res.json)
+    ), f"Expected update operation to fail with 400: {res.json()}"
 
     # Expect all versions to retain the old acl/authz
-    res = client.get("/index/{}/versions".format(rec1["did"]))
+    res = client.get(f"/index/{rec1['did']}/versions")
     assert res.status_code == 200, "Failed to get all versions"
-    for _, version in res.json.items():
+    for _, version in res.json().items():
         assert sorted(version["acl"]) == sorted(mock_acl_A)
         assert sorted(version["authz"]) == sorted(mock_authz_A)
 
 
 def test_update_all_versions_fail_on_missing_permissions(
-    client, user, use_mock_authz, combined_default_and_single_table_settings
+    app_client, user, use_mock_authz, combined_default_and_single_table_settings
 ):
     """
     If user does not have the 'update' permission on any record, request should
     fail with 403.
     """
+    _, client = app_client
     # SETUP
     # -------
     # Set up mock authz to allow test user to create two versions of a record with
@@ -2446,35 +2522,35 @@ def test_update_all_versions_fail_on_missing_permissions(
     doc_1 = get_doc(has_metadata=False, has_baseid=False)
     doc_1["authz"] = ["resource_A"]
     res = client.post("/index/", json=doc_1, headers=user)
-    assert res.status_code == 200, res.json
-    rec1 = res.json
+    assert res.status_code == 200, res.json()
+    rec1 = res.json()
 
     doc_2 = get_doc(has_metadata=False, has_baseid=False)
     doc_2["authz"] = ["resource_B"]
-    res = client.post("/index/" + rec1["did"], json=doc_2, headers=user)
-    assert res.status_code == 200, res.json
-    rec2 = res.json
+    res = client.post(f"/index/{rec1['did']}", json=doc_2, headers=user)
+    assert res.status_code == 200, res.json()
+    rec2 = res.json()
     # ----------
 
     # Configure mock authz to allow updating both versions: Expect request to succeed
     use_mock_authz([("update", "resource_A"), ("update", "resource_B")])
     update_data = {"authz": ["new_authz"]}
-    res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
-    assert res.status_code == 200, "Expected operation to succeed: {}".format(res.json)
+    res = client.put(f"/index/{rec2['did']}/versions", json=update_data)
+    assert res.status_code == 200, f"Expected operation to succeed: {res.json()}"
 
     # Configure mock authz to only allow updating first version: Expect request to fail with 403
     use_mock_authz([("update", "resource_A")])
-    res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
+    res = client.put(f"/index/{rec2['did']}/versions", json=update_data)
     assert (
         res.status_code == 403
-    ), "Expected operation to fail due to lack of user permissions: {}".format(res.json)
+    ), f"Expected operation to fail due to lack of user permissions: {res.json()}"
 
     # Configure mock authz to only allow updating second version: Expect request to fail with 403
     use_mock_authz([("update", "resource_B")])
-    res = client.put("/index/{}/versions".format(rec2["did"]), json=update_data)
+    res = client.put(f"/index/{rec2['did']}/versions", json=update_data)
     assert (
         res.status_code == 403
-    ), "Expected operation to fail due to lack of user permissions: {}".format(res.json)
+    ), f"Expected operation to fail due to lack of user permissions: {res.json()}"
 
 
 @pytest.mark.parametrize(
@@ -2498,7 +2574,10 @@ def test_update_all_versions_fail_on_missing_permissions(
         ("crc", "997a6f5c"),
     ],
 )
-def test_good_hashes(client, user, typ, h, combined_default_and_single_table_settings):
+def test_good_hashes(
+    app_client, user, typ, h, combined_default_and_single_table_settings
+):
+    _, client = app_client
     data = {
         "form": "object",
         "size": 123,
@@ -2511,7 +2590,7 @@ def test_good_hashes(client, user, typ, h, combined_default_and_single_table_set
     resp = client.post("/index/", data=json.dumps(data), headers=user)
 
     assert resp.status_code == 200
-    json_resp = resp.json
+    json_resp = resp.json()
     assert "error" not in json_resp
 
 
@@ -2531,7 +2610,10 @@ def test_good_hashes(client, user, typ, h, combined_default_and_single_table_set
         ("sha512", "not valid"),
     ],
 )
-def test_bad_hashes(client, user, typ, h, combined_default_and_single_table_settings):
+def test_bad_hashes(
+    app_client, user, typ, h, combined_default_and_single_table_settings
+):
+    _, client = app_client
     data = {
         "form": "object",
         "size": 123,
@@ -2544,7 +2626,7 @@ def test_bad_hashes(client, user, typ, h, combined_default_and_single_table_sett
     resp = client.post("/index/", data=json.dumps(data), headers=user)
 
     assert resp.status_code == 400
-    json_resp = resp.json
+    json_resp = resp.json()
     assert "error" in json_resp
     if typ not in ACCEPTABLE_HASHES:
         assert "Failed validating" in json_resp["error"]
@@ -2552,15 +2634,16 @@ def test_bad_hashes(client, user, typ, h, combined_default_and_single_table_sett
         assert "does not match" in json_resp["error"]
 
 
-def test_dos_get(client, user, combined_default_and_single_table_settings):
+def test_dos_get(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
+    rec_1 = res_1.json()
     res_2 = client.get("/ga4gh/dos/v1/dataobjects/" + rec_1["did"])
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
     assert rec_2["data_object"]["id"] == rec_1["did"]
     assert rec_2["data_object"]["size"] == 123
     assert (
@@ -2576,27 +2659,31 @@ def test_dos_get(client, user, combined_default_and_single_table_settings):
     )
     res_3 = client.get("/ga4gh/dos/v1/dataobjects/" + rec_1["baseid"])
     assert res_3.status_code == 200
-    rec_3 = res_3.json
+    rec_3 = res_3.json()
     assert rec_3["data_object"]["id"] == rec_1["did"]
 
 
-def test_get_dos_record_error(client, user, combined_default_and_single_table_settings):
+def test_get_dos_record_error(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     # test exception raised at nonexistent
     fake_did = "testprefix/d96bab16-c4e1-44ac-923a-04328b6fe78f"
     res = client.get("/ga4gh/dos/v1/dataobjects/" + fake_did)
     assert res.status_code == 404
 
 
-def test_dos_list(client, user, combined_default_and_single_table_settings):
+def test_dos_list(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
-    rec_1 = res_1.json
+    rec_1 = res_1.json()
 
     res_2 = client.get("/ga4gh/dos/v1/dataobjects?page_size=100")
     assert res_2.status_code == 200
-    rec_2 = res_2.json
+    rec_2 = res_2.json()
     assert len(rec_2["data_objects"]) == 1
     assert rec_2["data_objects"][0]["id"] == rec_1["did"]
     assert rec_2["data_objects"][0]["size"] == 123
@@ -2614,27 +2701,28 @@ def test_dos_list(client, user, combined_default_and_single_table_settings):
 
 
 def test_update_without_changing_fields(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     # setup test
     data = get_doc(has_urls_metadata=True, has_metadata=True, has_baseid=True)
 
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
-    first_doc = client.get("/index/" + rec["did"]).json
+    rec = res.json()
+    first_doc = client.get("/index/" + rec["did"]).json()
 
     # update
     updated = {"version": "at least 2"}
     res = client.put(
-        "/index/{}?rev={}".format(first_doc["did"], first_doc["rev"]),
+        f"/index/{first_doc['did']}?rev={first_doc['rev']}",
         json=updated,
         headers=user,
     )
     assert res.status_code == 200
 
     # Check if update successful.
-    second_doc = client.get("/index/" + first_doc["did"]).json
+    second_doc = client.get("/index/" + first_doc["did"]).json()
     # Only `version` changed.
     assert first_doc["version"] != second_doc["version"]
 
@@ -2648,35 +2736,33 @@ def test_update_without_changing_fields(
     # update
     updated = {"version": None}
     res = client.put(
-        "/index/{}?rev={}".format(second_doc["did"], second_doc["rev"]),
+        f"/index/{second_doc['did']}?rev={second_doc['rev']}",
         json=updated,
         headers=user,
     )
     assert res.status_code == 200
 
     # check if update successful
-    third_doc = client.get("/index/" + rec["did"]).json
+    third_doc = client.get("/index/" + rec["did"]).json()
     # Only `version` changed.
     assert second_doc["version"] != third_doc["version"]
 
 
-def test_bulk_get_documents(user, combined_default_and_single_table_settings):
-    """
-    Ensure /bulk/documents returns docs created when requested (in both single and
-    default table settings)
-    """
-    # get the client for the yielded app with different settings
-    client = combined_default_and_single_table_settings.test_client()
-
+def test_bulk_get_documents(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     # just make a bunch of entries in indexd
     dids = [
-        client.post("/index/", json=get_doc(has_baseid=True), headers=user).json["did"]
+        client.post("/index/", json=get_doc(has_baseid=True), headers=user).json()[
+            "did"
+        ]
         for _ in range(20)
     ]
     # do a bulk query for them all
     res = client.post("/bulk/documents", json=dids, headers=user)
     assert res.status_code == 200
-    docs = res.json
+    docs = res.json()
 
     # compare that they are the same by did
     for doc in docs:
@@ -2685,7 +2771,10 @@ def test_bulk_get_documents(user, combined_default_and_single_table_settings):
 
 @pytest.mark.parametrize("authz", [["/some/path"], []])
 def test_indexd_admin_authz(
-    client, mock_arborist_requests, authz, combined_default_and_single_table_settings
+    app_client,
+    mock_arborist_requests,
+    authz,
+    combined_default_and_single_table_settings,
 ):
     """
     Test that admin users can perform an operation even if they don't
@@ -2693,6 +2782,7 @@ def test_indexd_admin_authz(
     Test edge case `authz = []`: if the `authz` is empty, admins should
     still be able to perform operations on the record.
     """
+    _, client = app_client
     data = get_doc()
     data["authz"] = authz
 
@@ -2717,19 +2807,22 @@ def test_indexd_admin_authz(
         assert res.status_code == 200  # authorized
 
 
-def test_status_check(client, combined_default_and_single_table_settings):
+def test_status_check(app_client, combined_default_and_single_table_settings):
+    _, client = app_client
     res = client.get("/_status/")
     assert res.status_code == 200
 
 
-def test_version_check(client, combined_default_and_single_table_settings):
+def test_version_check(app_client, combined_default_and_single_table_settings):
+    _, client = app_client
     res = client.get("/_version")
     assert res.status_code == 200
 
 
-def test_get_dist(client, combined_default_and_single_table_settings):
+def test_get_dist(app_client, combined_default_and_single_table_settings):
+    _, client = app_client
     res = client.get("/_dist")
-    assert res.status_code == 200 and res.json == [
+    assert res.status_code == 200 and res.json() == [
         {
             "name": "testStage",
             "host": "https://fictitious-commons.io/index/",
@@ -2740,18 +2833,19 @@ def test_get_dist(client, combined_default_and_single_table_settings):
 
 
 def test_changing_timestamps_updated_not_before_created(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """
     Checks that records cannot be updated to have a content_updated_date before the provided content_created_date
     """
+    _, client = app_client
     data = get_doc()
     data["content_updated_date"] = "2023-03-14T17:02:54"
     data["content_created_date"] = "2023-03-13T17:02:54"
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
-    obj_did = create_obj_resp.json["did"]
-    obj_rev = create_obj_resp.json["rev"]
+    obj_did = create_obj_resp.json()["did"]
+    obj_rev = create_obj_resp.json()["rev"]
     update_json = {
         "content_created_date": "2023-03-15T17:02:54",
         "content_updated_date": "2022-03-30T17:02:54",
@@ -2770,16 +2864,17 @@ def test_changing_timestamps_updated_not_before_created(
 
 
 def test_changing_none_timestamps(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """
     Checks that updates with null values are handled correctly
     """
+    _, client = app_client
     data = get_doc()
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
-    obj_did = create_obj_resp.json["did"]
-    obj_rev = create_obj_resp.json["rev"]
+    obj_did = create_obj_resp.json()["did"]
+    obj_rev = create_obj_resp.json()["rev"]
     update_json = {
         "content_created_date": None,
         "content_updated_date": None,
@@ -2791,17 +2886,18 @@ def test_changing_none_timestamps(
 
 
 def test_changing_timestamps_no_updated_without_created(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """
     Checks that records cannot be updated to have a content_updated_date when a content_created_date does not exist
     for the record and one is not provided in the update.
     """
+    _, client = app_client
     data = get_doc()
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
-    obj_did = create_obj_resp.json["did"]
-    obj_rev = create_obj_resp.json["rev"]
+    obj_did = create_obj_resp.json()["did"]
+    obj_rev = create_obj_resp.json()["rev"]
     update_json = {"content_updated_date": "2022-03-30T17:02:54"}
     update_obj_resp = client.put(
         f"/index/{obj_did}?rev={obj_rev}", json=update_json, headers=user
@@ -2810,11 +2906,12 @@ def test_changing_timestamps_no_updated_without_created(
 
 
 def test_timestamps_updated_not_before_created(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """
     Checks that records cannot be created with a content_update_date that is before the content_created_date
     """
+    _, client = app_client
     data = get_doc()
     data["content_created_date"] = "2023-03-13T17:02:54"
     data["content_updated_date"] = "2022-03-14T17:02:54"
@@ -2823,30 +2920,34 @@ def test_timestamps_updated_not_before_created(
 
 
 def test_timestamps_no_updated_without_created(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """
     Checks that records cannot be created with a content_update_date without providing a content_created_date
     """
+    _, client = app_client
     data = get_doc()
     data["content_updated_date"] = "2022-03-14T17:02:54"
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 400
 
 
-def test_check_urls_metadata(client, user, combined_default_and_single_table_settings):
+def test_check_urls_metadata(
+    app_client, user, combined_default_and_single_table_settings
+):
     """
     Checks that the urls_metadata field has the same url keys as the urls
     """
+    _, client = app_client
     data = get_doc()
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     did = rec["did"]
 
     res = client.get("/index/" + did, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     urls = rec["urls"]
 
     assert len(rec["urls_metadata"]) == len(rec["urls"])
@@ -2856,18 +2957,19 @@ def test_check_urls_metadata(client, user, combined_default_and_single_table_set
 
 
 def test_check_urls_metadata_partially_missing_metadata(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc(has_urls_metadata=True)
     data["urls"].append("s3://new-data/location.txt")
-    res = client.post("/index", json=data, headers=user)
+    res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     did = rec["did"]
 
     res = client.get("/index/" + did, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     urls = rec["urls"]
 
     assert len(rec["urls_metadata"]) == len(rec["urls"])

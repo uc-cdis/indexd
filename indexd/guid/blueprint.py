@@ -1,46 +1,52 @@
-import flask
 import uuid
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import JSONResponse
 
-blueprint = flask.Blueprint("guid", __name__)
+router = APIRouter(tags=["guid"])
+
+router.index_driver = None
 
 
-@blueprint.route("/guid/mint", methods=["GET"])
-def mint_guid():
+def set_guid_config(app):
+    router.index_driver = app.settings["config"]["INDEX"]["driver"]
+
+
+@router.get("/guid/mint")
+async def mint_guid(request: Request):
     """
-    Mint a GUID that is valid for this instance of indexd. The intention
-    of this endpoint is to allow generating valid GUIDs to be indexed
-    WITHOUT actually creating a new record yet.
-
-    Allows for a `count` query parameter to get bulk GUIDs up to some limit
+    Mint a GUID that is valid for this instance of indexd.
+    This endpoint is to allow generating valid GUIDs to be indexed WITHOUT actually creating a new record yet.
+    Allows for a `count` query parameter to get bulk GUIDs up to some limit.
     """
-    count = flask.request.args.get("count", 1)
+    count_param = request.query_params.get("count", "1")
     max_count = 10000
-
     try:
-        count = int(count)
+        count = int(count_param)
     except Exception:
-        return f"Count {count} is not a valid integer", 400
+        raise HTTPException(
+            status_code=400, detail=f"Count {count_param} is not a valid integer"
+        )
 
-    # error on < 0, > max_count
     if count < 0:
-        return "You cannot provide a count less than 0", 400
+        raise HTTPException(
+            status_code=400, detail="You cannot provide a count less than 0"
+        )
     elif count > max_count:
-        return f"You cannot provide a count greater than {max_count}", 400
+        raise HTTPException(
+            status_code=400,
+            detail=f"You cannot provide a count greater than {max_count}",
+        )
 
-    guids = []
-    for _ in range(count):
-        valid_guid = _get_prefix() + str(uuid.uuid4())
-        guids.append(valid_guid)
-
-    return flask.jsonify({"guids": guids}), 200
+    guids = [_get_prefix() + str(uuid.uuid4()) for _ in range(count)]
+    return JSONResponse(content={"guids": guids}, status_code=200)
 
 
-@blueprint.route("/guid/prefix", methods=["GET"])
-def get_prefix():
+@router.get("/guid/prefix")
+async def get_prefix():
     """
     Get the prefix for this instance of indexd.
     """
-    return flask.jsonify({"prefix": _get_prefix()}), 200
+    return JSONResponse(content={"prefix": _get_prefix()}, status_code=200)
 
 
 def _get_prefix():
@@ -49,12 +55,9 @@ def _get_prefix():
     set as an alias
     """
     prefix = ""
-
-    if flask.current_app.config["INDEX"]["driver"].config.get(
-        "PREPEND_PREFIX"
-    ) and not flask.current_app.config["INDEX"]["driver"].config.get(
+    driver_config = router.index_driver.config
+    if driver_config.get("PREPEND_PREFIX") and not driver_config.get(
         "ADD_PREFIX_ALIAS"
     ):
-        prefix = flask.current_app.config["INDEX"]["driver"].config["DEFAULT_PREFIX"]
-
+        prefix = driver_config.get("DEFAULT_PREFIX", "")
     return prefix

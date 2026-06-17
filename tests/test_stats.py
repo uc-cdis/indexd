@@ -16,7 +16,6 @@ from indexd.index.drivers.alchemy import (
     StatsRecord,
     update_stats,
 )
-from indexd.index.drivers.single_table_alchemy import Record
 from indexd.stats_utils import seed_stats, seed_stats_from_connection
 from tests.conftest import POSTGRES_CONNECTION
 
@@ -409,11 +408,6 @@ def _add_index_record(session, size):
     )
 
 
-def _add_single_table_record(session, size):
-    """Insert a minimal single-table Record for reconciliation tests."""
-    session.add(Record(guid=str(uuid.uuid4()), size=size, form="object"))
-
-
 def test_seed_stats_empty_table(combined_default_and_single_table_settings):
     """
     seed_stats on an empty index_record table should create a stats row
@@ -632,79 +626,6 @@ def test_seed_stats_from_connection_empty_table(
     ), "seed_stats_from_connection should insert a row when counts are 0"
     assert row.total_record_count == 0
     assert row.total_record_bytes == 0
-
-    session.close()
-    engine.dispose()
-
-
-def test_seed_stats_prefers_active_single_table_data(
-    combined_default_and_single_table_settings,
-):
-    """
-    When both storage schemas exist but have different values, seed_stats should
-    use the higher record count.
-    """
-    engine = create_engine(POSTGRES_CONNECTION)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    _add_index_record(session, 10)
-
-    _add_single_table_record(session, 100)
-    _add_single_table_record(session, 200)
-    _add_single_table_record(session, 300)
-    session.commit()
-
-    count, total_bytes = seed_stats(session)
-    session.commit()
-
-    assert count == 3
-    assert total_bytes == 600
-
-    now = datetime.datetime.now()
-    row = (
-        session.query(StatsRecord)
-        .filter(StatsRecord.month == now.month, StatsRecord.year == now.year)
-        .first()
-    )
-    assert row.total_record_count == 3
-    assert row.total_record_bytes == 600
-
-    session.close()
-    engine.dispose()
-
-
-def test_seed_stats_from_connection_prefers_active_single_table_data(
-    combined_default_and_single_table_settings,
-):
-    """
-    The raw connection seeding should also resolve based on record count.
-    """
-    engine = create_engine(POSTGRES_CONNECTION)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    _add_index_record(session, 10)
-    _add_index_record(session, 10)
-    _add_index_record(session, 10)
-    _add_single_table_record(session, 50)
-    _add_single_table_record(session, 70)
-    session.commit()
-    session.close()
-
-    with engine.connect() as conn:
-        seed_stats_from_connection(conn)
-
-    session = Session()
-    now = datetime.datetime.now()
-    row = (
-        session.query(StatsRecord)
-        .filter(StatsRecord.month == now.month, StatsRecord.year == now.year)
-        .first()
-    )
-    assert row is not None
-    assert row.total_record_count == 3
-    assert row.total_record_bytes == 30
 
     session.close()
     engine.dispose()

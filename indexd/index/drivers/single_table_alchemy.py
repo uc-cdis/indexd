@@ -26,7 +26,8 @@ from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from contextlib import contextmanager
 
 from indexd import auth
-from indexd.errors import UserError, AuthError
+from indexd.errors import UserError
+from indexd.auth.errors import AuthError
 from indexd.index.driver import IndexDriverABC
 from indexd.index.drivers.alchemy import (
     IndexSchemaVersion,
@@ -498,7 +499,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.guid, record.rev, record.baseid
 
-    def add_blank_record(self, uploader, file_name=None, authz=None):
+    def add_blank_record(self, request, uploader, file_name=None, authz=None):
         """
         Create a new blank record with only uploader and optionally
         file_name and authz fields filled
@@ -508,7 +509,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         authz_err_msg = "Auth error when attempting to update a blank record. User must have '{}' access on '{}' for service 'indexd'."
         if authz:
             try:
-                auth.authorize("create", authz)
+                auth.authorize("create", authz, request)
                 authorized = True
             except AuthError as err:
                 self.logger.error(
@@ -520,7 +521,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             # either no 'authz' was provided, or user doesn't have
             # the right CRUD access. Fall back on 'file_upload' logic
             try:
-                auth.authorize("file_upload", ["/data_file"])
+                auth.authorize("file_upload", ["/data_file"], request)
             except AuthError as err:
                 self.logger.error(authz_err_msg.format("file_upload", "/data_file"))
                 raise
@@ -549,7 +550,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.guid, record.rev, record.baseid
 
-    def update_blank_record(self, did, rev, size, hashes, urls, authz=None):
+    def update_blank_record(self, request, did, rev, size, hashes, urls, authz=None):
         """
         Update a blank record with size, hashes, urls, authz and raise
         exception if the record is non-empty or the revision is not matched
@@ -588,7 +589,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 old_authz = record.authz if record.authz else []
                 all_authz = old_authz + authz
                 try:
-                    auth.authorize("update", all_authz)
+                    auth.authorize("update", all_authz, request)
                     authorized = True
                 except AuthError as err:
                     self.logger.error(
@@ -602,7 +603,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 # either no 'authz' was provided, or user doesn't have
                 # the right CRUD access. Fall back on 'file_upload' logic
                 try:
-                    auth.authorize("file_upload", ["/data_file"])
+                    auth.authorize("file_upload", ["/data_file"], request)
                 except AuthError as err:
                     self.logger.error(authz_err_msg.format("file_upload", "/data_file"))
                     raise
@@ -645,7 +646,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             query = session.query(Record).filter(Record.guid == did)
             return [i.alias for i in query]
 
-    def append_aliases_for_did(self, aliases, did):
+    def append_aliases_for_did(self, request, aliases, did):
         """
         Append one or more aliases to aliases already associated with one DID / GUID.
         """
@@ -662,7 +663,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             # authorization
             try:
                 resources = index_record.authz
-                auth.authorize("update", resources)
+                auth.authorize("update", resources, request)
             except AuthError as err:
                 self.logger.warning(
                     f"Auth error while appending aliases to did {did}: User not authorized to update one or more of these resources: {resources}"
@@ -689,7 +690,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     f"One or more aliases in request already associated with this or another GUID: {aliases}"
                 )
 
-    def replace_aliases_for_did(self, aliases, did):
+    def replace_aliases_for_did(self, request, aliases, did):
         """
         Replace all aliases for one DID / GUID with new aliases.
         """
@@ -706,7 +707,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             # authorization
             try:
                 resources = index_record.authz
-                auth.authorize("update", resources)
+                auth.authorize("update", resources, request)
             except AuthError as err:
                 self.logger.warning(
                     f"Auth error while replacing aliases for did {did}: User not authorized to update one or more of these resources: {resources}"
@@ -731,7 +732,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     f"One or more aliases in request already associated with another GUID: {aliases}"
                 )
 
-    def delete_all_aliases_for_did(self, did):
+    def delete_all_aliases_for_did(self, request, did):
         """
         Delete all of this DID / GUID's aliases.
         """
@@ -746,7 +747,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             # authorization
             try:
                 resources = index_record.authz
-                auth.authorize("delete", resources)
+                auth.authorize("delete", resources, request)
             except AuthError as err:
                 self.logger.warning(
                     f"Auth error while deleting all aliases for did {did}: User not authorized to delete one or more of these resources: {resources}"
@@ -761,7 +762,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             self.logger.info(f"Deleted all aliases for did {did}.")
 
-    def delete_one_alias_for_did(self, alias, did):
+    def delete_one_alias_for_did(self, request, alias, did):
         """
         Delete one of this DID / GUID's aliases.
         """
@@ -776,7 +777,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             # authorization
             try:
                 resources = index_record.authz
-                auth.authorize("delete", resources)
+                auth.authorize("delete", resources, request)
             except AuthError as err:
                 self.logger.warning(
                     f"Auth error deleting alias {alias} for did {did}: User not authorized to delete one or more of these resources: {resources}"
@@ -816,16 +817,6 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.to_document_dict()
 
-    def get_bulk(self, guid_list, expand=True):
-        """
-        Gets records for the the record ids.
-        """
-        with self.session as session:
-            query = session.query(Record)
-            subquery = query.filter(Record.guid.in_(guid_list))
-            compiled_list = [q.to_document_dict() for q in subquery]
-            return compiled_list
-
     def get_with_nonstrict_prefix(self, guid, expand=True):
         """
         Attempt to retrieve a record both with and without a prefix.
@@ -848,7 +839,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
         return record
 
-    def update(self, did, rev, changing_fields):
+    def update(self, request, did, rev, changing_fields):
         """
         Updates an existing record with new values.
         """
@@ -894,7 +885,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             # authorization check: `update` access on old AND new resources
             try:
-                auth.authorize("update", all_authz)
+                auth.authorize("update", all_authz, request)
             except AuthError:
                 self.logger.error(authz_err_msg.format("update", all_authz))
                 raise
@@ -940,7 +931,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.guid, record.baseid, record.rev
 
-    def delete(self, guid, rev):
+    def delete(self, request, guid, rev):
         """
         Removes record if stored by backend.
         """
@@ -958,7 +949,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch("revision mismatch")
 
-            auth.authorize("delete", record.authz)
+            auth.authorize("delete", record.authz, request)
 
             size = record.size if record.size is not None else 0
             update_stats(session, -1, -1 * size)
@@ -967,6 +958,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
     def add_version(
         self,
+        request,
         current_guid,
         form,
         new_did=None,
@@ -1003,7 +995,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
-            auth.authorize("update", record.authz + authz)
+            auth.authorize("update", record.authz + authz, request)
 
             baseid = record.baseid
             record = Record()
@@ -1046,7 +1038,13 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             return record.guid, record.baseid, record.rev
 
     def add_blank_version(
-        self, current_guid, new_did=None, file_name=None, uploader=None, authz=None
+        self,
+        request,
+        current_guid,
+        new_did=None,
+        file_name=None,
+        uploader=None,
+        authz=None,
     ):
         """
         Add a blank record version given did.
@@ -1056,7 +1054,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}' for service 'indexd'."
         if authz:
             try:
-                auth.authorize("create", authz)
+                auth.authorize("create", authz, request)
             except AuthError as err:
                 self.logger.error(authz_err_msg.format("create", authz))
                 raise
@@ -1073,7 +1071,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             old_authz = old_record.authz
             try:
-                auth.authorize("update", old_authz)
+                auth.authorize("update", old_authz, request)
             except AuthError as err:
                 self.logger.error(authz_err_msg.format("update", old_authz))
                 raise
@@ -1146,7 +1144,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
         return ret
 
-    def update_all_versions(self, guid, acl=None, authz=None):
+    def update_all_versions(self, request, guid, acl=None, authz=None):
         """
         Update all record versions with new acl and authz
         """
@@ -1178,7 +1176,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             all_resources = []
             for rec in records:
                 all_resources += rec.authz
-            auth.authorize("update", list(all_resources))
+            auth.authorize("update", list(all_resources), request)
 
             ret = []
             # Update fields for all versions

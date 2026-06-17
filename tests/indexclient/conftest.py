@@ -1,46 +1,50 @@
-import json
+import pytest
 import requests
 from urllib.parse import urlparse
+from fastapi.testclient import TestClient
 
-import pytest
+from indexd.app import get_app
 import indexclient.indexclient.client as indexclient_module
 from indexclient.indexclient.client import IndexClient
-
 from tests.conftest import clear_database
 
 
-# TODO: PD-125 Use indexd_client fixture in place of the client fixture for all tests
 @pytest.fixture(scope="function")
-def indexd_client(app, monkeypatch, user):
-    flask_client = app.test_client()
+def test_client():
+    app = get_app()
+    with TestClient(app) as client:
+        yield client
+
+
+@pytest.fixture(scope="function")
+def indexd_client(test_client, monkeypatch, user):
     baseurl = "http://indexd"
 
     def request(method, url, **kwargs):
         parsed = urlparse(url)
-
-        #
         kwargs.pop("timeout", None)
 
-        if "params" in kwargs:
-            kwargs["query_string"] = kwargs.pop("params")
+        # Fix: Starlette TestClient uses 'params' not 'query_string'
+        if "query_string" in kwargs:
+            kwargs["params"] = kwargs.pop("query_string")
 
         auth = kwargs.pop("auth", None)
         if auth:
             headers = kwargs.setdefault("headers", {})
             headers.setdefault("Content-Type", "application/json")
             headers["Authorization"] = user["Authorization"]
-        flask_resp = flask_client.open(
-            path=parsed.path,
+
+        test_resp = test_client.request(
             method=method,
+            url=parsed.path,
             **kwargs,
         )
-
         resp = requests.Response()
-        resp.status_code = flask_resp.status_code
-        resp._content = flask_resp.get_data()
-        resp.headers = flask_resp.headers
+        resp.status_code = test_resp.status_code
+        resp._content = test_resp.content
+        resp.headers = test_resp.headers
         resp.url = url
-        resp.reason = flask_resp.status
+        resp.reason = getattr(test_resp, "reason", "")
         return resp
 
     monkeypatch.setattr(
@@ -64,9 +68,7 @@ def indexd_client(app, monkeypatch, user):
         "options",
         lambda url, **kw: request("OPTIONS", url, **kw),
     )
-
     yield IndexClient(baseurl=baseurl, auth=("test", "test"))
-
     clear_database()
 
 

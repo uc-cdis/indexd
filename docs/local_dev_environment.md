@@ -130,7 +130,7 @@ You can also view the local [PostgreSQL init.sql](./deployment/scripts/postgresq
 
 ## Installation
 
-The implementation for Indexd utilizes the Flask web framework and (by default) a SQLite3 database. This provides a minimum list of requirements and allows for deployment on a wide range of systems with next to no configuration overhead. That said, it is highly recommended to use pip and a virtualenv to isolate the installation.
+The implementation for Indexd utilizes the Fast API web framework and (by default) a SQLite3 database. This provides a minimum list of requirements and allows for deployment on a wide range of systems with next to no configuration overhead. That said, it is highly recommended to use pip and a virtualenv to isolate the installation.
 
 Prior to installation, you will need to have postgresql installed.
 
