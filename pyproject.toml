@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "indexd"
-version = "6.0.1"
+version = "6.2.2"
 description = "Gen3 Indexing Service"
 authors = ["CTDS UChicago <cdis@uchicago.edu>"]
 license = "Apache-2.0"
