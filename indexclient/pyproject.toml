@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "indexclient"
-version = "6.2.2"
+version = "6.3.0"
 description = ""
 authors = ["CTDS UChicago <cdis@uchicago.edu>"]
 license = "Apache-2.0"
