@@ -101,7 +101,8 @@ def test_get_urls_record():
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     did = create_record()[0]
     result = index_record_migrator.get_urls_record(did)
-    assert result == ["s3://bucket/data.json", "gs://bucket/data.txt"]
+    result.sort()
+    assert result == ["gs://bucket/data.txt", "s3://bucket/data.json"]
 
 
 def test_get_urls_metadata():
