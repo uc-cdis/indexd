@@ -1018,6 +1018,28 @@ paths:
           type: string
       tags:
         - DOS
+  '/ga4gh/drs/v1/service-info':
+    get:
+      tags:
+        - DRS
+      summary: Get DRS service information
+      description: >-
+        Returns DRS 1.5 compliant service information including version,
+        organization, bulk request limits, and aggregate statistics
+        (object count and total size).
+      operationId: GetServiceInfo
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: DRS service information
+          schema:
+            $ref: '#/definitions/DrsServiceInfo'
+        '500':
+          description: An unexpected error occurred
+          schema:
+            $ref: '#/definitions/Error'
+      security: []
   '/ga4gh/drs/v1/objects':
     get:
       summary: List all DrsObject.
@@ -1385,6 +1407,72 @@ securityDefinitions:
     name: Authorization
     in: header
 definitions:
+  DrsServiceInfo:
+    type: object
+    required:
+      - id
+      - name
+      - version
+      - type
+      - organization
+      - drs
+      - maxBulkRequestLength
+    properties:
+      id:
+        type: string
+        description: Unique ID of the service (reverse domain name)
+        example: "io.gen3.mycommons"
+      name:
+        type: string
+        description: Human-readable name of the service
+        example: "DRS System"
+      version:
+        type: string
+        description: Version of the DRS service
+        example: "1.5.0"
+      type:
+        type: object
+        properties:
+          group:
+            type: string
+            example: "org.ga4gh"
+          artifact:
+            type: string
+            example: "drs"
+          version:
+            type: string
+            example: "1.5.0"
+      organization:
+        type: object
+        properties:
+          name:
+            type: string
+            example: "CTDS"
+          url:
+            type: string
+            example: "https://mycommons.org"
+      maxBulkRequestLength:
+        type: integer
+        description: "(Deprecated in DRS 1.5) Maximum number of objects in a single bulk request"
+        example: 100
+      drs:
+        type: object
+        required:
+          - maxBulkRequestLength
+        properties:
+          maxBulkRequestLength:
+            type: integer
+            description: Maximum number of objects in a single bulk DRS request (>= 1)
+            example: 100
+          objectCount:
+            type: integer
+            description: Total number of objects in the DRS service
+            example: 774560
+          totalObjectSize:
+            type: integer
+            format: int64
+            description: Total size in bytes of all objects in the DRS service
+            example: 4018437188907752
   GetGUIDsOutput:
     type: object
     properties:

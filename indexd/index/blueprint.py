@@ -10,6 +10,8 @@ from indexd import auth
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 
+from indexd.utils import get_bucket_regions, lookup_bucket_region
+
 from .schema import PUT_RECORD_SCHEMA
 from .schema import POST_RECORD_SCHEMA
 from .schema import RECORD_ALIAS_SCHEMA
@@ -31,6 +33,7 @@ blueprint = flask.Blueprint("index", __name__)
 blueprint.config = dict()
 blueprint.index_driver = None
 blueprint.dist = []
+blueprint.cloud_provider_map = {}
 
 ACCEPTABLE_HASHES = {
     "md5": re.compile(r"^[0-9a-f]{32}$").match,
@@ -374,6 +377,23 @@ def get_index_record(record):
     Returns a record.
     """
     ret = blueprint.index_driver.get_with_nonstrict_prefix(record)
+    urls_meta = ret.get("urls_metadata", [])
+    if urls_meta:
+        for location, metadata in urls_meta.items():
+            location_type = location.split(":")[0]
+            cloud = blueprint.cloud_provider_map.get(location_type)
+            urls_meta[location]["cloud"] = cloud
+            if "region" not in metadata.keys():
+                bucket_regions = get_bucket_regions()
+                bucket_name = metadata.get("bucket")
+                if bucket_name:
+                    region = lookup_bucket_region(bucket_name, bucket_regions)
+                    urls_meta[location]["region"] = region
+
+            if "available" not in metadata.keys():
+                urls_meta[location][
+                    "available"
+                ] = True  # default to True if not specified
 
     return flask.jsonify(ret), 200
 
@@ -851,3 +871,9 @@ def get_config(setup_state):
     blueprint.index_driver = config["driver"]
     if "DIST" in setup_state.app.config:
         blueprint.dist = setup_state.app.config["DIST"]
+
+
+@blueprint.record
+def get_config(setup_state):
+    if "CLOUD_PROVIDER_MAP" in setup_state.app.config:
+        blueprint.cloud_provider_map = setup_state.app.config["CLOUD_PROVIDER_MAP"]

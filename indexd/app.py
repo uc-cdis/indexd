@@ -18,6 +18,7 @@ from .drs.blueprint import blueprint as indexd_guid_blueprint
 from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
+from cachelib import SimpleCache
 
 
 logger = cdislogging.get_logger("indexd", log_level="debug")
@@ -49,14 +50,6 @@ def app_init(app, settings=None):
     else:
         logger.info("Auto migrations are disabled")
 
-    # Alembic may disable existing loggers. Re-apply cdislogging config after migrations.
-    cdislogging.get_logger(
-        "indexd",
-        log_level="debug" if app.config.get("DEBUG") is True else "info",
-    ).disabled = False
-    enable_indexd_loggers()
-    logger.info("indexd logging initialized")
-
     validate_config(settings)
 
     app.auth = settings["auth"]
@@ -69,6 +62,14 @@ def app_init(app, settings=None):
     app.register_blueprint(indexd_guid_blueprint)
     app.register_blueprint(cross_blueprint)
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
+    app.cache = SimpleCache(default_timeout=1800)
+    # Alembic may disable existing loggers. Re-apply cdislogging config after migrations.
+    cdislogging.get_logger(
+        "indexd",
+        log_level="debug" if app.config.get("DEBUG") is True else "info",
+    ).disabled = False
+    enable_indexd_loggers()
+    logger.info("indexd logging initialized")
 
 
 def enable_indexd_loggers():
