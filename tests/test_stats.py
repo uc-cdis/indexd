@@ -35,7 +35,7 @@ def _get_stats(client):
     """Fetch current stats from the API."""
     res = client.get("/_stats/")
     assert res.status_code == 200
-    data = res.json
+    data = res.json()
     count = data["fileCount"]
     size = data["totalFileSize"]
     return count, size
@@ -46,7 +46,7 @@ def _create_record(client, user, size=123):
     data = get_doc(size=size)
     res = client.post("/index/", json=data, headers=user)
     assert res.status_code == 200
-    return res.json
+    return res.json()
 
 
 def _delete_record(client, user, did, rev):
@@ -58,10 +58,11 @@ def _delete_record(client, user, did, rev):
     assert res.status_code == 200
 
 
-def test_stat_updates(client, user, combined_default_and_single_table_settings):
+def test_stat_updates(app_client, user, combined_default_and_single_table_settings):
     """
     Verify that multiple record creates result in correct stats.
     """
+    _, client = app_client
     num_records = 10
     record_size = 50
 
@@ -190,15 +191,17 @@ def test_update_stats_carries_over_from_previous_month(
     engine.dispose()
 
 
-def test_size_update(client, user, combined_default_and_single_table_settings):
+def test_size_update(app_client, user, combined_default_and_single_table_settings):
     """
     Create a blank record, size=None, then fill it with a size with
     PUT /index/blank/{did}, and verify that stats reflect correctly.
     """
+    _, client = app_client
+
     blank_data = {"uploader": "testuser", "file_name": "test_size_change.txt"}
     res = client.post("/index/blank/", json=blank_data, headers=user)
     assert res.status_code == 201
-    blank_rec = res.json
+    blank_rec = res.json()
 
     after_blank_count, after_blank_size = _get_stats(client)
     assert after_blank_count == 1
@@ -224,11 +227,15 @@ def test_size_update(client, user, combined_default_and_single_table_settings):
     assert after_fill_size == 250
 
 
-def test_historical_queries(client, user, combined_default_and_single_table_settings):
+def test_historical_queries(
+    app_client, user, combined_default_and_single_table_settings
+):
     """
     Insert StatsRecord rows for past months, then query
     /_stats?month=X&year=Y and verify correct values.
     """
+    _, client = app_client
+
     engine = create_engine(POSTGRES_CONNECTION)
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -253,16 +260,20 @@ def test_historical_queries(client, user, combined_default_and_single_table_sett
 
     res = client.get(f"/_stats/?month={past_month}&year={past_year}")
     assert res.status_code == 200
-    data = res.json
+    data = res.json()
     assert data["fileCount"] == 42
     assert data["totalFileSize"] == 999999
 
 
-def test_historical_adjacent_months(client, combined_default_and_single_table_settings):
+def test_historical_adjacent_months(
+    app_client, combined_default_and_single_table_settings
+):
     """
     Insert stats rows for months M-1, M, and M+1 with distinct values.
     Query for month M and verify the correct row is returned.
     """
+    _, client = app_client
+
     engine = create_engine(POSTGRES_CONNECTION)
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -288,16 +299,18 @@ def test_historical_adjacent_months(client, combined_default_and_single_table_se
 
     res = client.get("/_stats/?month=3&year=2020")
     assert res.status_code == 200
-    data = res.json
+    data = res.json()
     assert data["fileCount"] == 20
     assert data["totalFileSize"] == 2000
 
 
-def test_historical_gap_query(client, combined_default_and_single_table_settings):
+def test_historical_gap_query(app_client, combined_default_and_single_table_settings):
     """
     Insert stats rows for January and March 2020 (skip February).
     Query for February 2020, should return January's row.
     """
+    _, client = app_client
+
     engine = create_engine(POSTGRES_CONNECTION)
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -322,15 +335,17 @@ def test_historical_gap_query(client, combined_default_and_single_table_settings
 
     res = client.get("/_stats/?month=2&year=2020")
     assert res.status_code == 200
-    data = res.json
+    data = res.json()
     assert data["fileCount"] == 50
     assert data["totalFileSize"] == 5000
 
 
-def test_query_before_first_row(client, combined_default_and_single_table_settings):
+def test_query_before_first_row(app_client, combined_default_and_single_table_settings):
     """
     Insert a stats row for 2020. Querying for 2010 should return counts of 0.
     """
+    _, client = app_client
+
     engine = create_engine(POSTGRES_CONNECTION)
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -348,17 +363,18 @@ def test_query_before_first_row(client, combined_default_and_single_table_settin
 
     res = client.get("/_stats/?month=2&year=2010")
     assert res.status_code == 200
-    data = res.json
+    data = res.json()
     assert data["fileCount"] == 0
     assert data["totalFileSize"] == 0
 
 
 def test_query_requires_both_month_and_year(
-    client, combined_default_and_single_table_settings
+    app_client, combined_default_and_single_table_settings
 ):
     """
     Verify the API returns an error when only month or only year is provided.
     """
+    _, client = app_client
     res = client.get("/_stats/?month=6")
     assert res.status_code == 400
 
@@ -369,10 +385,12 @@ def test_query_requires_both_month_and_year(
     assert res.status_code == 200
 
 
-def test_stats_empty_table(client, combined_default_and_single_table_settings):
+def test_stats_empty_table(app_client, combined_default_and_single_table_settings):
     """
     When the stats table is empty, get_stats() should return (0, 0)
     """
+    _, client = app_client
+
     engine = create_engine(POSTGRES_CONNECTION)
     Session = sessionmaker(bind=engine)
 
@@ -384,7 +402,7 @@ def test_stats_empty_table(client, combined_default_and_single_table_settings):
 
     res = client.get("/_stats/")
     assert res.status_code == 200
-    data = res.json
+    data = res.json()
 
     assert data["fileCount"] == 0
     assert data["totalFileSize"] == 0
@@ -631,10 +649,12 @@ def test_seed_stats_from_connection_empty_table(
     engine.dispose()
 
 
-def test_index_stats(client, user, combined_default_and_single_table_settings):
+def test_index_stats(app_client, user, combined_default_and_single_table_settings):
     """
     create records, verify counts, query future month.
     """
+    _, client = app_client
+
     _create_record(client, user, size=123)
     _create_record(client, user, size=77)
     _create_record(client, user, size=300)
@@ -650,17 +670,19 @@ def test_index_stats(client, user, combined_default_and_single_table_settings):
     future_year = now.year if now.month < 12 else now.year + 1
     res = client.get(f"/_stats/?month={future_month}&year={future_year}")
     assert res.status_code == 200
-    future_data = res.json
+    future_data = res.json()
     assert future_data["fileCount"] == 3
     assert future_data["totalFileSize"] == expected_size
 
 
 def test_stats_decrease_on_delete(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """
     Verify that deleting records correctly decrements stats.
     """
+    _, client = app_client
+
     rec1 = _create_record(client, user, size=100)
     rec2 = _create_record(client, user, size=200)
     rec3 = _create_record(client, user, size=300)

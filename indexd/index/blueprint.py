@@ -40,7 +40,7 @@ ACCEPTABLE_HASHES = {
 
 def set_index_config(app):
     router.index_driver = app.settings["config"]["INDEX"]["driver"]
-    router.dist = app.settings.get("DIST", [])
+    router.dist = app.settings["config"].get("DIST", [])
 
 
 def validate_hashes(**hashes):
@@ -394,7 +394,7 @@ async def post_index_blank_record(request: Request):
     """
     Create a blank new record with only uploader and optionally file_name fields filled
     """
-    body = await request.json()
+    body = await request.json() or {}
     uploader = body.get("uploader")
     file_name = body.get("file_name")
     authz = body.get("authz")
@@ -413,7 +413,7 @@ async def add_index_blank_record_version(record: str, request: Request):
     Only uploader and optionally file_name fields are filled.
     Returns the GUID of the new blank version and the baseid common to all versions of the record.
     """
-    body = await request.json()
+    body = await request.json() or {}
     new_did = body.get("did")
     uploader = body.get("uploader")
     file_name = body.get("file_name")
@@ -480,7 +480,7 @@ async def delete_index_record(record: str, request: Request):
     rev = request.query_params.get("rev")
     if rev is None:
         raise UserError("No revision specified.")
-    router.index_driver.delete(record, rev)
+    router.index_driver.delete(request, record, rev)
     return JSONResponse(content=None, status_code=200)
 
 
@@ -538,13 +538,17 @@ async def add_index_record_version(record: str, request: Request):
 
 
 @router.get("/_dist")
+@router.get("/_dist/")
 async def get_dist_config():
     """
     Returns the dist configuration
     """
+    print("!!!!!!!!!!!!!!!!!!!!!!!")
+    print(router.dist)
     return JSONResponse(content=router.dist, status_code=200)
 
 
+@router.get("/_status/")
 @router.get("/_status")
 async def health_check():
     """
@@ -555,6 +559,7 @@ async def health_check():
 
 
 @router.get("/_stats")
+@router.get("/_stats/")
 async def stats(request: Request):
     """
     Return indexed data stats.

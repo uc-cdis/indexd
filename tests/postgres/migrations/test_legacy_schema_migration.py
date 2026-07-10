@@ -8,6 +8,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 import sqlite3
 import tests.util as util
+
 from indexd.index.drivers.alchemy import (
     SQLAlchemyIndexDriver,
     IndexSchemaVersion,
@@ -82,7 +83,8 @@ def update_version_table_for_testing(tb_name, val):
         )
 
 
-def test_migrate_acls(indexd_client, user, postgres_driver):
+def test_migrate_acls(app_client, user, postgres_driver):
+    app, client = app_client
     data = {
         "form": "object",
         "size": 123,
@@ -92,8 +94,8 @@ def test_migrate_acls(indexd_client, user, postgres_driver):
     }
 
     # create the record
-    res = indexd_client.post("/index/", json=data, headers=user)
-    rec = res.json
+    res = client.post("/index/", json=data, headers=user)
+    rec = res.json()
     assert res.status_code == 200
 
     # migrate
@@ -101,8 +103,8 @@ def test_migrate_acls(indexd_client, user, postgres_driver):
         migrate_7(session)
 
     # check that the record has been migrated
-    res = indexd_client.get("/" + rec["did"])
-    rec = res.json
+    res = client.get("/" + rec["did"])
+    rec = res.json()
     assert res.status_code == 200
     assert rec["acl"] == ["a", "b"]
     assert rec["metadata"] == {}

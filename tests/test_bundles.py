@@ -81,19 +81,19 @@ def test_bundle_get_post_with_optional_fields(
     data["aliases"] = ["123", "456"]
 
     res2 = client.post("/bundle/", json=data, headers=user)
-    rec2 = res2.json
+    rec2 = res2.json()
     did = rec2["bundle_id"]
     assert res2.status_code == 200
 
     res3 = client.get("/ga4gh/drs/v1/objects/" + did)
-    rec3 = res3.json
+    rec3 = res3.json()
     assert res3.status_code == 200
     assert rec3["description"] == data["description"]
     assert rec3["version"] == data["version"]
     assert rec3["aliases"] == data["aliases"]
 
     res4 = client.get("/bundle/" + did)
-    rec4 = res4.json
+    rec4 = res4.json()
     assert res4.status_code == 200
     assert rec4["description"] == data["description"]
     assert rec4["version"] == data["version"]
@@ -168,7 +168,7 @@ def test_bundle_post_different_checksum_types(
     res = client.post("/bundle/", json=data, headers=user)
     assert res.status_code == 200
     res1 = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
-    rec1 = res1.json
+    rec1 = res1.json()
     assert rec1["checksums"][0] == {
         "checksum": "85136c79cbf9fe36bb9d05d0639c70c265c18d37",
         "type": "sha1",
@@ -197,7 +197,7 @@ def test_bundle_post_multiple_checksum_types(
     assert res.status_code == 200
 
     res = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
-    rec = res.json
+    rec = res.json()
     checksums = rec["checksums"]
     for checksum in checksums:
         assert checksum in [
@@ -299,7 +299,7 @@ def test_bundle_get(app_client, user, combined_default_and_single_table_settings
     _, client = app_client
     did_list, rec = create_index(client, user)
     res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"])
-    rec1 = res1.json
+    rec1 = res1.json()
     bundle_id = str(uuid.uuid4())
     data = get_bundle_doc(did_list, bundle_id=bundle_id)
 
@@ -308,7 +308,7 @@ def test_bundle_get(app_client, user, combined_default_and_single_table_settings
 
     res2 = client.get("/bundle/" + bundle_id)
     assert res2.status_code == 200
-    rec2 = res2.json
+    rec2 = res2.json()
 
     assert rec2["id"] == bundle_id
     assert rec2["name"] == data["name"]
@@ -328,7 +328,7 @@ def test_bundle_get_form_type(
     _, client = app_client
     did_list, rec = create_index(client, user)
     res1 = client.get("/ga4gh/drs/v1/objects/" + rec["did"])
-    rec1 = res1.json
+    rec1 = res1.json()
     rec1["form"] = "object"
     bundle_id = str(uuid.uuid4())
     data = get_bundle_doc(did_list, bundle_id=bundle_id)
@@ -339,7 +339,7 @@ def test_bundle_get_form_type(
     res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
     assert res2.status_code == 200
 
-    rec2 = res2.json
+    rec2 = res2.json()
     assert rec2["form"] == "bundle"
 
 
@@ -372,7 +372,7 @@ def test_bundle_get_expand_false(
     assert res1.status_code == 200
 
     res2 = client.get("/bundle/" + bundle_id + "?expand=false")
-    rec2 = res2.json
+    rec2 = res2.json()
     assert res2.status_code == 200
     assert rec2["id"] == bundle_id
     assert rec2["name"] == data["name"]
@@ -443,19 +443,19 @@ def test_get_bundle_list(app_client, user, combined_default_and_single_table_set
 
     res3 = client.get("/bundle/")
     assert res3.status_code == 200
-    rec3 = res3.json
+    rec3 = res3.json()
     assert len(rec3["records"]) == n_bundles
     # check to see bundle_data is not included
     assert "bundle_data" not in rec3["records"][0]
 
     res4 = client.get("/bundle/?form=object")
     assert res4.status_code == 200
-    rec4 = res4.json
+    rec4 = res4.json()
     assert len(rec4["records"]) == n_records
 
     res5 = client.get("/bundle/?form=all")
     assert res5.status_code == 200
-    rec5 = res5.json
+    rec5 = res5.json()
     assert len(rec5["records"]) == n_records + n_bundles
 
 
@@ -484,7 +484,7 @@ def test_multiple_bundle_data(
     res3 = client.get("/bundle/" + bundle_id + "?expand=true")
     assert res3.status_code == 200
 
-    rec3 = res3.json
+    rec3 = res3.json()
     bundle_data = rec3["contents"]
     assert len(rec3["contents"]) == n_bundle_data
 
@@ -508,7 +508,7 @@ def test_bundle_delete(app_client, user, combined_default_and_single_table_setti
 
     res3 = client.get("/bundle/")
     assert res3.status_code == 200
-    rec3 = res3.json
+    rec3 = res3.json()
     assert len(rec3["records"]) == n_records
 
     for i in range(n_delete):
@@ -519,7 +519,7 @@ def test_bundle_delete(app_client, user, combined_default_and_single_table_setti
 
     res3 = client.get("/bundle/")
     assert res3.status_code == 200
-    rec3 = res3.json
+    rec3 = res3.json()
     assert len(rec3["records"]) == n_records - n_delete
 
 
@@ -537,7 +537,7 @@ def test_bundle_delete_no_bundle_id(
 ):
     _, client = app_client
     res = client.delete("/bundle/", headers=user)
-    assert res.status_code == 405
+    assert res.status_code == 404
 
 
 def test_bundle_data_bundle_and_index(
@@ -575,7 +575,7 @@ def test_bundle_data_bundle_and_index(
 
     res2 = client.get("/bundle/" + bundle_id_main + "?expand=true")
     assert res2.status_code == 200
-    rec3 = res2.json
+    rec3 = res2.json()
 
     assert len(rec3["contents"]) == 2 * n_records
 
@@ -612,7 +612,7 @@ def test_nested_bundle_data(
     assert base_bundle_id == bundle_id
     res2 = client.get("/bundle/" + bundle_id + "?expand=true")
     assert res2.status_code == 200
-    rec3 = res2.json
+    rec3 = res2.json()
 
     for _ in range(n_nested):
         check = "bundle_data" in rec3 or "contents" in rec3
@@ -632,12 +632,12 @@ def test_bundle_no_bundle_name(
     del data["name"]
     res = client.post("/bundle/", json=data, headers=user)
     assert res.status_code == 200
-    rec = res.json
+    rec = res.json()
     assert rec["bundle_id"] == bundle_id
     assert rec["name"] == bundle_id
 
 
-def build_bundle(app_client, user):
+def build_bundle(client, user):
     """
     bundle1
         +-object1
@@ -651,7 +651,6 @@ def build_bundle(app_client, user):
                     +-bundle6
                         +-object5
     """
-    _, client = app_client
     object_list = []
     n_objects = 5
     for _ in range(n_objects):
@@ -710,7 +709,7 @@ def test_get_drs_expand_contents_default(
 
     res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id)
     assert res2.status_code == 200
-    rec2 = res2.json
+    rec2 = res2.json()
 
     contents = rec2["contents"]
     assert len(contents) == 3
@@ -726,7 +725,7 @@ def test_get_drs_expand_contents_false(
 
     res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id + "?expand=false")
     assert res2.status_code == 200
-    rec2 = res2.json
+    rec2 = res2.json()
 
     contents = rec2["contents"][0].get("contents", [])
     assert len(contents) == 0
@@ -742,7 +741,7 @@ def test_get_drs_expand_contents_true(
 
     res2 = client.get("/ga4gh/drs/v1/objects/" + bundle_id + "?expand=true")
     assert res2.status_code == 200
-    rec2 = res2.json
+    rec2 = res2.json()
 
     contents = rec2["contents"]
 

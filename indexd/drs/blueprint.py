@@ -69,6 +69,7 @@ async def get_drs_object(object_id: str, request: Request):
 
 
 @router.get("/ga4gh/drs/v1/objects")
+@router.get("/ga4gh/drs/v1/objects/")
 async def list_drs_records(request: Request):
     limit = request.query_params.get("limit")
     start = request.query_params.get("start")

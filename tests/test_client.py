@@ -1683,7 +1683,12 @@ def test_unauthorized_create(app_client, combined_default_and_single_table_setti
     _, client = app_client
     # test that unauthorized post throws 403 error
     data = get_doc()
-    res = client.post("/index/", json=data)
+    header = {
+        "Authorization": "Basic "
+        + base64.b64encode(b"unauthorizeduser:unauthorizeduser").decode("ascii"),
+        "Content-Type": "application/json",
+    }
+    res = client.post("/index/", json=data, headers=header)
     assert res.status_code == 403
 
 
@@ -2772,16 +2777,11 @@ def test_bulk_get_documents(
 @pytest.mark.parametrize("authz", [["/some/path"], []])
 def test_indexd_admin_authz(
     app_client,
+    user,
     mock_arborist_requests,
     authz,
     combined_default_and_single_table_settings,
 ):
-    """
-    Test that admin users can perform an operation even if they don't
-    have explicit access to do it.
-    Test edge case `authz = []`: if the `authz` is empty, admins should
-    still be able to perform operations on the record.
-    """
     _, client = app_client
     data = get_doc()
     data["authz"] = authz
@@ -2789,22 +2789,22 @@ def test_indexd_admin_authz(
     # user has no access => unauthorized
     mock_arborist_requests()
     res = client.post("/index/", json=data)
-    assert res.status_code == 401  # unauthorized
+    assert res.status_code == 401
 
     # user has admin access => authorized
     mock_arborist_requests(
         resource_method_to_authorized={"/services/indexd/admin": {"create": True}}
     )
-    res = client.post("/index/", json=data)
-    assert res.status_code == 200  # authorized
+    res = client.post("/index/", json=data, headers=user)
+    assert res.status_code == 200
 
     # user has old admin access => authorized (backwards compatibility test)
     if not authz:
         mock_arborist_requests(
             resource_method_to_authorized={"/programs": {"create": True}}
         )
-        res = client.post("/index/", json=data)
-        assert res.status_code == 200  # authorized
+        res = client.post("/index/", json=data, headers=user)
+        assert res.status_code == 200
 
 
 def test_status_check(app_client, combined_default_and_single_table_settings):

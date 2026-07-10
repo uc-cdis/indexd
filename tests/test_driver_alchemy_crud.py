@@ -914,7 +914,7 @@ def _test_driver_update_record():
             "version": version,
         }
 
-        driver.update(did, rev, changing_fields)
+        driver.update(None, did, rev, changing_fields)
 
         new_did, new_rev, new_file_name, new_version = conn.execute(
             """
@@ -987,7 +987,9 @@ def test_driver_update_fails_with_invalid_id():
         )
 
         with pytest.raises(NoRecordFound):
-            driver.update("some_record_that_does_not_exist", "some_record_version", rev)
+            driver.update(
+                None, "some_record_that_does_not_exist", "some_record_version", rev
+            )
 
 
 def test_driver_update_fails_with_invalid_rev():
@@ -1015,7 +1017,7 @@ def test_driver_update_fails_with_invalid_rev():
         )
 
         with pytest.raises(RevisionMismatch):
-            driver.update(did, baseid, "some_revision")
+            driver.update(None, did, baseid, "some_revision")
 
 
 def test_driver_delete_record(
@@ -1048,7 +1050,7 @@ def _test_driver_delete_record():
             ),
         )
 
-        driver.delete(did, rev)
+        driver.delete(None, did, rev)
 
         count = conn.execute(
             """
@@ -1066,7 +1068,7 @@ def test_driver_delete_fails_with_no_records():
     driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
 
     with pytest.raises(NoRecordFound):
-        driver.delete("some_record_that_does_not_exist", "some_revision")
+        driver.delete(None, "some_record_that_does_not_exist", "some_revision")
 
 
 def test_driver_delete_fails_with_invalid_id():
@@ -1094,7 +1096,7 @@ def test_driver_delete_fails_with_invalid_id():
         )
 
         with pytest.raises(NoRecordFound):
-            driver.delete("some_record_that_does_not_exist", rev)
+            driver.delete(None, "some_record_that_does_not_exist", rev)
 
 
 def test_driver_delete_fails_with_invalid_rev():
@@ -1122,7 +1124,7 @@ def test_driver_delete_fails_with_invalid_rev():
         )
 
         with pytest.raises(RevisionMismatch):
-            driver.delete(did, "some_revision")
+            driver.delete(None, did, "some_revision")
 
 
 def test_driver_get_bundle():

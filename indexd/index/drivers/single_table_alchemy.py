@@ -494,8 +494,6 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound(
                     'guid "{guid}" already exists'.format(guid=record.guid)
                 )
-            except Exception as e:
-                print(e)
 
             return record.guid, record.rev, record.baseid
 
@@ -1069,7 +1067,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
 
-            old_authz = old_record.authz
+            old_authz = old_record.authz if old_record.authz else []
             try:
                 auth.authorize("update", old_authz, request)
             except AuthError as err:
@@ -1091,16 +1089,14 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             new_record.guid = guid
             new_record.baseid = old_record.baseid
             new_record.rev = str(uuid.uuid4())[:8]
-            new_record.file_name = old_record.file_name
-            new_record.uploader = old_record.uploader
-
+            new_record.file_name = file_name
+            new_record.uploader = uploader
             new_record.acl = []
             if not authz:
                 authz = old_authz
                 old_acl = old_record.acl
                 new_record.acl = old_acl
             new_record.authz = authz
-
             try:
                 session.add(new_record)
                 update_stats(session, 1, 0)

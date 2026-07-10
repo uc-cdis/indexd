@@ -1,5 +1,5 @@
 import base64
-from .errors import AuthError
+from .errors import AuthzError
 from ..errors import UserError
 
 from functools import wraps
@@ -11,16 +11,15 @@ security = HTTPBasic(auto_error=False)
 
 
 def authorize(method: str, resources: list, request: Request):
-    """
-    Direct authz check (non-decorator). Used when method + resources are known.
-    Checks Arborist if no Basic Auth present, otherwise falls back to basic auth check.
-    """
+    if not isinstance(resources, list):
+        raise UserError(f"'authz' must be a list, received '{resources}'.")
+
     credentials = _get_basic_credentials(request)
     if credentials:
+        # Basic Auth present: only validate credentials, skip arborist
         request.app.auth.auth(credentials.username, credentials.password)
     else:
-        if not isinstance(resources, list):
-            raise UserError(f"'authz' must be a list, received '{resources}'.")
+        # No Basic Auth: check arborist
         request.app.auth.authz(method, list(set(resources)))
 
 
@@ -33,7 +32,7 @@ def authorize_decorator(
     Raises AuthError if authorization fails.
     """
     if not credentials:
-        raise AuthError("Username / password required.")
+        raise AuthzError("Username / password required.")
     request.app.auth.auth(credentials.username, credentials.password)
 
 

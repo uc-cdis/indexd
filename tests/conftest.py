@@ -102,9 +102,7 @@ def combined_default_and_single_table_settings(request):
         **default_settings.settings,
         **default_test_settings.settings,
     }
-    app = get_app(default_settings.settings)
-    client = TestClient(app)
-    yield client
+    yield get_app(default_settings.settings)
     try:
         clear_database()
     except Exception as e:
@@ -121,9 +119,9 @@ def app_client():
         **default_settings.settings,
         **default_test_settings.settings,
     }
-    appobj = get_app()
-    client = TestClient(appobj)
-    yield appobj, client
+    app = get_app()
+    client = TestClient(app)
+    yield app, client
     try:
         clear_database()
     except Exception as e:
@@ -155,7 +153,7 @@ def use_mock_authz(app_client, request):
     """
     Fixture for enabling mocking of indexd authz system. ...
     """
-    appobj, client = app_client
+    app, _ = app_client
 
     def _use_mock_authz(allowed_permissions=None):
         if allowed_permissions is None:
@@ -170,7 +168,7 @@ def use_mock_authz(app_client, request):
                             f"Mock indexd.auth.authz: ({method},{resource}) is not in allowed permissions ({allowed_permissions})"
                         )
 
-        patched_authz = patch.object(appobj.auth, "authz", side_effect=mock_authz)
+        patched_authz = patch.object(app.auth, "authz", side_effect=mock_authz)
         patched_authz.start()
         request.addfinalizer(patched_authz.stop)
 
@@ -179,42 +177,65 @@ def use_mock_authz(app_client, request):
 
 @pytest.fixture(scope="function")
 def mock_arborist_requests(app_client, request):
-    """
-    This fixture returns a function which you call to mock the call to
-    arborist client's auth_request method. ...
-    """
     appobj, client = app_client
     arborist_base_url = "arborist"
     appobj.auth.arborist = ArboristClient(arborist_base_url=arborist_base_url)
 
-    def do_patch(resource_method_to_authorized={}):
-        def make_mock_response(method, url, *args, **kwargs):
-            method = method.upper()
-            mocked_response = mock.MagicMock(requests.Response)
-            if url != f"{arborist_base_url}/auth/request":
-                mocked_response.status_code = 404
-                mocked_response.text = "NOT FOUND"
-            elif method != "POST":
-                mocked_response.status_code = 405
-                mocked_response.text = "METHOD NOT ALLOWED"
-            else:
-                authz_res, authz_met = None, None
-                authz_requests = kwargs["json"]["requests"]
-                if authz_requests:
-                    authz_res = authz_requests[0]["resource"]
-                    authz_met = authz_requests[0]["action"]["method"]
-                authorized = resource_method_to_authorized.get(authz_res, {}).get(
-                    authz_met, False
-                )
-                mocked_response.status_code = 200
-                mocked_response.json.return_value = {"auth": authorized}
-            return mocked_response
+    # Patch auth once for the entire test
+    patched_auth = patch.object(appobj.auth, "auth", return_value=None)
+    patched_auth.start()
+    request.addfinalizer(patched_auth.stop)
 
-        mocked_method = mock.MagicMock(side_effect=make_mock_response)
-        patch_method = patch(
-            "gen3authz.client.arborist.client.httpx.Client.request", mocked_method
+    # Also patch get_jwt_token to avoid token errors in tests
+    patched_jwt = patch(
+        "indexd.auth.drivers.alchemy.get_jwt_token", return_value="mock_token"
+    )
+    patched_jwt.start()
+    request.addfinalizer(patched_jwt.stop)
+
+    active_arborist_patch = []
+
+    def do_patch(resource_method_to_authorized={}):
+        for p in active_arborist_patch:
+            p.stop()
+        active_arborist_patch.clear()
+
+        def mock_auth_request(token, service, method, resource):
+            # resource can be a list or a string
+            print(
+                f"DEBUG mock_auth_request CALLED: method={method}, resource={resource}"
+            )
+            print(
+                f"DEBUG resource_method_to_authorized={resource_method_to_authorized}"
+            )
+            resources = resource if isinstance(resource, list) else [resource]
+            for res in resources:
+                authorized = resource_method_to_authorized.get(res, {}).get(
+                    method, False
+                )
+                if authorized:
+                    return True
+            return False
+
+        patched_arborist = patch.object(
+            appobj.auth.arborist, "auth_request", side_effect=mock_auth_request
         )
-        patch_method.start()
-        request.addfinalizer(patch_method.stop)
+        patched_arborist.start()
+        active_arborist_patch.append(patched_arborist)
+
+    def stop_all():
+        for p in active_arborist_patch:
+            p.stop()
+        active_arborist_patch.clear()
+
+    request.addfinalizer(stop_all)
 
     return do_patch
+
+
+@pytest.fixture
+def skip_authz():
+    orig = auth.authorize
+    auth.authorize = lambda *x: x
+    yield
+    auth.authorize = orig
