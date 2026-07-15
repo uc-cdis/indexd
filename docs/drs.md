@@ -29,45 +29,120 @@ The DRS API supports a variety of different content acccess policies, depending 
     - server provides an `access_url` with the generated mechanism (e.g. a signed URL in the url field)
     - caller fetches the object bytes from the url (passing auth info from the specified headers, if any)
 
+## Configuring access_method metadata
+1. `cloud` is inferred from the protocol for each url defined for the DrsObject. `CLOUD_PROVIDER_MAP` environment variable can be used to detail the mapping of protocol and domain to the cloud provider.
+2. `region` is determined by the region configured in fence for `S3_BUCKETS` and `GS_BUCKETS` for the bucket within each url for the DrsObjects. These can also be provided as urls_metadata for url.
+3. `available` is determined by the urls_metadata for each url. Defaults to `true`.
+4. `authorizations` are determined by the `DRS_AUTHORIZATION_METADATA` environment variable. This maps the IndexD record's `authz` to the issuers and supported types. If this mapping is not provided, the `DEFAULT_BEARER_ISSUER` will be used along with the `DEFAULT_PASSPORT_ISSUER` if provided. In gen3-helm, if `DEFAULT_BEARER_ISSUER` is not provided, it will default to the fence token issuer.
+
+**Example CLOUD_PROVIDER_MAP**
+```json
+{
+   "s3": "aws",
+   "gs": "gcp",
+   "az":  "azure",
+   "https": {
+       "m3.aicommons.com/ai": "aws",
+       "storage.googleapis.com": "gcp"
+   }
+}
+```
+
+**Example urls_metadata**
+Below is an example for using urls_metadata to provide cloud, region and available manually for a URL of a DrsObject
+```json
+  "urls_metadata": {
+    "https://m3.aicommons.com/ai": {
+      "region": "us-east-1",
+      "cloud": "aws",
+      "available": false
+    }
+  }
+```
+
+**Example of DRS_AUTHORIZATION_METADATA**
+Below is an example of how to configure the issuer information for a given `authz` resource. This will apply to all DrsObjects
+where an underyling IndexD record's `authz` matches the resources listed in this map.
+
+If an IndexD record's `authz` is not listed, the `DEFAULT_BEARER_ISSUER` and `DEFAULT_PASSPORT_ISSUER` will be used.
+```json
+{
+    "/gen3/programs/a/projects/b": {
+        "supported_types": ["BearerAuth", "PassportAuth"],
+        "passport_auth_issuers": [
+            "https://ras/foo/bar",
+            "https://ras/foo/bar",
+            "https://ras/foo/bar/bar"
+        ],
+        "bearer_auth_issuers": [
+            "https://gen3.datacommons.io",
+            "https://gen3.datacommons.io",
+            "sample_url"
+        ]
+    },
+    "/gen3/programs/c/projects/d": {
+        "supported_types": ["BearerAuth", "PassportAuth"],
+        "passport_auth_issuers": [
+            "sample_url_c_one",
+            "sample_url_c_one",
+            "sample_url_c_two"
+        ],
+        "bearer_auth_issuers": [
+            "sample_url_d_one",
+            "sample_url_d_one",
+            "sample_url_d_two"
+        ]
+    }
+}
+```
+
 **Example Blob DrsObject:**
 ```javascript
 {
-    "access_methods": [
-        {
-            "access_id": "gs",
-            "access_url": {
-                "url": "gs://some-bucket/File-A"
-            },
-            "region": "",
-            "type": "gs"
-        },
-        {
-            "access_id": "s3",
-            "access_url": {
-                "url": "s3:/some-bucket/File-A"
-            },
-            "region": "",
-            "type": "s3"
-        }
-    ],
-    "aliases": [],
-    "checksums": [
-        {
-            "checksum": "c29b922795e05b819d6d27064e636468",
-            "type": "md5"
-        }
-    ],
-    "contents": [],
-    "created_time": "2020-06-22T20:34:06.136066",
-    "description": null,
-    "form": "object",
-    "id": "dg.xxxx/01c3e7b2-2aca-47fc-b2e2-a5d7196652a5",
-    "mime_type": "application/json",
-    "name": "File-A",
-    "self_uri": "drs://binamb.planx-pla.net/dg.xxxx/01c3e7b2-2aca-47fc-b2e2-a5d7196652a5",
-    "size": 90,
-    "updated_time": "2020-06-22T20:34:06.136078",
-    "version": "838ed2d4"
+  "access_methods": [
+    {
+      "access_id": "s3",
+      "access_url": {
+        "url": "s3://cdis-presigned-url-test/testdata"
+      },
+      "authorizations": {
+        "bearer_auth_issuers": [
+          "https://gen3.biodatacatalyst.nhlbi.nih.gov/user"
+        ],
+        "drs_object_id": "dg.4503/2ea50456-60f6-4b4c-92cc-5fc6776343ac",
+        "passport_auth_issuers": [
+          "https://stsstg.nih.gov"
+        ],
+        "supported_types": [
+          "BearerAuth",
+          "PassportAuth"
+        ]
+      },
+      "available": true,
+      "cloud": "aws",
+      "region": "us-east-1",
+      "type": "s3"
+    }
+  ],
+  "aliases": [],
+  "checksums": [
+    {
+      "checksum": "73d643ec3f4beb9020eef0beed440ad0",
+      "type": "md5"
+    }
+  ],
+  "created_time": null,
+  "description": null,
+  "form": "object",
+  "id": "dg.4503/2ea50456-60f6-4b4c-92cc-5fc6776343ac",
+  "index_created_time": "2026-06-12T18:06:22.650954",
+  "index_updated_time": "2026-06-12T18:06:22.650965",
+  "mime_type": "application/json",
+  "name": "test_valid",
+  "self_uri": "drs://PREFIX:2ea50456-60f6-4b4c-92cc-5fc6776343ac",
+  "size": 9,
+  "updated_time": null,
+  "version": null
 }
 ```
 
@@ -143,5 +218,3 @@ The DRS API supports a variety of different content acccess policies, depending 
     "updated_time": "2020-06-22T20:39:02.578012",
     "version": ""
 }
-
-````

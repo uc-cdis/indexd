@@ -18,7 +18,7 @@ You can learn more about these values by accessing the indexd [README.md](https:
 
 If you would like to override any of the default values, simply copy the above values.yaml file into a local file and make any changes needed.
 
-To deploy the service independant of other services (for testing purposes), you can set the .postgres.separate value to "true". This will deploy the service with its own instance of Postgres:
+To deploy the service independent of other services (for testing purposes), you can set the .postgres.separate value to "true". This will deploy the service with its own instance of Postgres:
 ```bash
   postgres:
     separate: true

@@ -71,7 +71,6 @@ def query_metadata():
 @blueprint.record
 def pre_config(state):
     driver = state.app.config["INDEX"]["driver"]
-    blueprint.logger = state.app.logger
     blueprint.driver = (
         driver
         if type(driver) == SingleTableSQLAlchemyIndexDriver
