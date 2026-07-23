@@ -26,7 +26,7 @@ ALIAS_CONFIG = {
 
 
 def create_app(index_config=None, alias_config=None, dist_config=None):
-    app = FastAPI(title="indexd")
+    app = FastAPI(title="indexd", redirect_slashes=True)
     app.settings = {"config": {"DIST": dist_config or []}}
     if index_config:
         app.settings["config"]["INDEX"] = index_config

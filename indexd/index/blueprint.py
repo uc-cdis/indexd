@@ -17,16 +17,26 @@ from .schema import (
     UPDATE_ALL_VERSIONS_SCHEMA,
 )
 
+from indexd.utils import get_bucket_regions, lookup_bucket_region
+
+from .schema import PUT_RECORD_SCHEMA
+from .schema import POST_RECORD_SCHEMA
+from .schema import RECORD_ALIAS_SCHEMA
+from .schema import BUNDLE_SCHEMA
+from .schema import UPDATE_ALL_VERSIONS_SCHEMA
+
+from cdislogging import get_logger
 from indexd.drs.blueprint import bundle_to_drs
 from cdislogging import get_logger
 
 logger = get_logger("indexd/index router", log_level="info")
 
-router = APIRouter(tags=["index"])
+router = APIRouter(tags=["index"], redirect_slashes=True)
 
 router.config = dict()
 router.index_driver = None
 router.dist = []
+router.cloud_provider_map = {}
 
 ACCEPTABLE_HASHES = {
     "md5": re.compile(r"^[0-9a-f]{32}$").match,
@@ -41,6 +51,9 @@ ACCEPTABLE_HASHES = {
 def set_index_config(app):
     router.index_driver = app.settings["config"]["INDEX"]["driver"]
     router.dist = app.settings["config"].get("DIST", [])
+    if "CLOUD_PROVIDER_MAP" in app.settings["config"]:
+        router.cloud_provider_map = app.settings["config"]["CLOUD_PROVIDER_MAP"]
+    router.bucket_regions = get_bucket_regions(app)
 
 
 def validate_hashes(**hashes):
@@ -328,6 +341,26 @@ async def get_index_record(record: str):
     Returns a record.
     """
     ret = router.index_driver.get_with_nonstrict_prefix(record)
+    urls_meta = ret.get("urls_metadata", [])
+    if urls_meta:
+        for location, metadata in urls_meta.items():
+            location_type = location.split(":")[0]
+            cloud = router.cloud_provider_map.get(location_type)
+            print("---------")
+            print(cloud)
+            urls_meta[location]["cloud"] = cloud
+            if "region" not in metadata.keys():
+                bucket_regions = router.bucket_regions
+                bucket_name = metadata.get("bucket")
+                if bucket_name:
+                    region = lookup_bucket_region(bucket_name, bucket_regions)
+                    urls_meta[location]["region"] = region
+
+            if "available" not in metadata.keys():
+                urls_meta[location][
+                    "available"
+                ] = True  # default to True if not specified
+
     return JSONResponse(content=ret, status_code=200)
 
 
@@ -543,8 +576,6 @@ async def get_dist_config():
     """
     Returns the dist configuration
     """
-    print("!!!!!!!!!!!!!!!!!!!!!!!")
-    print(router.dist)
     return JSONResponse(content=router.dist, status_code=200)
 
 

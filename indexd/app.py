@@ -87,7 +87,7 @@ def app_init(app, settings=None):
 
 
 def get_app(settings=None):
-    app = FastAPI(title="indexd")
+    app = FastAPI(title="indexd", redirect_slashes=True)
 
     if "INDEXD_SETTINGS" in os.environ:
         sys.path.append(os.environ["INDEXD_SETTINGS"])

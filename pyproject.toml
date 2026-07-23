@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "indexd"
-version = "6.1.0"
+version = "6.3.0"
 description = "Gen3 Indexing Service"
 authors = ["CTDS UChicago <cdis@uchicago.edu>"]
 license = "Apache-2.0"
@@ -12,7 +12,7 @@ include = [
 [tool.poetry.dependencies]
 python = ">=3.13,<4.0"
 alembic = "^1.9.4"
-authutils = ">=6,<8"
+authutils = ">=8.0.0"
 cdislogging = "^1.0.0"
 doiclient = {git = "https://github.com/uc-cdis/doiclient", rev = "1.0.0"}
 dosclient = {git = "https://github.com/uc-cdis/dosclient", rev = "1.1.0"}
@@ -29,6 +29,7 @@ setuptools = "^80.9.0"
 psycopg2-binary = "^2.9.11"
 fastapi = "^0.135.1"
 uvicorn = "^0.41.0"
+cachelib = "^0.13.0"
 
 [tool.poetry.group.dev.dependencies]
 coveralls = "^4.1.0"

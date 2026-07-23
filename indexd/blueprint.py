@@ -10,7 +10,7 @@ from indexd.utils import hint_match
 from indexd.alias.errors import NoRecordFound as AliasNoRecordFound
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 
-router = APIRouter(tags=["cross"])
+router = APIRouter(tags=["cross"], redirect_slashes=True)
 
 router.index_driver = None
 router.alias_driver = None

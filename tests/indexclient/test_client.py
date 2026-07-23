@@ -22,6 +22,8 @@ def test_instantiate(index_client):
         baseid=baseid,
         urls_metadata=urls_metadata,
     )
+    urls_metadata["s3://url/bucket/key"]["available"] = True
+    urls_metadata["s3://url/bucket/key"]["cloud"] = "aws"
     # ACL ordering is not deterministic for some reason
     sorted_returned_acls = sorted(doc.acl)
     assert doc.size == 5
@@ -51,6 +53,7 @@ def test_create_with_metadata(index_client):
         metadata=metadata,
         urls_metadata=urls_metadata,
     )
+    urls_metadata = {"s3://bucket/key": {"k": "v", "available": True, "cloud": "aws"}}
     assert doc.urls_metadata == urls_metadata
     assert doc.metadata == metadata
 
@@ -167,7 +170,9 @@ def test_updating_metadata(index_client):
     same_doc = index_client.get(doc.did)
     assert same_doc.metadata is not None
     assert same_doc.metadata.get("dummy_field", None) == "Dummy Var"
-    assert same_doc.urls_metadata == {doc.urls[0]: {"a": "b"}}
+    assert same_doc.urls_metadata == {
+        doc.urls[0]: {"a": "b", "available": True, "cloud": "aws"}
+    }
 
 
 def test_updating_acl(index_client):
