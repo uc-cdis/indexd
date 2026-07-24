@@ -3020,7 +3020,6 @@ def test_check_cloud_field(
     res = client.get("/ga4gh/drs/v1/objects/" + did, headers=user)
     assert res.status_code == 200
     rec = res.json()
-    print(rec)
     clouds = []
     for i in range(len(rec["access_methods"])):
         clouds.append(rec["access_methods"][i]["cloud"])

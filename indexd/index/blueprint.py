@@ -346,8 +346,6 @@ async def get_index_record(record: str):
         for location, metadata in urls_meta.items():
             location_type = location.split(":")[0]
             cloud = router.cloud_provider_map.get(location_type)
-            print("---------")
-            print(cloud)
             urls_meta[location]["cloud"] = cloud
             if "region" not in metadata.keys():
                 bucket_regions = router.bucket_regions
@@ -571,7 +569,6 @@ async def add_index_record_version(record: str, request: Request):
 
 
 @router.get("/_dist")
-@router.get("/_dist/")
 async def get_dist_config():
     """
     Returns the dist configuration
@@ -579,7 +576,6 @@ async def get_dist_config():
     return JSONResponse(content=router.dist, status_code=200)
 
 
-@router.get("/_status/")
 @router.get("/_status")
 async def health_check():
     """
@@ -590,7 +586,6 @@ async def health_check():
 
 
 @router.get("/_stats")
-@router.get("/_stats/")
 async def stats(request: Request):
     """
     Return indexed data stats.
