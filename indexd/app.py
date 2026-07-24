@@ -72,7 +72,7 @@ def app_init(app, settings=None):
 
     app.auth = settings["auth"]
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
-
+    logger.info("Setting config for APIs.........")
     set_cross_config(app)
     set_alias_config(app)
     set_bulk_config(app)
@@ -85,8 +85,11 @@ def app_init(app, settings=None):
     for router, opts in routers:
         app.include_router(router, **opts)
 
+    logger.info("Done setting configs for APIs.........")
+
 
 def get_app(settings=None):
+    logger.info("Starting get_app............")
     app = FastAPI(title="indexd", redirect_slashes=True)
 
     if "INDEXD_SETTINGS" in os.environ:
@@ -98,7 +101,9 @@ def get_app(settings=None):
         except ImportError:
             pass
 
+    logger.info("Starting app_init.............")
     app_init(app, settings)
+    logger.info("Done with app_init............")
 
     @app.exception_handler(IndexdUnexpectedError)
     async def handle_indexd_unexpected_error(request, exc: IndexdUnexpectedError):
@@ -146,4 +151,5 @@ def get_app(settings=None):
     async def handle_index_revision_mismatch(request, exc):
         return JSONResponse(status_code=409, content={"error": str(exc)})
 
+    logger.info("Returning app.....")
     return app
