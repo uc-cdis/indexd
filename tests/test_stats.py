@@ -16,6 +16,7 @@ from indexd.index.drivers.alchemy import (
     StatsRecord,
     update_stats,
 )
+from indexd.index.drivers.single_table_alchemy import Record
 from indexd.stats_utils import seed_stats, seed_stats_from_connection
 from tests.conftest import POSTGRES_CONNECTION
 
@@ -33,7 +34,7 @@ def get_doc(size=123):
 
 def _get_stats(client):
     """Fetch current stats from the API."""
-    res = client.get("/_stats/")
+    res = client.get("/_stats")
     assert res.status_code == 200
     data = res.json()
     count = data["fileCount"]
@@ -258,7 +259,7 @@ def test_historical_queries(
     session.close()
     engine.dispose()
 
-    res = client.get(f"/_stats/?month={past_month}&year={past_year}")
+    res = client.get(f"/_stats?month={past_month}&year={past_year}")
     assert res.status_code == 200
     data = res.json()
     assert data["fileCount"] == 42
@@ -297,7 +298,7 @@ def test_historical_adjacent_months(
     session.close()
     engine.dispose()
 
-    res = client.get("/_stats/?month=3&year=2020")
+    res = client.get("/_stats?month=3&year=2020")
     assert res.status_code == 200
     data = res.json()
     assert data["fileCount"] == 20
@@ -333,7 +334,7 @@ def test_historical_gap_query(app_client, combined_default_and_single_table_sett
     session.close()
     engine.dispose()
 
-    res = client.get("/_stats/?month=2&year=2020")
+    res = client.get("/_stats?month=2&year=2020")
     assert res.status_code == 200
     data = res.json()
     assert data["fileCount"] == 50
@@ -361,7 +362,7 @@ def test_query_before_first_row(app_client, combined_default_and_single_table_se
     session.close()
     engine.dispose()
 
-    res = client.get("/_stats/?month=2&year=2010")
+    res = client.get("/_stats?month=2&year=2010")
     assert res.status_code == 200
     data = res.json()
     assert data["fileCount"] == 0
@@ -375,13 +376,13 @@ def test_query_requires_both_month_and_year(
     Verify the API returns an error when only month or only year is provided.
     """
     _, client = app_client
-    res = client.get("/_stats/?month=6")
+    res = client.get("/_stats?month=6")
     assert res.status_code == 400
 
-    res = client.get("/_stats/?year=2025")
+    res = client.get("/_stats?year=2025")
     assert res.status_code == 400
 
-    res = client.get("/_stats/?month=6&year=2025")
+    res = client.get("/_stats?month=6&year=2025")
     assert res.status_code == 200
 
 
@@ -400,7 +401,7 @@ def test_stats_empty_table(app_client, combined_default_and_single_table_setting
     session.commit()
     session.close()
 
-    res = client.get("/_stats/")
+    res = client.get("/_stats")
     assert res.status_code == 200
     data = res.json()
 
@@ -408,6 +409,11 @@ def test_stats_empty_table(app_client, combined_default_and_single_table_setting
     assert data["totalFileSize"] == 0
 
     engine.dispose()
+
+
+def _add_single_table_record(session, size):
+    """Insert a minimal single-table Record for reconciliation tests."""
+    session.add(Record(guid=str(uuid.uuid4()), size=size, form="object"))
 
 
 def _add_index_record(session, size):
@@ -649,6 +655,79 @@ def test_seed_stats_from_connection_empty_table(
     engine.dispose()
 
 
+def test_seed_stats_prefers_active_single_table_data(
+    combined_default_and_single_table_settings,
+):
+    """
+    When both storage schemas exist but have different values, seed_stats should
+    use the higher record count.
+    """
+    engine = create_engine(POSTGRES_CONNECTION)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    _add_index_record(session, 10)
+
+    _add_single_table_record(session, 100)
+    _add_single_table_record(session, 200)
+    _add_single_table_record(session, 300)
+    session.commit()
+
+    count, total_bytes = seed_stats(session)
+    session.commit()
+
+    assert count == 3
+    assert total_bytes == 600
+
+    now = datetime.datetime.now()
+    row = (
+        session.query(StatsRecord)
+        .filter(StatsRecord.month == now.month, StatsRecord.year == now.year)
+        .first()
+    )
+    assert row.total_record_count == 3
+    assert row.total_record_bytes == 600
+
+    session.close()
+    engine.dispose()
+
+
+def test_seed_stats_from_connection_prefers_active_single_table_data(
+    combined_default_and_single_table_settings,
+):
+    """
+    The raw connection seeding should also resolve based on record count.
+    """
+    engine = create_engine(POSTGRES_CONNECTION)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    _add_index_record(session, 10)
+    _add_index_record(session, 10)
+    _add_index_record(session, 10)
+    _add_single_table_record(session, 50)
+    _add_single_table_record(session, 70)
+    session.commit()
+    session.close()
+
+    with engine.connect() as conn:
+        seed_stats_from_connection(conn)
+
+    session = Session()
+    now = datetime.datetime.now()
+    row = (
+        session.query(StatsRecord)
+        .filter(StatsRecord.month == now.month, StatsRecord.year == now.year)
+        .first()
+    )
+    assert row is not None
+    assert row.total_record_count == 3
+    assert row.total_record_bytes == 30
+
+    session.close()
+    engine.dispose()
+
+
 def test_index_stats(app_client, user, combined_default_and_single_table_settings):
     """
     create records, verify counts, query future month.
@@ -668,7 +747,7 @@ def test_index_stats(app_client, user, combined_default_and_single_table_setting
     now = datetime.datetime.now()
     future_month = now.month + 1 if now.month < 12 else 1
     future_year = now.year if now.month < 12 else now.year + 1
-    res = client.get(f"/_stats/?month={future_month}&year={future_year}")
+    res = client.get(f"/_stats?month={future_month}&year={future_year}")
     assert res.status_code == 200
     future_data = res.json()
     assert future_data["fileCount"] == 3

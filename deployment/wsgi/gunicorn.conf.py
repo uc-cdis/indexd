@@ -1,5 +1,6 @@
 wsgi_app = "deployment.wsgi.wsgi:application"
 bind = "0.0.0.0:8000"
+worker_class = "uvicorn_worker.UvicornWorker"
 workers = 1
 preload_app = True
 user = "gen3"

@@ -2831,7 +2831,7 @@ def test_indexd_admin_authz(
 
 def test_status_check(app_client, combined_default_and_single_table_settings):
     _, client = app_client
-    res = client.get("/_status/")
+    res = client.get("/_status")
     assert res.status_code == 200
 
 
