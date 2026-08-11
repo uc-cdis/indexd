@@ -14,13 +14,13 @@ DIST_CONFIG = []
 
 INDEX_CONFIG = {
     "driver": SQLAlchemyIndexDriver(
-        "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
     )
 }
 
 ALIAS_CONFIG = {
     "driver": SQLAlchemyAliasDriver(
-        "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
     )
 }
 

@@ -94,7 +94,7 @@ async def get_drs_service_info():
     object_count = None
     total_object_size = None
     try:
-        object_count, total_object_size = router.index_driver.get_stats()
+        object_count, total_object_size = await router.index_driver.get_stats()
     except Exception as e:
         logger.warning(f"Could not retrieve stats for service-info response: {e}")
 
@@ -125,11 +125,11 @@ async def get_drs_object(object_id: str, request: Request):
 
     expand = request.query_params.get("expand") == "true"
     try:
-        ret = router.index_driver.get_with_nonstrict_prefix(object_id)
+        ret = await router.index_driver.get_with_nonstrict_prefix(object_id)
     except IndexNoRecordFound as err:
         raise HTTPException(status_code=404, detail=str(err))
 
-    data = indexd_to_drs(ret, expand=expand)
+    data = await indexd_to_drs(ret, expand=expand)
     return JSONResponse(content=data, status_code=200)
 
 
@@ -149,7 +149,7 @@ async def get_drs_object_options(object_id):
     Returns a specific DRSobject metadata with object_id
     """
     # Get authz based on guid
-    authz_metadata = resolve_single_object_auth(object_id)
+    authz_metadata = await resolve_single_object_auth(object_id)
     return JSONResponse(content=authz_metadata, status_code=200)
 
 
@@ -176,18 +176,22 @@ async def list_drs_records(request: Request):
             raise UserError("Page must be an integer.")
 
     if form == "bundle":
-        records = router.index_driver.get_bundle_list(
+        records = await router.index_driver.get_bundle_list(
             start=start, limit=limit, page=page
         )
     elif form == "object":
-        records = router.index_driver.ids(start=start, limit=limit, page=page)
+        records = await router.index_driver.ids(start=start, limit=limit, page=page)
     else:
-        records = router.index_driver.get_bundle_and_object_list(
+        records = await router.index_driver.get_bundle_and_object_list(
             start=start, limit=limit, page=page
         )
 
+    ret_drs_objects = []
+    for record in records:
+        ret_drs_objects.append(await indexd_to_drs(record, True))
+
     ret = {
-        "drs_objects": [indexd_to_drs(record, True) for record in records],
+        "drs_objects": ret_drs_objects,
     }
     return JSONResponse(content=ret, status_code=200)
 
@@ -200,7 +204,9 @@ async def post_drs_records(request: Request):
     # Exit with malformed error return if missing object id
     if "bulk_object_ids" not in data:
         raise UserError("Request is malformed. Missing bulk object ids.")
-    ret = resolve_bulk_object_auth(id_list=data["bulk_object_ids"], auth_only=False)
+    ret = await resolve_bulk_object_auth(
+        id_list=data["bulk_object_ids"], auth_only=False
+    )
     return JSONResponse(content=ret, status_code=200)
 
 
@@ -212,7 +218,7 @@ async def get_drs_objects(request: Request):
     # Exit with malformed error return if missing object id
     if "bulk_object_ids" not in data:
         raise UserError("Request is malformed. Missing bulk object ids.")
-    ret = resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
+    ret = await resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
     return JSONResponse(content=ret, status_code=200)
 
 
@@ -269,7 +275,7 @@ async def list_drs_records_options(request: Request):
         raise UserError("Request is malformed. Missing bulk object ids.")
 
     try:
-        compiled_info = resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
+        compiled_info = await resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
 
     # If unexpected error encountered, return defaults
     except Exception as err:
@@ -301,12 +307,12 @@ def create_drs_uri(did):
     return self_uri
 
 
-def resolve_single_object_auth(object_id: str) -> dict:
+async def resolve_single_object_auth(object_id: str) -> dict:
     """Returns dict with object's authorization metadata"""
 
     # Extract authz metadata for object id
     try:
-        ret = router.index_driver.get_with_nonstrict_prefix(object_id)
+        ret = await router.index_driver.get_with_nonstrict_prefix(object_id)
         authz_path_list = ret["authz"]
         authz_metadata = copy.deepcopy(router.drs_authorization_metadata)
 
@@ -375,7 +381,7 @@ def resolve_single_object_auth(object_id: str) -> dict:
         raise IndexdUnexpectedError(err)
 
 
-def resolve_bulk_object_auth(id_list: list[str], auth_only=True) -> dict:
+async def resolve_bulk_object_auth(id_list: list[str], auth_only=True) -> dict:
     """Returns compiled dict of authorization metadata
     auth_only = True # defaults to only return resolved authorization
     auth_only = False # returned resolves drs object info (auth included)"""
@@ -392,7 +398,7 @@ def resolve_bulk_object_auth(id_list: list[str], auth_only=True) -> dict:
         "unresolved": total_requested,  # nothing is resolved at the start
     }
     # Bulk retrieve docs from id list
-    docs = router.index_driver.get_bulk(id_list)
+    docs = await router.index_driver.get_bulk(id_list)
     doc_dids = [doc["did"] for doc in docs]
     # Annotate if an original id(s) is not returned in bulk call (record as unresolved, index not found)
     for i in id_list:
@@ -410,9 +416,9 @@ def resolve_bulk_object_auth(id_list: list[str], auth_only=True) -> dict:
             # becuase we already checked for missing guids before the try block. Any issue
             # encountered is likely not solely tied to an index-not-found issue.
             if auth_only:
-                resolved_info = resolve_single_object_auth(object_id=guid)
+                resolved_info = await resolve_single_object_auth(object_id=guid)
             else:
-                resolved_info = indexd_to_drs(record=doc)
+                resolved_info = await indexd_to_drs(record=doc)
         # Handle unexpected error and continue
         except Exception as err:
             unexpected_error_guids.append(guid)
@@ -444,7 +450,7 @@ def resolve_bulk_object_auth(id_list: list[str], auth_only=True) -> dict:
     return compiled_info
 
 
-def indexd_to_drs(record, expand=False):
+async def indexd_to_drs(record, expand=False):
     """
     Convert record to ga4gh-compilant format. Includes access_methods resolution.
 
@@ -554,7 +560,7 @@ def indexd_to_drs(record, expand=False):
                 continue
             # Otherwise add auth info in entry
             did = record["did"]
-            authorizations = resolve_single_object_auth(object_id=did)
+            authorizations = await resolve_single_object_auth(object_id=did)
             entry.update({"authorizations": authorizations})
     # Parse out checksums
     drs_object["checksums"] = parse_checksums(record, drs_object)

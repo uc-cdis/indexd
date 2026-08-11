@@ -63,20 +63,20 @@ async def get_dos_record(record: str):
     """
 
     try:
-        ret = router.index_driver.get(record)
+        ret = await router.index_driver.get(record)
         # record may be a baseID or a DID / GUID. If record is a baseID, ret["did"] is the latest GUID for that record.
-        ret["alias"] = router.index_driver.get_aliases_for_did(ret["did"])
+        ret["alias"] = await router.index_driver.get_aliases_for_did(ret["did"])
     except IndexNoRecordFound:
         try:
-            ret = router.index_driver.get_by_alias(record)
-            ret["alias"] = router.index_driver.get_aliases_for_did(ret["did"])
+            ret = await router.index_driver.get_by_alias(record)
+            ret["alias"] = await router.index_driver.get_aliases_for_did(ret["did"])
         except IndexNoRecordFound:
             try:
-                ret = router.alias_driver.get(record)
+                ret = await router.alias_driver.get(record)
             except AliasNoRecordFound:
                 if not router.dist:
                     raise HTTPException(status_code=404, detail="No record found")
-                ret = dist_get_record(record)
+                ret = await dist_get_record(record)
 
     dos_ret = indexd_to_dos(ret)
     return JSONResponse(content=dos_ret, status_code=200)
@@ -111,10 +111,12 @@ async def list_dos_records(request: Request):
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid checksum format")
 
-    records = router.index_driver.ids(start=start, limit=limit, urls=url, hashes=hashes)
+    records = await router.index_driver.ids(
+        start=start, limit=limit, urls=url, hashes=hashes
+    )
 
     for record in records:
-        record["alias"] = router.index_driver.get_aliases_for_did(record["did"])
+        record["alias"] = await router.index_driver.get_aliases_for_did(record["did"])
 
     ret = {"data_objects": [indexd_to_dos(record)["data_object"] for record in records]}
 

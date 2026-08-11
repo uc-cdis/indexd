@@ -3,9 +3,13 @@ These are tests for the old migration logic, which is DEPRECATED. It is still su
 for backwards compatibility, but any new migration should be added using Alembic.
 """
 
+import pytest
 
+from sqlalchemy import text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.pool import NullPool
 import sqlite3
 import tests.util as util
 
@@ -54,37 +58,45 @@ INDEX_TABLES = {
     ],
 }
 
-POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+POSTGRES_CONNECTION = "postgresql+asyncpg://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 
 
-def update_version_table_for_testing(tb_name, val):
-    engine = create_engine(POSTGRES_CONNECTION)
-    with engine.connect() as conn:
-        conn.execute(
-            """\
+async def update_version_table_for_testing(tb_name, val):
+    engine = create_async_engine(POSTGRES_CONNECTION)
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                """\
             CREATE TABLE IF NOT EXISTS {} (version INT)\
             """.format(
-                tb_name
+                    tb_name
+                )
             )
         )
-        conn.execute(
-            """
+        await conn.execute(
+            text(
+                """
                 DELETE FROM {}
             """.format(
-                tb_name
+                    tb_name
+                )
             )
         )
-        conn.execute(
-            """
+        await conn.execute(
+            text(
+                """
                 INSERT INTO {} (version) VALUES ({})
             """.format(
-                tb_name, val
+                    tb_name, val
+                )
             )
         )
 
 
-def test_migrate_acls(app_client, user, postgres_driver):
-    app, client = app_client
+@pytest.mark.asyncio
+async def test_migrate_acls(app_client, user, postgres_driver):
+    _, client = app_client
+
     data = {
         "form": "object",
         "size": 123,
@@ -99,8 +111,8 @@ def test_migrate_acls(app_client, user, postgres_driver):
     assert res.status_code == 200
 
     # migrate
-    with postgres_driver.session as session:
-        migrate_7(session)
+    async with postgres_driver.session as session:
+        await migrate_7(session)
 
     # check that the record has been migrated
     res = client.get("/" + rec["did"])

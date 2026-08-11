@@ -63,7 +63,8 @@ async def get_alias(request: Request):
     validate_hashes(**hashes)
     hashes = hashes if hashes else None
 
-    aliases = router.alias_driver.aliases(
+    # Added await for the async alias driver call
+    aliases = await router.alias_driver.aliases(
         start=start, limit=limit, size=size, hashes=hashes
     )
 
@@ -98,7 +99,8 @@ async def put_alias_record(record: str, request: Request):
     host_authorities = body.get("host_authorities")
     keeper_authority = body.get("keeper_authority")
 
-    record_res, rev_res = router.alias_driver.upsert(
+    # Added await for the async alias driver call
+    record_res, rev_res = await router.alias_driver.upsert(
         record,
         rev,
         size=size,
@@ -120,5 +122,8 @@ async def delete_alias_record(record: str, request: Request):
     Delete an alias.
     """
     rev = request.query_params.get("rev")
-    router.alias_driver.delete(record, rev)
+
+    # Added await for the async alias driver call
+    await router.alias_driver.delete(record, rev)
+
     return JSONResponse(content="", status_code=200)

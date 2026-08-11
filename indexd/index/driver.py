@@ -13,7 +13,7 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         super().__init__(conn, **config)
 
     @abc.abstractmethod
-    def ids(
+    async def ids(
         self,
         limit=100,
         start=None,
@@ -36,14 +36,14 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def get_urls(self, size=None, hashes=None, ids=None, start=0, limit=100):
+    async def get_urls(self, size=None, hashes=None, ids=None, start=0, limit=100):
         """
         Returns a list of urls matching supplied size and hashes.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def add(
+    async def add(
         self,
         form,
         did=None,
@@ -68,35 +68,35 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def get(self, did):
+    async def get(self, did):
         """
         Gets a record given the record id.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def get_bulk(self, did_list):
+    async def get_bulk(self, did_list):
         """
         Gets records for the the record ids.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def update(self, request, did, rev, changing_fields):
+    async def update(self, request, did, rev, changing_fields):
         """
         Updates record with new values.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def delete(self, request, did, rev):
+    async def delete(self, request, did, rev):
         """
         Deletes record.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def add_version(
+    async def add_version(
         self,
         request,
         current_did,
@@ -121,28 +121,28 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def get_all_versions(self, did):
+    async def get_all_versions(self, did):
         """
         Get all record versions given did
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def get_latest_version(self, did, has_version=None):
+    async def get_latest_version(self, did, has_version=None):
         """
         Get the lattest record version given did
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def health_check(self):
+    async def health_check(self):
         """
         Performs a health check.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def __contains__(self, did):
+    async def has_record(self, did):
         """
         Returns True if record is stored by backend.
         Returns False otherwise.
@@ -150,28 +150,28 @@ class IndexDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def __iter__(self):
+    async def __aiter__(self):
         """
-        Returns an iterator over unique records stored by backend.
+        Returns an async iterator over unique records stored by backend.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def totalbytes(self):
+    async def totalbytes(self):
         """
         Returns the total bytes of the data represented in the index.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def len(self):
+    async def len(self):
         """
         Returns the number of unique records stored by backend.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def get_stats(self, month=None, year=None):
+    async def get_stats(self, month=None, year=None):
         """
         Return pre-computed (record_count, total_bytes) for the given month/year.
         Defaults to current month/year if not specified.

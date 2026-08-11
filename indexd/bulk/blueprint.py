@@ -4,10 +4,8 @@ import json
 
 from typing import List
 from fastapi import APIRouter, Depends, Body
-from sqlalchemy.orm import joinedload
 
 from indexd.errors import UserError
-from indexd.index.drivers.alchemy import IndexRecord, IndexRecordUrl
 
 router = APIRouter(prefix="/bulk", tags=["bulk"])
 
@@ -17,7 +15,7 @@ def set_bulk_config(app):
         router.index_driver = app.settings["config"]["INDEX"]["driver"]
 
 
-def get_index_driver():
+async def get_index_driver():
     return router.index_driver
 
 
@@ -31,18 +29,7 @@ async def bulk_get_documents(
     if not isinstance(ids, list):
         raise UserError("IDs is not a list.")
 
-    with index_driver.session as session:
-        query = session.query(IndexRecord)
-        query = query.options(
-            joinedload(IndexRecord.urls).joinedload(IndexRecordUrl.url_metadata)
-        )
-        query = query.options(joinedload(IndexRecord.acl))
-        query = query.options(joinedload(IndexRecord.authz))
-        query = query.options(joinedload(IndexRecord.hashes))
-        query = query.options(joinedload(IndexRecord.index_metadata))
-        query = query.options(joinedload(IndexRecord.aliases))
-        query = query.filter(IndexRecord.did.in_(ids))
-
-        docs = [q.to_document_dict() for q in query]
+    # Use the async driver's get_bulk method instead of querying the session directly in the route
+    docs = await index_driver.get_bulk(ids)
 
     return docs

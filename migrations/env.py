@@ -7,12 +7,11 @@ configured DB URL;
 - lock the DB during migrations to ensure only 1 migration runs at a time.
 """
 
-
 import logging
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import engine_from_config, pool, text
+from sqlalchemy.orm import declarative_base
 
 from alembic import context
 
@@ -35,7 +34,10 @@ try:
 except ImportError:
     logger.info("Can't import local_settings, import from default")
     from indexd.default_settings import settings
+
+# Strip the async driver tag to force Alembic to use a synchronous connection
 conn_url = str(settings["config"]["INDEX"]["driver"].engine.url)
+conn_url = conn_url.replace("+asyncpg", "").replace("+aiosqlite", "")
 config.set_main_option("sqlalchemy.url", conn_url)
 
 
@@ -84,8 +86,11 @@ def run_migrations_online() -> None:
                 logger.info(
                     "Locking database to ensure only 1 process can run migrations at a time"
                 )
+                # Wrap the raw SQL in text() for SQLAlchemy 2.0 compatibility
                 connection.execute(
-                    f"SELECT pg_advisory_xact_lock({settings['config'].get('DB_MIGRATION_POSTGRES_LOCK_KEY', 100)});"
+                    text(
+                        f"SELECT pg_advisory_xact_lock({settings['config'].get('DB_MIGRATION_POSTGRES_LOCK_KEY', 100)});"
+                    )
                 )
             else:
                 logger.info(

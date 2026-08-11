@@ -1,14 +1,15 @@
+import asyncio
 import base64
 import importlib
 import pytest
 import requests
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import mock
 from unittest.mock import patch
+from sqlalchemy.pool import NullPool
 
 from cdislogging import get_logger
 
-# indexd_server and indexd_client is needed as fixtures
 from gen3authz.client.arborist.client import ArboristClient
 
 from indexd import get_app
@@ -24,17 +25,20 @@ from indexd.index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndex
 
 from starlette.testclient import TestClient
 
-POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+POSTGRES_CONNECTION = "postgresql+asyncpg://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 
 logger = get_logger(__name__, log_level="info")
+
+# Create a synchronous connection string strictly for database cleanup and user setup
+SYNC_POSTGRES_CONNECTION = POSTGRES_CONNECTION.replace("+asyncpg", "")
 
 
 def clear_database():
     """
-    Clean up test data from unit test
+    Clean up test data from unit test using a synchronous engine
     """
-    engine = create_engine(POSTGRES_CONNECTION)
-    with engine.connect() as conn:
+    engine = create_engine(SYNC_POSTGRES_CONNECTION, poolclass=NullPool)
+    with engine.begin() as conn:  # Use .begin() for an explicit transaction
         # IndexD table needs to be delete in this order to avoid foreign key constraint error
         table_delete_order = [
             "index_record_url_metadata",
@@ -54,11 +58,12 @@ def clear_database():
             "stats",
         ]
         for table_name in table_delete_order:
-            conn.execute(f"DELETE FROM {table_name}")
+            conn.execute(text(f"DELETE FROM {table_name}"))
         for model in alias_base.__subclasses__():
             conn.execute(model.__table__.delete())
         for model in auth_base.__subclasses__():
             conn.execute(model.__table__.delete())
+    engine.dispose()
 
 
 @pytest.fixture(scope="function", params=["default_settings", "single_table_settings"])
@@ -71,6 +76,7 @@ def combined_default_and_single_table_settings(request):
 
     importlib.reload(default_settings)
     importlib.reload(default_test_settings)
+
     if request.param == "default_settings":
         default_settings.settings["use_single_table"] = False
         default_settings.settings["config"]["INDEX"] = {
@@ -82,6 +88,7 @@ def combined_default_and_single_table_settings(request):
                     "PREPEND_PREFIX": True,
                     "ADD_PREFIX_ALIAS": False,
                 },
+                poolclass=NullPool,
             )
         }
     # Load the single-table settings
@@ -96,13 +103,24 @@ def combined_default_and_single_table_settings(request):
                     "PREPEND_PREFIX": True,
                     "ADD_PREFIX_ALIAS": False,
                 },
+                poolclass=NullPool,
             )
         }
+
+    default_settings.settings["config"]["ALIAS"] = {
+        "driver": SQLAlchemyAliasDriver(POSTGRES_CONNECTION, poolclass=NullPool)
+    }
+    default_settings.settings["auth"] = SQLAlchemyAuthDriver(
+        POSTGRES_CONNECTION, poolclass=NullPool
+    )
+
     default_settings.settings = {
         **default_settings.settings,
         **default_test_settings.settings,
     }
+
     yield get_app(default_settings.settings)
+
     try:
         clear_database()
     except Exception as e:
@@ -115,37 +133,76 @@ def app_client():
     from tests import default_test_settings
 
     importlib.reload(default_settings)
+    importlib.reload(default_test_settings)
+
     default_settings.settings = {
         **default_settings.settings,
         **default_test_settings.settings,
     }
-    app = get_app()
-    client = TestClient(app)
-    yield app, client
-    try:
-        clear_database()
-    except Exception as e:
-        logger.error(f"Failed to clear database with error {e}")
+
+    default_settings.settings["config"]["INDEX"] = {
+        "driver": SQLAlchemyIndexDriver(
+            POSTGRES_CONNECTION,
+            echo=False,
+            index_config={
+                "DEFAULT_PREFIX": "testprefix/",
+                "PREPEND_PREFIX": True,
+                "ADD_PREFIX_ALIAS": False,
+            },
+            poolclass=NullPool,
+        )
+    }
+    default_settings.settings["config"]["ALIAS"] = {
+        "driver": SQLAlchemyAliasDriver(POSTGRES_CONNECTION, poolclass=NullPool)
+    }
+    default_settings.settings["auth"] = SQLAlchemyAuthDriver(
+        POSTGRES_CONNECTION, poolclass=NullPool
+    )
+
+    # Pass the explicitly patched settings into the app!
+    app = get_app(default_settings.settings)
+
+    # Explicitly use TestClient as a context manager to trigger FastAPI's lifespan (migrations)
+    with TestClient(app) as client:
+        yield app, client
+        try:
+            clear_database()
+        except Exception as e:
+            logger.error(f"Failed to clear database with error {e}")
 
 
 @pytest.fixture
 def user(app_client):
-    engine = create_engine(POSTGRES_CONNECTION)
-    driver = SQLAlchemyAuthDriver(POSTGRES_CONNECTION)
-    try:
-        driver.add("test", "test")
-    except Exception as e:
-        logger.error(f"Failed to add test users with error {e}")
+    """
+    Setup a test user using the async driver, but executed synchronously
+    so it plays nicely with the standard pytest TestClient.
+    """
+    driver = SQLAlchemyAuthDriver(POSTGRES_CONNECTION, poolclass=NullPool)
+
+    async def setup_user():
+        try:
+            await driver.add("test", "test")
+        except Exception as e:
+            logger.error(f"Failed to add test users with error {e}")
+
+    asyncio.run(setup_user())
+
     header = {
         "Authorization": "Basic " + base64.b64encode(b"test:test").decode("ascii"),
         "Content-Type": "application/json",
     }
+
     yield header
-    try:
-        driver.delete("test")
-    except Exception as e:
-        logger.error(f"Failed to delete test user with error {e}")
-    engine.dispose()
+
+    async def teardown_user():
+        try:
+            await driver.delete("test")
+        except Exception as e:
+            logger.error(f"Failed to delete test user with error {e}")
+        finally:
+            await driver.engine.dispose()
+
+    asyncio.run(teardown_user())
 
 
 @pytest.fixture(scope="function")
@@ -236,6 +293,13 @@ def mock_arborist_requests(app_client, request):
 @pytest.fixture
 def skip_authz():
     orig = auth.authorize
-    auth.authorize = lambda *x: x
+
+    # wait until test runs
+    async def mock_authorize(*args, **kwargs):
+        return args
+
+    auth.authorize = mock_authorize
+
     yield
+
     auth.authorize = orig

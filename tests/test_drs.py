@@ -83,7 +83,8 @@ def get_bundle(client, user, has_description=True):
     return bundle
 
 
-def test_drs_get(client, user, combined_default_and_single_table_settings):
+def test_drs_get(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     data = get_doc(urls=["s3://test"])
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
@@ -106,8 +107,11 @@ def test_drs_get(client, user, combined_default_and_single_table_settings):
     assert "supported_types" in rec_2["access_methods"][0]["authorizations"]
 
 
-def test_drs_get_no_default(client, user, combined_default_and_single_table_settings):
+def test_drs_get_no_default(
+    app_client, user, combined_default_and_single_table_settings
+):
     # Change default index driver settings to use no prefix
+    _, client = app_client
     combined_default_and_single_table_settings.settings["config"]["INDEX"][
         "driver"
     ].config["DEFAULT_PREFIX"] = None
@@ -156,7 +160,8 @@ def verify_timestamps(expected_doc, did, client, has_updated_date=True):
     assert drs_record["index_updated_time"] == record["updated_date"]
 
 
-def test_timestamps(client, user, combined_default_and_single_table_settings):
+def test_timestamps(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     data = get_doc()
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
@@ -164,7 +169,10 @@ def test_timestamps(client, user, combined_default_and_single_table_settings):
     verify_timestamps(data, obj_did, client)
 
 
-def test_changing_timestamps(client, user, combined_default_and_single_table_settings):
+def test_changing_timestamps(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     data = get_doc()
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
@@ -183,11 +191,12 @@ def test_changing_timestamps(client, user, combined_default_and_single_table_set
 
 
 def test_timestamps_updated_sets_to_created(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """
     Checks that content_updated_date is set to content_created_date when none is provided.
     """
+    _, client = app_client
     data = get_doc(has_content_updated_date=False)
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
@@ -195,7 +204,8 @@ def test_timestamps_updated_sets_to_created(
     verify_timestamps(data, obj_did, client, has_updated_date=False)
 
 
-def test_timestamps_none(client, user):
+def test_timestamps_none(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     data = get_doc(has_content_updated_date=False, has_content_created_date=False)
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
@@ -214,7 +224,10 @@ def test_timestamps_none(client, user):
     assert drs_record["index_updated_time"] == record["updated_date"]
 
 
-def test_drs_get_description(client, user, combined_default_and_single_table_settings):
+def test_drs_get_description(
+    app_client, user, combined_default_and_single_table_settings
+):
+    _, client = app_client
     data = get_doc(has_description=True)
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
@@ -226,8 +239,9 @@ def test_drs_get_description(client, user, combined_default_and_single_table_set
 
 
 def test_drs_changing_description(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc(has_description=True)
     create_obj_resp = client.post("/index/", json=data, headers=user)
     assert create_obj_resp.status_code == 200
@@ -247,8 +261,9 @@ def test_drs_changing_description(
 
 
 def test_drs_get_no_description(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc(has_description=False)
     res_1 = client.post("/index/", json=data, headers=user)
     assert res_1.status_code == 200
@@ -259,7 +274,8 @@ def test_drs_get_no_description(
     assert rec_2["description"] is None
 
 
-def test_drs_get_bundle(client, user, combined_default_and_single_table_settings):
+def test_drs_get_bundle(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     bundle = get_bundle(client, user)
     bundle_res = client.post("/bundle/", json=bundle, headers=user)
     assert bundle_res.status_code == 200
@@ -270,8 +286,9 @@ def test_drs_get_bundle(client, user, combined_default_and_single_table_settings
 
 
 def test_drs_get_bundle_no_description(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     bundle = get_bundle(client, user, has_description=False)
     bundle_res = client.post("/bundle/", json=bundle, headers=user)
     assert bundle_res.status_code == 200
@@ -282,8 +299,9 @@ def test_drs_get_bundle_no_description(
 
 
 def test_drs_multiple_endpointurl(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     object_urls = {
         "sftp": "sftp://endpointurl/bucket/key",
         "ftp": "ftp://endpointurl/bucket/key",
@@ -303,7 +321,8 @@ def test_drs_multiple_endpointurl(
         assert url["access_url"]["url"] == object_urls[protocol]
 
 
-def test_drs_list(client, user, combined_default_and_single_table_settings):
+def test_drs_list(app_client, user, combined_default_and_single_table_settings):
+    _, client = app_client
     n_objects = 2
     data = get_doc(urls=["s3://test"])
     submitted_guids = []
@@ -377,8 +396,9 @@ def test_drs_list(client, user, combined_default_and_single_table_settings):
 
 
 def test_get_drs_with_encoded_slash(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
+    _, client = app_client
     data = get_doc()
     data["did"] = "testprefix/ed8f4658-6acd-4f96-9dd8-3709890c959e"
     res_1 = client.post("/index/", json=data, headers=user)
@@ -397,7 +417,10 @@ def test_get_drs_with_encoded_slash(
     assert rec_2["self_uri"] == "drs://testprefix:" + rec_1["did"].split("/")[1]
 
 
-def test_drs_service_info_endpoint(client, combined_default_and_single_table_settings):
+def test_drs_service_info_endpoint(
+    app_client, combined_default_and_single_table_settings
+):
+    _, client = app_client
     res = client.get("/ga4gh/drs/v1/service-info")
     assert res.status_code == 200
     data = res.json()
@@ -424,12 +447,13 @@ def test_drs_service_info_endpoint(client, combined_default_and_single_table_set
 
 
 def test_drs_service_info_no_information_configured(
-    client, combined_default_and_single_table_settings
+    app_client, combined_default_and_single_table_settings
 ):
     """
     Test drs service info endpoint when DRS_SERVICE_INFO is not configured.
     Should still return DRS 1.5 compliant response with hardcoded defaults.
     """
+    _, client = app_client
     backup = settings["config"]["DRS_SERVICE_INFO"].copy()
     try:
         settings["config"]["DRS_SERVICE_INFO"].clear()
@@ -451,12 +475,13 @@ def test_drs_service_info_no_information_configured(
 
 
 def test_service_info_stats_reflect_records(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """
     Test that service-info objectCount and totalObjectSize reflect actual records.
     After creating records, stats should increase accordingly.
     """
+    _, client = app_client
     # Get baseline stats
     res = client.get("/ga4gh/drs/v1/service-info")
     assert res.status_code == 200
@@ -480,12 +505,13 @@ def test_service_info_stats_reflect_records(
 
 
 def test_service_info_custom_bulk_limit(
-    client, combined_default_and_single_table_settings
+    app_client, combined_default_and_single_table_settings
 ):
     """
     Test that modifying max_bulk_request_length on the blueprint is reflected
     in both drs.maxBulkRequestLength and root maxBulkRequestLength.
     """
+    _, client = app_client
     original = drs_router.max_bulk_request_length
     try:
         drs_router.max_bulk_request_length = 42
@@ -511,7 +537,8 @@ def test_bucket_region_lookup():
     assert lookup_bucket_region("nonexistent-bucket", fake_bucket_regions) == ""
 
 
-def test_access_method_in_drs_object(client, user):
+def test_access_method_in_drs_object(app_client, user):
+    _, client = app_client
     fake_bucket_regions = {
         "my-test-bucket": "us-east-1",
         "another-bucket-.*": "us-west-2",
@@ -643,10 +670,11 @@ def test_get_cloud_provider_https_prefix_matching():
 
 # === Auth metadata focused tests for single object resolution ===
 def test_single_record_not_found(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """Tests that 404 exception raised if object id is not resolveable for single object resolution.
     Both GET and OPTIONS methods should raise 404."""
+    _, client = app_client
     # Test exception raised at nonexistent
     fake_did = "testprefix/fake_did"
     res = client.get("/ga4gh/drs/v1/objects/" + fake_did)
@@ -656,11 +684,12 @@ def test_single_record_not_found(
 
 
 def test_single_path_not_found(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """Tests that the default auth metadata is successfully return if object id is valid (not a 404), BUT
     associated path is not configured"""
     # Test set up
+    _, client = app_client
     data = get_doc(authz=["unknown/path"], urls=["s3://test"])
     doc_did = client.post("/index/", json=data, headers=user).json()["did"]
     expected_metadata_details = {
@@ -681,8 +710,9 @@ def test_single_path_not_found(
     assert res_2.json() == expected_metadata_details
 
 
-def test_single_one_path(client, user, combined_default_and_single_table_settings):
+def test_single_one_path(app_client, user, combined_default_and_single_table_settings):
     # Test set up
+    _, client = app_client
     data = get_doc(urls=["s3://test"])
     doc_did = client.post("/index/", json=data, headers=user).json()["did"]
     expected_metadata_details = {
@@ -704,8 +734,11 @@ def test_single_one_path(client, user, combined_default_and_single_table_setting
     assert res1 == expected_metadata_details
 
 
-def test_single_multi_path(client, user, combined_default_and_single_table_settings):
+def test_single_multi_path(
+    app_client, user, combined_default_and_single_table_settings
+):
     #   # Test set up
+    _, client = app_client
     data = get_doc(
         authz=["/gen3/programs/a/projects/b", "/gen3/programs/c/projects/d"],
         urls=["s3://test"],
@@ -745,8 +778,9 @@ def test_single_multi_path(client, user, combined_default_and_single_table_setti
     assert res1 == expected_metadata_details
 
 
-def test_single_open_path(client, user, combined_default_and_single_table_settings):
+def test_single_open_path(app_client, user, combined_default_and_single_table_settings):
     #   # Test set up
+    _, client = app_client
     data = get_doc(
         authz=["/programs/open_access/projects/test", "/gen3/programs/c/projects/d"],
         urls=["s3://test"],
@@ -775,11 +809,11 @@ def test_single_open_path(client, user, combined_default_and_single_table_settin
 
 # === Auth metadata focused tests for bulk object resolution ===
 def bulk_response_test_setup(
-    user, client, n_200: int = 0, n_404: int = 0
+    user, app_client, n_200: int = 0, n_404: int = 0
 ) -> tuple[list[str], dict[str, str], dict[str, str]]:
     """Returns list of dids, expected response and 404 response dict dict for auth options testing.
     Specify the number of dummy dids to create, otherwise params assumed to be 0."""
-
+    _, client = app_client
     # Initialize variables
     dids_200: list[str] = []
     dids_404: list[str] = []
@@ -824,11 +858,12 @@ def bulk_response_test_setup(
     return all_dids, expected_json, expected_404_dict
 
 
-def test_bulk_post(client, user, combined_default_and_single_table_settings):
+def test_bulk_post(app_client, user, combined_default_and_single_table_settings):
     """Tests endpoint for bulk POST"""
     # Test set up
+    _, client = app_client
     did_list, expected_json, expected_404_dict = bulk_response_test_setup(
-        user, client, n_200=2, n_404=2
+        user, app_client, n_200=2, n_404=2
     )
     # Call bulk options
     data = {"bulk_object_ids": did_list}
@@ -853,11 +888,12 @@ def test_bulk_post(client, user, combined_default_and_single_table_settings):
     assert expected_404_dict in test_json["unresolved_drs_objects"]
 
 
-def test_bulk_options(client, user, combined_default_and_single_table_settings):
+def test_bulk_options(app_client, user, combined_default_and_single_table_settings):
     """Tests endpoint for bulk POST"""
     # Test set up
+    _, client = app_client
     did_list, expected_json, expected_404_dict = bulk_response_test_setup(
-        user, client, n_200=2, n_404=2
+        user, app_client, n_200=2, n_404=2
     )
     # Call bulk options
     data = {"bulk_object_ids": did_list}
@@ -880,12 +916,12 @@ def test_bulk_options(client, user, combined_default_and_single_table_settings):
 
 
 def test_bulk_auth_options_malformed_error(
-    client, user, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """Tests that bulk OPTIONS endpoint returns appropriate 'request malformed' 400 error.
     Request overall is NOT successful (400) in this test scenario becuase error is fundamental
     (no guids were available)."""
-
+    _, client = app_client
     # Call bulk options with missing bulk object ids key value pair
     data = {}
     res_1 = client.request(

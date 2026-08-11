@@ -25,7 +25,7 @@ USE_SINGLE_TABLE = False
 if USE_SINGLE_TABLE is True:
     CONFIG["INDEX"] = {
         "driver": SingleTableSQLAlchemyIndexDriver(
-            "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+            "postgresql+asyncpg://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
             echo=True,
             index_config={
                 "DEFAULT_PREFIX": "testprefix/",
@@ -37,7 +37,7 @@ if USE_SINGLE_TABLE is True:
 else:
     CONFIG["INDEX"] = {
         "driver": SQLAlchemyIndexDriver(
-            "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+            "postgresql+asyncpg://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
             echo=True,
             index_config={
                 "DEFAULT_PREFIX": "testprefix/",
@@ -49,7 +49,7 @@ else:
 
 CONFIG["ALIAS"] = {
     "driver": SQLAlchemyAliasDriver(
-        "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
         echo=True,
     )
 }
@@ -101,7 +101,7 @@ else:
     }
 
 AUTH = SQLAlchemyAuthDriver(
-    "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 )
 
 settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE}

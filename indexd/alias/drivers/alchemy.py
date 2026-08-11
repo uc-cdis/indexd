@@ -1,9 +1,9 @@
 import uuid
 
 from cdislogging import get_logger
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 
-from sqlalchemy import and_
+from sqlalchemy import and_, func, text
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
@@ -11,10 +11,11 @@ from sqlalchemy import BigInteger
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
+from sqlalchemy import select, delete
 
 from indexd.alias.driver import AliasDriverABC
 
@@ -48,14 +49,20 @@ class AliasRecord(Base):
     size = Column(BigInteger)
 
     hashes = relationship(
-        "AliasRecordHash", backref="alias_record", cascade="all, delete-orphan"
+        "AliasRecordHash",
+        backref="alias_record",
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
     release = Column(String)
     metastring = Column(String)
 
     host_authorities = relationship(
-        "AliasRecordHostAuthority", backref="alias_record", cascade="all, delete-orphan"
+        "AliasRecordHostAuthority",
+        backref="alias_record",
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
     keeper_authority = Column(String)
@@ -96,16 +103,20 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         super().__init__(conn, **config)
         self.logger = logger or get_logger("SQLAlchemyAliasDriver")
         Base.metadata.bind = self.engine
-        self.Session = sessionmaker(bind=self.engine)
 
-    def migrate_alias_database(self):
+        self.Session = async_sessionmaker(
+            bind=self.engine, class_=AsyncSession, expire_on_commit=False
+        )
+
+    async def migrate_alias_database(self):
         """
         This migration logic is DEPRECATED. It is still supported for backwards compatibility,
         but any new migration should be added using Alembic.
 
         migrate alias database to match CURRENT_SCHEMA_VERSION
         """
-        migrate_database(
+        # NOTE: If migrate_database performs sync operations, it needs async refactoring too.
+        await migrate_database(
             driver=self,
             migrate_functions=SCHEMA_MIGRATION_FUNCTIONS,
             current_schema_version=CURRENT_SCHEMA_VERSION,
@@ -113,28 +124,25 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         )
 
     @property
-    @contextmanager
-    def session(self):
+    @asynccontextmanager
+    async def session(self):
         """
         Provide a transactional scope around a series of operations.
         """
-        session = self.Session()
+        async with self.Session() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
 
-        try:
-            yield session
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-
-    def aliases(self, limit=100, start=None, size=None, hashes=None, page=None):
+    async def aliases(self, limit=100, start=None, size=None, hashes=None, page=None):
         """
         Returns list of records stored by the backend.
         """
-        with self.session as session:
-            query = session.query(AliasRecord)
+        async with self.session as session:
+            query = select(AliasRecord)
 
             if start is not None:
                 query = query.filter(AliasRecord.name > start)
@@ -144,20 +152,21 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
 
             if hashes is not None:
                 for h, v in hashes.items():
-                    subq = session.query(AliasRecordHash.name).filter(
+                    subq = select(AliasRecordHash.name).filter(
                         and_(
                             AliasRecordHash.hash_type == h,
                             AliasRecordHash.hash_value == v,
                         )
                     )
-                    query = query.filter(AliasRecord.name.in_(subq.subquery()))
+                    query = query.filter(AliasRecord.name.in_(subq))
 
             query = query.order_by(AliasRecord.name)
             query = query.limit(limit)
 
-            return [i.name for i in query]
+            result = await session.execute(query)
+            return [i.name for i in result.scalars().all()]
 
-    def upsert(
+    async def upsert(
         self,
         name,
         rev=None,
@@ -175,12 +184,12 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
         hashes = hashes or {}
         host_authorities = host_authorities or []
 
-        with self.session as session:
-            query = session.query(AliasRecord)
-            query = query.filter(AliasRecord.name == name)
+        async with self.session as session:
+            query = select(AliasRecord).filter(AliasRecord.name == name)
+            result = await session.execute(query)
 
             try:
-                record = query.one()
+                record = result.scalar_one()
             except NoResultFound as err:
                 record = AliasRecord()
             except MultipleResultsFound as err:
@@ -196,7 +205,7 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
 
             if hashes is not None:
                 record.hashes = [
-                    AliasRecordHash(name=record, hash_type=h, hash_value=v)
+                    AliasRecordHash(name=record.name, hash_type=h, hash_value=v)
                     for h, v in hashes.items()
                 ]
 
@@ -218,26 +227,26 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             record.rev = str(uuid.uuid4())[:8]
 
             session.add(record)
+            await session.commit()
 
             return record.name, record.rev
 
-    def get(self, name):
+    async def get(self, name):
         """
         Gets a record given the record name.
         """
-        with self.session as session:
-            query = session.query(AliasRecord)
-            query = query.filter(AliasRecord.name == name)
+        async with self.session as session:
+            query = select(AliasRecord).filter(AliasRecord.name == name)
+            result = await session.execute(query)
 
             try:
-                record = query.one()
+                record = result.scalar_one()
             except NoResultFound as err:
                 raise NoRecordFound("no record found")
             except MultipleResultsFound as err:
                 raise MultipleRecordsFound("multiple records found")
 
             rev = record.rev
-
             size = record.size
             hashes = {h.hash_type: h.hash_value for h in record.hashes}
             release = record.release
@@ -258,16 +267,16 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
 
         return ret
 
-    def delete(self, name, rev=None):
+    async def delete(self, name, rev=None):
         """
         Removes a record.
         """
-        with self.session as session:
-            query = session.query(AliasRecord)
-            query = query.filter(AliasRecord.name == name)
+        async with self.session as session:
+            query = select(AliasRecord).filter(AliasRecord.name == name)
+            result = await session.execute(query)
 
             try:
-                record = query.one()
+                record = result.scalar_one()
             except NoResultFound as err:
                 raise NoRecordFound("no record found")
             except MultipleResultsFound as err:
@@ -276,39 +285,43 @@ class SQLAlchemyAliasDriver(AliasDriverABC):
             if rev is not None and rev != record.rev:
                 raise RevisionMismatch("revision mismatch")
 
-            session.delete(record)
+            await session.delete(record)
 
-    def __contains__(self, record):
+    async def has_record(self, record):
         """
-        Returns True if record is stored by backend.
-        Returns False otherwise.
+        Async replacement for the synchronous __contains__ magic method.
         """
-        with self.session as session:
-            query = session.query(AliasRecord)
-            query = query.filter(AliasRecord.name == record)
+        async with self.session as session:
+            query = select(AliasRecord).filter(AliasRecord.name == record)
+            result = await session.execute(select(query.exists()))
+            return result.scalar()
 
-            return query.exists()
-
-    def __iter__(self):
+    async def __aiter__(self):
         """
-        Iterator over unique records stored by backend.
+        Async replacement for the synchronous __iter__ magic method.
         """
-        with self.session as session:
-            for i in session.query(AliasRecord):
+        async with self.session as session:
+            result = await session.stream_scalars(select(AliasRecord))
+            async for i in result:
                 yield i.name
 
-    def __len__(self):
+    async def len(self):
         """
-        Number of unique records stored by backend.
+        Async replacement for the synchronous __len__ magic method.
         """
-        with self.session as session:
-            return session.query(AliasRecord).count()
+        async with self.session as session:
+            result = await session.execute(
+                select(func.count()).select_from(AliasRecord)
+            )
+            return result.scalar()
 
 
-def migrate_1(session, **kwargs):
-    session.execute(
-        "ALTER TABLE {} ALTER COLUMN size TYPE bigint;".format(
-            AliasRecord.__tablename__
+async def migrate_1(session, **kwargs):
+    await session.execute(
+        text(
+            "ALTER TABLE {} ALTER COLUMN size TYPE bigint;".format(
+                AliasRecord.__tablename__
+            )
         )
     )
 

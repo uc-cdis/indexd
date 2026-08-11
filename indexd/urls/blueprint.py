@@ -42,7 +42,7 @@ async def query(request: Request):
     """
     args = dict(request.query_params)
     try:
-        record_list = router.driver.query_urls(**args)
+        record_list = await router.driver.query_urls(**args)
     except Exception as err:
         raise UserError(str(err))
     return JSONResponse(content=record_list, status_code=200)
@@ -70,7 +70,7 @@ async def query_metadata(request: Request):
     """
     args = dict(request.query_params)
     try:
-        record_list = router.driver.query_metadata_by_key(**args)
+        record_list = await router.driver.query_metadata_by_key(**args)
     except Exception as err:
         raise UserError(str(err))
     return JSONResponse(content=record_list, status_code=200)

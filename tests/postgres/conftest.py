@@ -1,6 +1,7 @@
 import pytest
 
 from alembic.config import main as alembic_main
+from sqlalchemy.pool import NullPool
 
 from indexd.app import routers
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver

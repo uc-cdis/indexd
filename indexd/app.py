@@ -2,9 +2,12 @@ import os
 import sys
 import cdislogging
 
+import asyncio
+from contextlib import asynccontextmanager
 from alembic.config import main as alembic_main
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+import httpx
 
 from indexd.config_helper import validate_config
 from indexd.index.drivers.alchemy import Base as IndexBase
@@ -48,26 +51,55 @@ routers = [
 ]
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    FastAPI Lifespan event. Runs before the server starts accepting requests.
+    Perfect for asynchronous database migrations and setups.
+    """
+    settings = app.settings
+    if settings.get("AUTO_MIGRATE", True):
+        index_driver = settings["config"]["INDEX"]["driver"]
+        alias_driver = settings["config"]["ALIAS"]["driver"]
+
+        engine_name = index_driver.engine.dialect.name
+        logger.info(f"Auto migrating. Engine name: {engine_name}")
+
+        if engine_name == "sqlite":
+            # 1. Asynchronous Table Creation
+            async with index_driver.engine.begin() as conn:
+                await conn.run_sync(IndexBase.metadata.create_all)
+
+            # Note: Assuming AliasBase and AuthBase are also on the same async engine.
+            # If they have their own engines, wrap these in their respective engine.begin() blocks.
+            async with alias_driver.engine.begin() as conn:
+                await conn.run_sync(AliasBase.metadata.create_all)
+                await conn.run_sync(AuthBase.metadata.create_all)
+
+            # 2. Await the async migration methods
+            await index_driver.migrate_index_database()
+            await alias_driver.migrate_alias_database()
+        else:
+            # 3. Alembic is inherently synchronous. Run it in a background thread
+            # to prevent it from blocking the async event loop during startup.
+            await asyncio.to_thread(alembic_main, ["--raiseerr", "upgrade", "head"])
+    else:
+        logger.info("Auto migrations are disabled")
+
+    yield  # The application serves requests here
+
+    # Graceful shutdown (optional but recommended)
+    if hasattr(settings["config"]["INDEX"]["driver"], "engine"):
+        await settings["config"]["INDEX"]["driver"].engine.dispose()
+    if hasattr(settings["config"]["ALIAS"]["driver"], "engine"):
+        await settings["config"]["ALIAS"]["driver"].engine.dispose()
+
+
 def app_init(app, settings=None):
     if not settings:
         from .default_settings import settings
 
     app.settings = settings
-
-    if settings.get("AUTO_MIGRATE", True):
-        engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
-        logger.info(f"Auto migrating. Engine name: {engine_name}")
-        if engine_name == "sqlite":
-            IndexBase.metadata.create_all()
-            AliasBase.metadata.create_all()
-            AuthBase.metadata.create_all()
-            settings["config"]["INDEX"]["driver"].migrate_index_database()
-            settings["config"]["ALIAS"]["driver"].migrate_alias_database()
-        else:
-            alembic_main(["--raiseerr", "upgrade", "head"])
-    else:
-        logger.info("Auto migrations are disabled")
-
     validate_config(settings)
 
     app.auth = settings["auth"]
@@ -90,7 +122,9 @@ def app_init(app, settings=None):
 
 def get_app(settings=None):
     logger.info("Starting get_app............")
-    app = FastAPI(title="indexd", redirect_slashes=True)
+
+    # 4. Attach the lifespan context manager to the FastAPI instance
+    app = FastAPI(title="indexd", redirect_slashes=True, lifespan=lifespan)
 
     if "INDEXD_SETTINGS" in os.environ:
         sys.path.append(os.environ["INDEXD_SETTINGS"])

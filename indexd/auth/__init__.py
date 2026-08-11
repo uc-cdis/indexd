@@ -10,20 +10,20 @@ from typing import Optional
 security = HTTPBasic(auto_error=False)
 
 
-def authorize(method: str, resources: list, request: Request):
+async def authorize(method: str, resources: list, request: Request):
     if not isinstance(resources, list):
         raise UserError(f"'authz' must be a list, received '{resources}'.")
 
     credentials = _get_basic_credentials(request)
     if credentials:
         # Basic Auth present: only validate credentials, skip arborist
-        request.app.auth.auth(credentials.username, credentials.password)
+        await request.app.auth.auth(credentials.username, credentials.password)
     else:
         # No Basic Auth: check arborist
-        request.app.auth.authz(method, list(set(resources)))
+        await request.app.auth.authz(method, list(set(resources)))
 
 
-def authorize_decorator(
+async def authorize_decorator(
     request: Request, credentials: Optional[HTTPBasicCredentials] = Depends(security)
 ):
     """
@@ -33,7 +33,7 @@ def authorize_decorator(
     """
     if not credentials:
         raise AuthzError("Username / password required.")
-    request.app.auth.auth(credentials.username, credentials.password)
+    await request.app.auth.auth(credentials.username, credentials.password)
 
 
 def _get_basic_credentials(request: Request) -> Optional[HTTPBasicCredentials]:

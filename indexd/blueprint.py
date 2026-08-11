@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException, status
 from fastapi.responses import JSONResponse
+import asyncio
 
 from indexclient.indexclient.client import IndexClient
 from doiclient.client import DOIClient
@@ -30,7 +31,7 @@ async def get_alias(alias: str):
     """
     Return alias associated information.
     """
-    info = router.alias_driver.get(alias)
+    info = await router.alias_driver.get(alias)
 
     start = 0
     limit = 100
@@ -38,7 +39,7 @@ async def get_alias(alias: str):
     size = info["size"]
     hashes = info["hashes"]
 
-    urls = router.index_driver.get_urls(
+    urls = await router.index_driver.get_urls(
         size=size, hashes=hashes, start=start, limit=limit
     )
 
@@ -56,24 +57,23 @@ async def get_record(record: str, request: Request):
     ret = None
 
     try:
-        ret = router.index_driver.get_with_nonstrict_prefix(record)
+        ret = await router.index_driver.get_with_nonstrict_prefix(record)
     except IndexNoRecordFound:
         try:
-            ret = router.index_driver.get_by_alias(record)
+            ret = await router.index_driver.get_by_alias(record)
         except IndexNoRecordFound:
             try:
-                ret = router.alias_driver.get(record)
+                ret = await router.alias_driver.get(record)
             except AliasNoRecordFound:
                 if not router.dist or "no_dist" in request.query_params:
-                    raise HTTPException(
-                        status_code=404, detail="No record found"
-                    )  # check_later
-                ret = dist_get_record(record, request)
+                    raise HTTPException(status_code=404, detail="No record found")
+                # Fixed: Added await since client calls are synchronous/blocking operations
+                ret = await dist_get_record(record)
 
     return JSONResponse(content=ret, status_code=200)
 
 
-def dist_get_record(record):
+async def dist_get_record(record):
     # Sort the list of distributed ID services
     # Ones with which the request matches a hint will be first
     # Followed by those that don't match the hint
@@ -84,21 +84,23 @@ def dist_get_record(record):
 
     for indexd in sorted_dist:
         try:
-            if indexd["type"] == "doi":
-                # Digital Object Identifier
-                fetcher_client = DOIClient(baseurl=indexd["host"])
-                res = fetcher_client.get(record)
-            elif indexd["type"] == "dos":
-                # Data Object Service
-                fetcher_client = DOSClient(baseurl=indexd["host"])
-                res = fetcher_client.get(record)
-            elif indexd["type"] == "hs":
-                # HydroShare and CommonsShare
-                fetcher_client = HSClient(baseurl=indexd["host"])
-                res = fetcher_client.get(record)
-            else:
-                fetcher_client = IndexClient(baseurl=indexd["host"])
-                res = fetcher_client.global_get(record, no_dist=True)
+            # Wrap synchronous external client network calls in asyncio.to_thread
+            # to prevent blocking FastAPI's event loop
+            def fetch():
+                if indexd["type"] == "doi":
+                    fetcher_client = DOIClient(baseurl=indexd["host"])
+                    return fetcher_client.get(record)
+                elif indexd["type"] == "dos":
+                    fetcher_client = DOSClient(baseurl=indexd["host"])
+                    return fetcher_client.get(record)
+                elif indexd["type"] == "hs":
+                    fetcher_client = HSClient(baseurl=indexd["host"])
+                    return fetcher_client.get(record)
+                else:
+                    fetcher_client = IndexClient(baseurl=indexd["host"])
+                    return fetcher_client.global_get(record, no_dist=True)
+
+            res = await asyncio.to_thread(fetch)
         except Exception:
             continue
 
