@@ -68,7 +68,6 @@ If an IndexD record's `authz` is not listed, the `DEFAULT_BEARER_ISSUER` and `DE
 ```json
 {
     "/gen3/programs/a/projects/b": {
-        "supported_types": ["BearerAuth", "PassportAuth"],
         "passport_auth_issuers": [
             "https://ras/foo/bar",
             "https://ras/foo/bar",
@@ -81,7 +80,6 @@ If an IndexD record's `authz` is not listed, the `DEFAULT_BEARER_ISSUER` and `DE
         ]
     },
     "/gen3/programs/c/projects/d": {
-        "supported_types": ["BearerAuth", "PassportAuth"],
         "passport_auth_issuers": [
             "sample_url_c_one",
             "sample_url_c_one",

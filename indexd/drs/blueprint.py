@@ -5,6 +5,7 @@ import flask
 import json
 from cdislogging import get_logger
 import copy
+
 from indexd.errors import AuthError, AuthzError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
@@ -288,7 +289,7 @@ def resolve_single_object_auth(object_id: str) -> dict:
         ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
         authz_path_list = ret["authz"]
         authz_metadata = copy.deepcopy(blueprint.drs_authorization_metadata)
-
+        preferred_type = blueprint.default_preferred_type
         # Define default (empty) metadata details to return
         compiled_metadata_details = {
             "drs_object_id": object_id,
@@ -338,15 +339,23 @@ def resolve_single_object_auth(object_id: str) -> dict:
             compiled_metadata_details["bearer_auth_issuers"] = sorted(
                 compiled_bearer_auth_issuers
             )
+            if "preferred_type" in authz_metadata_details:
+                preferred_type = authz_metadata_details["preferred_type"]
 
         # Update supported_types
         compiled_supported_types = []
-        if compiled_passport_auth_issuers:
-            compiled_supported_types.append("PassportAuth")
-        if compiled_bearer_auth_issuers:
-            compiled_supported_types.append("BearerAuth")
+        if preferred_type == "PassportAuth":
+            if compiled_passport_auth_issuers:
+                compiled_supported_types.append("PassportAuth")
+            if compiled_bearer_auth_issuers:
+                compiled_supported_types.append("BearerAuth")
+        else:
+            if compiled_bearer_auth_issuers:
+                compiled_supported_types.append("BearerAuth")
+            if compiled_passport_auth_issuers:
+                compiled_supported_types.append("PassportAuth")
 
-        compiled_metadata_details["supported_types"] = sorted(compiled_supported_types)
+        compiled_metadata_details["supported_types"] = compiled_supported_types
         return compiled_metadata_details
     except IndexNoRecordFound as err:
         raise IndexNoRecordFound(err)
@@ -753,3 +762,12 @@ def get_config(setup_state):
     blueprint.max_bulk_request_length = setup_state.app.config.get(
         "MAX_BULK_REQUEST_LENGTH", 100
     )
+    if "DEFAULT_PREFERRED_TYPE" in setup_state.app.config:
+        blueprint.default_preferred_type = setup_state.app.config[
+            "DEFAULT_PREFERRED_TYPE"
+        ]
+    else:
+        blueprint.default_preferred_type = "BearerAuth"
+        logger.warning(
+            "DEFAULT_PREFERRED_TYPE not configured. Defaulting to BearerAuth as the preferred supported_type"
+        )
