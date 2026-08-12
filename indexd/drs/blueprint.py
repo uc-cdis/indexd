@@ -85,7 +85,7 @@ def get_drs_service_info():
 
 @blueprint.route(
     "/ga4gh/drs/v1/objects/<path:object_id>",
-    methods=["GET"],
+    methods=["GET", "POST"],
     provide_automatic_options=False,
 )
 def get_drs_object(object_id):
@@ -99,20 +99,6 @@ def get_drs_object(object_id):
     data = indexd_to_drs(ret, expand=expand)
 
     return flask.jsonify(data), 200
-
-
-@blueprint.route(
-    "/ga4gh/drs/v1/objects/<path:object_id>",
-    methods=["POST"],
-    provide_automatic_options=False,
-)
-def post_drs_object(object_id):
-    """
-    Returns passport-authenticated DRS object retrieval with object_id.
-    Not yet supported.
-    """
-    message = "Passport-authenticated DRS object retrieval is not yet supported."
-    return flask.jsonify({"msg": message}), 405
 
 
 @blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["OPTIONS"])
@@ -176,20 +162,6 @@ def post_drs_records():
     if "bulk_object_ids" not in data:
         return handle_user_error("Request is malformed. Missing bulk object ids.")
     ret = resolve_bulk_object_auth(id_list=data["bulk_object_ids"], auth_only=False)
-    return flask.jsonify(ret), 200
-
-
-@blueprint.route(
-    "/ga4gh/drs/v1/objects", methods=["POST"], provide_automatic_options=False
-)
-def get_drs_objects():
-    """Returns DRS objects for each provided DRS object id.
-    Expects 'bulk_object_ids' in request body"""
-    data = flask.request.get_json(force=True)
-    # Exit with malformed error return if missing object id
-    if "bulk_object_ids" not in data:
-        return handle_user_error("Request is malformed. Missing bulk object ids.")
-    ret = resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
     return flask.jsonify(ret), 200
 
 
