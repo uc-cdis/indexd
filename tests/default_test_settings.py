@@ -27,7 +27,7 @@ CONFIG["DRS_SERVICE_INFO"] = {
 
 CONFIG["DRS_AUTHORIZATION_METADATA"] = {
     "/gen3/programs/a/projects/b": {
-        "supported_types": ["BearerAuth", "PassportAuth"],
+        "preferred_type": "PassportAuth",
         "passport_auth_issuers": [
             "https://ras/foo/bar",
             "https://ras/foo/bar",
@@ -40,7 +40,6 @@ CONFIG["DRS_AUTHORIZATION_METADATA"] = {
         ],
     },
     "/gen3/programs/c/projects/d": {
-        "supported_types": ["BearerAuth", "PassportAuth"],
         "passport_auth_issuers": [
             "sample_url_c_one",
             "sample_url_c_one",
