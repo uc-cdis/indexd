@@ -52,6 +52,13 @@ def set_drs_config(app):
         logger.warning(
             "CLOUD_PROVIDER_MAP not configured. Unable to derive cloud providers from URLs"
         )
+    if "DEFAULT_PREFERRED_TYPE" in app.settings["config"]:
+        router.default_preferred_type = app.settings["config"]["DEFAULT_PREFERRED_TYPE"]
+    else:
+        router.default_preferred_type = "BearerAuth"
+        logger.warning(
+            "DEFAULT_PREFERRED_TYPE not configured. Defaulting to BearerAuth as the preferred supported_type"
+        )
 
     router.max_bulk_request_length = app.settings["config"].get(
         "MAX_BULK_REQUEST_LENGTH", 100
@@ -316,6 +323,7 @@ async def resolve_single_object_auth(object_id: str) -> dict:
         authz_path_list = ret["authz"]
         authz_metadata = copy.deepcopy(router.drs_authorization_metadata)
 
+        preferred_type = router.default_preferred_type
         # Define default (empty) metadata details to return
         compiled_metadata_details = {
             "drs_object_id": object_id,
@@ -365,15 +373,23 @@ async def resolve_single_object_auth(object_id: str) -> dict:
             compiled_metadata_details["bearer_auth_issuers"] = sorted(
                 compiled_bearer_auth_issuers
             )
+            if "preferred_type" in authz_metadata_details:
+                preferred_type = authz_metadata_details["preferred_type"]
 
         # Update supported_types
         compiled_supported_types = []
-        if compiled_passport_auth_issuers:
-            compiled_supported_types.append("PassportAuth")
-        if compiled_bearer_auth_issuers:
-            compiled_supported_types.append("BearerAuth")
+        if preferred_type == "PassportAuth":
+            if compiled_passport_auth_issuers:
+                compiled_supported_types.append("PassportAuth")
+            if compiled_bearer_auth_issuers:
+                compiled_supported_types.append("BearerAuth")
+        else:
+            if compiled_bearer_auth_issuers:
+                compiled_supported_types.append("BearerAuth")
+            if compiled_passport_auth_issuers:
+                compiled_supported_types.append("PassportAuth")
 
-        compiled_metadata_details["supported_types"] = sorted(compiled_supported_types)
+        compiled_metadata_details["supported_types"] = compiled_supported_types
         return compiled_metadata_details
     except IndexNoRecordFound as err:
         raise IndexNoRecordFound(err)
