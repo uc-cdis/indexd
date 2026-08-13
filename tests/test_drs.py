@@ -540,6 +540,30 @@ def test_bucket_region_lookup():
     assert lookup_bucket_region("nonexistent-bucket", fake_bucket_regions) == ""
 
 
+def test_bucket_region_lookup_by_protocol():
+    fake_bucket_regions = {
+        "S3_BUCKETS": {
+            "exact-bucket": {"region": "us-east-1"},
+            "regex-bucket-.*": {"region": "us-west-2"},
+        },
+        "GS_BUCKETS": {
+            "gs-bucket": {"region": "europe-west1"},
+        },
+    }
+
+    assert (
+        lookup_bucket_region("exact-bucket", fake_bucket_regions, "s3") == "us-east-1"
+    )
+    assert (
+        lookup_bucket_region("regex-bucket-123", fake_bucket_regions, "aws")
+        == "us-west-2"
+    )
+    assert (
+        lookup_bucket_region("gs-bucket", fake_bucket_regions, "gs") == "europe-west1"
+    )
+    assert lookup_bucket_region("missing-bucket", fake_bucket_regions, "gs") == ""
+
+
 def test_access_method_in_drs_object(app_client, user):
     _, client = app_client
     fake_bucket_regions = {

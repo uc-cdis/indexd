@@ -216,16 +216,46 @@ def reverse_url(url):
 FENCE_SERVICE = os.environ.get("FENCE_SERVICE_URL", "http://fence-service")
 
 
-def lookup_bucket_region(bucket_name, bucket_regions):
+def lookup_bucket_region(bucket_name, bucket_regions, protocol=None):
     """
     Resolve a bucket name to a region.
     Exact match first, then simple prefix fallback.
+    Supports both flat bucket-region maps and Fence responses shaped as
+    {"S3_BUCKETS": {...}, "GS_BUCKETS": {...}}.
     """
-    if bucket_name in bucket_regions:
-        return bucket_regions[bucket_name]
+    if not bucket_name:
+        return ""
 
-    # remove regexp for prefix matching to remove snyk vulnerability
-    for pattern, region in bucket_regions.items():
+    bucket_mapping = bucket_regions
+    if isinstance(bucket_regions, dict) and (
+        "S3_BUCKETS" in bucket_regions or "GS_BUCKETS" in bucket_regions
+    ):
+        if protocol in ("gs", "gcp", "google"):
+            bucket_mapping = bucket_regions.get("GS_BUCKETS") or {}
+        elif protocol in ("s3", "aws"):
+            bucket_mapping = bucket_regions.get("S3_BUCKETS") or {}
+        else:
+            bucket_mapping = (
+                bucket_regions.get("S3_BUCKETS")
+                or bucket_regions.get("GS_BUCKETS")
+                or {}
+            )
+
+    if not bucket_mapping:
+        return ""
+
+    if bucket_name in bucket_mapping:
+        region_value = bucket_mapping[bucket_name]
+        if isinstance(region_value, dict):
+            return region_value.get("region", "")
+        return region_value
+
+    for pattern, region_value in bucket_mapping.items():
+        region = (
+            region_value.get("region", "")
+            if isinstance(region_value, dict)
+            else region_value
+        )
         if pattern.endswith(".*") and bucket_name.startswith(pattern[:-2]):
             return region
 
@@ -245,11 +275,21 @@ def get_bucket_regions(app):
     try:
         resp = requests.get(url)
         resp.raise_for_status()
-        data = resp.json().get("S3_BUCKETS") or {}
+        response_data = resp.json() or {}
+        data = {
+            "S3_BUCKETS": response_data.get("S3_BUCKETS") or {},
+            "GS_BUCKETS": response_data.get("GS_BUCKETS") or {},
+        }
     except Exception as e:
         logger.warning(f"Failed to fetch bucket regions from Fence: {e}")
 
-    regions = {k: v.get("region", "") for k, v in data.items()}
+    regions = {}
+    for bucket_type in ("S3_BUCKETS", "GS_BUCKETS"):
+        bucket_map = data.get(bucket_type) or {}
+        regions[bucket_type] = {
+            k: v.get("region", "") if isinstance(v, dict) else v
+            for k, v in bucket_map.items()
+        }
 
     if cached:
         cached.set("bucket_regions", regions)
