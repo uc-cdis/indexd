@@ -1,7 +1,4 @@
-# TEMPORARY: points at the base-images branch build (branch `feat/pythonuv`, where the workflow
-# tags `$BRANCH_NAME-3.13-pythonuv`). Revert to `3.13-pythonuv` before
-# merging, or main will build against a branch tag that eventually gets pruned.
-ARG AZLINUX_BASE_VERSION=feat_pythonuv-3.13-pythonuv
+ARG AZLINUX_BASE_VERSION=feat_pythonuv-3.13-pythonpoetry
 
 # Base stage with python-build-base
 FROM quay.io/cdis/amazonlinux-base:${AZLINUX_BASE_VERSION} AS base
@@ -20,15 +17,14 @@ RUN chown -R gen3:gen3 /venv
 
 USER gen3
 
-COPY uv.lock pyproject.toml /${appname}/
+COPY poetry.lock pyproject.toml /${appname}/
 
-ENV UV_PROJECT_ENVIRONMENT=/venv
-
-RUN uv sync --frozen --no-dev --no-install-project
+# RUN python3 -m venv /env && . /env/bin/activate &&
+RUN poetry install -vv --no-interaction --without dev --no-root
 
 COPY --chown=gen3:gen3 . /${appname}
 
-RUN uv sync --frozen --no-dev
+RUN poetry install -vv --no-interaction --without dev
 
 RUN git config --global --add safe.directory ${appname} && COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" > ${appname}/version_data.py \
     && VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >> ${appname}/version_data.py
@@ -41,6 +37,8 @@ COPY --from=builder /${appname} /${appname}
 COPY --from=builder /venv /venv
 ENV  PATH="/usr/sbin:$PATH"
 USER root
+RUN mkdir -p /var/log/nginx
+RUN chown -R gen3:gen3 /var/log/nginx
 
 # Switch to non-root user 'gen3' for the serving process
 
