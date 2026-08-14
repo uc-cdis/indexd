@@ -37,6 +37,8 @@ from indexd.index.errors import (
     NoRecordFound as IndexNoRecordFound,
 )
 
+SERVER_LOGGER_NAMES = ("uvicorn", "uvicorn.error", "uvicorn.access")
+
 logger = cdislogging.get_logger(__name__)
 
 routers = [
@@ -66,29 +68,22 @@ async def lifespan(app: FastAPI):
         logger.info(f"Auto migrating. Engine name: {engine_name}")
 
         if engine_name == "sqlite":
-            # 1. Asynchronous Table Creation
             async with index_driver.engine.begin() as conn:
                 await conn.run_sync(IndexBase.metadata.create_all)
 
-            # Note: Assuming AliasBase and AuthBase are also on the same async engine.
-            # If they have their own engines, wrap these in their respective engine.begin() blocks.
             async with alias_driver.engine.begin() as conn:
                 await conn.run_sync(AliasBase.metadata.create_all)
                 await conn.run_sync(AuthBase.metadata.create_all)
 
-            # 2. Await the async migration methods
             await index_driver.migrate_index_database()
             await alias_driver.migrate_alias_database()
         else:
-            # 3. Alembic is inherently synchronous. Run it in a background thread
-            # to prevent it from blocking the async event loop during startup.
             await asyncio.to_thread(alembic_main, ["--raiseerr", "upgrade", "head"])
     else:
         logger.info("Auto migrations are disabled")
 
-    yield  # The application serves requests here
+    yield
 
-    # Graceful shutdown (optional but recommended)
     if hasattr(settings["config"]["INDEX"]["driver"], "engine"):
         await settings["config"]["INDEX"]["driver"].engine.dispose()
     if hasattr(settings["config"]["ALIAS"]["driver"], "engine"):
@@ -123,7 +118,6 @@ def app_init(app, settings=None):
 def get_app(settings=None):
     logger.info("Starting get_app............")
 
-    # 4. Attach the lifespan context manager to the FastAPI instance
     app = FastAPI(title="indexd", redirect_slashes=True, lifespan=lifespan)
 
     if "INDEXD_SETTINGS" in os.environ:

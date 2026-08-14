@@ -19,7 +19,6 @@ dosclient = {git = "https://github.com/uc-cdis/dosclient", rev = "1.1.0"}
 gen3authz = "^3.0.0"
 hsclient = {git = "https://github.com/uc-cdis/hsclient", rev = "1.0.0"}
 jsonschema = "^3.2"
-gunicorn = ">=22.0.0"
 sqlalchemy = "^2.0.0"
 sqlalchemy-utils = ">=0.41.0"
 PyYAML = ">=5.3,<7"
