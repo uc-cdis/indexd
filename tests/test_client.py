@@ -4,7 +4,7 @@ import pytest
 import uuid
 
 from tests.util import assert_blank
-from indexd.index.blueprint import ACCEPTABLE_HASHES
+from indexd.index.router import ACCEPTABLE_HASHES
 from tests.test_bundles import create_index, get_bundle_doc
 from tests.default_test_settings import settings
 

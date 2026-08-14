@@ -26,7 +26,7 @@ from .schema import BUNDLE_SCHEMA
 from .schema import UPDATE_ALL_VERSIONS_SCHEMA
 
 from cdislogging import get_logger
-from indexd.drs.blueprint import bundle_to_drs
+from indexd.drs.router import bundle_to_drs
 from cdislogging import get_logger
 
 logger = get_logger("indexd/index router", log_level="info")

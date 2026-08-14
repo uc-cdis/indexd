@@ -1,9 +1,9 @@
 import pytest
 from fastapi import FastAPI
 
-from indexd.bulk.blueprint import router as indexd_bulk_router, set_bulk_config
-from indexd.index.blueprint import router as indexd_index_router, set_index_config
-from indexd.alias.blueprint import router as indexd_alias_router, set_alias_config
+from indexd.bulk.router import router as indexd_bulk_router, set_bulk_config
+from indexd.index.router import router as indexd_index_router, set_index_config
+from indexd.alias.router import router as indexd_alias_router, set_alias_config
 
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 from indexd.alias.drivers.alchemy import SQLAlchemyAliasDriver

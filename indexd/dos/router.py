@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 
-from indexd.blueprint import dist_get_record
+from indexd.router import dist_get_record
 from indexd.errors import UserError
 from indexd.alias.errors import NoRecordFound as AliasNoRecordFound
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound

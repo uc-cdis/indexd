@@ -6,8 +6,8 @@ from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
 from unittest.mock import patch
 from indexd.utils import lookup_bucket_region
-from indexd.drs.blueprint import router as drs_router
-from indexd.drs.blueprint import get_cloud_provider
+from indexd.drs.router import router as drs_router
+from indexd.drs.router import get_cloud_provider
 
 from indexd import get_app
 
@@ -511,7 +511,7 @@ def test_service_info_custom_bulk_limit(
     app_client, combined_default_and_single_table_settings
 ):
     """
-    Test that modifying max_bulk_request_length on the blueprint is reflected
+    Test that modifying max_bulk_request_length on the router is reflected
     in both drs.maxBulkRequestLength and root maxBulkRequestLength.
     """
     _, client = app_client
@@ -573,7 +573,7 @@ def test_access_method_in_drs_object(app_client, user):
 
     with patch(
         "indexd.utils.get_bucket_regions", return_value=fake_bucket_regions
-    ), patch("indexd.drs.blueprint.router.bucket_regions", new=fake_bucket_regions):
+    ), patch("indexd.drs.router.router.bucket_regions", new=fake_bucket_regions):
         urls = [
             "s3://my-test-bucket/path/to/file",
             "s3://another-bucket-phs000000-c1/path/to/file",

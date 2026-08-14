@@ -14,14 +14,14 @@ from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.auth.drivers.alchemy import Base as AuthBase
 
-from .blueprint import router as cross_router, set_cross_config
-from .alias.blueprint import router as indexd_alias_router, set_alias_config
-from .bulk.blueprint import router as indexd_bulk_router, set_bulk_config
-from .dos.blueprint import router as indexd_dos_router, set_dos_config
-from .drs.blueprint import router as indexd_drs_router, set_drs_config
-from .guid.blueprint import router as indexd_guid_router, set_guid_config
-from .index.blueprint import router as indexd_index_router, set_index_config
-from .urls.blueprint import router as index_urls_router, set_urls_config
+from .router import router as cross_router, set_cross_config
+from .alias.router import router as indexd_alias_router, set_alias_config
+from .bulk.router import router as indexd_bulk_router, set_bulk_config
+from .dos.router import router as indexd_dos_router, set_dos_config
+from .drs.router import router as indexd_drs_router, set_drs_config
+from .guid.router import router as indexd_guid_router, set_guid_config
+from .index.router import router as indexd_index_router, set_index_config
+from .urls.router import router as index_urls_router, set_urls_config
 
 from indexd.errors import IndexdUnexpectedError, UserError
 from indexd.alias.errors import (
