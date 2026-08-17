@@ -11,6 +11,7 @@ from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
 from indexd.utils import reverse_url, lookup_bucket_region, get_bucket_regions
+from urllib.parse import urlparse
 
 blueprint = flask.Blueprint("drs", __name__)
 
@@ -479,9 +480,13 @@ def indexd_to_drs(record, expand=False):
 
     if "urls" in record and record["urls"]:
         for url in record["urls"]:
-            if url.startswith("s3://") and url not in region:
-                bucket_name = url.split("/")[2]
-                matched_region = lookup_bucket_region(bucket_name, bucket_regions)
+            parsed_url = urlparse(url)
+            protocol = parsed_url.scheme.lower()
+            if protocol in {"s3", "gs"} and url not in region:
+                bucket_name = parsed_url.netloc
+                matched_region = lookup_bucket_region(
+                    bucket_name, bucket_regions, protocol
+                )
                 if matched_region:
                     region[url] = matched_region
 
