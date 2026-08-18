@@ -3,7 +3,8 @@ import base64
 import importlib
 import pytest
 import requests
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
 import mock
 from unittest.mock import patch
 from sqlalchemy.pool import NullPool
@@ -29,41 +30,48 @@ POSTGRES_CONNECTION = "postgresql+asyncpg://postgres:postgres@localhost:5432/ind
 
 logger = get_logger(__name__, log_level="info")
 
-# Create a synchronous connection string strictly for database cleanup and user setup
-SYNC_POSTGRES_CONNECTION = POSTGRES_CONNECTION.replace("+asyncpg", "")
-
 
 def clear_database():
     """
-    Clean up test data from unit test using a synchronous engine
+    Clean up test data from unit test natively using the async engine
     """
-    engine = create_engine(SYNC_POSTGRES_CONNECTION, poolclass=NullPool)
-    with engine.begin() as conn:  # Use .begin() for an explicit transaction
-        # IndexD table needs to be delete in this order to avoid foreign key constraint error
-        table_delete_order = [
-            "index_record_url_metadata",
-            "index_record_url",
-            "index_record_hash",
-            "index_record_authz",
-            "index_record_ace",
-            "index_record_alias",
-            "index_record_metadata",
-            "alias_record_hash",
-            "alias_record_host_authority",
-            "alias_record",
-            "index_record",
-            "drs_bundle_record",
-            "base_version",
-            "record",
-            "stats",
-        ]
-        for table_name in table_delete_order:
-            conn.execute(text(f"DELETE FROM {table_name}"))
-        for model in alias_base.__subclasses__():
-            conn.execute(model.__table__.delete())
-        for model in auth_base.__subclasses__():
-            conn.execute(model.__table__.delete())
-    engine.dispose()
+
+    async def _async_clear():
+        engine = create_async_engine(POSTGRES_CONNECTION, poolclass=NullPool)
+
+        async with engine.begin() as conn:  # Use .begin() for an explicit transaction
+            # IndexD table needs to be deleted in this order to avoid foreign key constraint error
+            table_delete_order = [
+                "index_record_url_metadata",
+                "index_record_url",
+                "index_record_hash",
+                "index_record_authz",
+                "index_record_ace",
+                "index_record_alias",
+                "index_record_metadata",
+                "alias_record_hash",
+                "alias_record_host_authority",
+                "alias_record",
+                "index_record",
+                "drs_bundle_record",
+                "base_version",
+                "record",
+                "stats",
+            ]
+
+            # Execute all deletes asynchronously
+            for table_name in table_delete_order:
+                await conn.execute(text(f"DELETE FROM {table_name}"))
+
+            for model in alias_base.__subclasses__():
+                await conn.execute(model.__table__.delete())
+
+            for model in auth_base.__subclasses__():
+                await conn.execute(model.__table__.delete())
+
+        await engine.dispose()
+
+    asyncio.run(_async_clear())
 
 
 @pytest.fixture(scope="function", params=["default_settings", "single_table_settings"])

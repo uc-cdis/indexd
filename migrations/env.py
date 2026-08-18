@@ -31,9 +31,6 @@ logger.setLevel(logging.INFO)
 Base = declarative_base()
 target_metadata = Base.metadata
 
-# Inject the environment path so Alembic finds local_settings.py inside Docker
-if "INDEXD_SETTINGS" in os.environ:
-    sys.path.append(os.environ["INDEXD_SETTINGS"])
 
 try:
     from local_settings import settings
