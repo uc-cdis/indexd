@@ -1,14 +1,14 @@
 from alembic.config import main as alembic_main
 import pytest
+import asyncio
 from sqlalchemy import text
 
 
 @pytest.mark.asyncio
 async def test_upgrade(postgres_driver):
-    async with postgres_driver.engine.begin() as conn:
-        # state before migration
-        alembic_main(["--raiseerr", "downgrade", "base"])
+    await asyncio.to_thread(alembic_main, ["--raiseerr", "downgrade", "base"])
 
+    async with postgres_driver.engine.begin() as conn:
         # the database should be empty except for the `alembic_version` table
         tables_res = await conn.execute(
             text(
@@ -18,9 +18,9 @@ async def test_upgrade(postgres_driver):
         tables = [i[1] for i in tables_res]
         assert tables == ["alembic_version"]
 
-        # state after migration
-        alembic_main(["--raiseerr", "upgrade", "15f2e9345ade"])
+    await asyncio.to_thread(alembic_main, ["--raiseerr", "upgrade", "15f2e9345ade"])
 
+    async with postgres_driver.engine.begin() as conn:
         # check that all the tables were created
         tables_res = await conn.execute(
             text(
@@ -76,10 +76,10 @@ async def test_upgrade(postgres_driver):
 
 @pytest.mark.asyncio
 async def test_downgrade(postgres_driver):
-    async with postgres_driver.engine.begin() as conn:
-        # state after migration
-        alembic_main(["--raiseerr", "downgrade", "base"])
+    # state after migration
+    await asyncio.to_thread(alembic_main, ["--raiseerr", "downgrade", "base"])
 
+    async with postgres_driver.engine.begin() as conn:
         # the database should be empty except for the `alembic_version` table
         tables_res = await conn.execute(
             text(

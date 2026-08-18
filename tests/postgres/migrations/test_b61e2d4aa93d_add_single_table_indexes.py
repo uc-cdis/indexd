@@ -1,5 +1,6 @@
 from alembic.config import main as alembic_main
 import pytest
+import asyncio
 from sqlalchemy import text
 
 
@@ -8,18 +9,17 @@ async def test_upgrade(postgres_driver):
     """
     Ensure the migration correctly adds indexes to the record table
     """
+    await asyncio.to_thread(
+        alembic_main,
+        ["--raiseerr", "downgrade", "bb3d7586a096"],  # pragma: allowlist secret
+    )
+
+    await asyncio.to_thread(
+        alembic_main,
+        ["--raiseerr", "upgrade", "b61e2d4aa93d"],  # pragma: allowlist secret
+    )
+
     async with postgres_driver.engine.begin() as conn:
-
-        # Downgrade to previous state before migration
-        alembic_main(
-            ["--raiseerr", "downgrade", "bb3d7586a096"]  # pragma: allowlist secret
-        )
-
-        # Upgrade to apply index changes
-        alembic_main(
-            ["--raiseerr", "upgrade", "b61e2d4aa93d"]  # pragma: allowlist secret
-        )
-
         # Query to check indexes on the record table
         get_indexes = """
         SELECT indexname, indexdef FROM pg_indexes
@@ -42,18 +42,17 @@ async def test_downgrade(postgres_driver):
     """
     Ensure the downgrade removes the added indexes from the record table.
     """
+    await asyncio.to_thread(
+        alembic_main,
+        ["--raiseerr", "upgrade", "b61e2d4aa93d"],  # pragma: allowlist secret
+    )
+
+    await asyncio.to_thread(
+        alembic_main,
+        ["--raiseerr", "downgrade", "bb3d7586a096"],  # pragma: allowlist secret
+    )
+
     async with postgres_driver.engine.begin() as conn:
-
-        # Apply migration to ensure indexes are created
-        alembic_main(
-            ["--raiseerr", "upgrade", "b61e2d4aa93d"]  # pragma: allowlist secret
-        )
-
-        # Downgrade migration
-        alembic_main(
-            ["--raiseerr", "downgrade", "bb3d7586a096"]  # pragma: allowlist secret
-        )
-
         # Query to check indexes on the record table
         get_indexes = """
         SELECT indexname FROM pg_indexes
