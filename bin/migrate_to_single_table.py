@@ -1,6 +1,7 @@
 """
 to run: python migrate_to_single_table.py --creds-path /dir/containing/db_creds --start-did <guid>
 """
+
 import argparse
 import backoff
 import json
@@ -92,7 +93,7 @@ class IndexRecordMigrator:
 
         try:
             engine = create_engine(
-                f"postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}"
+                f"postgresql+asyncpg://{usr}:{psw}@{pghost}:{pgport}/{db}"
             )
         except Exception as e:
             self.logger.error(f"Failed to connect to postgres: {e}")
