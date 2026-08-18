@@ -3,17 +3,19 @@ to run: python migrate_to_single_table.py --creds-path /dir/containing/db_creds 
 """
 
 import argparse
+import asyncio
 import backoff
 import json
 import indexd.config_helper as config_helper
 from cdislogging import get_logger
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
-import re
+from sqlalchemy.orm import declarative_base
 
 from indexd.index.drivers.alchemy import (
+    Base as AlchemyBase,
     IndexRecord,
     IndexRecordAuthz,
     IndexRecordAlias,
@@ -23,8 +25,7 @@ from indexd.index.drivers.alchemy import (
     IndexRecordUrlMetadata,
     IndexRecordHash,
 )
-from indexd.index.drivers.single_table_alchemy import Record
-from indexd.index.errors import MultipleRecordsFound
+from indexd.index.drivers.single_table_alchemy import Record, Base as SingleTableBase
 
 APP_NAME = "indexd"
 
@@ -40,10 +41,13 @@ def main():
     migrator = IndexRecordMigrator(
         creds_file=args.creds_file, batch_size=args.batch_size
     )
-    migrator.index_record_to_new_table(
-        offset=args.start_offset, last_seen_guid=args.start_did
+
+    # Run the async migration using asyncio
+    asyncio.run(
+        migrator.index_record_to_new_table(
+            offset=args.start_offset, last_seen_guid=args.start_did
+        )
     )
-    return
 
 
 def parse_args():
@@ -91,127 +95,117 @@ class IndexRecordMigrator:
         pgport = 5432
         self.batch_size = batch_size
 
-        try:
-            engine = create_engine(
-                f"postgresql+asyncpg://{usr}:{psw}@{pghost}:{pgport}/{db}"
-            )
-        except Exception as e:
-            self.logger.error(f"Failed to connect to postgres: {e}")
-        Base = declarative_base()
-        Base.metadata.create_all(engine)
-        Session = sessionmaker(bind=engine)
+        # Save the URL but DO NOT create the engine yet (__init__ is synchronous)
+        self.db_url = f"postgresql+asyncpg://{usr}:{psw}@{pghost}:{pgport}/{db}"
 
-        self.session = Session()
-
-    def index_record_to_new_table(self, offset=None, last_seen_guid=None):
+    async def index_record_to_new_table(self, offset=None, last_seen_guid=None):
         """
         Collect records from index_record table, collect additional info from multiple tables and bulk insert to new record table.
         """
-        try:
-            self.total_records = self.session.query(IndexRecord).count()
-            self.count = 0
+        engine = create_async_engine(self.db_url)
 
-            while True:
-                if last_seen_guid is None:
-                    records = (
-                        self.session.query(IndexRecord)
+        # Safely create tables using the actual imported bases
+        async with engine.begin() as conn:
+            await conn.run_sync(AlchemyBase.metadata.create_all)
+            await conn.run_sync(SingleTableBase.metadata.create_all)
+
+        async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+        async with async_session_factory() as session:
+            self.session = session
+            try:
+                # Async count
+                self.total_records = await self.session.scalar(
+                    select(func.count()).select_from(IndexRecord)
+                )
+                self.count = 0
+
+                while True:
+                    stmt = (
+                        select(IndexRecord)
                         .order_by(IndexRecord.did)
                         .limit(self.batch_size)
-                        .all()
                     )
-                elif offset is not None:
-                    records = (
-                        self.session.query(IndexRecord)
-                        .order_by(IndexRecord.did)
-                        .offset(offset - 1)
-                        .limit(self.batch_size)
-                        .all()
+
+                    if last_seen_guid is not None:
+                        self.logger.info(f"Start guid set to: {last_seen_guid}")
+                        stmt = stmt.filter(IndexRecord.did > last_seen_guid)
+                    elif offset is not None:
+                        stmt = stmt.offset(offset - 1)
+
+                    result = await self.session.scalars(stmt)
+                    records = result.all()
+
+                    if not records:
+                        break
+
+                    try:
+                        # We must await the info gathering now
+                        records_to_insert = await self.get_info_from_mult_tables(
+                            records
+                        )
+                        await self.bulk_insert_records(records_to_insert)
+                    except Exception as e:
+                        raise Exception(
+                            f"Could not insert records with {e} at offset {offset} with the last seen guid {last_seen_guid}. Please re-run the job with the following --start-did {last_seen_guid}"
+                        )
+
+                    last_seen_guid = records[-1].did
+
+            except Exception as e:
+                await self.session.rollback()
+                self.logger.error(
+                    f"Error in migration: {e}. Last seen guid: {last_seen_guid} at position: {self.count}."
+                )
+            finally:
+                new_total_records = await self.session.scalar(
+                    select(func.count()).select_from(Record)
+                )
+                self.logger.info(
+                    f"Number of records in old table: {self.total_records}"
+                )
+                self.logger.info(f"Number of records in new table: {new_total_records}")
+                if self.total_records == new_total_records:
+                    self.logger.info(
+                        "Number of records in the new table matches the number of records in old table"
                     )
                 else:
-                    self.logger.info(f"Start guid set to: {last_seen_guid}")
-                    records = (
-                        self.session.query(IndexRecord)
-                        .order_by(IndexRecord.did)
-                        .filter(IndexRecord.did > last_seen_guid)
-                        .limit(self.batch_size)
-                        .all()
+                    self.logger.info(
+                        "Number of records in the new table DOES NOT MATCH the number of records in old table."
                     )
+                self.logger.info("Finished migrating :D")
 
-                if not records:
-                    break
-
-                try:
-                    records_to_insert = self.get_info_from_mult_tables(records)
-                    self.bulk_insert_records(records_to_insert)
-                except Exception as e:
-                    raise Exception(
-                        f"Could not insert records with {e} at offset {offset} with the last seen guid {last_seen_guid}. Please re-run the job with the following --start-did {last_seen_guid}"
-                    )
-
-                last_seen_guid = records[-1].did
-
-        except Exception as e:
-            self.session.rollback()
-            self.logger.error(
-                f"Error in migration: {e}. Last seen guid: {last_seen_guid} at position: {self.count}."
-            )
-        finally:
-            self.session.close()
-            new_total_records = self.session.query(Record).count()
-            self.logger.info(f"Number of records in old table: {self.total_records}")
-            self.logger.info(f"Number of records in new table: {new_total_records}")
-            if self.total_records == new_total_records:
-                self.logger.info(
-                    "Number of records in the new table matches the number of records in old table"
-                )
-            else:
-                self.logger.info(
-                    "Number of records in the new table DOES NOT MATCH the number of records in old table. Check logs to see if there are records that were not migrated"
-                )
-            self.logger.info("Finished migrating :D")
+        await engine.dispose()
 
     @backoff.on_exception(
         backoff.expo, Exception, max_tries=5, max_time=60, jitter=backoff.full_jitter
     )
-    def bulk_insert_records(self, records_to_insert):
-        """
-        bulk insert records into the new Record table
-        Args:
-            records_to_insert (list): List of Record objects
-        """
+    async def bulk_insert_records(self, records_to_insert):
         try:
-            self.session.bulk_save_objects(records_to_insert)
-            self.session.commit()
+            self.session.add_all(records_to_insert)
+            await self.session.commit()
             self.count += len(records_to_insert)
             self.logger.info(
                 f"Done processing {self.count}/{self.total_records} records. {(self.count * 100)/self.total_records}%"
             )
         except IntegrityError as e:
-            self.session.rollback()
+            await self.session.rollback()
             self.logger.error(f"Duplicate record found for records {e}")
         except Exception as e:
-            self.session.rollback()
+            await self.session.rollback()
             self.logger.error(f"Error bulk insert for records at {self.count} records")
 
-    def get_info_from_mult_tables(self, records):
-        """
-        Collect records from multiple tables from old multi table infrastructure and create a list of records to insert into the new single table infrastructure
-
-        Args:
-            records (list): list of IndexRecord objects
-
-        Returns:
-            records_to_insert (list): List of Record objects
-        """
+    async def get_info_from_mult_tables(self, records):
         records_to_insert = []
         for record in records:
-            hashes = self.get_index_record_hash(record.did)
-            urls = self.get_urls_record(record.did)
-            url_metadata = self.get_urls_metadata(record.did)
-            acl = self.get_index_record_ace(record.did)
-            authz = self.get_index_record_authz(record.did)
-            alias = self.get_index_record_alias(record.did)
-            metadata = self.get_index_record_metadata(record.did)
+            hashes = await self.get_index_record_hash(record.did)
+            urls = await self.get_urls_record(record.did)
+            url_metadata = await self.get_urls_metadata(record.did)
+            acl = await self.get_index_record_ace(record.did)
+            authz = await self.get_index_record_authz(record.did)
+            alias = await self.get_index_record_alias(record.did)
+            metadata = await self.get_index_record_metadata(record.did)
+
             records_to_insert.append(
                 Record(
                     guid=record.did,
@@ -240,118 +234,78 @@ class IndexRecordMigrator:
     @backoff.on_exception(
         backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
     )
-    def get_index_record_hash(self, did):
-        """
-        Get the index record hash for the given did and return correctly formatted value
-        """
+    async def get_index_record_hash(self, did):
         try:
-            stmt = (
-                self.session.query(
-                    IndexRecordHash.hash_type,
-                    IndexRecordHash.hash_value,
-                )
-                .filter(IndexRecordHash.did == did)
-                .all()
+            stmt = select(IndexRecordHash.hash_type, IndexRecordHash.hash_value).filter(
+                IndexRecordHash.did == did
             )
-            res = {hash_type: hash_value for hash_type, hash_value in stmt}
-            return res
+            res_proxy = await self.session.execute(stmt)
+            return {row.hash_type: row.hash_value for row in res_proxy}
         except Exception as e:
             raise Exception(f"Error with hash for {did}: {e}")
 
     @backoff.on_exception(
         backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
     )
-    def get_urls_record(self, did):
-        """
-        Get the urls record for the given did and return correctly formatted value
-        """
+    async def get_urls_record(self, did):
         try:
-            stmt = (
-                self.session.query(IndexRecordUrl.url)
-                .filter(IndexRecordUrl.did == did)
-                .all()
-            )
-            res = [u.url for u in stmt]
-            return res
+            stmt = select(IndexRecordUrl.url).filter(IndexRecordUrl.did == did)
+            res_proxy = await self.session.execute(stmt)
+            return [row.url for row in res_proxy]
         except Exception as e:
             raise Exception(f"Error with urls for {did}: {e}")
 
     @backoff.on_exception(
         backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
     )
-    def get_urls_metadata(self, did):
-        """
-        Get the urls metadata for the given did and return correctly formatted value
-        """
+    async def get_urls_metadata(self, did):
         try:
-            stmt = (
-                self.session.query(
-                    IndexRecordUrlMetadata.url,
-                    IndexRecordUrlMetadata.key,
-                    IndexRecordUrlMetadata.value,
-                )
-                .filter(IndexRecordUrlMetadata.did == did)
-                .all()
-            )
-            res = {url: {key: value} for url, key, value in stmt}
-            return res
+            stmt = select(
+                IndexRecordUrlMetadata.url,
+                IndexRecordUrlMetadata.key,
+                IndexRecordUrlMetadata.value,
+            ).filter(IndexRecordUrlMetadata.did == did)
+            res_proxy = await self.session.execute(stmt)
+            return {row.url: {row.key: row.value} for row in res_proxy}
         except Exception as e:
             raise Exception(f"Error with url metadata for {did}: {e}")
 
     @backoff.on_exception(
         backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
     )
-    def get_index_record_ace(self, did):
-        """
-        Get the index record ace for the given did and return correctly formatted value
-        """
+    async def get_index_record_ace(self, did):
         try:
-            stmt = (
-                self.session.query(IndexRecordACE.ace)
-                .filter(IndexRecordACE.did == did)
-                .all()
-            )
-            res = [a.ace for a in stmt]
-            return res
+            stmt = select(IndexRecordACE.ace).filter(IndexRecordACE.did == did)
+            res_proxy = await self.session.execute(stmt)
+            return [row.ace for row in res_proxy]
         except Exception as e:
             raise Exception(f"Error with ace for did {did}: {e}")
 
     @backoff.on_exception(
         backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
     )
-    def get_index_record_authz(self, did):
-        """
-        Get the index record authz for the given did and return the correctly formatted value
-        """
+    async def get_index_record_authz(self, did):
         try:
-            stmt = (
-                self.session.query(IndexRecordAuthz.resource)
-                .filter(IndexRecordAuthz.did == did)
-                .all()
-            )
-            res = [r.resource for r in stmt]
-            return res
+            stmt = select(IndexRecordAuthz.resource).filter(IndexRecordAuthz.did == did)
+            res_proxy = await self.session.execute(stmt)
+            return [row.resource for row in res_proxy]
         except Exception as e:
             raise Exception(f"Error with authz: {e}")
 
     @backoff.on_exception(
         backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
     )
-    def get_index_record_alias(self, did):
-        """
-        Get the index record alias for the given did and return the correctly formatted
-        """
+    async def get_index_record_alias(self, did):
         try:
-            stmt = (
-                self.session.query(IndexRecordAlias.name)
-                .filter(IndexRecordAlias.did == did)
-                .all()
+            stmt = select(IndexRecordAlias.did, IndexRecordAlias.name).filter(
+                IndexRecordAlias.did == did
             )
+            res_proxy = await self.session.execute(stmt)
             res = {}
-            for did, name in stmt:
-                if did not in res:
-                    res[did] = []
-                res[did].append(name)
+            for row in res_proxy:
+                if row.did not in res:
+                    res[row.did] = []
+                res[row.did].append(row.name)
             return res
         except Exception as e:
             raise Exception(f"Error with alias: {e}")
@@ -359,23 +313,15 @@ class IndexRecordMigrator:
     @backoff.on_exception(
         backoff.expo, Exception, max_tries=5, max_time=10, jitter=backoff.full_jitter
     )
-    def get_index_record_metadata(self, did):
-        """
-        Get the index record metadata for the given did and return the correctly fortmatted value
-        """
+    async def get_index_record_metadata(self, did):
         try:
-            stmt = (
-                self.session.query(
-                    IndexRecordMetadata.key,
-                    IndexRecordMetadata.value,
-                )
-                .filter(IndexRecordMetadata.did == did)
-                .all()
+            stmt = select(IndexRecordMetadata.key, IndexRecordMetadata.value).filter(
+                IndexRecordMetadata.did == did
             )
-            res = {key: value for key, value in stmt}
-            return res
+            res_proxy = await self.session.execute(stmt)
+            return {row.key: row.value for row in res_proxy}
         except Exception as e:
-            raise Exception(f"Error with alias for did {did}: {e}")
+            raise Exception(f"Error with metadata for did {did}: {e}")
 
 
 if __name__ == "__main__":

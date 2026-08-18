@@ -2,8 +2,8 @@ import random
 import uuid
 
 import pytest
-from sqlalchemy import create_engine, text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.pool import NullPool
 
 from bin.migrate_to_single_table import IndexRecordMigrator
@@ -17,7 +17,6 @@ async def create_record(n_records=1):
     """
     Create n_records number of records in multitable
     """
-
     engine = create_async_engine(POSTGRES_CONNECTION, poolclass=NullPool)
     driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION, poolclass=NullPool)
     did_list = []
@@ -66,6 +65,7 @@ async def create_record(n_records=1):
         count = result.scalar()
         assert count == n_records
 
+    await engine.dispose()
     return did_list
 
 
@@ -79,13 +79,16 @@ async def test_index_record_to_new_table():
     )
     n_records = 100
     await create_record(n_records)
-    index_record_migrator.index_record_to_new_table()
+
+    # Await the migration process!
+    await index_record_migrator.index_record_to_new_table()
 
     engine = create_async_engine(POSTGRES_CONNECTION, poolclass=NullPool)
     async with engine.begin() as conn:
         result = await conn.execute(text("SELECT COUNT(*) FROM record"))
         count = result.scalar()
         assert count == n_records
+    await engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -96,7 +99,13 @@ async def test_get_index_record_hash():
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     record = await create_record()
     did = record[0]
-    result = index_record_migrator.get_index_record_hash(did)
+
+    # Inject an async session since __init__ no longer opens blocking connections
+    engine = create_async_engine(index_record_migrator.db_url, poolclass=NullPool)
+    async with AsyncSession(engine) as session:
+        index_record_migrator.session = session
+        result = await index_record_migrator.get_index_record_hash(did)
+
     assert result == {"md5": "some_md5", "sha1": "some_sha1"}
 
 
@@ -108,7 +117,12 @@ async def test_get_urls_record():
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     record = await create_record()
     did = record[0]
-    result = index_record_migrator.get_urls_record(did)
+
+    engine = create_async_engine(index_record_migrator.db_url, poolclass=NullPool)
+    async with AsyncSession(engine) as session:
+        index_record_migrator.session = session
+        result = await index_record_migrator.get_urls_record(did)
+
     assert sorted(result) == ["gs://bucket/data.txt", "s3://bucket/data.json"]
 
 
@@ -120,7 +134,12 @@ async def test_get_urls_metadata():
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     record = await create_record()
     did = record[0]
-    result = index_record_migrator.get_urls_metadata(did)
+
+    engine = create_async_engine(index_record_migrator.db_url, poolclass=NullPool)
+    async with AsyncSession(engine) as session:
+        index_record_migrator.session = session
+        result = await index_record_migrator.get_urls_metadata(did)
+
     assert result == {
         "s3://bucket/data.json": {"metadata_key": "metadata_value"},
         "gs://bucket/data.txt": {"metadata_key": "metadata_value"},
@@ -135,7 +154,12 @@ async def test_get_index_record_ace():
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     record = await create_record()
     did = record[0]
-    result = index_record_migrator.get_index_record_ace(did)
+
+    engine = create_async_engine(index_record_migrator.db_url, poolclass=NullPool)
+    async with AsyncSession(engine) as session:
+        index_record_migrator.session = session
+        result = await index_record_migrator.get_index_record_ace(did)
+
     assert type(result) == list
 
 
@@ -147,7 +171,12 @@ async def test_get_index_record_authz():
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     record = await create_record()
     did = record[0]
-    result = index_record_migrator.get_index_record_authz(did)
+
+    engine = create_async_engine(index_record_migrator.db_url, poolclass=NullPool)
+    async with AsyncSession(engine) as session:
+        index_record_migrator.session = session
+        result = await index_record_migrator.get_index_record_authz(did)
+
     assert type(result) == list
 
 
@@ -159,7 +188,12 @@ async def test_get_index_record_metadata():
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
     record = await create_record()
     did = record[0]
-    result = index_record_migrator.get_index_record_metadata(did)
+
+    engine = create_async_engine(index_record_migrator.db_url, poolclass=NullPool)
+    async with AsyncSession(engine) as session:
+        index_record_migrator.session = session
+        result = await index_record_migrator.get_index_record_metadata(did)
+
     assert result == {
         "metadata_key": "metadata_value",
         "some_other_key": "some_other_value",
