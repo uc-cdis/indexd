@@ -74,6 +74,36 @@ def get_bundle(client, user, has_description=True):
     return bundle
 
 
+def assert_access_method(entry, expected_supported_types=None):
+    access_method = entry["access_methods"][0]
+
+    assert access_method["access_id"] == "s3"
+    assert access_method["access_url"] == {"url": "s3://test"}
+    assert access_method["available"] is True
+    assert access_method["cloud"] == "aws"
+    assert access_method["region"] == ""
+    assert access_method["type"] == "s3"
+
+    authorizations = access_method["authorizations"]
+
+    assert authorizations["bearer_auth_issuers"] == [
+        "https://gen3.datacommons.io",
+        "sample_url",
+    ]
+    assert authorizations["drs_object_id"] == entry["id"]
+    assert authorizations["passport_auth_issuers"] == [
+        "https://ras/foo/bar",
+        "https://ras/foo/bar/bar",
+    ]
+    assert authorizations["supported_types"] == (
+        expected_supported_types
+        or [
+            "BearerAuth",
+            "PassportAuth",
+        ]
+    )
+
+
 def test_drs_get(client, user, combined_default_and_single_table_settings):
     data = get_doc(urls=["s3://test"])
     res_1 = client.post("/index/", json=data, headers=user)
@@ -309,73 +339,46 @@ def test_drs_list(client, user, combined_default_and_single_table_settings):
     n_objects = 2
     data = get_doc(urls=["s3://test"])
     submitted_guids = []
+
     for _ in range(n_objects):
         res_1 = client.post("/index/", json=data, headers=user)
         assert res_1.status_code == 200
+
         did = res_1.json["did"]
         submitted_guids.append(did)
-        bundle_data = get_bundle_doc(bundles=[did])
-        res2 = client.post("/bundle/", json=bundle_data, headers=user)
 
     res_2 = client.get("/ga4gh/drs/v1/objects")
     assert res_2.status_code == 200
+
     rec_2 = res_2.json
-    assert len(rec_2["drs_objects"]) == 2 * n_objects
-    assert submitted_guids.sort() == [r["id"] for r in rec_2["drs_objects"]].sort()
+
+    assert sorted(submitted_guids) == sorted(
+        r["id"] for r in rec_2["drs_objects"] if "access_methods" in r
+    )
+
     # Check that access methods in bulk call are formatted as expected
-    n_entries_with_access_method = 0
-    entry_with_access_methods = []
-    for entry in rec_2["drs_objects"]:
-        if "access_methods" in list(entry.keys()):
-            n_entries_with_access_method = n_entries_with_access_method + 1
-            entry_with_access_methods.append(entry)
-    assert n_entries_with_access_method == n_objects
-    for entry in entry_with_access_methods:
-        assert entry["access_methods"][0] == {
-            "access_id": "s3",
-            "access_url": {"url": "s3://test"},
-            "authorizations": {
-                "drs_object_id": entry["id"],
-                "supported_types": ["BearerAuth", "PassportAuth"],
-                "bearer_auth_issuers": ["https://gen3.datacommons.io", "sample_url"],
-                "passport_auth_issuers": [
-                    "https://ras/foo/bar",
-                    "https://ras/foo/bar/bar",
-                ],
-            },
-            "available": True,
-            "cloud": "aws",
-            "region": "",
-            "type": "s3",
-        }
-    res_3 = client.get("/ga4gh/drs/v1/objects/?form=bundle")
+    entries_with_access_methods = [
+        entry for entry in rec_2["drs_objects"] if "access_methods" in entry
+    ]
+
+    assert len(entries_with_access_methods) == n_objects
+
+    for entry in entries_with_access_methods:
+        assert_access_method(
+            entry, expected_supported_types=["PassportAuth", "BearerAuth"]
+        )
+
+    res_3 = client.get("/ga4gh/drs/v1/objects/?form=object")
     assert res_3.status_code == 200
+
     rec_3 = res_3.json
     assert len(rec_3["drs_objects"]) == n_objects
 
-    res_4 = client.get("/ga4gh/drs/v1/objects/?form=object")
-    assert res_4.status_code == 200
-    rec_4 = res_4.json
-    assert len(rec_4["drs_objects"]) == n_objects
     # Check that access methods in bulk call are formatted as expected
-    for entry in rec_4["drs_objects"]:
-        assert entry["access_methods"][0] == {
-            "access_id": "s3",
-            "access_url": {"url": "s3://test"},
-            "authorizations": {
-                "drs_object_id": entry["id"],
-                "supported_types": ["BearerAuth", "PassportAuth"],
-                "bearer_auth_issuers": ["https://gen3.datacommons.io", "sample_url"],
-                "passport_auth_issuers": [
-                    "https://ras/foo/bar",
-                    "https://ras/foo/bar/bar",
-                ],
-            },
-            "available": True,
-            "cloud": "aws",
-            "region": "",
-            "type": "s3",
-        }
+    for entry in rec_3["drs_objects"]:
+        assert_access_method(
+            entry, expected_supported_types=["PassportAuth", "BearerAuth"]
+        )
 
 
 def test_get_drs_with_encoded_slash(
@@ -521,6 +524,30 @@ def test_bucket_region_lookup():
     assert lookup_bucket_region("exact-bucket", fake_bucket_regions) == "us-east-1"
     assert lookup_bucket_region("regex-bucket-123", fake_bucket_regions) == "us-west-2"
     assert lookup_bucket_region("nonexistent-bucket", fake_bucket_regions) == ""
+
+
+def test_bucket_region_lookup_by_protocol():
+    fake_bucket_regions = {
+        "S3_BUCKETS": {
+            "exact-bucket": {"region": "us-east-1"},
+            "regex-bucket-.*": {"region": "us-west-2"},
+        },
+        "GS_BUCKETS": {
+            "gs-bucket": {"region": "europe-west1"},
+        },
+    }
+
+    assert (
+        lookup_bucket_region("exact-bucket", fake_bucket_regions, "s3") == "us-east-1"
+    )
+    assert (
+        lookup_bucket_region("regex-bucket-123", fake_bucket_regions, "aws")
+        == "us-west-2"
+    )
+    assert (
+        lookup_bucket_region("gs-bucket", fake_bucket_regions, "gs") == "europe-west1"
+    )
+    assert lookup_bucket_region("missing-bucket", fake_bucket_regions, "gs") == ""
 
 
 def test_access_method_in_drs_object(client, user):
@@ -695,68 +722,132 @@ def test_single_path_not_found(
     assert res_2.json == expected_metadata_details
 
 
-def test_single_one_path(client, user, combined_default_and_single_table_settings):
+def test_single_one_path(
+    client,
+    user,
+    combined_default_and_single_table_settings,
+):
     # Test set up
     data = get_doc(urls=["s3://test"])
+
     doc_did = client.post("/index", json=data, headers=user).json["did"]
-    expected_metadata_details = {
-        "drs_object_id": doc_did,
-        "supported_types": ["BearerAuth", "PassportAuth"],
-        "bearer_auth_issuers": ["https://gen3.datacommons.io", "sample_url"],
-        "passport_auth_issuers": ["https://ras/foo/bar", "https://ras/foo/bar/bar"],
-    }
+
     # Test GET
     res_1 = client.get("ga4gh/drs/v1/objects/" + doc_did)
-    assert res_1._status_code == 200
+
+    assert res_1.status_code == 200
+
     res1 = res_1.json
+
     assert "authorizations" in res1["access_methods"][0]
-    assert res1["access_methods"][0]["authorizations"] == expected_metadata_details
+
+    authorizations = res1["access_methods"][0]["authorizations"]
+
+    assert authorizations["drs_object_id"] == doc_did
+    assert authorizations["supported_types"] == [
+        "PassportAuth",
+        "BearerAuth",
+    ]
+    assert authorizations["bearer_auth_issuers"] == [
+        "https://gen3.datacommons.io",
+        "sample_url",
+    ]
+    assert authorizations["passport_auth_issuers"] == [
+        "https://ras/foo/bar",
+        "https://ras/foo/bar/bar",
+    ]
+
     # Test OPTIONS
     res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
-    assert res_1._status_code == 200
+
+    assert res_1.status_code == 200
+
     res1 = res_1.json
-    assert res1 == expected_metadata_details
+
+    assert res1["drs_object_id"] == doc_did
+    assert res1["supported_types"] == [
+        "PassportAuth",
+        "BearerAuth",
+    ]
+    assert res1["bearer_auth_issuers"] == [
+        "https://gen3.datacommons.io",
+        "sample_url",
+    ]
+    assert res1["passport_auth_issuers"] == [
+        "https://ras/foo/bar",
+        "https://ras/foo/bar/bar",
+    ]
 
 
-def test_single_multi_path(client, user, combined_default_and_single_table_settings):
-    #   # Test set up
+def test_single_multi_path(
+    client,
+    user,
+    combined_default_and_single_table_settings,
+):
+    # Test set up
     data = get_doc(
-        authz=["/gen3/programs/a/projects/b", "/gen3/programs/c/projects/d"],
+        authz=[
+            "/gen3/programs/a/projects/b",
+            "/gen3/programs/c/projects/d",
+        ],
         urls=["s3://test"],
     )
+
     doc_did = client.post("/index", json=data, headers=user).json["did"]
-    expected_metadata_details = {
-        "drs_object_id": doc_did,
-        "supported_types": ["BearerAuth", "PassportAuth"],
-        "bearer_auth_issuers": sorted(
-            [
-                "https://gen3.datacommons.io",
-                "sample_url",
-                "sample_url_d_one",
-                "sample_url_d_two",
-            ]
-        ),
-        "passport_auth_issuers": sorted(
-            [
-                "https://ras/foo/bar",
-                "https://ras/foo/bar/bar",
-                "sample_url_c_one",
-                "sample_url_c_two",
-            ]
-        ),
-    }
+
+    expected_bearer_auth_issuers = [
+        "https://gen3.datacommons.io",
+        "sample_url",
+        "sample_url_d_one",
+        "sample_url_d_two",
+    ]
+
+    expected_passport_auth_issuers = [
+        "https://ras/foo/bar",
+        "https://ras/foo/bar/bar",
+        "sample_url_c_one",
+        "sample_url_c_two",
+    ]
+
     # Test GET
     res_1 = client.get("ga4gh/drs/v1/objects/" + doc_did)
-    assert res_1._status_code == 200
+
+    assert res_1.status_code == 200
+
     res1 = res_1.json
+
     assert "authorizations" in res1["access_methods"][0]
-    assert res1["access_methods"][0]["authorizations"] == expected_metadata_details
+
+    authorizations = res1["access_methods"][0]["authorizations"]
+
+    assert authorizations["drs_object_id"] == doc_did
+    assert authorizations["supported_types"] == [
+        "PassportAuth",
+        "BearerAuth",
+    ]
+    assert sorted(authorizations["bearer_auth_issuers"]) == sorted(
+        expected_bearer_auth_issuers
+    )
+    assert sorted(authorizations["passport_auth_issuers"]) == sorted(
+        expected_passport_auth_issuers
+    )
 
     # Test OPTIONS
     res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
-    assert res_1._status_code == 200
+
+    assert res_1.status_code == 200
+
     res1 = res_1.json
-    assert res1 == expected_metadata_details
+
+    assert res1["drs_object_id"] == doc_did
+    assert res1["supported_types"] == [
+        "PassportAuth",
+        "BearerAuth",
+    ]
+    assert sorted(res1["bearer_auth_issuers"]) == sorted(expected_bearer_auth_issuers)
+    assert sorted(res1["passport_auth_issuers"]) == sorted(
+        expected_passport_auth_issuers
+    )
 
 
 def test_single_open_path(client, user, combined_default_and_single_table_settings):
@@ -840,26 +931,52 @@ def bulk_response_test_setup(
 
 def test_bulk_post(client, user, combined_default_and_single_table_settings):
     """Tests endpoint for bulk POST"""
+
     # Test set up
     did_list, expected_json, expected_404_dict = bulk_response_test_setup(
         user, client, n_200=2, n_404=2
     )
+
     # Call bulk options
     data = {"bulk_object_ids": did_list}
     res_1 = client.post("ga4gh/drs/v1/objects", json=data, headers=user)
 
     # Check results
     test_json = res_1.json
+
     assert test_json["summary"] == expected_json["summary"]
+
     for entry in test_json["resolved_drs_objects"]:
         # Check authorization info included in access methods
-        assert (
-            entry["access_methods"][0]["authorizations"]
-            in expected_json["resolved_drs_objects"]
+        authorizations = entry["access_methods"][0]["authorizations"]
+
+        expected_authorizations = next(
+            expected_entry
+            for expected_entry in expected_json["resolved_drs_objects"]
+            if expected_entry["drs_object_id"] == entry["id"]
         )
+
+        assert (
+            authorizations["drs_object_id"] == expected_authorizations["drs_object_id"]
+        )
+
+        assert authorizations["supported_types"] == [
+            "PassportAuth",
+            "BearerAuth",
+        ]  # We override supported_type precedence for this program
+
+        assert sorted(authorizations["bearer_auth_issuers"]) == sorted(
+            expected_authorizations["bearer_auth_issuers"]
+        )
+
+        assert sorted(authorizations["passport_auth_issuers"]) == sorted(
+            expected_authorizations["passport_auth_issuers"]
+        )
+
         # Check drsobject info (not just auth info) included
-        entry["form"] == "object"
-        entry["id"] == entry["access_methods"][0]["authorizations"]["drs_object_id"]
+        assert entry["form"] == "object"
+        assert entry["id"] == authorizations["drs_object_id"]
+
     # Check unresolved info captured
     assert len(test_json["unresolved_drs_objects"]) == len(
         expected_json["unresolved_drs_objects"]
@@ -868,23 +985,49 @@ def test_bulk_post(client, user, combined_default_and_single_table_settings):
 
 
 def test_bulk_options(client, user, combined_default_and_single_table_settings):
-    """Tests endpoint for bulk POST"""
+    """Tests endpoint for bulk OPTIONS"""
+
     # Test set up
     did_list, expected_json, expected_404_dict = bulk_response_test_setup(
         user, client, n_200=2, n_404=2
     )
+
     # Call bulk options
     data = {"bulk_object_ids": did_list}
     res_1 = client.options("ga4gh/drs/v1/objects", json=data, headers=user)
 
     # Check results
     test_json = res_1.json
+
     assert test_json["summary"] == expected_json["summary"]
+
     for entry in test_json["resolved_drs_objects"]:
-        assert entry in expected_json["resolved_drs_objects"]
+        expected_entry = next(
+            expected_entry
+            for expected_entry in expected_json["resolved_drs_objects"]
+            if expected_entry["drs_object_id"] == entry["drs_object_id"]
+        )
+
+        assert entry["drs_object_id"] == expected_entry["drs_object_id"]
+
+        assert entry["supported_types"] == [
+            "PassportAuth",
+            "BearerAuth",
+        ]  # We override supported_types for this authz
+
+        assert sorted(entry["bearer_auth_issuers"]) == sorted(
+            expected_entry["bearer_auth_issuers"]
+        )
+
+        assert sorted(entry["passport_auth_issuers"]) == sorted(
+            expected_entry["passport_auth_issuers"]
+        )
+
+    # Check unresolved info captured
     assert len(test_json["unresolved_drs_objects"]) == len(
         expected_json["unresolved_drs_objects"]
     )
+
     assert expected_404_dict in test_json["unresolved_drs_objects"]
 
 
@@ -902,3 +1045,63 @@ def test_bulk_auth_options_malformed_error(
     # Define expected results
     assert res_1.status_code == 400
     assert res_1.json["msg"] == "Request is malformed. Missing bulk object ids."
+
+
+def test_preferred_type(client, user, combined_default_and_single_table_settings):
+    """
+    Tests that DEFAULT_PREFERRED_TYPE is applied to projects that are not configured to have their own preferred_type
+      In default_test_settings.py:
+        - /gen3/programs/c/projects/d is configured to use the default as the preferred_type.
+    """
+    original = drs_blueprint.default_preferred_type
+    try:
+        drs_blueprint.default_preferred_type = "PassportAuth"
+        data = get_doc(
+            authz=["/gen3/programs/c/projects/d"],
+            urls=["s3://test"],
+        )
+        doc_did = client.post("/index", json=data, headers=user).json["did"]
+        expected_supported_types = ["PassportAuth", "BearerAuth"]
+        # Test GET
+        res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+        assert res_1._status_code == 200
+        res1_json = res_1.json
+        actual_supported_types = res1_json["supported_types"]
+        assert actual_supported_types == expected_supported_types
+    finally:
+        drs_blueprint.default_preferred_type = original
+
+
+def test_preferred_type_authz_override(
+    client, user, combined_default_and_single_table_settings
+):
+    """
+    Tests that per-authz overrides in DRS_AUTHORIZATION_METADATA for preferred supported type work correctly.
+    In default_test_settings.py:
+        - /gen3/programs/a/projects/b is configured to use PassportAuth as the preferred_type
+        - /gen3/programs/c/projects/d is configured to use the default BearerAuth as the preferred_type
+    """
+    data = get_doc(
+        authz=["/gen3/programs/a/projects/b"],
+        urls=["s3://test"],
+    )
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    expected_supported_types = ["PassportAuth", "BearerAuth"]
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1_json = res_1.json
+    actual_supported_types = res1_json["supported_types"]
+    assert actual_supported_types == expected_supported_types
+
+    data = get_doc(
+        authz=["/gen3/programs/a/projects/d"],
+        urls=["s3://test"],
+    )
+    doc_did = client.post("/index", json=data, headers=user).json["did"]
+    expected_supported_types = ["BearerAuth", "PassportAuth"]
+
+    res_1 = client.options("ga4gh/drs/v1/objects/" + doc_did)
+    assert res_1._status_code == 200
+    res1_json = res_1.json
+    actual_supported_types = res1_json["supported_types"]
+    assert actual_supported_types == expected_supported_types

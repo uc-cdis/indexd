@@ -387,7 +387,8 @@ def get_index_record(record):
                 bucket_regions = get_bucket_regions()
                 bucket_name = metadata.get("bucket")
                 if bucket_name:
-                    region = lookup_bucket_region(bucket_name, bucket_regions)
+                    protocol = location.split(":")[0].lower()
+                    region = lookup_bucket_region(bucket_name, bucket_regions, protocol)
                     urls_meta[location]["region"] = region
 
             if "available" not in metadata.keys():

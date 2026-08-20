@@ -12,7 +12,7 @@ include = [
 [tool.poetry.dependencies]
 python = ">=3.13,<4.0"
 alembic = "^1.9.4"
-authutils = ">=6,<8"
+authutils = ">=8.0.0"
 cdislogging = "^1.0.0"
 doiclient = {git = "https://github.com/uc-cdis/doiclient", rev = "1.0.0"}
 dosclient = {git = "https://github.com/uc-cdis/dosclient", rev = "1.1.0"}
@@ -24,7 +24,7 @@ flask = "^2.3.3"
 sqlalchemy = "^1.4.0"
 sqlalchemy-utils = "^0.37.3"
 PyYAML = ">=5.3,<7"
-gitpython = "^3.1.45"
+gitpython = "^3.1.54"
 requests = "^2.32.5"
 setuptools = "^80.9.0"
 psycopg2-binary = "^2.9.11"
