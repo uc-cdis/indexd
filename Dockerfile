@@ -1,4 +1,4 @@
-ARG AZLINUX_BASE_VERSION=feat_pythonuv-3.13-pythonpoetry
+ARG AZLINUX_BASE_VERSION=3.13-pythonuv
 
 # Base stage with python-build-base
 FROM quay.io/cdis/amazonlinux-base:${AZLINUX_BASE_VERSION} AS base
@@ -17,18 +17,17 @@ RUN chown -R gen3:gen3 /venv
 
 USER gen3
 
-COPY poetry.lock pyproject.toml /${appname}/
+COPY uv.lock pyproject.toml /${appname}/
 
-# RUN python3 -m venv /env && . /env/bin/activate &&
-RUN poetry install -vv --no-interaction --without dev --no-root
+RUN uv sync -vv --no-dev --all-extras --frozen --no-install-project
 
 COPY --chown=gen3:gen3 . /${appname}
 
-RUN poetry install -vv --no-interaction --without dev
+# Installs the service itself on top of the cached dependency layer.
+RUN uv sync --no-dev --all-extras --frozen
 
 RUN git config --global --add safe.directory ${appname} && COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" > ${appname}/version_data.py \
     && VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >> ${appname}/version_data.py
-
 
 # Final stage
 FROM base
