@@ -1840,15 +1840,11 @@ async def migrate_6(session, **kwargs):
 
 async def migrate_7(session, **kwargs):
     to_delete = []
-    print("========================================")
     query = select(IndexRecordMetadata).filter_by(key="acls")
-    print("========================================")
 
     result = await session.stream_scalars(query.execution_options(yield_per=1000))
-    print("========================================")
 
     async for metadata in result:
-        print(metadata)
         acl = metadata.value.split(",")
         for ace in acl:
             entry = IndexRecordACE(did=metadata.did, ace=ace)

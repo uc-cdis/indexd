@@ -267,12 +267,6 @@ def mock_arborist_requests(app_client, request):
 
         def mock_auth_request(token, service, method, resource):
             # resource can be a list or a string
-            print(
-                f"DEBUG mock_auth_request CALLED: method={method}, resource={resource}"
-            )
-            print(
-                f"DEBUG resource_method_to_authorized={resource_method_to_authorized}"
-            )
             resources = resource if isinstance(resource, list) else [resource]
             for res in resources:
                 authorized = resource_method_to_authorized.get(res, {}).get(

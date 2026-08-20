@@ -38,8 +38,9 @@ except ImportError as e:
     logger.info("Can't import local_settings, import from default")
     from indexd.default_settings import settings
 
-# Leave the URL untouched - Alembic will use asyncpg natively now!
-conn_url = str(settings["config"]["INDEX"]["driver"].engine.url)
+conn_url = settings["config"]["INDEX"]["driver"].engine.url.render_as_string(
+    hide_password=False
+)
 config.set_main_option("sqlalchemy.url", conn_url)
 
 
@@ -99,11 +100,8 @@ async def run_async_migrations() -> None:
         config.get_main_option("sqlalchemy.url"),
         poolclass=pool.NullPool,
     )
-    try:
-        async with connectable.connect() as connection:
-            await connection.run_sync(do_run_migrations)
-    except Exception as e:
-        print(e)
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()
 
