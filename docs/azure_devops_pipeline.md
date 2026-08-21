@@ -105,7 +105,7 @@ Click on the pipeline and then click edit, which will let you update the variabl
 
 ![Click on Variables](azure_devops_pipeline_config_1.png)
 
-Variable Name | Description  
+Variable Name | Description
 ------ | ------
 SP_CLIENT_ID | This is your Service Principal Client ID.
 SP_CLIENT_PASS | This is your Service Principal Password.  You can override this value when running the Azure DevOps pipeline.

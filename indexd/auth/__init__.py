@@ -1,43 +1,53 @@
+import base64
+from .errors import AuthzError
+from ..errors import UserError
+
 from functools import wraps
+from fastapi import Depends, Request
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from typing import Optional
 
-from flask import current_app
-from flask import request
-
-from .errors import AuthError
+security = HTTPBasic(auto_error=False)
 
 
-def authorize(*p):
-    """
-    Decorator for requiring auth.
-    Replaces the request authorization with a user context.
-    Raises AuthError if authorization fails.
+async def authorize(method: str, resources: list, request: Request):
+    if not isinstance(resources, list):
+        raise UserError(f"'authz' must be a list, received '{resources}'.")
 
-    If called with (method, resources), it will check with Arborist if HTTP Basic Auth is
-    not present, or fallback to the previous check.
-    """
-    if len(p) == 1:
-        (f,) = p
-
-        @wraps(f)
-        def check_auth(*args, **kwargs):
-            if not request.authorization:
-                raise AuthError("Username / password required.")
-            current_app.auth.auth(
-                request.authorization.parameters.get("username"),
-                request.authorization.parameters.get("password"),
-            )
-
-            return f(*args, **kwargs)
-
-        return check_auth
+    credentials = _get_basic_credentials(request)
+    if credentials:
+        # Basic Auth present: only validate credentials, skip arborist
+        await request.app.auth.auth(credentials.username, credentials.password)
     else:
-        method, resources = p
-        if request.authorization and request.authorization.type == "basic":
-            current_app.auth.auth(
-                request.authorization.parameters.get("username"),
-                request.authorization.parameters.get("password"),
-            )
-        else:
-            if not isinstance(resources, list):
-                raise UserError(f"'authz' must be a list, received '{resources}'.")
-            current_app.auth.authz(method, list(set(resources)))
+        # No Basic Auth: check arborist
+        await request.app.auth.authz(method, list(set(resources)))
+
+
+async def authorize_decorator(
+    request: Request, credentials: Optional[HTTPBasicCredentials] = Depends(security)
+):
+    """
+    FastAPI dependency for requiring auth on a route.
+    Use via: dependencies=[Depends(authorize_decorator)]
+    Raises AuthError if authorization fails.
+    """
+    if not credentials:
+        raise AuthzError("Username / password required.")
+    await request.app.auth.auth(credentials.username, credentials.password)
+
+
+def _get_basic_credentials(request: Request) -> Optional[HTTPBasicCredentials]:
+    """
+    Extract Basic Auth credentials from request if present.
+    """
+    import base64
+
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.lower().startswith("basic "):
+        return None
+    try:
+        decoded = base64.b64decode(auth_header[6:]).decode("utf-8")
+        username, password = decoded.split(":", 1)
+        return HTTPBasicCredentials(username=username, password=password)
+    except Exception:
+        return None

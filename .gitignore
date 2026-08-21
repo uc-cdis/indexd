@@ -69,6 +69,3 @@ settings.yaml
 *.sq3
 #IDEs
 .idea
-
-.DS_Store
-.vscode/

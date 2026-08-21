@@ -7,13 +7,15 @@ configured DB URL;
 - lock the DB during migrations to ensure only 1 migration runs at a time.
 """
 
-
+import os
+import sys
 import logging
 from logging.config import fileConfig
+import asyncio
 
-from sqlalchemy import engine_from_config, pool
-from sqlalchemy.ext.declarative import declarative_base
-
+from sqlalchemy import pool, text
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.orm import declarative_base
 from alembic import context
 
 # this is the Alembic Config object, which provides
@@ -21,7 +23,6 @@ from alembic import context
 config = context.config
 
 # Interpret the config file for Python logging.
-# This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 logger = logging.getLogger("indexd.alembic")
@@ -30,26 +31,24 @@ logger.setLevel(logging.INFO)
 Base = declarative_base()
 target_metadata = Base.metadata
 
+
 try:
     from local_settings import settings
-except ImportError:
+except ImportError as e:
     logger.info("Can't import local_settings, import from default")
     from indexd.default_settings import settings
-conn_url = str(settings["config"]["INDEX"]["driver"].engine.url)
+
+conn_url = settings["config"]["INDEX"]["driver"].engine.url.render_as_string(
+    hide_password=False
+)
 config.set_main_option("sqlalchemy.url", conn_url)
 
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
+    This configures the context with just a URL and not an Engine.
+    Calls to context.execute() here emit the given string to the script output.
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -63,38 +62,55 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
-
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
+def do_run_migrations(connection) -> None:
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    The synchronous part of the online migration process.
+    This is executed via `run_sync` by the async engine.
+    """
+    context.configure(connection=connection, target_metadata=target_metadata)
 
-    with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
-
-        with context.begin_transaction():
-            if connection.dialect.name == "postgresql":
-                logger.info(
-                    "Locking database to ensure only 1 process can run migrations at a time"
-                )
-                connection.execute(
+    with context.begin_transaction():
+        if connection.dialect.name == "postgresql":
+            logger.info(
+                "Locking database to ensure only 1 process can run migrations at a time"
+            )
+            # Wrap the raw SQL in text() for SQLAlchemy 2.0 compatibility
+            connection.execute(
+                text(
                     f"SELECT pg_advisory_xact_lock({settings['config'].get('DB_MIGRATION_POSTGRES_LOCK_KEY', 100)});"
                 )
-            else:
-                logger.info(
-                    "Not running on Postgres: not locking database before migrating"
-                )
-            context.run_migrations()
-        if connection.dialect.name == "postgresql":
-            # The lock is released when the transaction ends.
-            logger.info("Releasing database lock")
+            )
+        else:
+            logger.info(
+                "Not running on Postgres: not locking database before migrating"
+            )
+
+        context.run_migrations()
+
+    if connection.dialect.name == "postgresql":
+        # The lock is released when the transaction ends.
+        logger.info("Releasing database lock")
+
+
+async def run_async_migrations() -> None:
+    """
+    Create an AsyncEngine, connect, and run the synchronous migration function.
+    """
+    connectable = create_async_engine(
+        config.get_main_option("sqlalchemy.url"),
+        poolclass=pool.NullPool,
+    )
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
+
+    await connectable.dispose()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
+    # Since app.py calls this in a separate thread via `asyncio.to_thread`,
+    # we can safely spin up a new event loop here.
+    asyncio.run(run_async_migrations())
 
 
 if context.is_offline_mode():
