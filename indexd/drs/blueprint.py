@@ -216,14 +216,14 @@ def list_drs_records_options():
     """
     # Get data from json body
     data = flask.request.get_json(force=True)
+    # Exit with malformed error return if missing object id key
+    if "bulk_object_ids" not in data:
+        return handle_user_error("Request is malformed. Missing bulk object ids.")
+
     if len(data["bulk_object_ids"]) > blueprint.max_bulk_request_length:
         raise RequestTooLargeError(
             message=f"Request is too large. Max bulk request length is {blueprint.max_bulk_request_length}. Provided {len(data['bulk_object_ids'])} object ids."
         )
-
-    # Exit with malformed error return if missing object id key
-    if "bulk_object_ids" not in data:
-        return handle_user_error("Request is malformed. Missing bulk object ids.")
 
     try:
         compiled_info = resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
