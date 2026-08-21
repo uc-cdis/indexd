@@ -18,45 +18,9 @@ jobs:
 
   UnitTest:
     name: Python Unit Test with Postgres
-    runs-on: ubuntu-latest
-    env:
-      UV_VERSION: '0.12.3'
-      JUST_VERSION: '1.58.0'
-      PYTHON_VERSION: '3.13'
-      PGHOST: 'localhost'
-      PGPORT: 5432
-      PGUSER: 'postgres'
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v6
-        with:
-          presist-credentials: false
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: python info
-        run: python --version
-
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
-
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: just@${{ env.JUST_VERSION }}
-
-      - name: just setup
-        run: |
-          just setup
-
-      - name: just install
-        run: |
-          just install
-
-      - name: just test
-        run: |
-          just test
+    uses: uc-cdis/.github/.github/workflows/python_unit_test.yaml@master
+    with:
+       uv-version: '0.12.5'
+       python-version: '3.13'
+       test-script: 'tests/ci_commands_script.sh'
+       run-coveralls: true
