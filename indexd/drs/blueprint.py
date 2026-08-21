@@ -214,6 +214,10 @@ def list_drs_records_options():
     A malformed call (i.e. providing no did list) would result in a 400 response:
     {'msg': 'Request is malformed. Missing bulk object ids.', 'status_code': 400}
     """
+    if len(data["bulk_object_ids"]) > blueprint.max_bulk_request_length:
+        raise RequestTooLargeError(
+            message=f"Request is too large. Max bulk request length is {blueprint.max_bulk_request_length}. Provided {len(data['bulk_object_ids'])} object ids."
+        )
 
     # Get data from json body
     data = flask.request.get_json(force=True)
