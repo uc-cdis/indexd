@@ -30,26 +30,19 @@ python3 -m venv py38-venv
 . py38-venv/bin/activate
 ```
 
-### Install uv
+### Install Poetry
 
-You can install uv.
+You can install Poetry.  Make sure the virtual environment is activated.
 
 ```console
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-Or with brew
-```console
-brew install uv
-```
-You can activate uv managed virtual environment with:
-```console
-uv venv
+curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+source $HOME/.poetry/env
 ```
 
-You can install python dependencies using uv:
+You can install python dependencies using Poetry:
 
 ```console
-uv sync -vv && uv tree
+poetry install -vv --no-interaction && poetry show -v
 ```
 
 ## Set up local Postgresql DB for testing
@@ -151,10 +144,10 @@ On Linux
 sudo apt-get install python-asyncpg
 ```
 
-To install the implementation, assure you have uv installed and simply run:
+To install the implementation, assure you have poetry installed and simply run:
 
 ```bash
-uv sync
+poetry install
 ```
 
 The automated tests are configured in `.github/workflows/ci.yaml`. The Indexd repo has a
@@ -193,7 +186,7 @@ Follow [installation](#installation) guidance and make sure your virtual environ
 You can then update the python dependencies and test from the repository root directory:
 
 ```console
-uv run pytest -vv --cov=indexd --cov-report xml tests
+poetry run pytest -vv --cov=indexd --cov-report xml tests
 ```
 
 > If you're in `wsl1`, you may encounter an error such as `ImportMismatchError` when running pytest.  If this is the case, you can rename the `./tests/__pycache__` folder to `./tests/__pycache__Backup` and re-run the tests.

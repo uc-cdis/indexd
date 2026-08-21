@@ -1,65 +1,49 @@
-[project]
+[tool.poetry]
 name = "indexd"
 version = "6.3.0"
 description = "Gen3 Indexing Service"
-authors = [{ name = "CTDS UChicago", email = "cdis@uchicago.edu" }]
-requires-python = ">=3.13,<4.0"
+authors = ["CTDS UChicago <cdis@uchicago.edu>"]
 license = "Apache-2.0"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-]
-dependencies = [
-    "alembic>=1.9.4,<2",
-    "authutils>=8.0.0",
-    "cdislogging>=1.0.0,<2",
-    "doiclient",
-    "dosclient",
-    "gen3authz>=3.0.0,<4",
-    "hsclient",
-    "jsonschema>=3.2,<4",
-    "sqlalchemy>=2.0.0,<3",
-    "sqlalchemy-utils>=0.41.0",
-    "PyYAML>=5.3,<7",
-    "gitpython>=3.1.54,<4",
-    "requests>=2.32.5,<3",
-    "setuptools>=80.9.0,<81",
-    "fastapi>=0.135.1,<0.136",
-    "uvicorn>=0.41.0,<0.42",
-    "cachelib>=0.13.0,<0.14",
-    "asyncpg>=0.31.0,<0.32",
-    "httpx>=0.28.1,<0.29",
+repository = "https://github.com/uc-cdis/indexd"
+include = [
+  "NOTICE",
 ]
 
-[project.urls]
-Repository = "https://github.com/uc-cdis/indexd"
+[tool.poetry.dependencies]
+python = ">=3.13,<4.0"
+alembic = "^1.9.4"
+authutils = ">=8.0.0"
+cdislogging = "^1.0.0"
+doiclient = {git = "https://github.com/uc-cdis/doiclient", rev = "1.0.0"}
+dosclient = {git = "https://github.com/uc-cdis/dosclient", rev = "1.1.0"}
+gen3authz = "^3.0.0"
+hsclient = {git = "https://github.com/uc-cdis/hsclient", rev = "1.0.0"}
+jsonschema = "^3.2"
+sqlalchemy = "^2.0.0"
+sqlalchemy-utils = ">=0.41.0"
+PyYAML = ">=5.3,<7"
+gitpython = "^3.1.54"
+requests = "^2.32.5"
+setuptools = "^80.9.0"
+psycopg2-binary = "^2.9.11"
+fastapi = "^0.135.1"
+uvicorn = "^0.41.0"
+cachelib = "^0.13.0"
+asyncpg = "^0.31.0"
+httpx = "^0.28.1"
 
-[dependency-groups]
-dev = [
-    "coveralls>=4.1.0,<5",
-    "mock>=4.0.2,<5",
-    "pytest",
-    "pytest-cov>=7.1.0,<8",
-    "responses>=0.13.0,<0.14",
-    "swagger_spec_validator>=2.6.0,<3",
-    "deptry>=0.23.1,<0.24",
-    "starlette>=1.0.0,<2",
-    "pytest-asyncio>=1.4.0,<2",
-]
+[tool.poetry.group.dev.dependencies]
+coveralls = "^4.1.0"
+mock = "^4.0.2"
+pytest = "*"
+pytest-cov = "^7.1.0"
+responses = "^0.13.0"
+swagger_spec_validator = "^2.6.0"
+deptry = "^0.23.1"
+starlette = "^1.0.0"
+pytest-asyncio = "^1.4.0"
 
-[tool.uv]
-default-groups = "all"
-
-[tool.uv.sources]
-doiclient = { git = "https://github.com/uc-cdis/doiclient", rev = "1.0.0" }
-dosclient = { git = "https://github.com/uc-cdis/dosclient", rev = "1.1.0" }
-hsclient = { git = "https://github.com/uc-cdis/hsclient", rev = "1.0.0" }
-
-[tool.uv.build-backend]
-module-root = ""
-source-include = ["NOTICE"]
 
 [build-system]
-requires = ["uv_build>=0.12.4,<0.13.0"]
-build-backend = "uv_build"
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
