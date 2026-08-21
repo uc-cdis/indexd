@@ -6,7 +6,7 @@ import json
 from cdislogging import get_logger
 import copy
 
-from indexd.errors import AuthError, AuthzError
+from indexd.errors import AuthError, AuthzError, RequestTooLargeError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
@@ -162,6 +162,10 @@ def post_drs_records():
     # Exit with malformed error return if missing object id
     if "bulk_object_ids" not in data:
         return handle_user_error("Request is malformed. Missing bulk object ids.")
+    if len(data["bulk_object_ids"]) > blueprint.max_bulk_request_length:
+        raise RequestTooLargeError(
+            message=f"Request is too large. Max bulk request length is {blueprint.max_bulk_request_length}. Provided {len(data['bulk_object_ids'])} object ids."
+        )
     ret = resolve_bulk_object_auth(id_list=data["bulk_object_ids"], auth_only=False)
     return flask.jsonify(ret), 200
 
@@ -210,13 +214,16 @@ def list_drs_records_options():
     A malformed call (i.e. providing no did list) would result in a 400 response:
     {'msg': 'Request is malformed. Missing bulk object ids.', 'status_code': 400}
     """
-
     # Get data from json body
     data = flask.request.get_json(force=True)
-
     # Exit with malformed error return if missing object id key
     if "bulk_object_ids" not in data:
         return handle_user_error("Request is malformed. Missing bulk object ids.")
+
+    if len(data["bulk_object_ids"]) > blueprint.max_bulk_request_length:
+        raise RequestTooLargeError(
+            message=f"Request is too large. Max bulk request length is {blueprint.max_bulk_request_length}. Provided {len(data['bulk_object_ids'])} object ids."
+        )
 
     try:
         compiled_info = resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
@@ -696,6 +703,12 @@ def handle_no_index_record_error(err):
 
 @blueprint.errorhandler(IndexdUnexpectedError)
 def handle_unexpected_error(err):
+    ret = {"msg": err.message, "status_code": err.code}
+    return flask.jsonify(ret), err.code
+
+
+@blueprint.errorhandler(RequestTooLargeError)
+def handle_request_too_large_error(err):
     ret = {"msg": err.message, "status_code": err.code}
     return flask.jsonify(ret), err.code
 
