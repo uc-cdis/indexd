@@ -658,7 +658,7 @@ def test_DELETE_one_alias_unauthenticated(app_client, guid, aliases):
     assert res.status_code == 403, res.text
 
 
-def test_DELETE_one_alias_invalid_GUID(app_client, user, guid):
+def test_DELETE_one_alias_invalid_GUID(app_client, user, guid, aliases):
     """
     expect to return 404 and have no effect for nonexistant GUID
     """
@@ -673,7 +673,7 @@ def test_DELETE_one_alias_invalid_GUID(app_client, user, guid):
     assert res.status_code == 404, res.text
 
 
-def test_DELETE_one_alias_GUID_does_not_have_alias(app_client, user, guid):
+def test_DELETE_one_alias_GUID_does_not_have_alias(app_client, user, guid, aliases):
     """
     expect to return 404 and have no effect if alias not associated
     with this GUID
