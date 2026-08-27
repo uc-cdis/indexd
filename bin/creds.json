@@ -4,4 +4,4 @@
     "db_password": "indexdpassword",
     "db_database": "indexd_db",
     "fence_database": "fence_db"
-  }
+}

@@ -1,3 +1,6 @@
+[run]
+concurrency = greenlet, thread
+
 [report]
 exclude_lines =
     pragma: no cover

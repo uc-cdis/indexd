@@ -8,7 +8,7 @@ from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.auth.drivers.alchemy import Base as AuthBase
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, log_level="info")
 
 
 def main(path, action=None, username=None, password=None):

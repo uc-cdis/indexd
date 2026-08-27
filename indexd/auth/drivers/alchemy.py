@@ -1,23 +1,19 @@
 import hashlib
-
-from contextlib import contextmanager
+import asyncio
+from contextlib import asynccontextmanager
 
 from authutils.token import get_jwt_token
 from gen3authz.client.arborist.client import ArboristClient
-from sqlalchemy import String
-from sqlalchemy import Column
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import String, Column, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from indexd.auth.driver import AuthDriverABC
-
 from indexd.auth.errors import AuthError, AuthzError
-
 from cdislogging import get_logger
 
 logger = get_logger(__name__)
-
 
 Base = declarative_base()
 
@@ -44,27 +40,28 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         """
         super().__init__(conn, **config)
         Base.metadata.bind = self.engine
-        self.Session = sessionmaker(bind=self.engine)
+
+        self.Session = async_sessionmaker(
+            bind=self.engine, class_=AsyncSession, expire_on_commit=False
+        )
+
         if arborist is not None:
             arborist = ArboristClient(arborist_base_url=arborist)
         self.arborist = arborist
 
     @property
-    @contextmanager
-    def session(self):
+    @asynccontextmanager
+    async def session(self):
         """
-        Provide a transactional scope around a series of operations.
+        Provide an asynchronous transactional scope around a series of operations.
         """
-        session = self.Session()
-
-        try:
-            yield session
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
+        async with self.Session() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
 
     @staticmethod
     def digest(password):
@@ -73,48 +70,51 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         """
         return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
-    def add(self, username, password):
+    async def add(self, username, password):
         password = self.digest(password)
-        with self.session as session:
-            if (
-                session.query(AuthRecord)
-                .filter(AuthRecord.username == username)
-                .first()
-            ):
+        async with self.session as session:
+            query = select(AuthRecord).filter(AuthRecord.username == username)
+            result = await session.execute(query)
+
+            if result.scalar_one_or_none():
                 raise AuthError("User {} already exists".format(username))
 
             new_record = AuthRecord(username=username, password=password)
             session.add(new_record)
 
-    def delete(self, username):
-        with self.session as session:
-            user = (
-                session.query(AuthRecord)
-                .filter(AuthRecord.username == username)
-                .first()
-            )
+    async def delete(self, username):
+        async with self.session as session:
+            query = select(AuthRecord).filter(AuthRecord.username == username)
+            result = await session.execute(query)
+            user = result.scalar_one_or_none()
+
             if not user:
                 raise AuthError("User {} doesn't exist".format(username))
-            session.delete(user)
 
-    def auth(self, username, password):
+            await session.delete(user)
+
+    async def auth(self, username, password):
         """
         Returns a dict of user information.
-        Raises AutheError otherwise.
+        Raises AuthError otherwise.
         """
         password = self.digest(password)
-        with self.session as session:
-            query = session.query(AuthRecord)
-            if not query.first():
+        async with self.session as session:
+            # Check if any users are configured
+            query = select(AuthRecord).limit(1)
+            res = await session.execute(query)
+            if not res.first():
                 raise AuthError("No username / password configured in indexd")
 
             # Select on username / password.
-            query = query.filter(AuthRecord.username == username)
-            query = query.filter(AuthRecord.password == password)
+            query = select(AuthRecord).filter(
+                AuthRecord.username == username, AuthRecord.password == password
+            )
+            result = await session.execute(query)
 
             try:
-                query.one()
-            except NoResultFound as err:
+                result.scalar_one()
+            except NoResultFound:
                 raise AuthError("username / password mismatch")
 
         context = {
@@ -124,7 +124,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
 
         return context
 
-    def authz(self, method, resource):
+    async def authz(self, method, resource):
         if not self.arborist:
             raise AuthError(
                 "Arborist is not configured; cannot perform authorization check"
@@ -133,24 +133,38 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
         try:
             # A successful call from arborist returns a bool, else returns ArboristError
             try:
-                authorized = self.arborist.auth_request(
-                    get_jwt_token(), "indexd", method, resource
+                # Arborist uses synchronous requests, so we wrap it in a thread
+                authorized = await asyncio.to_thread(
+                    self.arborist.auth_request,
+                    get_jwt_token(),
+                    "indexd",
+                    method,
+                    resource,
                 )
             except Exception as e:
                 logger.error(
                     f"Request to Arborist failed; now checking admin access. Details:\n{e}"
                 )
                 authorized = False
+
             if not authorized:
                 # admins can perform all operations
-                is_admin = self.arborist.auth_request(
-                    get_jwt_token(), "indexd", method, ["/services/indexd/admin"]
+                is_admin = await asyncio.to_thread(
+                    self.arborist.auth_request,
+                    get_jwt_token(),
+                    "indexd",
+                    method,
+                    ["/services/indexd/admin"],
                 )
                 if not is_admin and not resource:
                     # if `authz` is empty (no `resource`), admin == access to
                     # `/programs` (deprecated - for backwards compatibility).
-                    is_admin = self.arborist.auth_request(
-                        get_jwt_token(), "indexd", method, ["/programs"]
+                    is_admin = await asyncio.to_thread(
+                        self.arborist.auth_request,
+                        get_jwt_token(),
+                        "indexd",
+                        method,
+                        ["/programs"],
                     )
                     if is_admin:
                         logger.warning(

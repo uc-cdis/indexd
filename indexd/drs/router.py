@@ -1,37 +1,79 @@
 import os
 from urllib.parse import urlparse
 
-import flask
+import copy
 import json
 from cdislogging import get_logger
-import copy
+from fastapi import APIRouter, Request, HTTPException, status
+from fastapi.responses import JSONResponse
 
-from indexd.errors import AuthError, AuthzError
-from indexd.errors import UserError
+from indexd.errors import UserError, IndexdUnexpectedError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
-from indexd.errors import IndexdUnexpectedError
-from indexd.utils import reverse_url, lookup_bucket_region, get_bucket_regions
-from urllib.parse import urlparse
+from indexd.utils import reverse_url, get_bucket_regions, lookup_bucket_region
 
-blueprint = flask.Blueprint("drs", __name__)
+router = APIRouter(tags=["drs"])
 
-blueprint.config = dict()
-blueprint.index_driver = None
-blueprint.service_info = {}
-blueprint.cloud_provider_map = {}
-blueprint.max_bulk_request_length = 100
-blueprint.drs_authorization_metadata = {}
+router.index_driver = None
+router.service_info = {}
+router.bucket_regions = {}
 logger = get_logger(__name__)
 
 
-@blueprint.route("/ga4gh/drs/v1/service-info", methods=["GET"])
-def get_drs_service_info():
+def set_drs_config(app):
+    index_config = app.settings["config"]["INDEX"]
+    router.index_driver = index_config["driver"]
+    router.service_info = app.settings.get("DRS_SERVICE_INFO", {})
+    router.default_passport_issuer = None
+    router.default_bearer_issuer = None
+    if "DRS_SERVICE_INFO" in app.settings["config"]:
+        router.service_info = app.settings["config"]["DRS_SERVICE_INFO"]
+    if "DRS_AUTHORIZATION_METADATA" in app.settings["config"]:
+        router.drs_authorization_metadata = app.settings["config"][
+            "DRS_AUTHORIZATION_METADATA"
+        ]
+    else:
+        logger.warning(
+            "DRS_AUTHORIZATION_METADATA not configured. Unable to provide authorization metadata for acces_methods in DrsObjects!!!"
+        )
+
+    if "DEFAULT_BEARER_ISSUER" in app.settings["config"]:
+        router.default_bearer_issuer = app.settings["config"]["DEFAULT_BEARER_ISSUER"]
+    else:
+        logger.warning(
+            "No default bearer issuer configured. This should be set to the Fence token issuer!!!"
+        )
+    if "DEFAULT_PASSPORT_ISSUER" in app.settings["config"]:
+        router.default_passport_issuer = app.settings["config"][
+            "DEFAULT_PASSPORT_ISSUER"
+        ]
+    if "CLOUD_PROVIDER_MAP" in app.settings["config"]:
+        router.cloud_provider_map = app.settings["config"]["CLOUD_PROVIDER_MAP"]
+    else:
+        logger.warning(
+            "CLOUD_PROVIDER_MAP not configured. Unable to derive cloud providers from URLs"
+        )
+    if "DEFAULT_PREFERRED_TYPE" in app.settings["config"]:
+        router.default_preferred_type = app.settings["config"]["DEFAULT_PREFERRED_TYPE"]
+    else:
+        router.default_preferred_type = "BearerAuth"
+        logger.warning(
+            "DEFAULT_PREFERRED_TYPE not configured. Defaulting to BearerAuth as the preferred supported_type"
+        )
+
+    router.max_bulk_request_length = app.settings["config"].get(
+        "MAX_BULK_REQUEST_LENGTH", 100
+    )
+
+    router.bucket_regions = get_bucket_regions(app)
+
+
+@router.get("/ga4gh/drs/v1/service-info")
+async def get_drs_service_info():
     """
     Returns DRS 1.5 compliant service information
     """
 
-    reverse_domain_name = reverse_url(url=os.environ["HOSTNAME"])
-
+    reverse_domain_name = reverse_url(url=os.environ.get("HOSTNAME"))
     ret = {
         "id": reverse_domain_name,
         "name": "DRS System",
@@ -43,30 +85,28 @@ def get_drs_service_info():
         },
         "organization": {
             "name": "CTDS",
-            "url": "https://" + os.environ["HOSTNAME"],
+            "url": "https://" + os.environ.get("HOSTNAME"),
         },
     }
 
-    # Merge config overrides (e.g. from DRS_SERVICE_INFO env var)
-    if blueprint.service_info:
-        for key, value in blueprint.service_info.items():
+    if router.service_info:
+        for key, value in router.service_info.items():
             if key in ret:
                 if isinstance(value, dict):
                     for inner_key, inner_value in value.items():
                         ret[key][inner_key] = inner_value
                 else:
                     ret[key] = value
-
-    # Fetch stats from stats table
+        # Fetch stats from stats table
     object_count = None
     total_object_size = None
     try:
-        object_count, total_object_size = blueprint.index_driver.get_stats()
+        object_count, total_object_size = await router.index_driver.get_stats()
     except Exception as e:
         logger.warning(f"Could not retrieve stats for service-info response: {e}")
 
     # Build drs sub-object
-    max_bulk = blueprint.max_bulk_request_length
+    max_bulk = router.max_bulk_request_length
 
     drs_info = {
         "maxBulkRequestLength": max_bulk,
@@ -81,93 +121,116 @@ def get_drs_service_info():
     # Backward compat: root-level maxBulkRequestLength (deprecated in DRS 1.5)
     ret["maxBulkRequestLength"] = max_bulk
 
-    return flask.jsonify(ret), 200
+    return JSONResponse(content=ret, status_code=200)
 
 
-@blueprint.route(
-    "/ga4gh/drs/v1/objects/<path:object_id>",
-    methods=["GET", "POST"],
-    provide_automatic_options=False,
-)
-def get_drs_object(object_id):
+@router.get("/ga4gh/drs/v1/objects/{object_id:path}")
+async def get_drs_object(object_id: str, request: Request):
     """
     Returns a specific DRSobject with object_id
     """
-    expand = True if flask.request.args.get("expand") == "true" else False
 
-    ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
+    expand = request.query_params.get("expand") == "true"
+    try:
+        ret = await router.index_driver.get_with_nonstrict_prefix(object_id)
+    except IndexNoRecordFound as err:
+        raise HTTPException(status_code=404, detail=str(err))
 
-    data = indexd_to_drs(ret, expand=expand)
+    data = await indexd_to_drs(ret, expand=expand)
+    return JSONResponse(content=data, status_code=200)
 
-    return flask.jsonify(data), 200
+
+@router.post("/ga4gh/drs/v1/objects/{object_id:path}")
+async def post_drs_object(object_id):
+    """
+    Returns passport-authenticated DRS object retrieval with object_id.
+    Not yet supported.
+    """
+    message = "Passport-authenticated DRS object retrieval is not yet supported."
+    return JSONResponse(content={"msg": message}, status_code=405)
 
 
-@blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["OPTIONS"])
-def get_drs_object_options(object_id):
+@router.options("/ga4gh/drs/v1/objects/{object_id:path}")
+async def get_drs_object_options(object_id):
     """
     Returns a specific DRSobject metadata with object_id
     """
     # Get authz based on guid
-    authz_metadata = resolve_single_object_auth(object_id)
-    return flask.jsonify(authz_metadata)
+    authz_metadata = await resolve_single_object_auth(object_id)
+    return JSONResponse(content=authz_metadata, status_code=200)
 
 
-@blueprint.route(
-    "/ga4gh/drs/v1/objects", methods=["GET"], provide_automatic_options=False
-)
-def list_drs_records():
-    limit = flask.request.args.get("limit")
-    start = flask.request.args.get("start")
-    page = flask.request.args.get("page")
-
-    form = flask.request.args.get("form")
+@router.get("/ga4gh/drs/v1/objects")
+@router.get("/ga4gh/drs/v1/objects/")
+async def list_drs_records(request: Request):
+    limit = request.query_params.get("limit")
+    start = request.query_params.get("start")
+    page = request.query_params.get("page")
+    form = request.query_params.get("form")
 
     try:
         limit = 100 if limit is None else int(limit)
     except ValueError as err:
-        raise UserError("limit must be an integer")
+        raise UserError("Limit must be an integer.")
 
     if limit < 0 or limit > 1024:
-        raise UserError("limit must be between 0 and 1024")
+        raise UserError("Limit must be between 0 and 1024.")
 
     if page is not None:
         try:
             page = int(page)
         except ValueError as err:
-            raise UserError("page must be an integer")
+            raise UserError("Page must be an integer.")
 
     if form == "bundle":
-        records = blueprint.index_driver.get_bundle_list(
+        records = await router.index_driver.get_bundle_list(
             start=start, limit=limit, page=page
         )
     elif form == "object":
-        records = blueprint.index_driver.ids(start=start, limit=limit, page=page)
+        records = await router.index_driver.ids(start=start, limit=limit, page=page)
     else:
-        records = blueprint.index_driver.get_bundle_and_object_list(
+        records = await router.index_driver.get_bundle_and_object_list(
             start=start, limit=limit, page=page
         )
+
+    ret_drs_objects = []
+    for record in records:
+        ret_drs_objects.append(await indexd_to_drs(record, True))
+
     ret = {
-        "drs_objects": [indexd_to_drs(record, True) for record in records],
+        "drs_objects": ret_drs_objects,
     }
-    return flask.jsonify(ret), 200
+    return JSONResponse(content=ret, status_code=200)
 
 
-@blueprint.route(
-    "/ga4gh/drs/v1/objects", methods=["POST"], provide_automatic_options=False
-)
-def post_drs_records():
+@router.post("/ga4gh/drs/v1/objects")
+async def post_drs_records(request: Request):
     """Returns DRS objects for each provided DRS object id.
     Expects 'bulk_object_ids' in request body"""
-    data = flask.request.get_json(force=True)
+    data = await request.json()
     # Exit with malformed error return if missing object id
     if "bulk_object_ids" not in data:
-        return handle_user_error("Request is malformed. Missing bulk object ids.")
-    ret = resolve_bulk_object_auth(id_list=data["bulk_object_ids"], auth_only=False)
-    return flask.jsonify(ret), 200
+        raise UserError("Request is malformed. Missing bulk object ids.")
+    ret = await resolve_bulk_object_auth(
+        id_list=data["bulk_object_ids"], auth_only=False
+    )
+    return JSONResponse(content=ret, status_code=200)
 
 
-@blueprint.route("/ga4gh/drs/v1/objects", methods=["OPTIONS"])
-def list_drs_records_options():
+@router.post("/ga4gh/drs/v1/objects")
+async def get_drs_objects(request: Request):
+    """Returns DRS objects for each provided DRS object id.
+    Expects 'bulk_object_ids' in request body"""
+    data = await request.json()
+    # Exit with malformed error return if missing object id
+    if "bulk_object_ids" not in data:
+        raise UserError("Request is malformed. Missing bulk object ids.")
+    ret = await resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
+    return JSONResponse(content=ret, status_code=200)
+
+
+@router.options("/ga4gh/drs/v1/objects")
+async def list_drs_records_options(request: Request):
     """Returns OPTIONS metadata for each provided DRS object id (drs object id = did)
 
     dids: list of str object ids (ex. ['123','456'])
@@ -212,20 +275,20 @@ def list_drs_records_options():
     """
 
     # Get data from json body
-    data = flask.request.get_json(force=True)
+    data = await request.json()
 
     # Exit with malformed error return if missing object id key
     if "bulk_object_ids" not in data:
-        return handle_user_error("Request is malformed. Missing bulk object ids.")
+        raise UserError("Request is malformed. Missing bulk object ids.")
 
     try:
-        compiled_info = resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
+        compiled_info = await resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
 
     # If unexpected error encountered, return defaults
     except Exception as err:
         raise IndexdUnexpectedError(err)
 
-    return flask.jsonify(compiled_info), 200
+    return JSONResponse(content=compiled_info, status_code=200)
 
 
 def create_drs_uri(did):
@@ -236,33 +299,31 @@ def create_drs_uri(did):
         did(str): did of drs object
     """
 
-    default_prefix = blueprint.index_driver.config.get("DEFAULT_PREFIX")
+    default_prefix = router.index_driver.config.get("DEFAULT_PREFIX")
 
     if not default_prefix:
         # For env without DEFAULT_PREFIX, uri will not be drs compliant
         accession = did
-        self_uri = "drs://{}".format(accession)
+        self_uri = f"drs://{accession}"
     else:
         accession = (
             did.replace(default_prefix, "", 1).replace("/", "", 1).replace(":", "", 1)
         )
-
-        self_uri = "drs://{}:{}".format(
-            default_prefix.replace("/", "", 1).replace(":", "", 1), accession
-        )
+        self_uri = f"drs://{default_prefix.replace('/', '', 1).replace(':', '', 1)}:{accession}"
 
     return self_uri
 
 
-def resolve_single_object_auth(object_id: str) -> dict:
+async def resolve_single_object_auth(object_id: str) -> dict:
     """Returns dict with object's authorization metadata"""
 
     # Extract authz metadata for object id
     try:
-        ret = blueprint.index_driver.get_with_nonstrict_prefix(object_id)
+        ret = await router.index_driver.get_with_nonstrict_prefix(object_id)
         authz_path_list = ret["authz"]
-        authz_metadata = copy.deepcopy(blueprint.drs_authorization_metadata)
-        preferred_type = blueprint.default_preferred_type
+        authz_metadata = copy.deepcopy(router.drs_authorization_metadata)
+
+        preferred_type = router.default_preferred_type
         # Define default (empty) metadata details to return
         compiled_metadata_details = {
             "drs_object_id": object_id,
@@ -291,16 +352,16 @@ def resolve_single_object_auth(object_id: str) -> dict:
                 compiled_passport_auth_issuers.update(
                     authz_metadata_details["passport_auth_issuers"]
                 )
-            elif blueprint.default_passport_issuer:
-                compiled_passport_auth_issuers.add(blueprint.default_passport_issuer)
+            elif router.default_passport_issuer:
+                compiled_passport_auth_issuers.add(router.default_passport_issuer)
 
             # Compile bearer issuer list and remove duplicates
             if "bearer_auth_issuers" in authz_metadata_details:
                 compiled_bearer_auth_issuers.update(
                     authz_metadata_details["bearer_auth_issuers"]
                 )
-            elif blueprint.default_bearer_issuer:
-                compiled_bearer_auth_issuers.add(blueprint.default_bearer_issuer)
+            elif router.default_bearer_issuer:
+                compiled_bearer_auth_issuers.add(router.default_bearer_issuer)
             else:
                 logger.warning(
                     "Unable to determine bearer issuer - this should be configured to Fence's token issuer or in trustedIssuers!!!"
@@ -336,7 +397,7 @@ def resolve_single_object_auth(object_id: str) -> dict:
         raise IndexdUnexpectedError(err)
 
 
-def resolve_bulk_object_auth(id_list: list[str], auth_only=True) -> dict:
+async def resolve_bulk_object_auth(id_list: list[str], auth_only=True) -> dict:
     """Returns compiled dict of authorization metadata
     auth_only = True # defaults to only return resolved authorization
     auth_only = False # returned resolves drs object info (auth included)"""
@@ -353,7 +414,7 @@ def resolve_bulk_object_auth(id_list: list[str], auth_only=True) -> dict:
         "unresolved": total_requested,  # nothing is resolved at the start
     }
     # Bulk retrieve docs from id list
-    docs = blueprint.index_driver.get_bulk(id_list)
+    docs = await router.index_driver.get_bulk(id_list)
     doc_dids = [doc["did"] for doc in docs]
     # Annotate if an original id(s) is not returned in bulk call (record as unresolved, index not found)
     for i in id_list:
@@ -371,9 +432,9 @@ def resolve_bulk_object_auth(id_list: list[str], auth_only=True) -> dict:
             # becuase we already checked for missing guids before the try block. Any issue
             # encountered is likely not solely tied to an index-not-found issue.
             if auth_only:
-                resolved_info = resolve_single_object_auth(object_id=guid)
+                resolved_info = await resolve_single_object_auth(object_id=guid)
             else:
-                resolved_info = indexd_to_drs(record=doc)
+                resolved_info = await indexd_to_drs(record=doc)
         # Handle unexpected error and continue
         except Exception as err:
             unexpected_error_guids.append(guid)
@@ -405,7 +466,7 @@ def resolve_bulk_object_auth(id_list: list[str], auth_only=True) -> dict:
     return compiled_info
 
 
-def indexd_to_drs(record, expand=False):
+async def indexd_to_drs(record, expand=False):
     """
     Convert record to ga4gh-compilant format. Includes access_methods resolution.
 
@@ -414,42 +475,20 @@ def indexd_to_drs(record, expand=False):
         expand(bool): show contents of the descendants
     """
 
-    did = (
-        record["id"]
-        if "id" in record
-        else record["did"] if "did" in record else record["bundle_id"]
-    )
-
+    did = record.get("id") or record.get("did") or record.get("bundle_id")
     self_uri = create_drs_uri(did)
-
-    name = record["file_name"] if "file_name" in record else record["name"]
-
-    index_created_time = (
-        record["created_date"] if "created_date" in record else record["created_time"]
-    )
-
-    version = (
-        record["version"]
-        if "version" in record
-        else record["rev"] if "rev" in record else ""
-    )
-
-    index_updated_time = (
-        record["updated_date"] if "updated_date" in record else record["updated_time"]
-    )
-
+    name = record.get("file_name") or record.get("name")
+    index_created_time = record.get("created_date") or record.get("created_time")
+    version = record.get("version") or record.get("rev") or ""
+    index_updated_time = record.get("updated_date") or record.get("updated_time")
     content_created_date = record.get("content_created_date", "")
-
     content_updated_date = record.get("content_updated_date", "")
-
-    form = record["form"] if "form" in record else "bundle"
-
-    description = record["description"] if "description" in record else None
-
+    form = record.get("form", "bundle")
+    description = record.get("description")
     alias = (
-        record["alias"]
-        if "alias" in record
-        else json.loads(record["aliases"]) if "aliases" in record else []
+        record.get("alias") or json.loads(record.get("aliases", "[]"))
+        if "aliases" in record
+        else []
     )
 
     # Define current drs_object dict description
@@ -461,7 +500,7 @@ def indexd_to_drs(record, expand=False):
         "index_updated_time": index_updated_time,
         "created_time": content_created_date,
         "updated_time": content_updated_date,
-        "size": record["size"],
+        "size": record.get("size", 0),
         "aliases": alias,
         "self_uri": self_uri,
         "version": version,
@@ -470,7 +509,7 @@ def indexd_to_drs(record, expand=False):
         "description": description,
     }
     # Get access method dict for each url
-    bucket_regions = get_bucket_regions()
+    bucket_regions = router.bucket_regions
 
     region = {}
     urls_metadata = record.get("urls_metadata", {})
@@ -531,7 +570,6 @@ def indexd_to_drs(record, expand=False):
                     "region": region.get(location, ""),
                 }
             )
-
     # Add authorization metadata to access_methods if record object id NOT a bundle
     # AND drs_object['access_method'] is populated with an access url
     # Auth metadata is optional for bundles
@@ -542,7 +580,7 @@ def indexd_to_drs(record, expand=False):
                 continue
             # Otherwise add auth info in entry
             did = record["did"]
-            authorizations = resolve_single_object_auth(object_id=did)
+            authorizations = await resolve_single_object_auth(object_id=did)
             entry.update({"authorizations": authorizations})
     # Parse out checksums
     drs_object["checksums"] = parse_checksums(record, drs_object)
@@ -552,7 +590,7 @@ def indexd_to_drs(record, expand=False):
 
 def get_cloud_provider(location):
     location_type = location.split(":")[0]
-    value = blueprint.cloud_provider_map.get(location_type)
+    value = router.cloud_provider_map.get(location_type)
 
     if isinstance(value, str) and value:
         return value
@@ -579,68 +617,41 @@ def bundle_to_drs(record, expand=False, is_content=False):
     is_content: is an expanded content in a bundle
     """
 
-    did = (
-        record["id"]
-        if "id" in record
-        else record["did"] if "did" in record else record["bundle_id"]
-    )
-
+    did = record.get("id") or record.get("did") or record.get("bundle_id")
     drs_uri = create_drs_uri(did)
 
-    name = record["file_name"] if "file_name" in record else record["name"]
+    name = record.get("file_name") or record.get("name")
 
-    drs_object = {
-        "id": did,
-        "name": name,
-        "drs_uri": drs_uri,
-        "contents": [],
-    }
-
-    contents = (
-        record["contents"]
-        if "contents" in record
-        else record["bundle_data"] if "bundle_data" in record else []
-    )
-
+    contents = record.get("contents") or record.get("bundle_data") or []
     if not expand and isinstance(contents, list):
         for content in contents:
             if isinstance(content, dict):
                 content.pop("contents", None)
 
-    drs_object["contents"] = contents
+    drs_object = {
+        "id": did,
+        "name": name,
+        "drs_uri": drs_uri,
+        "contents": contents,
+    }
+
+    description = record.get("description", "")
+    aliases = (
+        record.get("alias") or json.loads(record.get("aliases", "[]"))
+        if "aliases" in record
+        else []
+    )
+    version = record.get("version") or record.get("rev") or ""
+    created_time = record.get("created_date") or record.get("created_time")
+    updated_time = record.get("updated_date") or record.get("updated_time")
 
     if not is_content:
-        # Show these only if its the leading bundle
-        description = record["description"] if "description" in record else ""
-        aliases = (
-            record["alias"]
-            if "alias" in record
-            else json.loads(record["aliases"]) if "aliases" in record else []
-        )
-        version = (
-            record["version"]
-            if "version" in record
-            else record["rev"] if "rev" in record else ""
-        )
-        # version = record["version"] if "version" in record else ""
         drs_object["checksums"] = parse_checksums(record, drs_object)
-
-        created_time = (
-            record["created_date"]
-            if "created_date" in record
-            else record.get("created_time")
-        )
-
-        updated_time = (
-            record["updated_date"]
-            if "updated_date" in record
-            else record.get("updated_time")
-        )
         if created_time:
             drs_object["created_time"] = created_time
         if updated_time:
             drs_object["updated_time"] = updated_time
-        drs_object["size"] = record["size"]
+        drs_object["size"] = record.get("size", 0)
         drs_object["aliases"] = aliases
         drs_object["description"] = description
         drs_object["version"] = version
@@ -653,6 +664,7 @@ def parse_checksums(record, drs_object):
     Create valid checksums format from a DB object -
     either a record ("hashes") or a bundle ("checksum")
     """
+
     ret_checksum = []
     if "hashes" in record:
         for k in record["hashes"]:
@@ -668,83 +680,3 @@ def parse_checksums(record, drs_object):
                 {"checksum": checksum["checksum"], "type": checksum["type"]}
             )
     return ret_checksum
-
-
-@blueprint.errorhandler(UserError)
-def handle_user_error(err):
-    ret = {"msg": str(err), "status_code": 400}
-    return flask.jsonify(ret), 400
-
-
-@blueprint.errorhandler(AuthzError)
-def handle_authz_error(err):
-    ret = {"msg": str(err), "status_code": 401}
-    return flask.jsonify(ret), 401
-
-
-@blueprint.errorhandler(AuthError)
-def handle_requester_auth_error(err):
-    ret = {"msg": str(err), "status_code": 403}
-    return flask.jsonify(ret), 403
-
-
-@blueprint.errorhandler(IndexNoRecordFound)
-def handle_no_index_record_error(err):
-    ret = {"msg": str(err), "status_code": 404}
-    return flask.jsonify(ret), 404
-
-
-@blueprint.errorhandler(IndexdUnexpectedError)
-def handle_unexpected_error(err):
-    ret = {"msg": err.message, "status_code": err.code}
-    return flask.jsonify(ret), err.code
-
-
-@blueprint.record
-def get_config(setup_state):
-    index_config = setup_state.app.config["INDEX"]
-    blueprint.index_driver = index_config["driver"]
-    blueprint.default_passport_issuer = None
-    blueprint.default_bearer_issuer = None
-    if "DRS_SERVICE_INFO" in setup_state.app.config:
-        blueprint.service_info = setup_state.app.config["DRS_SERVICE_INFO"]
-    if "DRS_AUTHORIZATION_METADATA" in setup_state.app.config:
-        blueprint.drs_authorization_metadata = setup_state.app.config[
-            "DRS_AUTHORIZATION_METADATA"
-        ]
-    else:
-        logger.warning(
-            "DRS_AUTHORIZATION_METADATA not configured. Unable to provide authorization metadata for acces_methods in DrsObjects!!!"
-        )
-
-    if "DEFAULT_BEARER_ISSUER" in setup_state.app.config:
-        blueprint.default_bearer_issuer = setup_state.app.config[
-            "DEFAULT_BEARER_ISSUER"
-        ]
-    else:
-        logger.warning(
-            "No default bearer issuer configured. This should be set to the Fence token issuer!!!"
-        )
-    if "DEFAULT_PASSPORT_ISSUER" in setup_state.app.config:
-        blueprint.default_passport_issuer = setup_state.app.config[
-            "DEFAULT_PASSPORT_ISSUER"
-        ]
-    if "CLOUD_PROVIDER_MAP" in setup_state.app.config:
-        blueprint.cloud_provider_map = setup_state.app.config["CLOUD_PROVIDER_MAP"]
-    else:
-        logger.warning(
-            "CLOUD_PROVIDER_MAP not configured. Unable to derive cloud providers from URLs"
-        )
-
-    blueprint.max_bulk_request_length = setup_state.app.config.get(
-        "MAX_BULK_REQUEST_LENGTH", 100
-    )
-    if "DEFAULT_PREFERRED_TYPE" in setup_state.app.config:
-        blueprint.default_preferred_type = setup_state.app.config[
-            "DEFAULT_PREFERRED_TYPE"
-        ]
-    else:
-        blueprint.default_preferred_type = "BearerAuth"
-        logger.warning(
-            "DEFAULT_PREFERRED_TYPE not configured. Defaulting to BearerAuth as the preferred supported_type"
-        )
