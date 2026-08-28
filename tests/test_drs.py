@@ -1047,6 +1047,33 @@ def test_bulk_auth_options_malformed_error(
     assert res_1.json["msg"] == "Request is malformed. Missing bulk object ids."
 
 
+def test_bulk_post_auth_options_malformed_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk POST endpoint returns appropriate 'request malformed' 400 error.
+    Request overall is NOT successful (400) in this test scenario becuase error is fundamental
+    (no guids were available)."""
+
+    # Call bulk options with missing bulk object ids key value pair
+    data = {}
+    res_1 = client.post("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Define expected results
+    assert res_1.status_code == 400
+    assert res_1.json["msg"] == "Request is malformed. Missing bulk object ids."
+
+
+def test_bulk_post_exceeds_max_request_length(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk POST returns 413 when number of ids exceeds max_bulk_request_length."""
+    max_length = drs_blueprint.max_bulk_request_length
+    data = {"bulk_object_ids": [f"id{i}" for i in range(max_length + 1)]}
+    res = client.post("ga4gh/drs/v1/objects", json=data, headers=user)
+    assert res.status_code == 413
+    assert res.json["status_code"] == 413
+
+
 def test_preferred_type(client, user, combined_default_and_single_table_settings):
     """
     Tests that DEFAULT_PREFERRED_TYPE is applied to projects that are not configured to have their own preferred_type
