@@ -99,6 +99,8 @@ def app_init(app, settings=None):
     app.settings = settings
     validate_config(settings)
 
+    cdislogging.get_logger(__name__, log_level="debug")
+
     logger.info("Initializing Arborist client")
     if os.environ.get("ARBORIST_URL"):
         app.arborist_client = ArboristClient(
