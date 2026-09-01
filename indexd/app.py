@@ -39,9 +39,9 @@ from indexd.index.errors import (
     NoRecordFound as IndexNoRecordFound,
 )
 
-from . import logger
-
 SERVER_LOGGER_NAMES = ("uvicorn", "uvicorn.error", "uvicorn.access")
+
+logger = cdislogging.get_logger(__name__)
 
 routers = [
     (indexd_alias_router, {}),
@@ -126,7 +126,7 @@ def app_init(app, settings=None):
 def get_app(settings=None):
 
     app = FastAPI(
-        title="indexd", redirect_slashes=True, debug="info", lifespan=lifespan
+        title="indexd", redirect_slashes=True, logger="info", lifespan=lifespan
     )
 
     if "INDEXD_SETTINGS" in os.environ:
