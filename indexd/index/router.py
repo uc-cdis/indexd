@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from ..version_data import VERSION, COMMIT
 from indexd import auth
-from indexd.auth import authorize_decorator
+from indexd.auth import Auth
 from indexd.errors import UserError
 from .schema import (
     PUT_RECORD_SCHEMA,
@@ -244,7 +244,7 @@ async def get_aliases(record: str):
 
 
 @router.post("/index/{record:path}/aliases")
-async def append_aliases(record: str, request: Request):
+async def append_aliases(record: str, request: Request, auth: Auth = Depends(Auth)):
     """
     Append one or more aliases to aliases already associated with this DID / GUID, if any.
     """
@@ -259,14 +259,14 @@ async def append_aliases(record: str, request: Request):
         logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
     aliases = [item["value"] for item in aliases_json["aliases"]]
-    await router.index_driver.append_aliases_for_did(request, aliases, record)
+    await router.index_driver.append_aliases_for_did(auth, aliases, record)
     aliases = await router.index_driver.get_aliases_for_did(record)
     aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
     return JSONResponse(content=aliases_payload, status_code=200)
 
 
 @router.put("/index/{record:path}/aliases")
-async def replace_aliases(record: str, request: Request):
+async def replace_aliases(record: str, request: Request, auth: Auth = Depends(Auth)):
     """
     Replace all aliases associated with this DID / GUID
     """
@@ -280,20 +280,22 @@ async def replace_aliases(record: str, request: Request):
         logger.warning(f"Bad request body:\n{err}")
         raise UserError(err)
     aliases = [item["value"] for item in aliases_json["aliases"]]
-    await router.index_driver.replace_aliases_for_did(request, aliases, record)
+    await router.index_driver.replace_aliases_for_did(auth, aliases, record)
     aliases_payload = {"aliases": [{"value": alias} for alias in aliases]}
     return JSONResponse(content=aliases_payload, status_code=200)
 
 
 @router.delete("/index/{record:path}/aliases")
-async def delete_all_aliases(record: str, request: Request):
-    await router.index_driver.delete_all_aliases_for_did(request, record)
+async def delete_all_aliases(record: str, request: Request, auth: Auth = Depends(Auth)):
+    await router.index_driver.delete_all_aliases_for_did(auth, record)
     return JSONResponse(content="Aliases deleted successfully", status_code=200)
 
 
 @router.delete("/index/{record:path}/aliases/{alias:path}")
-async def delete_one_alias(record: str, alias: str, request: Request):
-    await router.index_driver.delete_one_alias_for_did(request, alias, record)
+async def delete_one_alias(
+    record: str, alias: str, request: Request, auth: Auth = Depends(Auth)
+):
+    await router.index_driver.delete_one_alias_for_did(auth, alias, record)
     return JSONResponse(content="Aliases deleted successfully", status_code=200)
 
 
@@ -307,7 +309,9 @@ async def get_all_index_record_versions(record: str):
 
 
 @router.put("/index/{record:path}/versions")
-async def update_all_index_record_versions(record: str, request: Request):
+async def update_all_index_record_versions(
+    record: str, request: Request, auth: Auth = Depends(Auth)
+):
     """
     Update metadata for all record versions.
     NOTE currently the only fields that can be updated for all versions are
@@ -322,7 +326,7 @@ async def update_all_index_record_versions(record: str, request: Request):
     acl = request_json.get("acl")
     authz = request_json.get("authz")
     ret = await router.index_driver.update_all_versions(
-        request, record, acl=acl, authz=authz
+        auth, record, acl=acl, authz=authz
     )
     return JSONResponse(content=ret, status_code=200)
 
@@ -365,8 +369,8 @@ async def get_index_record(record: str):
     return JSONResponse(content=ret, status_code=200)
 
 
-@router.post("/index/", dependencies=[Depends(authorize_decorator)])
-async def post_index_record(request: Request):
+@router.post("/index/")
+async def post_index_record(request: Request, auth: Auth = Depends(Auth)):
     """
     Create a new record.
     """
@@ -376,7 +380,11 @@ async def post_index_record(request: Request):
     except jsonschema.ValidationError as err:
         raise UserError(err)
     authz_val = post_json.get("authz", [])
-    await auth.authorize("create", authz_val, request)
+
+    authorized = False
+
+    authorized = await auth.authorize("create", authz_val, throw=True)
+
     did = post_json.get("did")
     form = post_json["form"]
     size = post_json["size"]
@@ -424,23 +432,35 @@ async def post_index_record(request: Request):
 
 
 @router.post("/index/blank/")
-async def post_index_blank_record(request: Request):
+async def post_index_blank_record(request: Request, auth: Auth = Depends(Auth)):
     """
     Create a blank new record with only uploader and optionally file_name fields filled
     """
+    authorized = False
+    authz_err_msg = "Auth error when attempting to update a blank record. User must have '{}' access on '{}' for service 'indexd'."
+
     body = await request.json() or {}
     uploader = body.get("uploader")
     file_name = body.get("file_name")
     authz = body.get("authz")
+
+    if authz:
+        authorized = await auth.authorize("create", authz, throw=False)
+
+    if not authorized:
+        await auth.authorize("file_upload", ["/data_file"], throw=True)
+
     did, rev, baseid = await router.index_driver.add_blank_record(
-        request, uploader=uploader, file_name=file_name, authz=authz
+        uploader=uploader, file_name=file_name, authz=authz
     )
     ret = {"did": did, "rev": rev, "baseid": baseid}
     return JSONResponse(content=ret, status_code=201)
 
 
 @router.post("/index/blank/{record:path}")
-async def add_index_blank_record_version(record: str, request: Request):
+async def add_index_blank_record_version(
+    record: str, request: Request, auth: Auth = Depends(Auth)
+):
     """
     Create a new blank version of the record with this GUID.
     Authn/authz fields carry over from the previous version of the record.
@@ -453,7 +473,7 @@ async def add_index_blank_record_version(record: str, request: Request):
     file_name = body.get("file_name")
     authz = body.get("authz")
     did, baseid, rev = await router.index_driver.add_blank_version(
-        request,
+        auth,
         record,
         new_did=new_did,
         uploader=uploader,
@@ -465,7 +485,9 @@ async def add_index_blank_record_version(record: str, request: Request):
 
 
 @router.put("/index/blank/{record:path}")
-async def put_index_blank_record(record: str, request: Request):
+async def put_index_blank_record(
+    record: str, request: Request, auth: Auth = Depends(Auth)
+):
     """
     Update a blank record with size, hashes and url
     """
@@ -476,14 +498,14 @@ async def put_index_blank_record(record: str, request: Request):
     urls = body.get("urls")
     authz = body.get("authz")
     did, rev, baseid = await router.index_driver.update_blank_record(
-        request, did=record, rev=rev, size=size, hashes=hashes, urls=urls, authz=authz
+        auth, did=record, rev=rev, size=size, hashes=hashes, urls=urls, authz=authz
     )
     ret = {"did": did, "rev": rev, "baseid": baseid}
     return JSONResponse(content=ret, status_code=200)
 
 
 @router.put("/index/{record:path}")
-async def put_index_record(record: str, request: Request):
+async def put_index_record(record: str, request: Request, auth: Auth = Depends(Auth)):
     """
     Update an existing record.
     """
@@ -501,25 +523,29 @@ async def put_index_record(record: str, request: Request):
             raise UserError(
                 "content_updated_date cannot come before content_created_date"
             )
-    did, baseid, rev = await router.index_driver.update(request, record, rev, put_json)
+    did, baseid, rev = await router.index_driver.update(auth, record, rev, put_json)
     ret = {"did": did, "baseid": baseid, "rev": rev}
     return JSONResponse(content=ret, status_code=200)
 
 
 @router.delete("/index/{record:path}")
-async def delete_index_record(record: str, request: Request):
+async def delete_index_record(
+    record: str, request: Request, auth: Auth = Depends(Auth)
+):
     """
     Delete an existing record.
     """
     rev = request.query_params.get("rev")
     if rev is None:
         raise UserError("No revision specified.")
-    await router.index_driver.delete(request, record, rev)
+    await router.index_driver.delete(auth, record, rev)
     return JSONResponse(content=None, status_code=200)
 
 
 @router.post("/index/{record:path}")
-async def add_index_record_version(record: str, request: Request):
+async def add_index_record_version(
+    record: str, request: Request, auth: Auth = Depends(Auth)
+):
     """
     Add a record version
     """
@@ -549,8 +575,10 @@ async def add_index_record_version(record: str, request: Request):
             raise UserError(
                 "content_updated_date cannot come before content_created_date"
             )
+
+    await auth.authorize("update", authz)
+
     did, baseid, rev = await router.index_driver.add_version(
-        request,
         record,
         form,
         new_did=new_did,
@@ -653,12 +681,12 @@ def compute_checksum(checksums):
     }
 
 
-@router.post("/bundle/")
+@router.post("/bundle/", dependencies=[Depends(Auth)])
 async def post_bundle(request: Request):
     """
     Create a new bundle
     """
-    await auth.authorize("create", ["/services/indexd/bundles"], request)
+    # await auth.Auth("create", ["/services/indexd/bundles"], request)
     post_json = await request.json()
     try:
         jsonschema.validate(post_json, BUNDLE_SCHEMA)
@@ -738,11 +766,11 @@ async def get_bundle_record_with_id(bundle_id: str, request: Request):
     return JSONResponse(content=ret, status_code=200)
 
 
-@router.delete("/bundle/{bundle_id:path}")
+@router.delete("/bundle/{bundle_id:path}", dependencies=[Depends(Auth)])
 async def delete_bundle_record(bundle_id: str, request: Request):
     """
     Delete bundle record given bundle_id
     """
-    await auth.authorize("delete", ["/services/indexd/bundles"], request)
+    # await auth.Auth("delete", ["/services/indexd/bundles"], request)
     await router.index_driver.delete_bundle(bundle_id)
     return JSONResponse(content=None, status_code=200)

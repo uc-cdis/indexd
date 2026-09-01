@@ -1,6 +1,7 @@
 import uuid
 import pytest
 from datetime import datetime
+from unittest.mock import AsyncMock
 
 from sqlalchemy import text, select
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -962,7 +963,10 @@ async def _test_driver_update_record():
         "version": version,
     }
 
-    await driver.update(None, did, rev, changing_fields)
+    mock_auth = AsyncMock()
+    mock_auth.authorize.return_value = True
+
+    await driver.update(mock_auth, did, rev, changing_fields)
 
     async with engine.connect() as conn:
         result = await conn.execute(
@@ -1113,7 +1117,10 @@ async def _test_driver_delete_record():
             )
         )
 
-    await driver.delete(None, did, rev)
+    mock_auth = AsyncMock()
+    mock_auth.authorize.return_value = True
+
+    await driver.delete(mock_auth, did, rev)
 
     async with engine.begin() as conn:
         count = (

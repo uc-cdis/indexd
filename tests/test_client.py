@@ -915,11 +915,13 @@ def test_create_blank_version(
 def test_create_blank_version_with_authz(
     app_client, user, use_mock_authz, combined_default_and_single_table_settings
 ):
-    _, client = app_client
     """
     Test that a new version of a blank record can be created with a
     different authz when the user has the expected access
     """
+    app, client = app_client
+
+    app.dependency_overrides.clear()
     old_authz = "/programs/A"
     new_authz = "/programs/B"
 
@@ -1183,11 +1185,14 @@ def test_fill_size_n_hash_for_blank_record(
 def test_update_blank_record_with_authz(
     app_client, user, use_mock_authz, combined_default_and_single_table_settings
 ):
-    _, client = app_client
     """
     Test that a blank record (WITHOUT AUTHZ) can be updated
     with an authz when the user has the expected access
     """
+    app, client = app_client
+
+    app.dependency_overrides.clear()
+
     new_authz = "/programs/A"
     new_authz2 = "/programs/B"
 
@@ -1701,8 +1706,11 @@ def test_index_list_with_page(
     assert rec3["did"] in dids
 
 
-def test_unauthorized_create(app_client, combined_default_and_single_table_settings):
+def test_unauthorized_create(
+    app_client, mock_arborist_requests, combined_default_and_single_table_settings
+):
     _, client = app_client
+    mock_arborist_requests(False)
     # test that unauthorized post throws 403 error
     data = get_doc()
     header = {
@@ -2804,14 +2812,16 @@ def test_indexd_admin_authz(
     authz,
     combined_default_and_single_table_settings,
 ):
-    _, client = app_client
+    app, client = app_client
+    app.dependency_overrides.clear()
+
     data = get_doc()
     data["authz"] = authz
 
     # user has no access => unauthorized
-    mock_arborist_requests()
+    mock_arborist_requests(False)
     res = client.post("/index/", json=data)
-    assert res.status_code == 401
+    assert res.status_code == 403
 
     # user has admin access => authorized
     mock_arborist_requests(

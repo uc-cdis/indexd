@@ -461,27 +461,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.guid, record.rev, record.baseid
 
-    async def add_blank_record(self, request, uploader, file_name=None, authz=None):
-        authorized = False
-        authz_err_msg = "Auth error when attempting to update a blank record. User must have '{}' access on '{}' for service 'indexd'."
-        if authz:
-            try:
-                await auth.authorize("create", authz, request)
-                authorized = True
-            except AuthError as err:
-                self.logger.error(
-                    authz_err_msg.format("create", authz)
-                    + " Falling back to 'file_upload' on '/data_file'."
-                )
-
-        if not authorized:
-            try:
-                await auth.authorize("file_upload", ["/data_file"], request)
-            except AuthError as err:
-                self.logger.error(authz_err_msg.format("file_upload", "/data_file"))
-                raise
-
-        async with self.session as session:
+    async def add_blank_record(self, uploader, file_name=None, authz=None):
+        async with self.Session() as session:
             record = Record()
 
             did = str(uuid.uuid4())
@@ -502,9 +483,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.guid, record.rev, record.baseid
 
-    async def update_blank_record(
-        self, request, did, rev, size, hashes, urls, authz=None
-    ):
+    async def update_blank_record(self, auth, did, rev, size, hashes, urls, authz=None):
         hashes = hashes or {}
         urls = urls or []
 
@@ -536,19 +515,17 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 old_authz = record.authz if record.authz else []
                 all_authz = old_authz + authz
                 try:
-                    await auth.authorize("update", all_authz, request)
-                    authorized = True
+                    authorized = await auth.authorize("update", all_authz, False)
                 except AuthError as err:
                     self.logger.error(
                         authz_err_msg.format("update", all_authz)
                         + " Falling back to 'file_upload' on '/data_file'."
                     )
-
-                record.authz = list(set(authz))
+                record.authz = set(authz)
 
             if not authorized:
                 try:
-                    await auth.authorize("file_upload", ["/data_file"], request)
+                    await auth.authorize("file_upload", ["/data_file"])
                 except AuthError as err:
                     self.logger.error(authz_err_msg.format("file_upload", "/data_file"))
                     raise
@@ -588,8 +565,9 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             records = result.scalars().all()
             return [i.alias for i in records]
 
-    async def append_aliases_for_did(self, request, aliases, did):
-        async with self.session as session:
+    async def append_aliases_for_did(self, auth, aliases, did):
+
+        async with self.Session() as session:
             self.logger.info(
                 f"Trying to append new aliases {aliases} to aliases for did {did}..."
             )
@@ -599,14 +577,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 self.logger.warning(f"No record found for did {did}")
                 raise NoRecordFound(did)
 
-            try:
-                resources = index_record.authz
-                await auth.authorize("update", resources, request)
-            except AuthError as err:
-                self.logger.warning(
-                    f"Auth error while appending aliases to did {did}: User not authorized to update one or more of these resources: {resources}"
-                )
-                raise err
+            resources = index_record.authz
+            await auth.authorize("update", resources, throw=True)
 
             query = select(Record).filter(Record.guid == did)
             result = await session.execute(query)
@@ -627,7 +599,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     f"One or more aliases in request already associated with this or another GUID: {aliases}"
                 )
 
-    async def replace_aliases_for_did(self, request, aliases, did):
+    async def replace_aliases_for_did(self, auth, aliases, did):
+
         async with self.session as session:
             self.logger.info(
                 f"Trying to replace aliases for did {did} with new aliases {aliases}..."
@@ -640,7 +613,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 resources = index_record.authz
-                await auth.authorize("update", resources, request)
+                await auth.authorize("update", resources)
             except AuthError as err:
                 self.logger.warning(
                     f"Auth error while replacing aliases for did {did}: User not authorized to update one or more of these resources: {resources}"
@@ -665,7 +638,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                     f"One or more aliases in request already associated with another GUID: {aliases}"
                 )
 
-    async def delete_all_aliases_for_did(self, request, did):
+    async def delete_all_aliases_for_did(self, auth, did):
+
         async with self.session as session:
             self.logger.info(f"Trying to delete all aliases for did {did}...")
 
@@ -676,7 +650,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 resources = index_record.authz
-                await auth.authorize("delete", resources, request)
+                await auth.authorize("delete", resources)
             except AuthError as err:
                 self.logger.warning(
                     f"Auth error while deleting all aliases for did {did}: User not authorized to delete one or more of these resources: {resources}"
@@ -692,7 +666,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             self.logger.info(f"Deleted all aliases for did {did}.")
 
-    async def delete_one_alias_for_did(self, request, alias, did):
+    async def delete_one_alias_for_did(self, auth, alias, did):
+
         async with self.session as session:
             self.logger.info(f"Trying to delete alias {alias} for did {did}...")
 
@@ -703,7 +678,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 resources = index_record.authz
-                await auth.authorize("delete", resources, request)
+                await auth.authorize("delete", resources)
             except AuthError as err:
                 self.logger.warning(
                     f"Auth error deleting alias {alias} for did {did}: User not authorized to delete one or more of these resources: {resources}"
@@ -765,7 +740,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
         return record
 
-    async def update(self, request, did, rev, changing_fields):
+    async def update(self, auth, did, rev, changing_fields):
         authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}' for service 'indexd'."
 
         composite_fields = [
@@ -805,7 +780,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 record.authz = new_authz
 
             try:
-                await auth.authorize("update", all_authz, request)
+                await auth.authorize("update", all_authz)
             except AuthError:
                 self.logger.error(authz_err_msg.format("update", all_authz))
                 raise
@@ -848,7 +823,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.guid, record.baseid, record.rev
 
-    async def delete(self, request, guid, rev):
+    async def delete(self, auth, guid, rev):
         async with self.session as session:
             query = select(Record).filter(Record.guid == guid)
             result = await session.execute(query)
@@ -863,7 +838,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch("revision mismatch")
 
-            await auth.authorize("delete", record.authz, request)
+            await auth.authorize("delete", [u.resource for u in record.authz])
 
             size = record.size if record.size is not None else 0
             await update_stats(session, -1, -1 * size)
@@ -872,7 +847,6 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
     async def add_version(
         self,
-        request,
         current_guid,
         form,
         new_did=None,
@@ -906,8 +880,6 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 raise NoRecordFound("no record found")
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
-
-            await auth.authorize("update", (record.authz or []) + authz, request)
 
             baseid = record.baseid
             record = Record()
@@ -951,7 +923,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
     async def add_blank_version(
         self,
-        request,
+        auth,
         current_guid,
         new_did=None,
         file_name=None,
@@ -960,11 +932,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
     ):
         authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}' for service 'indexd'."
         if authz:
-            try:
-                await auth.authorize("create", authz, request)
-            except AuthError as err:
-                self.logger.error(authz_err_msg.format("create", authz))
-                raise
+            await auth.authorize("create", authz, throw=True)
 
         async with self.session as session:
             query = select(Record).filter_by(guid=current_guid)
@@ -978,11 +946,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                 raise MultipleRecordsFound("multiple records found")
 
             old_authz = old_record.authz if old_record.authz else []
-            try:
-                await auth.authorize("update", old_authz, request)
-            except AuthError as err:
-                self.logger.error(authz_err_msg.format("update", old_authz))
-                raise
+
+            await auth.authorize("update", old_authz, throw=True)
 
             if new_did == old_record.guid:
                 raise MultipleRecordsFound("{guid} already exists".format(guid=new_did))
@@ -1048,7 +1013,8 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
 
         return ret
 
-    async def update_all_versions(self, request, guid, acl=None, authz=None):
+    async def update_all_versions(self, auth, guid, acl=None, authz=None):
+
         async with self.session as session:
             query = select(Record).filter(Record.guid == guid)
             result = await session.execute(query)
@@ -1078,7 +1044,7 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
             all_resources = []
             for rec in records:
                 all_resources += rec.authz or []
-            await auth.authorize("update", list(all_resources), request)
+            await auth.authorize("update", list(all_resources))
 
             ret = []
             for record in records:

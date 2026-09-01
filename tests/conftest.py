@@ -3,10 +3,12 @@ import base64
 import importlib
 import pytest
 import requests
+
+from fastapi import Request, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 import mock
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock, MagicMock
 from sqlalchemy.pool import NullPool
 
 from cdislogging import get_logger
@@ -15,6 +17,7 @@ from gen3authz.client.arborist.client import ArboristClient
 
 from indexd import get_app
 from indexd import auth
+from indexd.auth import Auth
 from indexd.auth.errors import AuthError
 from indexd.index.drivers.alchemy import Base as index_base
 from indexd.auth.drivers.alchemy import Base as auth_base
@@ -216,92 +219,146 @@ def user(app_client):
 @pytest.fixture(scope="function")
 def use_mock_authz(app_client, request):
     """
-    Fixture for enabling mocking of indexd authz system. ...
+    Fixture for enabling mocking of indexd authz system.
+    Updated to directly patch the FastAPI Auth class.
     """
     app, _ = app_client
 
     def _use_mock_authz(allowed_permissions=None):
-        if allowed_permissions is None:
-            mock_authz = lambda method, resources: None
-        else:
-            assert isinstance(allowed_permissions, list)
+        # This fake function perfectly mimics your FastAPI Auth.authorize method
+        async def mock_authorize(self_instance, method, resources, throw=True):
+            if allowed_permissions is None:
+                return True
 
-            def mock_authz(method, resources):
-                for resource in resources:
-                    if (method, resource) not in allowed_permissions:
-                        raise AuthError(
-                            f"Mock indexd.auth.authz: ({method},{resource}) is not in allowed permissions ({allowed_permissions})"
-                        )
+            # If they didn't provide resources, fail safely
+            if not resources:
+                if throw:
+                    raise HTTPException(status_code=403, detail="Permission denied")
+                return False
 
-        patched_authz = patch.object(app.auth, "authz", side_effect=mock_authz)
+            # Check if every requested resource is in the allowed list
+            for resource in resources:
+                if (method, resource) not in allowed_permissions:
+                    if throw:
+                        raise HTTPException(status_code=403, detail="Permission denied")
+                    return False
+
+            return True
+
+        # Intercept the FastAPI dependency directly!
+        patched_authz = patch("indexd.auth.Auth.authorize", new=mock_authorize)
         patched_authz.start()
         request.addfinalizer(patched_authz.stop)
 
     return _use_mock_authz
 
+    return _use_mock_authz
+
+
+@pytest.fixture(autouse=True, scope="function")
+def access_token_patcher(app_client, request):
+    app, client = app_client
+
+    async def get_access_token(*args, **kwargs):
+        return {"sub": "1", "context": {"user": {"name": "indexd-service-user"}}}
+
+    access_token_mock = MagicMock()
+    access_token_mock.return_value = get_access_token
+
+    access_token_patch = patch("indexd.auth.access_token", access_token_mock)
+    access_token_patch.start()
+
+    yield access_token_mock
+
+    access_token_patch.stop()
+
 
 @pytest.fixture(scope="function")
-def mock_arborist_requests(app_client, request):
-    appobj, client = app_client
-    arborist_base_url = "arborist"
-    appobj.auth.arborist = ArboristClient(arborist_base_url=arborist_base_url)
+def mock_arborist_requests(request):
+    """
+    This fixture returns a function which you call to mock the call to
+    arborist client's auth_request method.
+    By default, it returns a 200 response. If parameter "authorized" is set
+    to False, it raises a 401 error.
+    """
 
-    # Patch auth once for the entire test
-    patched_auth = patch.object(appobj.auth, "auth", return_value=None)
-    patched_auth.start()
-    request.addfinalizer(patched_auth.stop)
-
-    # Also patch get_jwt_token to avoid token errors in tests
-    patched_jwt = patch(
-        "indexd.auth.drivers.alchemy.get_jwt_token", return_value="mock_token"
-    )
-    patched_jwt.start()
-    request.addfinalizer(patched_jwt.stop)
-
-    active_arborist_patch = []
-
-    def do_patch(resource_method_to_authorized={}):
-        for p in active_arborist_patch:
-            p.stop()
-        active_arborist_patch.clear()
-
-        def mock_auth_request(token, service, method, resource):
-            # resource can be a list or a string
-            resources = resource if isinstance(resource, list) else [resource]
-            for res in resources:
-                authorized = resource_method_to_authorized.get(res, {}).get(
-                    method, False
+    def do_patch(authorized=True, resource_method_to_authorized={}):
+        # URLs to reponses: { URL: { METHOD: ( content, code ) } }
+        resource_method_to_authorized = {
+            "http://arborist-service/auth/request": {
+                "POST": ({"auth": authorized}, 200)
+            },
+            "http://arborist-service/auth/mapping": {
+                "POST": (
+                    {"/": [{"service": "*", "method": "*"}]} if authorized else {},
+                    200,
                 )
-                if authorized:
-                    return True
-            return False
+            },
+            **resource_method_to_authorized,
+        }
 
-        patched_arborist = patch.object(
-            appobj.auth.arborist, "auth_request", side_effect=mock_auth_request
+        def make_mock_response(method, url, *args, **kwargs):
+            method = method.upper()
+            mocked_response = MagicMock(requests.Response)
+
+            if url not in resource_method_to_authorized:
+                mocked_response.status_code = 404
+                mocked_response.text = "NOT FOUND"
+            elif method not in resource_method_to_authorized[url]:
+                mocked_response.status_code = 405
+                mocked_response.text = "METHOD NOT ALLOWED"
+            else:
+                content, code = resource_method_to_authorized[url][method]
+                mocked_response.status_code = code
+                if isinstance(content, dict):
+                    mocked_response.json.return_value = content
+                else:
+                    mocked_response.text = content
+
+            return mocked_response
+
+        mocked_method = AsyncMock(side_effect=make_mock_response)
+        patch_method = patch(
+            "gen3authz.client.arborist.async_client.httpx.AsyncClient.request",
+            mocked_method,
         )
-        patched_arborist.start()
-        active_arborist_patch.append(patched_arborist)
 
-    def stop_all():
-        for p in active_arborist_patch:
-            p.stop()
-        active_arborist_patch.clear()
-
-    request.addfinalizer(stop_all)
+        patch_method.start()
+        request.addfinalizer(patch_method.stop)
 
     return do_patch
 
 
-@pytest.fixture
-def skip_authz():
-    orig = auth.authorize
+@pytest.fixture(autouse=True)
+def arborist_authorized(mock_arborist_requests):
+    """
+    By default, mocked arborist calls return Authorized.
+    To mock an unauthorized response, use fixture
+    "mock_arborist_requests(authorized=False)" in the test itself.
+    """
+    mock_arborist_requests()
 
-    # wait until test runs
-    async def mock_authorize(*args, **kwargs):
-        return args
 
-    auth.authorize = mock_authorize
+# Import the FastAPI Auth class we created earlier
+
+
+@pytest.fixture(scope="function")
+def skip_authz(app_client):
+    app, _ = app_client
+
+    # Create a mock class that matches the Auth dependency signature
+    class MockAuth:
+        def __init__(self, request: Request = None, basic_credentials=None):
+            pass
+
+        async def authorize(self, method: str = None, resources: list = None):
+            # Silently pass without checking anything
+            return None
+
+    # Tell FastAPI to swap out the real dependency for the mock
+    app.dependency_overrides[Auth] = MockAuth
 
     yield
 
-    auth.authorize = orig
+    # Clean up the override after the test
+    app.dependency_overrides.clear()

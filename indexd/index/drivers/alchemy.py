@@ -770,27 +770,9 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.did, record.rev, record.baseid
 
-    async def add_blank_record(self, request, uploader, file_name=None, authz=None):
-        authorized = False
-        authz_err_msg = "Auth error when attempting to update a blank record. User must have '{}' access on '{}' for service 'indexd'."
-        if authz:
-            try:
-                await auth.authorize("create", authz, request)
-                authorized = True
-            except AuthError as err:
-                self.logger.error(
-                    authz_err_msg.format("create", authz)
-                    + " Falling back to 'file_upload' on '/data_file'."
-                )
+    async def add_blank_record(self, uploader, file_name=None, authz=None):
 
-        if not authorized:
-            try:
-                await auth.authorize("file_upload", ["/data_file"], request)
-            except AuthError as err:
-                self.logger.error(authz_err_msg.format("file_upload", "/data_file"))
-                raise
-
-        async with self.session as session:
+        async with self.Session() as session:
             record = IndexRecord()
             base_version = BaseVersion()
 
@@ -835,9 +817,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             return record.bundle_id
 
-    async def update_blank_record(
-        self, request, did, rev, size, hashes, urls, authz=None
-    ):
+    async def update_blank_record(self, auth, did, rev, size, hashes, urls, authz=None):
         hashes = hashes or {}
         urls = urls or []
 
@@ -871,8 +851,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 old_authz = [u.resource for u in record.authz]
                 all_authz = old_authz + authz
                 try:
-                    await auth.authorize("update", all_authz, request)
-                    authorized = True
+                    authorized = await auth.authorize("update", all_authz, False)
                 except AuthError as err:
                     self.logger.error(
                         authz_err_msg.format("update", all_authz)
@@ -886,7 +865,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             if not authorized:
                 try:
-                    await auth.authorize("file_upload", ["/data_file"], request)
+                    await auth.authorize("file_upload", ["/data_file"])
                 except AuthError as err:
                     self.logger.error(authz_err_msg.format("file_upload", "/data_file"))
                     raise
@@ -931,7 +910,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             result = await session.execute(query)
             return [i.name for i in result.scalars().all()]
 
-    async def append_aliases_for_did(self, request, aliases, did):
+    async def append_aliases_for_did(self, auth, aliases, did):
+
         async with self.session as session:
             self.logger.info(
                 f"Trying to append new aliases {aliases} to aliases for did {did}..."
@@ -944,7 +924,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 resources = [u.resource for u in index_record.authz]
-                await auth.authorize("update", resources, request)
+                await auth.authorize("update", resources)
             except AuthError as err:
                 self.logger.warning(
                     f"Auth error while appending aliases to did {did}: User not authorized to update one or more of these resources: {resources}"
@@ -966,7 +946,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     f"One or more aliases in request already associated with this or another GUID: {aliases}"
                 )
 
-    async def replace_aliases_for_did(self, request, aliases, did):
+    async def replace_aliases_for_did(self, auth, aliases, did):
+
         async with self.session as session:
             self.logger.info(
                 f"Trying to replace aliases for did {did} with new aliases {aliases}..."
@@ -979,7 +960,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 resources = [u.resource for u in index_record.authz]
-                await auth.authorize("update", resources, request)
+                await auth.authorize("update", resources)
             except AuthError as err:
                 self.logger.warning(
                     f"Auth error while replacing aliases for did {did}: User not authorized to update one or more of these resources: {resources}"
@@ -1010,7 +991,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                     f"One or more aliases in request already associated with another GUID: {aliases}"
                 )
 
-    async def delete_all_aliases_for_did(self, request, did):
+    async def delete_all_aliases_for_did(self, auth, did):
+
         async with self.session as session:
             self.logger.info(f"Trying to delete all aliases for did {did}...")
 
@@ -1021,7 +1003,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 resources = [u.resource for u in index_record.authz]
-                await auth.authorize("delete", resources, request)
+                await auth.authorize("delete", resources)
             except AuthError as err:
                 self.logger.warning(
                     f"Auth error while deleting all aliases for did {did}: User not authorized to delete one or more of these resources: {resources}"
@@ -1035,7 +1017,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             self.logger.info(f"Deleted all aliases for did {did}.")
 
-    async def delete_one_alias_for_did(self, request, alias, did):
+    async def delete_one_alias_for_did(self, auth, alias, did):
+
         async with self.session as session:
             self.logger.info(f"Trying to delete alias {alias} for did {did}...")
 
@@ -1046,7 +1029,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             try:
                 resources = [u.resource for u in index_record.authz]
-                await auth.authorize("delete", resources, request)
+                await auth.authorize("delete", resources)
             except AuthError as err:
                 self.logger.warning(
                     f"Auth error deleting alias {alias} for did {did}: User not authorized to delete one or more of these resources: {resources}"
@@ -1108,7 +1091,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         return record
 
-    async def update(self, request, did, rev, changing_fields):
+    async def update(self, auth, did, rev, changing_fields):
         authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}' for service 'indexd'."
 
         composite_fields = [
@@ -1165,7 +1148,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 ]
 
             try:
-                await auth.authorize("update", all_authz, request)
+                await auth.authorize("update", all_authz)
             except AuthError:
                 self.logger.error(authz_err_msg.format("update", all_authz))
                 raise
@@ -1216,7 +1199,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             session.add(record)
             return record.did, record.baseid, record.rev
 
-    async def delete(self, request, did, rev):
+    async def delete(self, auth, did, rev):
+
         async with self.session as session:
             query = select(IndexRecord).filter(IndexRecord.did == did)
             result = await session.execute(query)
@@ -1231,7 +1215,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             if rev != record.rev:
                 raise RevisionMismatch("revision mismatch")
 
-            await auth.authorize("delete", [u.resource for u in record.authz], request)
+            await auth.authorize("delete", [u.resource for u in record.authz])
 
             size = record.size if record.size is not None else 0
             await update_stats(session, -1, -1 * size)
@@ -1240,7 +1224,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     async def add_version(
         self,
-        request,
         current_did,
         form,
         new_did=None,
@@ -1274,10 +1257,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
                 raise NoRecordFound("no record found")
             except MultipleResultsFound:
                 raise MultipleRecordsFound("multiple records found")
-
-            await auth.authorize(
-                "update", [u.resource for u in record.authz] + authz, request
-            )
 
             baseid = record.baseid
             record = IndexRecord()
@@ -1329,17 +1308,18 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
     async def add_blank_version(
         self,
-        request,
+        auth,
         current_did,
         new_did=None,
         file_name=None,
         uploader=None,
         authz=None,
     ):
+
         authz_err_msg = "Auth error when attempting to update a record. User must have '{}' access on '{}' for service 'indexd'."
         if authz:
             try:
-                await auth.authorize("create", authz, request)
+                await auth.authorize("create", authz)
             except AuthError as err:
                 self.logger.error(authz_err_msg.format("create", authz))
                 raise
@@ -1357,7 +1337,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
             old_authz = [u.resource for u in old_record.authz]
             try:
-                await auth.authorize("update", old_authz, request)
+                await auth.authorize("update", old_authz)
             except AuthError as err:
                 self.logger.error(authz_err_msg.format("update", old_authz))
                 raise
@@ -1431,7 +1411,8 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
 
         return ret
 
-    async def update_all_versions(self, request, did, acl=None, authz=None):
+    async def update_all_versions(self, auth, did, acl=None, authz=None):
+
         async with self.session as session:
             query = select(IndexRecord).filter_by(did=did)
             result = await session.execute(query)
@@ -1459,7 +1440,7 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             records = result.scalars().unique().all()
 
             all_resources = {r.resource for rec in records for r in rec.authz}
-            await auth.authorize("update", list(all_resources), request)
+            await auth.authorize("update", list(all_resources))
 
             ret = []
             for record in records:

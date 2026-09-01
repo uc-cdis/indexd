@@ -4,7 +4,7 @@ import jsonschema
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
-from indexd.auth import authorize_decorator
+from indexd.auth import Auth
 from indexd.errors import UserError
 
 from .schema import PUT_RECORD_SCHEMA
@@ -79,7 +79,7 @@ async def get_alias(request: Request):
     return JSONResponse(content=base, status_code=200)
 
 
-@router.put("/alias/{record:path}", dependencies=[Depends(authorize_decorator)])
+@router.put("/alias/{record:path}", dependencies=[Depends(Auth)])
 async def put_alias_record(record: str, request: Request):
     """
     Create or replace an existing record.
@@ -116,7 +116,7 @@ async def put_alias_record(record: str, request: Request):
     return JSONResponse(content=ret, status_code=200)
 
 
-@router.delete("/alias/{record:path}", dependencies=[Depends(authorize_decorator)])
+@router.delete("/alias/{record:path}", dependencies=[Depends(Auth)])
 async def delete_alias_record(record: str, request: Request):
     """
     Delete an alias.

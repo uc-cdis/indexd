@@ -219,11 +219,15 @@ def test_POST_aliases_valid_GUID_valid_aliases(
     ), f"Expected to append {new_aliases} to {aliases}"
 
 
-def test_POST_aliases_unauthenticated(app_client, guid, unused_aliases):
+def test_POST_aliases_unauthenticated(
+    app_client, guid, unused_aliases, mock_arborist_requests
+):
     """
     expect request to fail with 403 if user is unauthenticated
     """
     _, client = app_client
+    mock_arborist_requests(authorized=False)
+
     new_aliases = unused_aliases
     new_aliases_payload = to_payload(new_aliases)
 
@@ -398,11 +402,15 @@ def test_PUT_aliases_valid_GUID_valid_aliases(app_client, user, guid, unused_ali
     ), f"Expect aliases in db to be {new_aliases}"
 
 
-def test_PUT_aliases_unauthenticated(app_client, guid, unused_aliases):
+def test_PUT_aliases_unauthenticated(
+    app_client, guid, unused_aliases, mock_arborist_requests
+):
     """
     expect request to fail with 403 if user is unauthenticated
     """
     _, client = app_client
+    mock_arborist_requests(False)
+
     new_aliases = unused_aliases
     new_aliases_payload = to_payload(new_aliases)
 
@@ -590,11 +598,13 @@ def test_DELETE_all_aliases_valid_GUID(app_client, user, guid):
     assert aliases_in_db == expected_aliases, "Expected no aliases to be in db"
 
 
-def test_DELETE_all_aliases_unauthenticated(app_client, guid):
+def test_DELETE_all_aliases_unauthenticated(app_client, guid, mock_arborist_requests):
     """
     expect request to fail with 403 if user is unauthenticated
     """
     _, client = app_client
+    mock_arborist_requests(False)
+
     res = client.delete(get_endpoint(guid))
     assert res.status_code == 403, res.text
 
@@ -624,6 +634,7 @@ def test_DELETE_one_alias_valid_GUID(app_client, user, guid, aliases):
     alias associated with this GUID
     """
     _, client = app_client
+
     # pick one alias to delete
     alias_to_delete = aliases[0]
     endpoint = get_endpoint(guid) + "/" + url_encode(alias_to_delete)
@@ -637,11 +648,15 @@ def test_DELETE_one_alias_valid_GUID(app_client, user, guid, aliases):
     assert set(aliases_in_db) == set(expected_aliases)
 
 
-def test_DELETE_one_alias_unauthenticated(app_client, guid, aliases):
+def test_DELETE_one_alias_unauthenticated(
+    app_client, guid, aliases, mock_arborist_requests
+):
     """
     expect request to fail with 403 if user is unauthenticated
     """
     _, client = app_client
+    mock_arborist_requests(False)
+
     # pick one alias to delete
     alias_to_delete = aliases[0]
     endpoint = get_endpoint(guid) + "/" + url_encode(alias_to_delete)

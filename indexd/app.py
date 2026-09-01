@@ -9,6 +9,8 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 import httpx
 
+from gen3authz.client.arborist.async_client import ArboristClient
+
 from indexd.config_helper import validate_config
 from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.alias.drivers.alchemy import Base as AliasBase
@@ -96,6 +98,15 @@ def app_init(app, settings=None):
 
     app.settings = settings
     validate_config(settings)
+
+    logger.info("Initializing Arborist client")
+    if os.environ.get("ARBORIST_URL"):
+        app.arborist_client = ArboristClient(
+            arborist_base_url=os.environ["ARBORIST_URL"],
+            logger=logger,
+        )
+    else:
+        app.arborist_client = ArboristClient(logger=logger)
 
     app.auth = settings["auth"]
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"

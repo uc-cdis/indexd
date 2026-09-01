@@ -1,3 +1,4 @@
+import base64
 import pytest
 import requests
 from urllib.parse import urlparse
