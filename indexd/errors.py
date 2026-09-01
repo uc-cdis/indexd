@@ -13,6 +13,16 @@ class ConfigurationError(Exception):
     """
 
 
+class RequestTooLargeError(Exception):
+    """
+    Request Too Large Error
+    """
+
+    def __init__(self, code=413, message="Request Too Large"):
+        self.code = code
+        self.message = str(message)
+
+
 class IndexdUnexpectedError(Exception):
     """
     Unexpected Error
