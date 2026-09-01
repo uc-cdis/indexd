@@ -66,7 +66,7 @@ class Auth:
 
         try:
             authorized = await self.arborist_client.auth_request(
-                token, "fence", method, resources
+                token, "indexd", method, resources
             )
         except ArboristError as e:
             logger.error(f"Error while talking to arborist: {e}")
