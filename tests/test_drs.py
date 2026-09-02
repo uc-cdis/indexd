@@ -878,6 +878,47 @@ def test_single_open_path(client, user, combined_default_and_single_table_settin
     assert res1 == expected_metadata_details
 
 
+def test_single_open_path_with_drs_authorization_metadata_override(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that an explicit DRS_AUTHORIZATION_METADATA entry overrides the /open early-return,
+    so the configured issuers are used instead of returning supported_types: ["None"].
+    """
+    open_authz_path = "/programs/open_access/projects/test"
+    override_entry = {
+        "passport_auth_issuers": ["https://ras/open/override"],
+        "bearer_auth_issuers": ["https://fence/open/override"],
+    }
+
+    original_metadata = drs_blueprint.drs_authorization_metadata.copy()
+    drs_blueprint.drs_authorization_metadata[open_authz_path] = override_entry
+
+    try:
+        data = get_doc(authz=[open_authz_path], urls=["s3://test"])
+        doc_did = client.post("/index", json=data, headers=user).json["did"]
+
+        expected_metadata_details = {
+            "drs_object_id": doc_did,
+            "supported_types": ["BearerAuth", "PassportAuth"],
+            "bearer_auth_issuers": ["https://fence/open/override"],
+            "passport_auth_issuers": ["https://ras/open/override"],
+        }
+
+        # Test GET
+        res = client.get("ga4gh/drs/v1/objects/" + doc_did)
+        assert res._status_code == 200
+        assert (
+            res.json["access_methods"][0]["authorizations"] == expected_metadata_details
+        )
+
+        # Test OPTIONS
+        res = client.options("ga4gh/drs/v1/objects/" + doc_did)
+        assert res._status_code == 200
+        assert res.json == expected_metadata_details
+    finally:
+        drs_blueprint.drs_authorization_metadata = original_metadata
+
+
 # === Auth metadata focused tests for bulk object resolution ===
 def bulk_response_test_setup(
     user, client, n_200: int = 0, n_404: int = 0
