@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from alembic.config import main as alembic_main
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-import httpx
+import logging
 
 from gen3authz.client.arborist.async_client import ArboristClient
 
@@ -41,7 +41,7 @@ from indexd.index.errors import (
 
 SERVER_LOGGER_NAMES = ("uvicorn", "uvicorn.error", "uvicorn.access")
 
-logger = cdislogging.get_logger(__name__)
+logger = cdislogging.get_logger(__name__, log_level="debug")
 
 routers = [
     (indexd_alias_router, {}),
@@ -92,14 +92,17 @@ async def lifespan(app: FastAPI):
         await settings["config"]["ALIAS"]["driver"].engine.dispose()
 
 
+def warn_about_logger():
+    raise Exception("Use cdislogging.get_logger instead of app.logger")
+
+
 def app_init(app, settings=None):
+    app.__dict__["logger"] = warn_about_logger
     if not settings:
         from .default_settings import settings
 
     app.settings = settings
     validate_config(settings)
-
-    cdislogging.get_logger(__name__, log_level="debug")
 
     logger.info("Initializing Arborist client")
     if os.environ.get("ARBORIST_URL"):
@@ -125,11 +128,14 @@ def app_init(app, settings=None):
         app.include_router(router, **opts)
 
 
+def enable_indexd_loggers():
+    for name in logging.Logger.manager.loggerDict:
+        logging.getLogger(name).disabled = False
+
+
 def get_app(settings=None):
 
-    app = FastAPI(
-        title="indexd", redirect_slashes=True, logger="info", lifespan=lifespan
-    )
+    app = FastAPI(title="indexd", redirect_slashes=True, lifespan=lifespan)
 
     if "INDEXD_SETTINGS" in os.environ:
         sys.path.append(os.environ["INDEXD_SETTINGS"])
@@ -141,6 +147,12 @@ def get_app(settings=None):
             pass
 
     app_init(app, settings)
+
+    cdislogging.get_logger(__name__, log_level="debug").disabled = False
+
+    enable_indexd_loggers()
+
+    logger.info("indexd logging initialized")
 
     @app.exception_handler(IndexdUnexpectedError)
     async def handle_indexd_unexpected_error(request, exc: IndexdUnexpectedError):

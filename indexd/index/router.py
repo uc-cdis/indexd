@@ -27,9 +27,8 @@ from .schema import UPDATE_ALL_VERSIONS_SCHEMA
 
 from cdislogging import get_logger
 from indexd.drs.router import bundle_to_drs
-from cdislogging import get_logger
 
-logger = get_logger("indexd/index router", log_level="info")
+logger = get_logger(__name__)
 
 router = APIRouter(tags=["index"], redirect_slashes=True)
 
