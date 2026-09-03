@@ -284,7 +284,8 @@ def resolve_single_object_auth(object_id: str) -> dict:
 
         # If auth path is for open project, just return default auth info
         # Note: if multiple paths exists and one is an open project, only default info is gserviceaccount
-        if any(["/open" in path for path in authz_path_list]):
+        # Exception: if the open path itself has an explicit DRS_AUTHORIZATION_METADATA entry, skip the early return
+        if ("/open" in authz_path_list) and not ("/open" in authz_metadata):
             compiled_metadata_details["supported_types"] = ["None"]
             return compiled_metadata_details
 

@@ -853,7 +853,7 @@ def test_single_multi_path(
 def test_single_open_path(client, user, combined_default_and_single_table_settings):
     #   # Test set up
     data = get_doc(
-        authz=["/programs/open_access/projects/test", "/gen3/programs/c/projects/d"],
+        authz=["/open", "/gen3/programs/c/projects/d"],
         urls=["s3://test"],
     )
     doc_did = client.post("/index", json=data, headers=user).json["did"]
@@ -876,6 +876,47 @@ def test_single_open_path(client, user, combined_default_and_single_table_settin
     assert res_1._status_code == 200
     res1 = res_1.json
     assert res1 == expected_metadata_details
+
+
+def test_single_open_path_with_drs_authorization_metadata_override(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that an explicit DRS_AUTHORIZATION_METADATA entry overrides the /open early-return,
+    so the configured issuers are used instead of returning supported_types: ["None"].
+    """
+    open_authz_path = "/open"
+    override_entry = {
+        "passport_auth_issuers": ["https://ras/open/override"],
+        "bearer_auth_issuers": ["https://fence/open/override"],
+    }
+
+    original_metadata = drs_blueprint.drs_authorization_metadata.copy()
+    drs_blueprint.drs_authorization_metadata[open_authz_path] = override_entry
+
+    try:
+        data = get_doc(authz=[open_authz_path], urls=["s3://test"])
+        doc_did = client.post("/index", json=data, headers=user).json["did"]
+
+        expected_metadata_details = {
+            "drs_object_id": doc_did,
+            "supported_types": ["BearerAuth", "PassportAuth"],
+            "bearer_auth_issuers": ["https://fence/open/override"],
+            "passport_auth_issuers": ["https://ras/open/override"],
+        }
+
+        # Test GET
+        res = client.get("ga4gh/drs/v1/objects/" + doc_did)
+        assert res._status_code == 200
+        assert (
+            res.json["access_methods"][0]["authorizations"] == expected_metadata_details
+        )
+
+        # Test OPTIONS
+        res = client.options("ga4gh/drs/v1/objects/" + doc_did)
+        assert res._status_code == 200
+        assert res.json == expected_metadata_details
+    finally:
+        drs_blueprint.drs_authorization_metadata = original_metadata
 
 
 # === Auth metadata focused tests for bulk object resolution ===
