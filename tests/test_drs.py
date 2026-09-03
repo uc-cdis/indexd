@@ -853,7 +853,7 @@ def test_single_multi_path(
 def test_single_open_path(client, user, combined_default_and_single_table_settings):
     #   # Test set up
     data = get_doc(
-        authz=["/programs/open_access/projects/test", "/gen3/programs/c/projects/d"],
+        authz=["/open", "/gen3/programs/c/projects/d"],
         urls=["s3://test"],
     )
     doc_did = client.post("/index", json=data, headers=user).json["did"]
@@ -884,7 +884,7 @@ def test_single_open_path_with_drs_authorization_metadata_override(
     """Tests that an explicit DRS_AUTHORIZATION_METADATA entry overrides the /open early-return,
     so the configured issuers are used instead of returning supported_types: ["None"].
     """
-    open_authz_path = "/programs/open_access/projects/test"
+    open_authz_path = "/open"
     override_entry = {
         "passport_auth_issuers": ["https://ras/open/override"],
         "bearer_auth_issuers": ["https://fence/open/override"],
