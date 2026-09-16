@@ -853,7 +853,7 @@ def test_single_multi_path(
 def test_single_open_path(client, user, combined_default_and_single_table_settings):
     #   # Test set up
     data = get_doc(
-        authz=["/programs/open_access/projects/test", "/gen3/programs/c/projects/d"],
+        authz=["/open", "/gen3/programs/c/projects/d"],
         urls=["s3://test"],
     )
     doc_did = client.post("/index", json=data, headers=user).json["did"]
@@ -876,6 +876,47 @@ def test_single_open_path(client, user, combined_default_and_single_table_settin
     assert res_1._status_code == 200
     res1 = res_1.json
     assert res1 == expected_metadata_details
+
+
+def test_single_open_path_with_drs_authorization_metadata_override(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that an explicit DRS_AUTHORIZATION_METADATA entry overrides the /open early-return,
+    so the configured issuers are used instead of returning supported_types: ["None"].
+    """
+    open_authz_path = "/open"
+    override_entry = {
+        "passport_auth_issuers": ["https://ras/open/override"],
+        "bearer_auth_issuers": ["https://fence/open/override"],
+    }
+
+    original_metadata = drs_blueprint.drs_authorization_metadata.copy()
+    drs_blueprint.drs_authorization_metadata[open_authz_path] = override_entry
+
+    try:
+        data = get_doc(authz=[open_authz_path], urls=["s3://test"])
+        doc_did = client.post("/index", json=data, headers=user).json["did"]
+
+        expected_metadata_details = {
+            "drs_object_id": doc_did,
+            "supported_types": ["BearerAuth", "PassportAuth"],
+            "bearer_auth_issuers": ["https://fence/open/override"],
+            "passport_auth_issuers": ["https://ras/open/override"],
+        }
+
+        # Test GET
+        res = client.get("ga4gh/drs/v1/objects/" + doc_did)
+        assert res._status_code == 200
+        assert (
+            res.json["access_methods"][0]["authorizations"] == expected_metadata_details
+        )
+
+        # Test OPTIONS
+        res = client.options("ga4gh/drs/v1/objects/" + doc_did)
+        assert res._status_code == 200
+        assert res.json == expected_metadata_details
+    finally:
+        drs_blueprint.drs_authorization_metadata = original_metadata
 
 
 # === Auth metadata focused tests for bulk object resolution ===
@@ -1045,6 +1086,33 @@ def test_bulk_auth_options_malformed_error(
     # Define expected results
     assert res_1.status_code == 400
     assert res_1.json["msg"] == "Request is malformed. Missing bulk object ids."
+
+
+def test_bulk_post_auth_options_malformed_error(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk POST endpoint returns appropriate 'request malformed' 400 error.
+    Request overall is NOT successful (400) in this test scenario becuase error is fundamental
+    (no guids were available)."""
+
+    # Call bulk options with missing bulk object ids key value pair
+    data = {}
+    res_1 = client.post("ga4gh/drs/v1/objects", json=data, headers=user)
+
+    # Define expected results
+    assert res_1.status_code == 400
+    assert res_1.json["msg"] == "Request is malformed. Missing bulk object ids."
+
+
+def test_bulk_post_exceeds_max_request_length(
+    client, user, combined_default_and_single_table_settings
+):
+    """Tests that bulk POST returns 413 when number of ids exceeds max_bulk_request_length."""
+    max_length = drs_blueprint.max_bulk_request_length
+    data = {"bulk_object_ids": [f"id{i}" for i in range(max_length + 1)]}
+    res = client.post("ga4gh/drs/v1/objects", json=data, headers=user)
+    assert res.status_code == 413
+    assert res.json["status_code"] == 413
 
 
 def test_preferred_type(client, user, combined_default_and_single_table_settings):

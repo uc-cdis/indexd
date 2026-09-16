@@ -6,7 +6,7 @@ import json
 from cdislogging import get_logger
 import copy
 
-from indexd.errors import AuthError, AuthzError
+from indexd.errors import AuthError, AuthzError, RequestTooLargeError
 from indexd.errors import UserError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.errors import IndexdUnexpectedError
@@ -86,7 +86,7 @@ def get_drs_service_info():
 
 @blueprint.route(
     "/ga4gh/drs/v1/objects/<path:object_id>",
-    methods=["GET"],
+    methods=["GET", "POST"],
     provide_automatic_options=False,
 )
 def get_drs_object(object_id):
@@ -100,20 +100,6 @@ def get_drs_object(object_id):
     data = indexd_to_drs(ret, expand=expand)
 
     return flask.jsonify(data), 200
-
-
-@blueprint.route(
-    "/ga4gh/drs/v1/objects/<path:object_id>",
-    methods=["POST"],
-    provide_automatic_options=False,
-)
-def post_drs_object(object_id):
-    """
-    Returns passport-authenticated DRS object retrieval with object_id.
-    Not yet supported.
-    """
-    message = "Passport-authenticated DRS object retrieval is not yet supported."
-    return flask.jsonify({"msg": message}), 405
 
 
 @blueprint.route("/ga4gh/drs/v1/objects/<path:object_id>", methods=["OPTIONS"])
@@ -176,21 +162,11 @@ def post_drs_records():
     # Exit with malformed error return if missing object id
     if "bulk_object_ids" not in data:
         return handle_user_error("Request is malformed. Missing bulk object ids.")
+    if len(data["bulk_object_ids"]) > blueprint.max_bulk_request_length:
+        raise RequestTooLargeError(
+            message=f"Request is too large. Max bulk request length is {blueprint.max_bulk_request_length}. Provided {len(data['bulk_object_ids'])} object ids."
+        )
     ret = resolve_bulk_object_auth(id_list=data["bulk_object_ids"], auth_only=False)
-    return flask.jsonify(ret), 200
-
-
-@blueprint.route(
-    "/ga4gh/drs/v1/objects", methods=["POST"], provide_automatic_options=False
-)
-def get_drs_objects():
-    """Returns DRS objects for each provided DRS object id.
-    Expects 'bulk_object_ids' in request body"""
-    data = flask.request.get_json(force=True)
-    # Exit with malformed error return if missing object id
-    if "bulk_object_ids" not in data:
-        return handle_user_error("Request is malformed. Missing bulk object ids.")
-    ret = resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
     return flask.jsonify(ret), 200
 
 
@@ -238,13 +214,16 @@ def list_drs_records_options():
     A malformed call (i.e. providing no did list) would result in a 400 response:
     {'msg': 'Request is malformed. Missing bulk object ids.', 'status_code': 400}
     """
-
     # Get data from json body
     data = flask.request.get_json(force=True)
-
     # Exit with malformed error return if missing object id key
     if "bulk_object_ids" not in data:
         return handle_user_error("Request is malformed. Missing bulk object ids.")
+
+    if len(data["bulk_object_ids"]) > blueprint.max_bulk_request_length:
+        raise RequestTooLargeError(
+            message=f"Request is too large. Max bulk request length is {blueprint.max_bulk_request_length}. Provided {len(data['bulk_object_ids'])} object ids."
+        )
 
     try:
         compiled_info = resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
@@ -305,7 +284,8 @@ def resolve_single_object_auth(object_id: str) -> dict:
 
         # If auth path is for open project, just return default auth info
         # Note: if multiple paths exists and one is an open project, only default info is gserviceaccount
-        if any(["/open" in path for path in authz_path_list]):
+        # Exception: if the open path itself has an explicit DRS_AUTHORIZATION_METADATA entry, skip the early return
+        if ("/open" in authz_path_list) and not ("/open" in authz_metadata):
             compiled_metadata_details["supported_types"] = ["None"]
             return compiled_metadata_details
 
@@ -724,6 +704,12 @@ def handle_no_index_record_error(err):
 
 @blueprint.errorhandler(IndexdUnexpectedError)
 def handle_unexpected_error(err):
+    ret = {"msg": err.message, "status_code": err.code}
+    return flask.jsonify(ret), err.code
+
+
+@blueprint.errorhandler(RequestTooLargeError)
+def handle_request_too_large_error(err):
     ret = {"msg": err.message, "status_code": err.code}
     return flask.jsonify(ret), err.code
 
