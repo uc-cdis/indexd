@@ -9,7 +9,7 @@ from indexd.utils import lookup_bucket_region
 from indexd.drs.router import router as drs_router
 from indexd.drs.router import get_cloud_provider
 
-from indexd import get_app
+from indexd.app import get_app
 
 
 @pytest.fixture

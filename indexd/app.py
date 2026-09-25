@@ -1,5 +1,6 @@
 import os
 import sys
+import logging as stdlib_logging
 import cdislogging
 
 import asyncio
@@ -42,6 +43,29 @@ from indexd.index.errors import (
 SERVER_LOGGER_NAMES = ("uvicorn", "uvicorn.error", "uvicorn.access")
 
 logger = cdislogging.get_logger(__name__, log_level="debug")
+
+
+def warn_about_logger():
+    raise Exception("Use cdislogging.get_logger instead of app.logger")
+
+
+def configure_logging() -> None:
+    """
+    Send the root and web server loggers through this service's logging setup.
+
+    Uvicorn puts its own handlers and levels on its loggers before it imports this
+    module, so those are dropped and the loggers are re-parented: server logs then use
+    the cdislogging format and follow this service's DEBUG setting.
+    """
+    cdislogging.get_logger(None, log_level="debug")
+
+    for logger_name in SERVER_LOGGER_NAMES:
+        server_logger = stdlib_logging.getLogger(logger_name)
+        server_logger.handlers.clear()
+        server_logger.setLevel(stdlib_logging.NOTSET)
+        server_logger.propagate = True
+        server_logger.parent = logger
+
 
 routers = [
     (indexd_alias_router, {}),
@@ -92,10 +116,6 @@ async def lifespan(app: FastAPI):
         await settings["config"]["ALIAS"]["driver"].engine.dispose()
 
 
-def warn_about_logger():
-    raise Exception("Use cdislogging.get_logger instead of app.logger")
-
-
 def app_init(app, settings=None):
     app.__dict__["logger"] = warn_about_logger
     if not settings:
@@ -127,6 +147,11 @@ def app_init(app, settings=None):
     for router, opts in routers:
         app.include_router(router, **opts)
 
+    configure_logging()
+    enable_indexd_loggers()
+
+    logger.info("indexd logging initialized")
+
 
 def enable_indexd_loggers():
     for name in logging.Logger.manager.loggerDict:
@@ -135,7 +160,7 @@ def enable_indexd_loggers():
 
 def get_app(settings=None):
 
-    app = FastAPI(title="indexd", redirect_slashes=True, lifespan=lifespan)
+    app = FastAPI(title="indexd", redirect_slashes=True, debug=True, lifespan=lifespan)
 
     if "INDEXD_SETTINGS" in os.environ:
         sys.path.append(os.environ["INDEXD_SETTINGS"])
@@ -147,12 +172,6 @@ def get_app(settings=None):
             pass
 
     app_init(app, settings)
-
-    cdislogging.get_logger(__name__, log_level="debug").disabled = False
-
-    enable_indexd_loggers()
-
-    logger.info("indexd logging initialized")
 
     @app.exception_handler(IndexdUnexpectedError)
     async def handle_indexd_unexpected_error(request, exc: IndexdUnexpectedError):

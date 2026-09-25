@@ -15,8 +15,8 @@ from cdislogging import get_logger
 
 from gen3authz.client.arborist.client import ArboristClient
 
-from indexd import get_app
 from indexd import auth
+from indexd.app import get_app
 from indexd.auth import Auth
 from indexd.auth.errors import AuthError
 from indexd.index.drivers.alchemy import Base as index_base

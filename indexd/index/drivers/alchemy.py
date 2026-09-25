@@ -911,7 +911,6 @@ class SQLAlchemyIndexDriver(IndexDriverABC):
             return [i.name for i in result.scalars().all()]
 
     async def append_aliases_for_did(self, auth, aliases, did):
-
         async with self.session as session:
             self.logger.info(
                 f"Trying to append new aliases {aliases} to aliases for did {did}..."

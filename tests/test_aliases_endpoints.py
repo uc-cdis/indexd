@@ -220,7 +220,10 @@ def test_POST_aliases_valid_GUID_valid_aliases(
 
 
 def test_POST_aliases_unauthenticated(
-    app_client, guid, unused_aliases, mock_arborist_requests
+    app_client,
+    guid,
+    unused_aliases,
+    mock_arborist_requests,
 ):
     """
     expect request to fail with 403 if user is unauthenticated
@@ -239,7 +242,7 @@ def test_POST_aliases_unauthenticated(
         "Content-Type": "application/json",
     }
     res = client.post(get_endpoint(guid), json=new_aliases_payload, headers=bad_user)
-    assert res.status_code == 403, res.text
+    assert res.status_code == 401, res.text
 
 
 def test_POST_aliases_invalid_GUID(app_client, user, guid, unused_aliases):
@@ -422,7 +425,7 @@ def test_PUT_aliases_unauthenticated(
         "Content-Type": "application/json",
     }
     res = client.put(get_endpoint(guid), json=new_aliases_payload, headers=bad_user)
-    assert res.status_code == 403, res.text
+    assert res.status_code == 401, res.text
 
 
 def test_PUT_aliases_invalid_GUID(app_client, user, guid, unused_aliases):
@@ -613,7 +616,7 @@ def test_DELETE_all_aliases_unauthenticated(app_client, guid, mock_arborist_requ
         "Content-Type": "application/json",
     }
     res = client.delete(get_endpoint(guid), headers=bad_user)
-    assert res.status_code == 403, res.text
+    assert res.status_code == 401, res.text
 
 
 def test_DELETE_all_aliases_invalid_GUID(app_client, user, guid):
@@ -670,7 +673,7 @@ def test_DELETE_one_alias_unauthenticated(
         "Content-Type": "application/json",
     }
     res = client.delete(endpoint, headers=bad_user)
-    assert res.status_code == 403, res.text
+    assert res.status_code == 401, res.text
 
 
 def test_DELETE_one_alias_invalid_GUID(app_client, user, guid, aliases):

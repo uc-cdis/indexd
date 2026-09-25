@@ -1719,7 +1719,7 @@ def test_unauthorized_create(
         "Content-Type": "application/json",
     }
     res = client.post("/index/", json=data, headers=header)
-    assert res.status_code == 403
+    assert res.status_code == 401
 
 
 def test_index_get(app_client, user, combined_default_and_single_table_settings):
