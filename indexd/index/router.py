@@ -680,12 +680,12 @@ def compute_checksum(checksums):
     }
 
 
-@router.post("/bundle/", dependencies=[Depends(Auth)])
-async def post_bundle(request: Request):
+@router.post("/bundle/")
+async def post_bundle(request: Request, auth: Auth = Depends(Auth)):
     """
     Create a new bundle
     """
-    # await auth.Auth("create", ["/services/indexd/bundles"], request)
+    await auth.authorize("create", ["/services/indexd/bundles"])
     post_json = await request.json()
     try:
         jsonschema.validate(post_json, BUNDLE_SCHEMA)
@@ -765,11 +765,13 @@ async def get_bundle_record_with_id(bundle_id: str, request: Request):
     return JSONResponse(content=ret, status_code=200)
 
 
-@router.delete("/bundle/{bundle_id:path}", dependencies=[Depends(Auth)])
-async def delete_bundle_record(bundle_id: str, request: Request):
+@router.delete("/bundle/{bundle_id:path}")
+async def delete_bundle_record(
+    bundle_id: str, request: Request, auth: Auth = Depends(Auth)
+):
     """
     Delete bundle record given bundle_id
     """
-    # await auth.Auth("delete", ["/services/indexd/bundles"], request)
+    await auth.authorize("delete", ["/services/indexd/bundles"])
     await router.index_driver.delete_bundle(bundle_id)
     return JSONResponse(content=None, status_code=200)

@@ -746,3 +746,49 @@ def test_get_drs_expand_contents_true(
     contents = rec2["contents"]
 
     assert content_validation(contents)
+
+
+def test_bundle_post_unauthorized(
+    app_client, user, mock_arborist_requests, combined_default_and_single_table_settings
+):
+    """
+    Creating a bundle requires "create" on /services/indexd/bundles.
+    Expect 403 when Arborist denies and no credentials are supplied.
+    """
+    _, client = app_client
+    did_list, _ = create_index(client, user)
+    data = get_bundle_doc(bundles=did_list)
+
+    mock_arborist_requests(authorized=False)
+
+    res = client.post("/bundle/", json=data)
+    assert res.status_code == 403, res.text
+
+    # and the bundle must not exist
+    res = client.get("/bundle/" + data["bundle_id"])
+    assert res.status_code == 404, res.text
+
+
+def test_bundle_delete_unauthorized(
+    app_client, user, mock_arborist_requests, combined_default_and_single_table_settings
+):
+    """
+    Deleting a bundle requires "delete" on /services/indexd/bundles.
+    Expect 403 when Arborist denies and no credentials are supplied, and expect
+    the bundle to survive.
+    """
+    _, client = app_client
+    did_list, _ = create_index(client, user)
+    data = get_bundle_doc(bundles=did_list)
+    res = client.post("/bundle/", json=data, headers=user)
+    assert res.status_code == 200, res.text
+    bundle_id = res.json()["bundle_id"]
+
+    mock_arborist_requests(authorized=False)
+
+    res = client.delete("/bundle/" + bundle_id)
+    assert res.status_code == 403, res.text
+
+    mock_arborist_requests(authorized=True)
+    res = client.get("/bundle/" + bundle_id)
+    assert res.status_code == 200, "bundle should have survived the denied delete"

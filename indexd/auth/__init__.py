@@ -1,5 +1,5 @@
 from authutils.token.fastapi import access_token
-from fastapi import HTTPException, Security
+from fastapi import Depends, HTTPException, Security
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
@@ -119,3 +119,22 @@ class Auth:
                 )
 
         return authorized
+
+
+async def require_basic_auth(auth: Auth = Depends(Auth)) -> Auth:
+    """
+    Require valid HTTP Basic credentials, without consulting Arborist.
+
+    The deprecated `/alias` endpoints authenticated with a username/password pair
+    checked directly against the auth driver. Both a missing `Authorization` header
+    and an incorrect username/password raise AuthError, which the app maps to 403.
+    """
+    if not auth.basic_auth:
+        err_msg = "Username / password required."
+        logger.error(err_msg)
+        raise AuthError(err_msg)
+
+    # raises AuthError on an unknown user or a password mismatch
+    await auth.auth_driver.auth(auth.basic_auth.username, auth.basic_auth.password)
+
+    return auth

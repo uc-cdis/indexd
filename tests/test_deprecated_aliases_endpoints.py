@@ -1,3 +1,5 @@
+import base64
+
 import pytest
 
 
@@ -205,3 +207,55 @@ def test_alias_delete(app_client, user):
     assert res.status_code == 200
 
     assert len(client.get("/alias/").json()["aliases"]) == 0
+
+
+ALIAS_DATA = {
+    "size": 123,
+    "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+    "release": "private",
+    "keeper_authority": "CRI",
+    "host_authorities": ["PDC"],
+}
+
+
+def test_alias_put_unauthenticated(app_client):
+    """
+    The deprecated alias write endpoints require HTTP Basic credentials.
+    """
+    _, client = app_client
+    res = client.put("/alias/ark:/31807/TEST-unauth", json=ALIAS_DATA)
+    assert res.status_code == 403, res.text
+
+    # nothing should have been created
+    res = client.get("/alias/ark:/31807/TEST-unauth")
+    assert res.status_code == 404, res.text
+
+
+def test_alias_delete_unauthenticated(app_client, user):
+    """
+    An unauthenticated DELETE must be rejected and must not remove the alias.
+    """
+    _, client = app_client
+    ark = "ark:/31807/TEST-nodelete"
+    res = client.put("/alias/" + ark, json=ALIAS_DATA, headers=user)
+    assert res.status_code == 200, res.text
+
+    res = client.delete("/alias/" + ark)
+    assert res.status_code == 403, res.text
+
+    res = client.get("/alias/" + ark, headers=user)
+    assert res.status_code == 200, "alias should have survived the denied delete"
+
+
+def test_alias_put_bad_credentials(app_client, user):
+    """
+    A well-formed but incorrect username/password must be rejected.
+    """
+    _, client = app_client
+    bad = {
+        "Authorization": "Basic "
+        + base64.b64encode(b"test:wrongpassword").decode("ascii"),
+        "Content-Type": "application/json",
+    }
+    res = client.put("/alias/ark:/31807/TEST-badcreds", json=ALIAS_DATA, headers=bad)
+    assert res.status_code == 403, res.text
