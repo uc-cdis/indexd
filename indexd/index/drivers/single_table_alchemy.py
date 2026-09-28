@@ -9,6 +9,7 @@ from sqlalchemy import (
     BigInteger,
     DateTime,
     ARRAY,
+    bindparam,
     func,
     or_,
     text,
@@ -292,6 +293,16 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         Returns:
             Database query
         """
+
+        def like_pattern(s: str) -> str:
+            # Escape LIKE wildcards so user input is matched literally
+            s = s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            return f"%{s}%"
+
+        def jsonpath_key(k: str) -> str:
+            # Quote and escape a key so it can't alter the JSONPath expression
+            return '"' + k.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
         if file_name is not None:
             query = query.filter(Record.file_name != file_name)
 
@@ -321,30 +332,30 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
         if metadata is not None and metadata:
             for k, v in metadata.items():
                 if not v:
-                    query = query.filter(~text(f"record_metadata ? :key")).params(key=k)
+                    query = query.filter(not_(Record.record_metadata.has_key(k)))
                 else:
                     query = query.filter(Record.record_metadata[k].astext != v)
 
         if urls_metadata is not None and urls_metadata:
-            for url_key, url_dict in urls_metadata.items():
+            for i, (url_key, url_dict) in enumerate(urls_metadata.items()):
                 if not url_dict:
                     query = query.filter(
-                        ~text(
-                            f"EXISTS (SELECT 1 FROM UNNEST(urls) AS element WHERE element LIKE '%{url_key}%')"
-                        )
+                        text(
+                            f"NOT EXISTS (SELECT 1 FROM UNNEST(urls) AS element WHERE element LIKE :u_{i})"
+                        ).bindparams(**{f"u_{i}": like_pattern(url_key)})
                     )
                     query = query.filter(
-                        ~text(
-                            f"EXISTS (SELECT 1 FROM jsonb_object_keys(url_metadata) AS key WHERE key LIKE '%{url_key}%')"
-                        )
+                        text(
+                            f"NOT EXISTS (SELECT 1 FROM jsonb_object_keys(url_metadata) AS key WHERE key LIKE :k_{i})"
+                        ).bindparams(**{f"k_{i}": like_pattern(url_key)})
                     )
                 else:
-                    for k, v in url_dict.items():
+                    for j, (k, v) in enumerate(url_dict.items()):
                         if not v:
-                            query = session.query(Record).filter(
+                            query = query.filter(
                                 text(
-                                    f"EXISTS (SELECT 1 FROM jsonb_each_text(url_metadata) AS x WHERE x.value LIKE '%{k}%')"
-                                )
+                                    f"EXISTS (SELECT 1 FROM jsonb_each_text(url_metadata) AS x WHERE x.value LIKE :v_{i}_{j})"
+                                ).bindparams(**{f"v_{i}_{j}": like_pattern(k)})
                             )
                         else:
                             query = query.filter(
@@ -352,7 +363,9 @@ class SingleTableSQLAlchemyIndexDriver(IndexDriverABC):
                                     "url_metadata IS NOT NULL AND url_metadata != '{}'"
                                 ),
                                 ~func.jsonb_path_match(
-                                    Record.url_metadata, '$.*.{} == "{}"'.format(k, v)
+                                    Record.url_metadata,
+                                    f"$.*.{jsonpath_key(k)} == $v",
+                                    func.jsonb_build_object("v", v),
                                 ),
                             )
 
