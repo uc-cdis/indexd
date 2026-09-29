@@ -23,8 +23,11 @@ from alembic import context
 config = context.config
 
 # Interpret the config file for Python logging.
+# NOTE: disable_existing_loggers must stay False. Migrations run from the app's
+# lifespan, so the default (True) would disable every logger already configured by
+# then -- including indexd's and uvicorn's -- silencing the service after startup.
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 logger = logging.getLogger("indexd.alembic")
 logger.setLevel(logging.INFO)
 

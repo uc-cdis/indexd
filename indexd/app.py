@@ -105,6 +105,13 @@ async def lifespan(app: FastAPI):
             await alias_driver.migrate_alias_database()
         else:
             await asyncio.to_thread(alembic_main, ["--raiseerr", "upgrade", "head"])
+
+        # Alembic's fileConfig() may disable existing loggers. Re-apply this
+        # service's logging setup so the app and web server keep logging after
+        # migrations, the way app_init() set it up.
+        configure_logging()
+        enable_indexd_loggers()
+        logger.info("indexd logging re-initialized after migrations")
     else:
         logger.info("Auto migrations are disabled")
 
