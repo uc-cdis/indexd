@@ -778,3 +778,53 @@ async def test_stats_decrease_on_delete(
     count, size = await _get_stats(client)
     assert count == 0
     assert size == 0
+
+
+@pytest.mark.asyncio
+async def test_add_record_with_multiple_month_stats_rows(
+    app_client, combined_default_and_single_table_settings
+):
+    """
+    Regression: update_stats() runs a range query ("newest stats row at or before
+    now") that legitimately matches many rows. Using scalar_one_or_none() there
+    raised MultipleResultsFound as soon as the stats table held more than one
+    month, which 500'd every record-creating write.
+
+    Seed a historical row plus the current month, then create a record.
+    """
+    _, client = app_client
+    now = datetime.datetime.now()
+
+    engine = create_async_engine(POSTGRES_CONNECTION, poolclass=NullPool)
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
+    async with AsyncSession() as session:
+        # both rows match update_stats()'s filter:
+        #   (month <= now.month AND year == now.year) OR (year < now.year)
+        session.add(
+            StatsRecord(
+                total_record_count=7,
+                total_record_bytes=700,
+                month=1,
+                year=now.year - 1,
+            )
+        )
+        session.add(
+            StatsRecord(
+                total_record_count=10,
+                total_record_bytes=1000,
+                month=now.month,
+                year=now.year,
+            )
+        )
+        await session.commit()
+    await engine.dispose()
+
+    res = client.post("/index/", json=get_doc(size=123))
+    assert res.status_code == 200, res.text
+
+    # the current month's row should have been incremented, not duplicated
+    res = client.get("/_stats")
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert data["fileCount"] == 11
+    assert data["totalFileSize"] == 1123

@@ -333,7 +333,7 @@ async def update_stats(session, additional_records, additional_bytes):
     )
 
     result = await session.execute(query)
-    record = result.scalar_one_or_none()
+    record = result.scalars().first()
 
     if record and record.month == now.month and record.year == now.year:
         record.total_record_count += additional_records
