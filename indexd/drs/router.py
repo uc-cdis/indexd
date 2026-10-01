@@ -7,7 +7,7 @@ from cdislogging import get_logger
 from fastapi import APIRouter, Request, HTTPException, status
 from fastapi.responses import JSONResponse
 
-from indexd.errors import UserError, IndexdUnexpectedError
+from indexd.errors import UserError, IndexdUnexpectedError, RequestTooLargeError
 from indexd.index.errors import NoRecordFound as IndexNoRecordFound
 from indexd.utils import reverse_url, get_bucket_regions, lookup_bucket_region
 
@@ -211,6 +211,10 @@ async def post_drs_records(request: Request):
     # Exit with malformed error return if missing object id
     if "bulk_object_ids" not in data:
         raise UserError("Request is malformed. Missing bulk object ids.")
+    if len(data["bulk_object_ids"]) > router.max_bulk_request_length:
+        raise RequestTooLargeError(
+            message=f"Request is too large. Max bulk request length is {router.max_bulk_request_length}. Provided {len(data['bulk_object_ids'])} object ids."
+        )
     ret = await resolve_bulk_object_auth(
         id_list=data["bulk_object_ids"], auth_only=False
     )
@@ -273,13 +277,17 @@ async def list_drs_records_options(request: Request):
     A malformed call (i.e. providing no did list) would result in a 400 response:
     {'msg': 'Request is malformed. Missing bulk object ids.', 'status_code': 400}
     """
-
     # Get data from json body
     data = await request.json()
 
     # Exit with malformed error return if missing object id key
     if "bulk_object_ids" not in data:
         raise UserError("Request is malformed. Missing bulk object ids.")
+
+    if len(data["bulk_object_ids"]) > router.max_bulk_request_length:
+        raise RequestTooLargeError(
+            message=f"Request is too large. Max bulk request length is {router.max_bulk_request_length}. Provided {len(data['bulk_object_ids'])} object ids."
+        )
 
     try:
         compiled_info = await resolve_bulk_object_auth(id_list=data["bulk_object_ids"])
@@ -338,7 +346,8 @@ async def resolve_single_object_auth(object_id: str) -> dict:
 
         # If auth path is for open project, just return default auth info
         # Note: if multiple paths exists and one is an open project, only default info is gserviceaccount
-        if any(["/open" in path for path in authz_path_list]):
+        # Exception: if the open path itself has an explicit DRS_AUTHORIZATION_METADATA entry, skip the early return
+        if ("/open" in authz_path_list) and not ("/open" in authz_metadata):
             compiled_metadata_details["supported_types"] = ["None"]
             return compiled_metadata_details
 

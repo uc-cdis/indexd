@@ -26,7 +26,7 @@ from .guid.router import router as indexd_guid_router, set_guid_config
 from .index.router import router as indexd_index_router, set_index_config
 from .urls.router import router as index_urls_router, set_urls_config
 
-from indexd.errors import IndexdUnexpectedError, UserError
+from indexd.errors import IndexdUnexpectedError, RequestTooLargeError, UserError
 from indexd.alias.errors import (
     NoRecordFound as AliasNoRecordFound,
     MultipleRecordsFound as AliasMultipleRecordsFound,
@@ -165,6 +165,26 @@ def enable_indexd_loggers():
         logging.getLogger(name).disabled = False
 
 
+# All DRS routes are registered under this prefix (see indexd/drs/router.py).
+DRS_PATH_PREFIX = "/ga4gh/drs/v1"
+
+
+def error_response(request, status_code: int, message: str) -> JSONResponse:
+    """
+    Build an error body matching the pre-FastAPI blueprint error handlers.
+
+    Flask scoped error handlers per blueprint, so the shape depended on the
+    route: the DRS blueprint returned {"msg": ..., "status_code": ...} while
+    every other blueprint returned {"error": ...}. FastAPI exception handlers
+    are app-wide, so branch on the request path to preserve both shapes.
+    """
+    if request.url.path.startswith(DRS_PATH_PREFIX):
+        content = {"msg": message, "status_code": status_code}
+    else:
+        content = {"error": message}
+    return JSONResponse(status_code=status_code, content=content)
+
+
 def get_app(settings=None):
 
     app = FastAPI(title="indexd", redirect_slashes=True, debug=True, lifespan=lifespan)
@@ -182,49 +202,53 @@ def get_app(settings=None):
 
     @app.exception_handler(IndexdUnexpectedError)
     async def handle_indexd_unexpected_error(request, exc: IndexdUnexpectedError):
-        return JSONResponse(status_code=exc.code, content={"error": exc.message})
+        return error_response(request, exc.code, exc.message)
 
     @app.exception_handler(UserError)
     async def handle_user_error(request, exc: UserError):
-        return JSONResponse(status_code=400, content={"error": str(exc)})
+        return error_response(request, 400, str(exc))
+
+    @app.exception_handler(RequestTooLargeError)
+    async def handle_request_too_large_error(request, exc: RequestTooLargeError):
+        return error_response(request, exc.code, exc.message)
 
     @app.exception_handler(AliasNoRecordFound)
     async def handle_alias_no_record_found(request, exc: AliasNoRecordFound):
-        return JSONResponse(status_code=404, content={"error": str(exc)})
+        return error_response(request, 404, str(exc))
 
     @app.exception_handler(AliasMultipleRecordsFound)
     async def handle_alias_multiple_records_found(
         request, exc: AliasMultipleRecordsFound
     ):
-        return JSONResponse(status_code=409, content={"error": str(exc)})
+        return error_response(request, 409, str(exc))
 
     @app.exception_handler(AliasRevisionMismatch)
     async def handle_alias_revision_mismatch(request, exc: AliasRevisionMismatch):
-        return JSONResponse(status_code=409, content={"error": str(exc)})
+        return error_response(request, 409, str(exc))
 
     @app.exception_handler(AuthError)
     async def handle_auth_error(request, exc: AuthError):
-        return JSONResponse(status_code=403, content={"error": str(exc)})
+        return error_response(request, 403, str(exc))
 
     @app.exception_handler(AuthzError)
     async def handle_authz_error(request, exc: AuthzError):
-        return JSONResponse(status_code=401, content={"error": str(exc)})
+        return error_response(request, 401, str(exc))
 
     @app.exception_handler(UnhealthyCheck)
     async def handle_unhealthy_check(request, exc: UnhealthyCheck):
-        return JSONResponse(status_code=500, content={"error": "Unhealthy"})
+        return error_response(request, 500, "Unhealthy")
 
     @app.exception_handler(IndexNoRecordFound)
     async def handle_index_no_record(request, exc: IndexNoRecordFound):
-        return JSONResponse(status_code=404, content={"error": str(exc)})
+        return error_response(request, 404, str(exc))
 
     @app.exception_handler(IndexMultipleRecordsFound)
     async def handle_index_multiple_records_found(request, exc):
-        return JSONResponse(status_code=409, content={"error": str(exc)})
+        return error_response(request, 409, str(exc))
 
     @app.exception_handler(IndexRevisionMismatch)
     async def handle_index_revision_mismatch(request, exc):
-        return JSONResponse(status_code=409, content={"error": str(exc)})
+        return error_response(request, 409, str(exc))
 
     logger.info("Returning app.....")
     return app
