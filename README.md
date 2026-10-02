@@ -281,7 +281,7 @@ Similar to other Gen3 services, users must pass along their Access Token in the 
 
 ## Stats Endpoint
 
-The `GET /_stats` endpoint returns pre-computed statistics (total file count and total file size) from a dedicated `stats` table. This avoids expensive full-table `COUNT(*)`/`SUM(size)` scans on the main record table (`index_record` in multi-table mode, `record` in single-table mode).
+The `GET /_stats` endpoint returns pre-computed statistics (total file count and total file size) from a dedicated `stats` table. This avoids expensive full-table `COUNT(*)`/`SUM(size)` scans on the main `index_record` table.
 
 Stats are updated incrementally on every record create, update, or delete operation. The stats table also supports historical queries by month and year.
 

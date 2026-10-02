@@ -1,13 +1,16 @@
-from .auth.errors import AuthError, AuthzError
+class BaseIndexDError(Exception):
+    """
+    Base IndexD error.
+    """
 
 
-class UserError(Exception):
+class UserError(BaseIndexDError):
     """
     User error.
     """
 
 
-class ConfigurationError(Exception):
+class ConfigurationError(BaseIndexDError):
     """
     Configuration error.
     """
