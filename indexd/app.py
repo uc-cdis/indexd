@@ -13,6 +13,7 @@ import logging
 from gen3authz.client.arborist.async_client import ArboristClient
 
 from indexd.config_helper import validate_config
+from indexd.middleware import MergeSlashesMiddleware
 from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.auth.drivers.alchemy import Base as AuthBase
@@ -188,6 +189,10 @@ def error_response(request, status_code: int, message: str) -> JSONResponse:
 def get_app(settings=None):
 
     app = FastAPI(title="indexd", redirect_slashes=True, debug=True, lifespan=lifespan)
+
+    # Must wrap the router: the "/{record:path}" catch-all would otherwise match
+    # the un-merged path first.
+    app.add_middleware(MergeSlashesMiddleware)
 
     if "INDEXD_SETTINGS" in os.environ:
         sys.path.append(os.environ["INDEXD_SETTINGS"])
