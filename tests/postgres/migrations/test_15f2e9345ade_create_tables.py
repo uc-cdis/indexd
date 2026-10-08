@@ -1,83 +1,93 @@
 from alembic.config import main as alembic_main
+import pytest
+import asyncio
+from sqlalchemy import text
 
 
-def test_upgrade(postgres_driver):
-    conn = postgres_driver.engine.connect()
+@pytest.mark.asyncio
+async def test_upgrade(postgres_driver):
+    await asyncio.to_thread(alembic_main, ["--raiseerr", "downgrade", "base"])
 
-    # state before migration
-    alembic_main(["--raiseerr", "downgrade", "base"])
+    async with postgres_driver.engine.begin() as conn:
+        # the database should be empty except for the `alembic_version` table
+        tables_res = await conn.execute(
+            text(
+                "SELECT * FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';"
+            )
+        )
+        tables = [i[1] for i in tables_res]
+        assert tables == ["alembic_version"]
 
-    # the database should be empty except for the `alembic_version` table
-    tables_res = conn.execute(
-        "SELECT * FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';"
-    )
-    tables = [i[1] for i in tables_res]
-    assert tables == ["alembic_version"]
+    await asyncio.to_thread(alembic_main, ["--raiseerr", "upgrade", "15f2e9345ade"])
 
-    # state after migration
-    alembic_main(["--raiseerr", "upgrade", "15f2e9345ade"])
+    async with postgres_driver.engine.begin() as conn:
+        # check that all the tables were created
+        tables_res = await conn.execute(
+            text(
+                "SELECT * FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';"
+            )
+        )
+        tables = [i[1] for i in tables_res]
+        assert sorted(tables) == sorted(
+            [
+                "alembic_version",
+                # index driver
+                "base_version",
+                "index_record",
+                "drs_bundle_record",
+                "index_record_url",
+                "index_record_url_metadata",
+                "index_record_authz",
+                "index_record_alias",
+                "index_record_hash",
+                "index_schema_version",
+                "index_record_metadata",
+                "index_record_ace",
+                # alias driver
+                "alias_record",
+                "alias_record_hash",
+                "alias_record_host_authority",
+                "alias_schema_version",
+                # auth driver
+                "auth_record",
+            ]
+        )
 
-    # check that all the tables were created
-    tables_res = conn.execute(
-        "SELECT * FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';"
-    )
-    tables = [i[1] for i in tables_res]
-    assert sorted(tables) == sorted(
-        [
-            "alembic_version",
-            # index driver
-            "base_version",
-            "index_record",
-            "drs_bundle_record",
-            "index_record_url",
-            "index_record_url_metadata",
-            "index_record_authz",
-            "index_record_alias",
-            "index_record_hash",
-            "index_schema_version",
-            "index_record_metadata",
-            "index_record_ace",
-            # alias driver
-            "alias_record",
-            "alias_record_hash",
-            "alias_record_host_authority",
-            "alias_schema_version",
-            # auth driver
-            "auth_record",
+        # check one of the tables (`index_record`) to see if the columns were created
+        cols = await conn.execute(
+            text(
+                "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'index_record'"
+            )
+        )
+        expected_schema = [
+            ("did", "character varying"),
+            ("baseid", "character varying"),
+            ("rev", "character varying"),
+            ("form", "character varying"),
+            ("size", "bigint"),
+            ("created_date", "timestamp without time zone"),
+            ("updated_date", "timestamp without time zone"),
+            ("file_name", "character varying"),
+            ("version", "character varying"),
+            ("uploader", "character varying"),
         ]
-    )
-
-    # check one of the tables (`index_record`) to see if the columns were created
-    cols = conn.execute(
-        "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'index_record'"
-    )
-    expected_schema = [
-        ("did", "character varying"),
-        ("baseid", "character varying"),
-        ("rev", "character varying"),
-        ("form", "character varying"),
-        ("size", "bigint"),
-        ("created_date", "timestamp without time zone"),
-        ("updated_date", "timestamp without time zone"),
-        ("file_name", "character varying"),
-        ("version", "character varying"),
-        ("uploader", "character varying"),
-    ]
-    assert sorted(expected_schema) == sorted([i for i in cols])
+        assert sorted(expected_schema) == sorted([i for i in cols])
 
 
-def test_downgrade(postgres_driver):
-    conn = postgres_driver.engine.connect()
-
+@pytest.mark.asyncio
+async def test_downgrade(postgres_driver):
     # state after migration
-    alembic_main(["--raiseerr", "downgrade", "base"])
+    await asyncio.to_thread(alembic_main, ["--raiseerr", "downgrade", "base"])
 
-    # the database should be empty except for the `alembic_version` table
-    tables_res = conn.execute(
-        "SELECT * FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';"
-    )
-    tables = [i[1] for i in tables_res]
-    assert tables == ["alembic_version"]
+    async with postgres_driver.engine.begin() as conn:
+        # the database should be empty except for the `alembic_version` table
+        tables_res = await conn.execute(
+            text(
+                "SELECT * FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';"
+            )
+        )
+        tables = [i[1] for i in tables_res]
+        assert tables == ["alembic_version"]
 
 
 def test_reject_non_alembic_migrations():

@@ -8,13 +8,14 @@ GUID_REGEX = re.compile(
 )
 
 
-def test_single_guid(app, client, user):
+def test_single_guid(app_client):
     """
     Test that generating a single GUID works
     """
+    _, client = app_client
     response = client.get("/guid/mint")
     assert response.status_code == 200
-    response_json = response.json
+    response_json = response.json()
     guid_list = response_json["guids"]
 
     reg = re.compile(GUID_REGEX)
@@ -23,15 +24,16 @@ def test_single_guid(app, client, user):
 
 
 @pytest.mark.parametrize("count", [-10, -1, 0, 1, 10, 10000000])
-def test_guids(app, client, user, count):
+def test_guids(app_client, count):
     """
     Test that generating GUIDs works when provided various counts
     """
+    _, client = app_client
     response = client.get(f"/guid/mint?count={count}")
 
     if count in [0, 1, 10]:
         assert response.status_code == 200
-        response_json = response.json
+        response_json = response.json()
         guid_list = response_json["guids"]
 
         # make sure result is >=0 and contains valid guids
@@ -45,42 +47,45 @@ def test_guids(app, client, user, count):
         assert response.status_code == 400
 
 
-def test_guids_invalid_count(app, client, user):
+def test_guids_invalid_count(app_client):
     """
     Test that generating GUIDs doesn't work when provided invalid count
     """
+    _, client = app_client
     response = client.get(f"/guid/mint?count=foobar")
     assert response.status_code == 400
 
 
-def test_get_prefix(app, client, user, monkeypatch):
+def test_get_prefix(app_client):
     """
     Test that generating a prefix works
     """
-    original_config = copy.deepcopy(app.config["INDEX"]["driver"].config)
-    app.config["INDEX"]["driver"].config["DEFAULT_PREFIX"] = "foobar:"
-    app.config["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = False
+    app, client = app_client
+    original_config = copy.deepcopy(app.settings["config"]["INDEX"]["driver"].config)
+    app.settings["config"]["INDEX"]["driver"].config["DEFAULT_PREFIX"] = "foobar:"
+    app.settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = False
     response = client.get("/guid/prefix")
-    app.config["INDEX"]["driver"].config = original_config
+    app.settings["config"]["INDEX"]["driver"].config = original_config
 
     assert response.status_code == 200
-    response_json = response.json
+    response_json = response.json()
     prefix = response_json["prefix"]
 
     assert prefix == "foobar:"
 
 
-def test_get_prefix_when_none(app, client, user, monkeypatch):
+def test_get_prefix_when_none(app_client):
     """
     Test that generating a prefix works even when there isn't a prefix
     """
-    original_config = copy.deepcopy(app.config["INDEX"]["driver"].config)
-    app.config["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
+    app, client = app_client
+    original_config = copy.deepcopy(app.settings["config"]["INDEX"]["driver"].config)
+    app.settings["config"]["INDEX"]["driver"].config["ADD_PREFIX_ALIAS"] = True
     response = client.get("/guid/prefix")
-    app.config["INDEX"]["driver"].config = original_config
+    app.settings["config"]["INDEX"]["driver"].config = original_config
 
     assert response.status_code == 200
-    response_json = response.json
+    response_json = response.json()
     prefix = response_json["prefix"]
 
     assert prefix == ""
