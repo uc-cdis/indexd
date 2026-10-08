@@ -27,15 +27,10 @@ class MergeSlashesMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http" and "//" in scope.get("path", ""):
-            print(scope, receive, send)
-
             scope = dict(scope)
             scope["path"] = _REPEATED_SLASHES.sub("/", scope["path"])
 
-            # Keep raw_path consistent for anything reading it downstream. It is
-            # still percent-encoded, so an encoded slash (%2F) is untouched here
-            # and only real separators collapse. Some ASGI servers append the
-            # query string, so only the path portion is rewritten.
+            # Keep raw_path consistent for anything reading it downstream. It is still percent-encoded
             raw_path = scope.get("raw_path")
             if raw_path:
                 raw_path, sep, query = raw_path.partition(b"?")
