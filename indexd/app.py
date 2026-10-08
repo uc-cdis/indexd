@@ -190,8 +190,6 @@ def get_app(settings=None):
 
     app = FastAPI(title="indexd", redirect_slashes=True, debug=True, lifespan=lifespan)
 
-    # Must wrap the router: the "/{record:path}" catch-all would otherwise match
-    # the un-merged path first.
     app.add_middleware(MergeSlashesMiddleware)
 
     if "INDEXD_SETTINGS" in os.environ:

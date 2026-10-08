@@ -27,6 +27,8 @@ class MergeSlashesMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http" and "//" in scope.get("path", ""):
+            print(scope, receive, send)
+
             scope = dict(scope)
             scope["path"] = _REPEATED_SLASHES.sub("/", scope["path"])
 
