@@ -31,11 +31,52 @@ class Auth:
         bearer_token: HTTPAuthorizationCredentials = Security(bearer),
         basic_creds: HTTPBasicCredentials = Security(basic),
     ):
-        self.arborist_client = request.app.arborist_client
+        self.arborist = request.app.arborist_client
         self.auth_driver = request.app.auth
 
         self.basic_auth = basic_creds
         self.bearer_token = bearer_token
+
+    async def authz(self, token: str, method: str, resource: list) -> None:
+        """
+        Check `method` access on `resource` for service 'indexd'.
+
+        Returns None if the request is authorized, raises AuthError otherwise.
+        """
+        if not self.arborist:
+            raise AuthError(
+                "Arborist is not configured; cannot perform authorization check"
+            )
+
+        async def auth_request(resources: list) -> bool:
+            # a successful call to arborist returns a bool, otherwise it raises
+            # an ArboristError, which we treat as unauthorized
+            try:
+                return await self.arborist.auth_request(
+                    token, "indexd", method, resources
+                )
+            except ArboristError as e:
+                logger.error(
+                    f"Request to Arborist failed; assuming unauthorized. Details:\n{e}"
+                )
+                return False
+
+        if await auth_request(resource):
+            return
+
+        # admins can perform all operations
+        is_admin = await auth_request(["/services/indexd/admin"])
+        if not is_admin and not resource:
+            # if `authz` is empty (no `resource`), admin == access to
+            # `/programs` (deprecated - for backwards compatibility).
+            is_admin = await auth_request(["/programs"])
+            if is_admin:
+                logger.warning(
+                    "The indexd admin '/programs' logic is deprecated. Please update your policy to '/services/indexd/admin'"
+                )
+
+        if not is_admin:
+            raise AuthError("Permission denied.")
 
     async def get_token_claims(self) -> dict:
         if not self.bearer_token:
@@ -95,11 +136,10 @@ class Auth:
         )
 
         try:
-            authorized = await self.arborist_client.auth_request(
-                token, "indexd", method, resources
-            )
-        except ArboristError as e:
-            logger.error(f"Error while talking to arborist: {e}")
+            await self.authz(token, method, resources)
+            authorized = True
+        except (AuthError, ArboristError) as e:
+            logger.error(f"Authorization check failed: {e}")
             authorized = False
 
         if not authorized:
