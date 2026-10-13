@@ -154,7 +154,7 @@ class Auth:
                         headers={"WWW-Authenticate": "Basic"},
                     )
                 raise HTTPException(
-                    HTTP_403_FORBIDDEN,
+                    HTTP_401_UNAUTHORIZED,
                     "Permission denied",
                 )
 
