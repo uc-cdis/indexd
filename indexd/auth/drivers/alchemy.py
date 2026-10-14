@@ -3,6 +3,7 @@ import hashlib
 from contextlib import contextmanager
 
 from authutils.token import get_jwt_token
+from authutils.token.validate import validate_jwt
 from gen3authz.client.arborist.client import ArboristClient
 from sqlalchemy import String
 from sqlalchemy import Column
@@ -15,6 +16,7 @@ from indexd.auth.driver import AuthDriverABC
 from indexd.auth.errors import AuthError, AuthzError
 
 from cdislogging import get_logger
+import flask
 
 logger = get_logger(__name__)
 
@@ -130,11 +132,20 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                 "Arborist is not configured; cannot perform authorization check"
             )
 
+        token = get_jwt_token()
+        if token:
+            validate_jwt(
+                token,
+                issuers=[f"https://{flask.current_app.hostname}/user"],
+                # TODO: remove "user" - it's a workaround to accept old-fence tokens that do not have the updated aud and that are not aud-validated
+                aud=["user", "gen3"],
+            )
+
         try:
             # A successful call from arborist returns a bool, else returns ArboristError
             try:
                 authorized = self.arborist.auth_request(
-                    get_jwt_token(), "indexd", method, resource
+                    token, "indexd", method, resource
                 )
             except Exception as e:
                 logger.error(
@@ -144,13 +155,13 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             if not authorized:
                 # admins can perform all operations
                 is_admin = self.arborist.auth_request(
-                    get_jwt_token(), "indexd", method, ["/services/indexd/admin"]
+                    token, "indexd", method, ["/services/indexd/admin"]
                 )
                 if not is_admin and not resource:
                     # if `authz` is empty (no `resource`), admin == access to
                     # `/programs` (deprecated - for backwards compatibility).
                     is_admin = self.arborist.auth_request(
-                        get_jwt_token(), "indexd", method, ["/programs"]
+                        token, "indexd", method, ["/programs"]
                     )
                     if is_admin:
                         logger.warning(

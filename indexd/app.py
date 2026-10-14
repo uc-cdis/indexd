@@ -62,6 +62,8 @@ def app_init(app, settings=None):
     app.register_blueprint(indexd_guid_blueprint)
     app.register_blueprint(cross_blueprint)
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
+    app.register_error_handler(Exception, handle_unexpected_exceptions)
+
     app.cache = SimpleCache(default_timeout=1800)
     # Alembic may disable existing loggers. Re-apply cdislogging config after migrations.
     cdislogging.get_logger(
@@ -70,6 +72,18 @@ def app_init(app, settings=None):
     ).disabled = False
     enable_indexd_loggers()
     logger.info("indexd logging initialized")
+
+
+def handle_unexpected_exceptions(err):
+    """
+    Any exception that is not specifically handled by a `@blueprint.errorhandler` decorator is
+    handled here. This avoids `'function' object has no attribute 'error'` errors caused by the
+    `warn_about_logger` logic above for unexpected exceptions.
+    """
+    logger.error(
+        f"Unexpected exception type, returning 500: {type(err).__name__}: {err}"
+    )
+    return "Internal error", 500
 
 
 def enable_indexd_loggers():

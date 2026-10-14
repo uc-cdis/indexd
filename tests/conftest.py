@@ -271,4 +271,6 @@ def mock_arborist_requests(app, request):
         patch_method.start()
         request.addfinalizer(patch_method.stop)
 
+        return mocked_method
+
     return do_patch
