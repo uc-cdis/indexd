@@ -134,7 +134,6 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
 
         token = get_jwt_token()
         if token:
-            print("flask.current_app.config", flask.current_app.config)
             validate_jwt(
                 token,
                 issuers=[flask.current_app.config["DEFAULT_BEARER_ISSUER"]],

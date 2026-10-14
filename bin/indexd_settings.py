@@ -116,5 +116,3 @@ if default_passport_issuer:
 default_preferred_type = environ.get("DEFAULT_PREFERRED_TYPE", None)
 if default_preferred_type:
     CONFIG["DEFAULT_PREFERRED_TYPE"] = default_preferred_type
-
-print("bin indexd_settings.py", settings)

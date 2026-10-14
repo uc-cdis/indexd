@@ -11,6 +11,7 @@ from indexd.config_helper import validate_config
 from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.auth.drivers.alchemy import Base as AuthBase
+from .default_settings import settings as default_settings
 from .bulk.blueprint import blueprint as indexd_bulk_blueprint
 from .index.blueprint import blueprint as indexd_index_blueprint
 from .alias.blueprint import blueprint as indexd_alias_blueprint
@@ -19,6 +20,7 @@ from .drs.blueprint import blueprint as indexd_guid_blueprint
 from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
+from indexd.utils import recursive_dict_update
 from cachelib import SimpleCache
 
 
@@ -29,17 +31,16 @@ def warn_about_logger():
     raise Exception("Use cdislogging.get_logger instead of app.logger")
 
 
-def app_init(app, settings=None):
-    print("app_init settings", settings)
+def app_init(app, settings_overrides=None):
     app.__dict__["logger"] = warn_about_logger
 
     app.url_map.strict_slashes = False
-    if not settings:
-        from .default_settings import settings
 
-        print("app_init default_settings", settings)
+    # apply the default settings first, and then override with the provided settings
+    settings = default_settings
+    if settings_overrides:
+        recursive_dict_update(settings, settings_overrides)
     app.config.update(settings["config"])
-    print("app_init app.config", app.config)
 
     if settings.get("AUTO_MIGRATE", True):
         engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
