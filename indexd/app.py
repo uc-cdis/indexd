@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 
 from alembic.config import main as alembic_main
 import cdislogging
@@ -80,6 +81,7 @@ def handle_unexpected_exception(err):
     handled here. This avoids `'function' object has no attribute 'error'` errors caused by the
     `warn_about_logger` logic above for unexpected exceptions.
     """
+    traceback.print_exception(err)
     logger.error(
         f"Unexpected exception type, returning 500: {type(err).__name__}: {err}"
     )
