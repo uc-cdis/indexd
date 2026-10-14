@@ -38,17 +38,9 @@ def app_init(app, settings=None):
 
     # apply the default settings first, and then override with the provided settings
     app_settings = default_settings
-    print("app_init settings:", settings)
-    print("app_init app_settings:", app_settings)
     if settings:
         recursive_dict_update(app_settings, settings)
     app.config.update(app_settings["config"])
-    print("settings from new logic:", app_settings)
-
-    # old logic
-    if not settings:
-        from .default_settings import settings
-    print("settings from old logic:", settings)
 
     if app_settings.get("AUTO_MIGRATE", True):
         engine_name = app_settings["config"]["INDEX"]["driver"].engine.dialect.name

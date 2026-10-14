@@ -48,7 +48,9 @@ try:
             )
         }
 except Exception as e:
-    print("Unable to create default IndexDriver. Proceeding anyway...")
+    print(
+        "Unable to create default IndexDriver. This is not an issue if a different driver is configured: proceeding anyway"
+    )
 
 try:
     CONFIG["ALIAS"] = {
@@ -58,7 +60,9 @@ try:
         )
     }
 except Exception as e:
-    print("Unable to create default AliasDriver. Proceeding anyway...")
+    print(
+        "Unable to create default AliasDriver. This is not an issue if a different driver is configured: proceeding anyway"
+    )
 
 
 CONFIG["DIST"] = [
@@ -129,6 +133,8 @@ try:
         "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
     )
 except Exception as e:
-    print("Unable to create default AuthDriver. Proceeding anyway...")
+    print(
+        "Unable to create default AuthDriver. This is not an issue if a different driver is configured: proceeding anyway"
+    )
 
 settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE}

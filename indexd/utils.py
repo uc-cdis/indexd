@@ -303,9 +303,11 @@ def recursive_dict_update(d1, d2):
     """
     Like `d1.update(d2)`, but recursively merges inner dictionaries instead of only the top-level
     dictionary.
+    Updates d1 in place and also returns it.
     """
     for k, v in d2.items():
         if isinstance(v, collections.abc.Mapping):
             d1[k] = recursive_dict_update(d1.get(k, {}), v)
         else:
             d1[k] = v
+    return d1
