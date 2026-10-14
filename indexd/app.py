@@ -31,34 +31,34 @@ def warn_about_logger():
     raise Exception("Use cdislogging.get_logger instead of app.logger")
 
 
-def app_init(app, settings_overrides=None):
+def app_init(app, settings=None):
     app.__dict__["logger"] = warn_about_logger
 
     app.url_map.strict_slashes = False
 
     # apply the default settings first, and then override with the provided settings
-    settings = default_settings
-    if settings_overrides:
-        recursive_dict_update(settings, settings_overrides)
-    app.config.update(settings["config"])
+    app_settings = default_settings
+    if settings:
+        recursive_dict_update(app_settings, settings)
+    app.config.update(app_settings["config"])
 
-    if settings.get("AUTO_MIGRATE", True):
-        engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
+    if app_settings.get("AUTO_MIGRATE", True):
+        engine_name = app_settings["config"]["INDEX"]["driver"].engine.dialect.name
         logger.info(f"Auto migrating. Engine name: {engine_name}")
         if engine_name == "sqlite":
             IndexBase.metadata.create_all()
             AliasBase.metadata.create_all()
             AuthBase.metadata.create_all()
-            settings["config"]["INDEX"]["driver"].migrate_index_database()
-            settings["config"]["ALIAS"]["driver"].migrate_alias_database()
+            app_settings["config"]["INDEX"]["driver"].migrate_index_database()
+            app_settings["config"]["ALIAS"]["driver"].migrate_alias_database()
         else:
             alembic_main(["--raiseerr", "upgrade", "head"])
     else:
         logger.info("Auto migrations are disabled")
 
-    validate_config(settings)
+    validate_config(app_settings)
 
-    app.auth = settings["auth"]
+    app.auth = app_settings["auth"]
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
     app.register_blueprint(indexd_bulk_blueprint)
     app.register_blueprint(indexd_index_blueprint)
