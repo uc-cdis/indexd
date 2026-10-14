@@ -122,3 +122,4 @@ AUTH = SQLAlchemyAuthDriver(
 )
 
 settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE}
+print("default_settings.py", settings)

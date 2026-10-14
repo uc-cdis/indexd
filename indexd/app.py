@@ -30,12 +30,16 @@ def warn_about_logger():
 
 
 def app_init(app, settings=None):
+    print("app_init settings", settings)
     app.__dict__["logger"] = warn_about_logger
 
     app.url_map.strict_slashes = False
     if not settings:
         from .default_settings import settings
+
+        print("app_init default_settings", settings)
     app.config.update(settings["config"])
+    print("app_init app.config", app.config)
 
     if settings.get("AUTO_MIGRATE", True):
         engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
