@@ -22,37 +22,43 @@ USE_SINGLE_TABLE = False
 # - ADD_PREFIX_ALIAS: aliases are created for new records - "<PREFIX><GUID>".
 # Do NOT set both ADD_PREFIX_ALIAS and PREPEND_PREFIX to True, or aliases
 # will be created as "<PREFIX><PREFIX><GUID>".
-if USE_SINGLE_TABLE is True:
-    CONFIG["INDEX"] = {
-        "driver": SingleTableSQLAlchemyIndexDriver(
-            "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
-            echo=True,
-            index_config={
-                "DEFAULT_PREFIX": "testprefix/",
-                "PREPEND_PREFIX": True,
-                "ADD_PREFIX_ALIAS": False,
-            },
-        )
-    }
-else:
-    CONFIG["INDEX"] = {
-        "driver": SQLAlchemyIndexDriver(
-            "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
-            echo=True,
-            index_config={
-                "DEFAULT_PREFIX": "testprefix/",
-                "PREPEND_PREFIX": True,
-                "ADD_PREFIX_ALIAS": False,
-            },
-        )
-    }
+try:
+    if USE_SINGLE_TABLE is True:
+        CONFIG["INDEX"] = {
+            "driver": SingleTableSQLAlchemyIndexDriver(
+                "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+                echo=True,
+                index_config={
+                    "DEFAULT_PREFIX": "testprefix/",
+                    "PREPEND_PREFIX": True,
+                    "ADD_PREFIX_ALIAS": False,
+                },
+            )
+        }
+    else:
+        CONFIG["INDEX"] = {
+            "driver": SQLAlchemyIndexDriver(
+                "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+                echo=True,
+                index_config={
+                    "DEFAULT_PREFIX": "testprefix/",
+                    "PREPEND_PREFIX": True,
+                    "ADD_PREFIX_ALIAS": False,
+                },
+            )
+        }
+except Exception as e:
+    print(f"WARNING: unable to create default IndexDriver. Proceeding... Details:\n{e}")
 
-CONFIG["ALIAS"] = {
-    "driver": SQLAlchemyAliasDriver(
-        "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
-        echo=True,
-    )
-}
+try:
+    CONFIG["ALIAS"] = {
+        "driver": SQLAlchemyAliasDriver(
+            "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+            echo=True,
+        )
+    }
+except Exception as e:
+    print(f"WARNING: unable to create default AliasDriver. Proceeding... Details:\n{e}")
 
 
 CONFIG["DIST"] = [
@@ -117,8 +123,12 @@ default_preferred_type = environ.get("DEFAULT_PREFERRED_TYPE", None)
 if default_preferred_type:
     CONFIG["DEFAULT_PREFERRED_TYPE"] = default_preferred_type
 
-AUTH = SQLAlchemyAuthDriver(
-    "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
-)
+AUTH = None
+try:
+    AUTH = SQLAlchemyAuthDriver(
+        "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+    )
+except Exception as e:
+    print(f"WARNING: unable to create default AuthDriver. Proceeding... Details:\n{e}")
 
 settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE}
