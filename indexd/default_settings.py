@@ -48,7 +48,7 @@ try:
             )
         }
 except Exception as e:
-    print(f"WARNING: unable to create default IndexDriver. Proceeding... Details:\n{e}")
+    print("Unable to create default IndexDriver. Proceeding anyway...")
 
 try:
     CONFIG["ALIAS"] = {
@@ -58,7 +58,7 @@ try:
         )
     }
 except Exception as e:
-    print(f"WARNING: unable to create default AliasDriver. Proceeding... Details:\n{e}")
+    print("Unable to create default AliasDriver. Proceeding anyway...")
 
 
 CONFIG["DIST"] = [
@@ -68,7 +68,7 @@ CONFIG["DIST"] = [
         "hints": [".*ROCKS.*"],
         "type": "indexd",
     },
-    {"name": "DX DOI", "host": "https://doi.org/", "hints": ["10\..*"], "type": "doi"},
+    {"name": "DX DOI", "host": "https://doi.org/", "hints": [r"10\..*"], "type": "doi"},
     {
         "name": "DOS System",
         "host": "https://example.com/api/ga4gh/dos/v1/",
@@ -129,6 +129,6 @@ try:
         "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
     )
 except Exception as e:
-    print(f"WARNING: unable to create default AuthDriver. Proceeding... Details:\n{e}")
+    print("Unable to create default AuthDriver. Proceeding anyway...")
 
 settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE}
