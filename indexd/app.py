@@ -87,10 +87,13 @@ def handle_unexpected_exception(err):
     `warn_about_logger` logic above for unexpected exceptions.
     """
     traceback.print_exception(err)
-    logger.error(
-        f"Unexpected exception type, returning 500: {type(err).__name__}: {err}"
-    )
-    return "Internal error", 500
+    if not hasattr(err, "code"):
+        logger.error(
+            f"Unexpected exception type, returning 500: {type(err).__name__}: {err}"
+        )
+    code = getattr(err, "code", "500")
+    name = getattr(err, "name", "Internal error")
+    return name, code
 
 
 def enable_indexd_loggers():
