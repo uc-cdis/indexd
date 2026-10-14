@@ -41,6 +41,12 @@ def app_init(app, settings=None):
     if settings:
         recursive_dict_update(app_settings, settings)
     app.config.update(app_settings["config"])
+    print("settings from new logic:", app_settings)
+
+    # old logic
+    if not settings:
+        from .default_settings import settings
+    print("settings from old logic:", settings)
 
     if app_settings.get("AUTO_MIGRATE", True):
         engine_name = app_settings["config"]["INDEX"]["driver"].engine.dialect.name
