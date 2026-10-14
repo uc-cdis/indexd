@@ -2929,8 +2929,7 @@ def test_check_cloud_field(client, user, combined_default_and_single_table_setti
 @pytest.mark.parametrize("test_case", ["match", "mismatch"])
 def test_token_audience_check(client, mock_arborist_requests, test_case):
     """
-    Test that tokens are validated (specifically that the audience is checked) before being handed
-    off to the authorization service.
+    Test that a token's audience is validated before it is handed off to the authorization service.
     """
     authz_check_mock = mock_arborist_requests(
         resource_method_to_authorized={"/services/indexd/admin": {"create": True}}
@@ -2961,6 +2960,91 @@ def test_token_audience_check(client, mock_arborist_requests, test_case):
         )
 
     if test_case == "match":
+        assert res.status_code == 200, res.text
+        assert authz_check_mock.called
+    else:
+        assert res.status_code == 401, res.text
+        assert not authz_check_mock.called
+
+
+@pytest.mark.parametrize("test_case", ["match", "mismatch"])
+def test_token_issuer_check(client, mock_arborist_requests, test_case):
+    """
+    Test that a token's issuer is validated before it is handed off to the authorization service.
+    """
+    authz_check_mock = mock_arborist_requests(
+        resource_method_to_authorized={"/services/indexd/admin": {"create": True}}
+    )
+
+    token_iss = (
+        settings["config"]["DEFAULT_BEARER_ISSUER"]
+        if test_case == "match"
+        else "other-issuer"
+    )
+
+    now = int(time.time())
+    claims = {
+        "sub": "TEST_USER_ID",
+        "iss": token_iss,
+        "aud": "gen3",
+        "iat": now,
+        "exp": now + 300,
+        "pur": "access",
+        "scope": ["openid", "user"],
+    }
+    key = jwk.generate_key("RSA", 2048, private=True)
+    token = jwt.encode({"alg": "RS256", "typ": "JWT"}, claims, key)
+
+    with patch(
+        "authutils.token.validate.get_public_key_for_token",
+        return_value=key.as_pem(private=False),
+    ):
+        res = client.post(
+            "/index/", json=get_doc(), headers={"Authorization": f"bearer {token}"}
+        )
+
+    if test_case == "match":
+        assert res.status_code == 200, res.text
+        assert authz_check_mock.called
+    else:
+        assert res.status_code == 401, res.text
+        assert not authz_check_mock.called
+
+
+@pytest.mark.parametrize("test_case", ["expired", "valid"])
+def test_token_expiration_check(client, mock_arborist_requests, test_case):
+    """
+    Test that a token's expiration is validated before it is handed off to the authorization
+    service.
+    """
+    authz_check_mock = mock_arborist_requests(
+        resource_method_to_authorized={"/services/indexd/admin": {"create": True}}
+    )
+
+    now = int(time.time())
+    token_exp = now + 300 if test_case == "valid" else now - 300
+
+    claims = {
+        "sub": "TEST_USER_ID",
+        "iss": settings["config"]["DEFAULT_BEARER_ISSUER"],
+        "aud": "gen3",
+        "iat": now,
+        "exp": token_exp,
+        "pur": "access",
+        "scope": ["openid", "user"],
+    }
+    key = jwk.generate_key("RSA", 2048, private=True)
+    token = jwt.encode({"alg": "RS256", "typ": "JWT"}, claims, key)
+
+    with patch(
+        "authutils.token.validate.get_public_key_for_token",
+        return_value=key.as_pem(private=False),
+    ):
+        res = client.post(
+            "/index/", json=get_doc(), headers={"Authorization": f"bearer {token}"}
+        )
+
+    if test_case == "valid":
         assert res.status_code == 200, res.text
         assert authz_check_mock.called
     else:

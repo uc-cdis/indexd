@@ -31,7 +31,7 @@ def app_init(app, settings=None):
     app.url_map.strict_slashes = False
 
     # apply the default settings first, and then override with the provided settings
-    app_settings = default_settings
+    app_settings = recursive_dict_update({}, default_settings)  # deep copy
     if settings:
         recursive_dict_update(app_settings, settings)
     app.config.update(app_settings["config"])

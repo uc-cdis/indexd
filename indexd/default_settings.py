@@ -1,10 +1,15 @@
+import json
+from os import environ
+
 from .index.drivers.alchemy import SQLAlchemyIndexDriver
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
 from .index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
-import json
-from os import environ
-import json
+
+from cdislogging import get_logger
+
+
+logger = get_logger(__name__)
 
 
 CONFIG = {}
@@ -48,7 +53,7 @@ try:
             )
         }
 except Exception as e:
-    print(
+    logger.warning(
         "Unable to create default IndexDriver. This is not an issue if a different driver is configured: proceeding anyway"
     )
 
@@ -60,7 +65,7 @@ try:
         )
     }
 except Exception as e:
-    print(
+    logger.warning(
         "Unable to create default AliasDriver. This is not an issue if a different driver is configured: proceeding anyway"
     )
 
@@ -133,7 +138,7 @@ try:
         "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
     )
 except Exception as e:
-    print(
+    logger.warning(
         "Unable to create default AuthDriver. This is not an issue if a different driver is configured: proceeding anyway"
     )
 
