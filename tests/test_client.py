@@ -2942,7 +2942,7 @@ def test_token_audience_check(client, mock_arborist_requests, test_case):
     now = int(time.time())
     claims = {
         "sub": "TEST_USER_ID",
-        "iss": f"https://{os.environ['HOSTNAME']}/user",
+        "iss": settings["config"]["DEFAULT_BEARER_ISSUER"],
         "aud": token_aud,
         "iat": now,
         "exp": now + 300,
