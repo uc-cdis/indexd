@@ -133,13 +133,18 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             )
 
         token = get_jwt_token()
-        # if token:
-        #     validate_jwt(
-        #         token,
-        #         issuers=[flask.current_app.config["DEFAULT_BEARER_ISSUER"]],
-        #         # TODO: remove "user" - it's a workaround to accept old-fence tokens that do not have the updated aud and that are not aud-validated
-        #         aud=["user", "gen3"],
-        #     )
+        if token:
+            print("DEBUGPAULINE before validate_jwt")
+            try:
+                validate_jwt(
+                    token,
+                    issuers=[flask.current_app.config["DEFAULT_BEARER_ISSUER"]],
+                    # TODO: remove "user" - it's a workaround to accept old-fence tokens that do not have the updated aud and that are not aud-validated
+                    aud=["user", "gen3"],
+                )
+            except Exception as e:
+                print("DEBUGPAULINE exception during validate_jwt", e)
+            print("DEBUGPAULINE after validate_jwt")
 
         try:
             # A successful call from arborist returns a bool, else returns ArboristError
