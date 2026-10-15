@@ -71,19 +71,19 @@ except Exception as e:
 
 
 CONFIG["DIST"] = [
-    {
-        "name": "Other IndexD",
-        "host": "https://indexd.example.io/index/",
-        "hints": [".*ROCKS.*"],
-        "type": "indexd",
-    },
-    {"name": "DX DOI", "host": "https://doi.org/", "hints": [r"10\..*"], "type": "doi"},
-    {
-        "name": "DOS System",
-        "host": "https://example.com/api/ga4gh/dos/v1/",
-        "hints": [],
-        "type": "dos",
-    },
+    # {
+    #     "name": "Other IndexD",
+    #     "host": "https://indexd.example.io/index/",
+    #     "hints": [".*ROCKS.*"],
+    #     "type": "indexd",
+    # },
+    # {"name": "DX DOI", "host": "https://doi.org/", "hints": [r"10\..*"], "type": "doi"},
+    # {
+    #     "name": "DOS System",
+    #     "host": "https://example.com/api/ga4gh/dos/v1/",
+    #     "hints": [],
+    #     "type": "dos",
+    # },
 ]
 
 # Maximum number of objects in a single bulk DRS request.
@@ -91,18 +91,18 @@ CONFIG["DIST"] = [
 CONFIG["MAX_BULK_REQUEST_LENGTH"] = 100
 
 CONFIG["DRS_SERVICE_INFO"] = {
-    "name": "DRS System",
-    "type": {
-        "group": "org.ga4gh",
-        "artifact": "drs",
-        "version": "1.5.0",
-    },
-    "version": "1.5.0",
-    "id": "com.example",
-    "organization": {
-        "name": "CTDS",
-        "url": "http://example.com/",
-    },
+    # "name": "DRS System",
+    # "type": {
+    #     "group": "org.ga4gh",
+    #     "artifact": "drs",
+    #     "version": "1.5.0",
+    # },
+    # "version": "1.5.0",
+    # "id": "com.example",
+    # "organization": {
+    #     "name": "CTDS",
+    #     "url": "http://example.com/",
+    # },
 }
 
 cloud_provider_map = environ.get("CLOUD_PROVIDER_MAP", None)
