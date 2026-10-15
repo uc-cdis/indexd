@@ -1,3 +1,4 @@
+import collections.abc
 import re
 from urllib.parse import urlparse
 import os
@@ -30,7 +31,7 @@ def try_drop_test_data(
         create_stmt = 'DROP DATABASE "{database}"'.format(database=database)
         conn.execute(create_stmt)
     except Exception:
-        logging.warning("Unable to drop test data:")
+        logger.warning("Unable to drop test data:")
 
     conn.close()
 
@@ -61,7 +62,7 @@ def setup_database(
     try:
         conn.execute(create_stmt)
     except Exception:
-        logging.warning("Unable to create database")
+        logger.warning("Unable to create database")
 
     if not no_user:
         try:
@@ -77,7 +78,7 @@ def setup_database(
             conn.execute(perm_stmt)
             conn.execute("commit")
         except Exception:
-            logging.warning("Unable to add user")
+            logger.warning("Unable to add user")
     conn.close()
 
 
@@ -112,7 +113,7 @@ def create_tables(host, user, password, database):  # pragma: no cover
         conn.execute(create_index_schema_version_stm)
         conn.execute(create_drs_bundle_record)
     except Exception:
-        logging.warning("Unable to create table")
+        logger.warning("Unable to create table")
         raise
     finally:
         conn.close()
@@ -296,3 +297,17 @@ def get_bucket_regions():
         cached.set("bucket_regions", regions)
 
     return regions
+
+
+def recursive_dict_update(d1, d2):
+    """
+    Like `d1.update(d2)`, but recursively merges inner dictionaries instead of only the top-level
+    dictionary.
+    Updates d1 in place and also returns it.
+    """
+    for k, v in d2.items():
+        if isinstance(v, collections.abc.Mapping):
+            d1[k] = recursive_dict_update(d1.get(k, {}), v)
+        else:
+            d1[k] = v
+    return d1
