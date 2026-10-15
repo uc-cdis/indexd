@@ -29,30 +29,27 @@ logger = cdislogging.get_logger("indexd", log_level="debug")
 
 def app_init(app, settings=None):
     app.url_map.strict_slashes = False
+    if not settings:
+        from .default_settings import settings
+    app.config.update(settings["config"])
 
-    # apply the default settings first, and then override with the provided settings
-    app_settings = recursive_dict_update({}, default_settings)  # deep copy
-    if settings:
-        recursive_dict_update(app_settings, settings)
-    app.config.update(app_settings["config"])
-
-    if app_settings.get("AUTO_MIGRATE", True):
-        engine_name = app_settings["config"]["INDEX"]["driver"].engine.dialect.name
+    if settings.get("AUTO_MIGRATE", True):
+        engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
         logger.info(f"Auto migrating. Engine name: {engine_name}")
         if engine_name == "sqlite":
             IndexBase.metadata.create_all()
             AliasBase.metadata.create_all()
             AuthBase.metadata.create_all()
-            app_settings["config"]["INDEX"]["driver"].migrate_index_database()
-            app_settings["config"]["ALIAS"]["driver"].migrate_alias_database()
+            settings["config"]["INDEX"]["driver"].migrate_index_database()
+            settings["config"]["ALIAS"]["driver"].migrate_alias_database()
         else:
             alembic_main(["--raiseerr", "upgrade", "head"])
     else:
         logger.info("Auto migrations are disabled")
 
-    validate_config(app_settings)
+    validate_config(settings)
 
-    app.auth = app_settings["auth"]
+    app.auth = settings["auth"]
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
     app.register_blueprint(indexd_bulk_blueprint)
     app.register_blueprint(indexd_index_blueprint)
@@ -62,7 +59,6 @@ def app_init(app, settings=None):
     app.register_blueprint(indexd_guid_blueprint)
     app.register_blueprint(cross_blueprint)
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
-
     app.cache = SimpleCache(default_timeout=1800)
     # Alembic may disable existing loggers. Re-apply cdislogging config after migrations.
     cdislogging.get_logger(
