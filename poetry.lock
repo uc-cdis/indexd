@@ -780,19 +780,23 @@ name = "gen3authz"
 version = "3.1.2"
 description = "Gen3 authz client"
 optional = false
-python-versions = "<4.0,>=3.13"
+python-versions = ">=3.13,<4.0"
 groups = ["main"]
-files = [
-    {file = "gen3authz-3.1.2-py3-none-any.whl", hash = "sha256:f8394780a7ee55fba8d766b85aa75fb0fa4c16fc38bdbaf8994d91835688d7ef"},
-    {file = "gen3authz-3.1.2.tar.gz", hash = "sha256:e2540cd4243d0c3df6e0850869125f0a2b38e0b1ec6d6fd4e3574a06d3fd4e84"},
-]
+files = []
+develop = false
 
 [package.dependencies]
 backoff = ">=2.2.1,<3.0.0"
 cdiserrors = "<3.0.0"
 httpx = ">=0.20.0,<1.0.0"
-six = ">=1.16.0,<2.0.0"
+six = "^1.16.0"
 sniffio = ">=1.3.1"
+
+[package.source]
+type = "git"
+url = "https://github.com/uc-cdis/gen3authz"
+reference = "feat/val-aud"
+resolved_reference = "f211cf4b228d96041d18bf2af48a6f9362bf8065"
 
 [[package]]
 name = "gitdb"
@@ -2056,4 +2060,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13,<4.0"
-content-hash = "69502e3503c4033d9b37297ed6db7032aa3389135397aa3814e93a284bdc082b"
+content-hash = "7c2a5a38350fcf0785b981795b71a9085490b6cc6d02477f70b11fecf7cb7883"
