@@ -12,11 +12,13 @@ include = [
 [tool.poetry.dependencies]
 python = ">=3.13,<4.0"
 alembic = "^1.9.4"
-authutils = ">=9.0.0"
+#authutils = ">=9.0.0"
+authutils = {git = "https://github.com/uc-cdis/authutils", rev = "fix/key-errs"}
 cdislogging = "^1.0.0"
 doiclient = {git = "https://github.com/uc-cdis/doiclient", rev = "1.0.0"}
 dosclient = {git = "https://github.com/uc-cdis/dosclient", rev = "1.1.0"}
-gen3authz = "^3.0.0"
+#gen3authz = "^3.0.0"
+gen3authz = {git = "https://github.com/uc-cdis/gen3authz", rev = "feat/val-aud"}
 hsclient = {git = "https://github.com/uc-cdis/hsclient", rev = "1.0.0"}
 jsonschema = "^3.2"
 gunicorn = ">=22.0.0"

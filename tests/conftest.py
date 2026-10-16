@@ -1,5 +1,6 @@
 import base64
 import importlib
+import json
 import pytest
 import requests
 from sqlalchemy import create_engine
@@ -225,6 +226,21 @@ def use_mock_authz(request):
     return _use_mock_authz
 
 
+def decode_jwt_unverified(token: str):
+    """
+    Decodes a JWT without validating it. Ignores the header, returns the claims.
+    """
+    parts = token.split(".")
+    if len(parts) < 2:
+        raise ValueError("Invalid JWT format")
+
+    # Add proper padding for base64 decoding
+    encoded_claims = parts[1]
+    padding = "=" * ((4 - len(encoded_claims) % 4) % 4)
+    decoded_bytes = base64.urlsafe_b64decode(encoded_claims + padding)
+    return json.loads(decoded_bytes.decode("utf-8"))
+
+
 @pytest.fixture(scope="function")
 def mock_arborist_requests(app, request):
     """
@@ -251,16 +267,26 @@ def mock_arborist_requests(app, request):
                 mocked_response.status_code = 405
                 mocked_response.text = "METHOD NOT ALLOWED"
             else:
-                authz_res, authz_met = None, None
-                authz_requests = kwargs["json"]["requests"]
-                if authz_requests:
-                    authz_res = kwargs["json"]["requests"][0]["resource"]
-                    authz_met = kwargs["json"]["requests"][0]["action"]["method"]
-                authorized = resource_method_to_authorized.get(authz_res, {}).get(
-                    authz_met, False
-                )
-                mocked_response.status_code = 200
-                mocked_response.json.return_value = {"auth": authorized}
+                # mimic Arborist's token audience validation.
+                # `gen3` is the default audience for Gen3 Fence tokens
+                expected_aud = ["gen3"] if "aud" not in kwargs else kwargs["aud"]
+                token_aud = decode_jwt_unverified(kwargs["json"]["user"]["token"])[
+                    "aud"
+                ]
+                if not any(e in token_aud for e in expected_aud):
+                    mocked_response.status_code = 401
+                    mocked_response.json.return_value = {"auth": False}
+                else:
+                    authz_res, authz_met = None, None
+                    authz_requests = kwargs["json"]["requests"]
+                    if authz_requests:
+                        authz_res = kwargs["json"]["requests"][0]["resource"]
+                        authz_met = kwargs["json"]["requests"][0]["action"]["method"]
+                    authorized = resource_method_to_authorized.get(authz_res, {}).get(
+                        authz_met, False
+                    )
+                    mocked_response.status_code = 200
+                    mocked_response.json.return_value = {"auth": authorized}
             return mocked_response
 
         mocked_method = mock.MagicMock(side_effect=make_mock_response)
