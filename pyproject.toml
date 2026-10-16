@@ -33,7 +33,7 @@ asyncpg = "^0.31.0"
 httpx = "^0.28.1"
 
 [tool.poetry.group.dev.dependencies]
-coveralls = "^4.1.0"
+coveralls = "^4.0.0"
 mock = "^4.0.2"
 pytest = "*"
 pytest-cov = "^7.1.0"
