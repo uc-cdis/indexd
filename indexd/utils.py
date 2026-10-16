@@ -2,7 +2,6 @@ import re
 from urllib.parse import urlparse
 import os
 import requests
-from flask import current_app as app
 from cdislogging import get_logger
 from sqlalchemy import create_engine
 
@@ -20,7 +19,7 @@ def try_drop_test_data(
     user, database, root_user="postgres", host=""
 ):  # pragma: no cover
     engine = create_engine(
-        "postgresql://{user}@{host}/postgres".format(user=root_user, host=host)
+        "postgresql+asyncpg://{user}@{host}/postgres".format(user=root_user, host=host)
     )
 
     conn = engine.connect()
@@ -30,7 +29,7 @@ def try_drop_test_data(
         create_stmt = 'DROP DATABASE "{database}"'.format(database=database)
         conn.execute(create_stmt)
     except Exception:
-        logging.warning("Unable to drop test data:")
+        logger.warning("Unable to drop test data:")
 
     conn.close()
 
@@ -52,7 +51,7 @@ def setup_database(
         try_drop_test_data(user, database)
 
     engine = create_engine(
-        "postgresql://{user}@{host}/postgres".format(user=root_user, host=host)
+        "postgresql+asyncpg://{user}@{host}/postgres".format(user=root_user, host=host)
     )
     conn = engine.connect()
     conn.execute("commit")
@@ -61,7 +60,7 @@ def setup_database(
     try:
         conn.execute(create_stmt)
     except Exception:
-        logging.warning("Unable to create database")
+        logger.warning("Unable to create database")
 
     if not no_user:
         try:
@@ -77,7 +76,7 @@ def setup_database(
             conn.execute(perm_stmt)
             conn.execute("commit")
         except Exception:
-            logging.warning("Unable to add user")
+            logger.warning("Unable to add user")
     conn.close()
 
 
@@ -86,7 +85,7 @@ def create_tables(host, user, password, database):  # pragma: no cover
     create tables
     """
     engine = create_engine(
-        "postgresql://{user}:{pwd}@{host}/{db}".format(
+        "postgresql+asyncpg://{user}:{pwd}@{host}/{db}".format(
             user=user, host=host, pwd=password, db=database
         )
     )
@@ -112,7 +111,7 @@ def create_tables(host, user, password, database):  # pragma: no cover
         conn.execute(create_index_schema_version_stm)
         conn.execute(create_drs_bundle_record)
     except Exception:
-        logging.warning("Unable to create table")
+        logger.warning("Unable to create table")
         raise
     finally:
         conn.close()
@@ -263,7 +262,7 @@ def lookup_bucket_region(bucket_name, bucket_regions, protocol=None):
     return ""
 
 
-def get_bucket_regions():
+def get_bucket_regions(app):
     cached = getattr(app, "cache", None)
     if cached:
         hit = cached.get("bucket_regions")

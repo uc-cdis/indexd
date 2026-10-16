@@ -13,7 +13,7 @@ class AuthDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         super().__init__(conn, **config)
 
     @abc.abstractmethod
-    def auth(self, username, password):
+    async def auth(self, username, password):
         """
         Returns a dict of user information.
         Raises AuthError otherwise.
@@ -21,7 +21,7 @@ class AuthDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def authz(self, method, resource):
+    async def authz(self, method, resource):
         """
         RBAC Authorization.
         Raises AuthError if the permission is denied.
@@ -29,7 +29,7 @@ class AuthDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add(self, username, password):
+    async def add(self, username, password):
         """
         Create an user.
         Raises AuthError if user already exists.
@@ -37,7 +37,7 @@ class AuthDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def delete(self, username):
+    async def delete(self, username):
         """
         Delete an user
         Raises AuthError if user doesn't exist.

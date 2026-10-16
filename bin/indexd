@@ -4,7 +4,7 @@ import sys
 import logging
 import argparse
 
-from indexd import get_app
+from indexd.app import get_app
 
 
 def setup_logging(log_levels, log_stream, **kwargs):
@@ -48,12 +48,6 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--debug-flask",
-        action="store_true",
-        help="enable flask debugging",
-    )
-
-    parser.add_argument(
         "--host",
         default="localhost",
         help="host to server on [localhost]",
@@ -80,7 +74,6 @@ if __name__ == "__main__":
         app.run(
             host=args.host,
             port=args.port,
-            debug=args.debug_flask,
             threaded=True,
         )
     except Exception as err:

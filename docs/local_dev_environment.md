@@ -130,7 +130,7 @@ You can also view the local [PostgreSQL init.sql](./deployment/scripts/postgresq
 
 ## Installation
 
-The implementation for Indexd utilizes the Flask web framework and (by default) a SQLite3 database. This provides a minimum list of requirements and allows for deployment on a wide range of systems with next to no configuration overhead. That said, it is highly recommended to use pip and a virtualenv to isolate the installation.
+The implementation for Indexd utilizes the Fast API web framework and (by default) a SQLite3 database. This provides a minimum list of requirements and allows for deployment on a wide range of systems with next to no configuration overhead. That said, it is highly recommended to use pip and a virtualenv to isolate the installation.
 
 Prior to installation, you will need to have postgresql installed.
 
@@ -141,7 +141,7 @@ brew install postgresql
 ```
 On Linux
 ```bash
-sudo apt-get install python-psycopg2
+sudo apt-get install python-asyncpg
 ```
 
 To install the implementation, assure you have poetry installed and simply run:
@@ -193,10 +193,10 @@ poetry run pytest -vv --cov=indexd --cov-report xml tests
 You may also need to update the [test settings](./tests/default_test_settings.py) with the appropriate database connection information prior to running the tests.
 
 ```python
-settings["config"]["TEST_DB"] = "postgresql://{username}:{password}@localhost:{port}/indexd_tests"
+settings["config"]["TEST_DB"] = "postgresql+asyncpg://{username}:{password}@localhost:{port}/indexd_tests"
 ```
 
-> If you are using Azure Postgresql, you will need to include the `username@hostname` for the `username` in the connection string.  You may also need to include support for SSL in the connection string, e.g. `postgresql://{username@hostname}:{password}@serverfqdn:{port}/{dbname}?sslmode=require`.
+> If you are using Azure Postgresql, you will need to include the `username@hostname` for the `username` in the connection string.  You may also need to include support for SSL in the connection string, e.g. `postgresql+asyncpg://{username@hostname}:{password}@serverfqdn:{port}/{dbname}?sslmode=require`.
 > Further, you may run into `sqlite` errors; it may be helpful to rename existing local `*.sq3` files before running `pytest`.
 
 ## Administration
