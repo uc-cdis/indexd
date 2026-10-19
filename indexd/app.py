@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 
 from alembic.config import main as alembic_main
 import cdislogging
@@ -10,6 +11,7 @@ from indexd.config_helper import validate_config
 from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.auth.drivers.alchemy import Base as AuthBase
+from .default_settings import settings as default_settings
 from .bulk.blueprint import blueprint as indexd_bulk_blueprint
 from .index.blueprint import blueprint as indexd_index_blueprint
 from .alias.blueprint import blueprint as indexd_alias_blueprint
@@ -18,41 +20,39 @@ from .drs.blueprint import blueprint as indexd_guid_blueprint
 from .guid.blueprint import blueprint as indexd_drs_blueprint
 from .blueprint import blueprint as cross_blueprint
 from indexd.urls.blueprint import blueprint as index_urls_blueprint
+from indexd.utils import recursive_dict_update
 from cachelib import SimpleCache
 
 
 logger = cdislogging.get_logger("indexd", log_level="debug")
 
 
-def warn_about_logger():
-    raise Exception("Use cdislogging.get_logger instead of app.logger")
-
-
 def app_init(app, settings=None):
-    app.__dict__["logger"] = warn_about_logger
-
     app.url_map.strict_slashes = False
-    if not settings:
-        from .default_settings import settings
-    app.config.update(settings["config"])
 
-    if settings.get("AUTO_MIGRATE", True):
-        engine_name = settings["config"]["INDEX"]["driver"].engine.dialect.name
+    # apply the default settings first, and then override with the provided settings
+    app_settings = recursive_dict_update({}, default_settings)  # deep copy
+    if settings:
+        recursive_dict_update(app_settings, settings)
+    app.config.update(app_settings["config"])
+
+    if app_settings.get("AUTO_MIGRATE", True):
+        engine_name = app_settings["config"]["INDEX"]["driver"].engine.dialect.name
         logger.info(f"Auto migrating. Engine name: {engine_name}")
         if engine_name == "sqlite":
             IndexBase.metadata.create_all()
             AliasBase.metadata.create_all()
             AuthBase.metadata.create_all()
-            settings["config"]["INDEX"]["driver"].migrate_index_database()
-            settings["config"]["ALIAS"]["driver"].migrate_alias_database()
+            app_settings["config"]["INDEX"]["driver"].migrate_index_database()
+            app_settings["config"]["ALIAS"]["driver"].migrate_alias_database()
         else:
             alembic_main(["--raiseerr", "upgrade", "head"])
     else:
         logger.info("Auto migrations are disabled")
 
-    validate_config(settings)
+    validate_config(app_settings)
 
-    app.auth = settings["auth"]
+    app.auth = app_settings["auth"]
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
     app.register_blueprint(indexd_bulk_blueprint)
     app.register_blueprint(indexd_index_blueprint)
@@ -62,7 +62,9 @@ def app_init(app, settings=None):
     app.register_blueprint(indexd_guid_blueprint)
     app.register_blueprint(cross_blueprint)
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
+
     app.cache = SimpleCache(default_timeout=1800)
+
     # Alembic may disable existing loggers. Re-apply cdislogging config after migrations.
     cdislogging.get_logger(
         "indexd",

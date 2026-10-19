@@ -130,11 +130,12 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                 "Arborist is not configured; cannot perform authorization check"
             )
 
+        token = get_jwt_token()
         try:
             # A successful call from arborist returns a bool, else returns ArboristError
             try:
                 authorized = self.arborist.auth_request(
-                    get_jwt_token(), "indexd", method, resource
+                    token, "indexd", method, resource
                 )
             except Exception as e:
                 logger.error(
@@ -144,13 +145,13 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
             if not authorized:
                 # admins can perform all operations
                 is_admin = self.arborist.auth_request(
-                    get_jwt_token(), "indexd", method, ["/services/indexd/admin"]
+                    token, "indexd", method, ["/services/indexd/admin"]
                 )
                 if not is_admin and not resource:
                     # if `authz` is empty (no `resource`), admin == access to
                     # `/programs` (deprecated - for backwards compatibility).
                     is_admin = self.arborist.auth_request(
-                        get_jwt_token(), "indexd", method, ["/programs"]
+                        token, "indexd", method, ["/programs"]
                     )
                     if is_admin:
                         logger.warning(
