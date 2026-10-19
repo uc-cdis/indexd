@@ -64,6 +64,7 @@ def app_init(app, settings=None):
     app.register_blueprint(index_urls_blueprint, url_prefix="/_query/urls")
 
     app.cache = SimpleCache(default_timeout=1800)
+
     # Alembic may disable existing loggers. Re-apply cdislogging config after migrations.
     cdislogging.get_logger(
         "indexd",

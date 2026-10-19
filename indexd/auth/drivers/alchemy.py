@@ -3,7 +3,6 @@ import hashlib
 from contextlib import contextmanager
 
 from authutils.token import get_jwt_token
-from authutils.token.validate import validate_jwt
 from gen3authz.client.arborist.client import ArboristClient
 from sqlalchemy import String
 from sqlalchemy import Column
@@ -16,7 +15,6 @@ from indexd.auth.driver import AuthDriverABC
 from indexd.auth.errors import AuthError, AuthzError
 
 from cdislogging import get_logger
-import flask
 
 logger = get_logger(__name__)
 
