@@ -72,14 +72,16 @@ name = "authutils"
 version = "9.0.0"
 description = "Gen3 auth utility functions"
 optional = false
-python-versions = ">=3.13, <4.0"
+python-versions = "<4.0,>=3.13"
 groups = ["main"]
-files = []
-develop = false
+files = [
+    {file = "authutils-9.0.0-py3-none-any.whl", hash = "sha256:36cb55840ae1d381d87935a8609340d1e48b69deb9f24d22012b4437ba73de37"},
+    {file = "authutils-9.0.0.tar.gz", hash = "sha256:07a9dfcb7a90613241d6087f37feb6f72da5cb974c2b7478aa3d100e06401584"},
+]
 
 [package.dependencies]
 authlib = ">=1.6.6"
-cached-property = "~=1.4"
+cached-property = ">=1.4,<2.0"
 cdiserrors = "*"
 cdislogging = "*"
 cryptography = ">=50.0.0"
@@ -88,18 +90,12 @@ joserfc = ">=1.7.3"
 pyjwt = {version = ">=2.11.0,<3.0", extras = ["crypto"]}
 starlette = "*"
 werkzeug = ">=3.1.5"
-xmltodict = "~=0.9"
+xmltodict = ">=0.9,<1.0"
 
 [package.extras]
 datamodelutils = ["datamodelutils"]
 fastapi = ["fastapi"]
 flask = ["Flask"]
-
-[package.source]
-type = "git"
-url = "https://github.com/uc-cdis/authutils"
-reference = "fix/key-errs"
-resolved_reference = "1eed5a050a5e180482c75acd0388a28d9d80c21a"
 
 [[package]]
 name = "backoff"
@@ -182,14 +178,14 @@ files = [
 
 [[package]]
 name = "certifi"
-version = "2026.7.22"
+version = "2026.10.18"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.7"
 groups = ["main", "dev"]
 files = [
-    {file = "certifi-2026.7.22-py3-none-any.whl", hash = "sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775"},
-    {file = "certifi-2026.7.22.tar.gz", hash = "sha256:741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55"},
+    {file = "certifi-2026.10.18-py3-none-any.whl", hash = "sha256:73191c47aaa79da394e8fee2dbc2ec827432cab56311122c9e47abf79e390f62"},
+    {file = "certifi-2026.10.18.tar.gz", hash = "sha256:b9995d97b64d0431a5af837d8ca8cd6238104d1f319f04bd93ea43124d6c861e"},
 ]
 
 [[package]]
@@ -780,23 +776,19 @@ name = "gen3authz"
 version = "3.1.2"
 description = "Gen3 authz client"
 optional = false
-python-versions = ">=3.13,<4.0"
+python-versions = "<4.0,>=3.13"
 groups = ["main"]
-files = []
-develop = false
+files = [
+    {file = "gen3authz-3.1.2-py3-none-any.whl", hash = "sha256:f8394780a7ee55fba8d766b85aa75fb0fa4c16fc38bdbaf8994d91835688d7ef"},
+    {file = "gen3authz-3.1.2.tar.gz", hash = "sha256:e2540cd4243d0c3df6e0850869125f0a2b38e0b1ec6d6fd4e3574a06d3fd4e84"},
+]
 
 [package.dependencies]
 backoff = ">=2.2.1,<3.0.0"
 cdiserrors = "<3.0.0"
 httpx = ">=0.20.0,<1.0.0"
-six = "^1.16.0"
+six = ">=1.16.0,<2.0.0"
 sniffio = ">=1.3.1"
-
-[package.source]
-type = "git"
-url = "https://github.com/uc-cdis/gen3authz"
-reference = "feat/val-aud"
-resolved_reference = "f211cf4b228d96041d18bf2af48a6f9362bf8065"
 
 [[package]]
 name = "gitdb"
@@ -1000,15 +992,15 @@ trio = ["trio (>=0.22.0,<1.0)"]
 
 [[package]]
 name = "httpcore2"
-version = "2.13.1"
+version = "2.14.0"
 description = "A minimal low-level HTTP client."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "sys_platform != \"emscripten\""
 files = [
-    {file = "httpcore2-2.13.1-py3-none-any.whl", hash = "sha256:e1e05d4f25f7d7d496bfb96748f6f4b67657b03da069b3a68c36069f3db73d0a"},
-    {file = "httpcore2-2.13.1.tar.gz", hash = "sha256:e0aa977abe17e69a3b820a24542a6fa88702676d83880b8d194dcd18408e5103"},
+    {file = "httpcore2-2.14.0-py3-none-any.whl", hash = "sha256:4c4f64f4b544afeb778c42c0ffb5941b29e671157e90ed3f6dc787c4bca90cd1"},
+    {file = "httpcore2-2.14.0.tar.gz", hash = "sha256:4f57a1a8249fe6af589d935cfd456f1d13bbdcb0f0fc72af9142368fc94811d7"},
 ]
 
 [package.dependencies]
@@ -1048,19 +1040,19 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "httpx2"
-version = "2.13.1"
+version = "2.14.0"
 description = "The next generation HTTP client."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "httpx2-2.13.1-py3-none-any.whl", hash = "sha256:6dff50fabc270ee5fd25d845d0b078ed20564579744d6d962850975996d2f9a4"},
-    {file = "httpx2-2.13.1.tar.gz", hash = "sha256:e48744a19e3af5ee48313d0ce5fe941d5422fae5705ea922a4aabf94d7800dfa"},
+    {file = "httpx2-2.14.0-py3-none-any.whl", hash = "sha256:9d20c13a10bae1773a0be3b0f1e5beeb4bdd549bc3a2ba18efa32897c65403e4"},
+    {file = "httpx2-2.14.0.tar.gz", hash = "sha256:47ad61a3c40282cd8d0dc96311531f00f5bfc71a066c6fe3b36d8f63fb9e4f6e"},
 ]
 
 [package.dependencies]
 anyio = {version = ">=4.10", markers = "sys_platform != \"emscripten\""}
-httpcore2 = {version = "2.13.1", markers = "sys_platform != \"emscripten\""}
+httpcore2 = {version = "2.14.0", markers = "sys_platform != \"emscripten\""}
 httpx2-jsfetch = {version = "*", markers = "sys_platform == \"emscripten\" and python_version >= \"3.12\""}
 idna = ">=3.18"
 truststore = {version = ">=0.10", markers = "sys_platform != \"emscripten\""}
@@ -1145,14 +1137,14 @@ i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "joserfc"
-version = "1.7.5"
+version = "1.7.7"
 description = "The ultimate Python library for JOSE RFCs, including JWS, JWE, JWK, JWA, JWT"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "joserfc-1.7.5-py3-none-any.whl", hash = "sha256:add2c2c84e8373b084d526a8b53daba5d7a513a118cd2dcd9fc9f979d0922159"},
-    {file = "joserfc-1.7.5.tar.gz", hash = "sha256:d5ff536e658e17664f8c1b1ab60dc4aa62aa973fcef1edd33cc44bda45d6f5ea"},
+    {file = "joserfc-1.7.7-py3-none-any.whl", hash = "sha256:06979cfbab78bc802f14c0358f32969826cc26720e13cb38926ffdc86bc0cb2c"},
+    {file = "joserfc-1.7.7.tar.gz", hash = "sha256:471d0fd12a5a0d1c0942de280f39efe6f597878315033270b504d4d006d25510"},
 ]
 
 [package.dependencies]
@@ -1939,14 +1931,14 @@ url = ["furl (>=0.4.1)"]
 
 [[package]]
 name = "starlette"
-version = "1.8.0"
+version = "1.9.0"
 description = "The little ASGI library that shines."
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = [
-    {file = "starlette-1.8.0-py3-none-any.whl", hash = "sha256:dfdd6b29c26483288088d990eee59631dedadd66ce20d203402a7ca8e3c4656f"},
-    {file = "starlette-1.8.0.tar.gz", hash = "sha256:1565dc0b35d5737a271ed1e0e04e949f4e81198799f216d2667b0a0fb9cf9522"},
+    {file = "starlette-1.9.0-py3-none-any.whl", hash = "sha256:fd3f159936e882d06c1108f84688f7cda2cf85fc6a592a50edbd175e882c2ddc"},
+    {file = "starlette-1.9.0.tar.gz", hash = "sha256:3d931de246ed870e35ce605974440816ef895e592f255d1396cfdf191d4c4318"},
 ]
 
 [package.dependencies]
@@ -2060,4 +2052,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13,<4.0"
-content-hash = "7c2a5a38350fcf0785b981795b71a9085490b6cc6d02477f70b11fecf7cb7883"
+content-hash = "7a7e251063f294fedd1d5cc58884d156f2027d22fbab3ad83216312303c0d186"

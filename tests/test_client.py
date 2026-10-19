@@ -2948,9 +2948,7 @@ def test_token_validation(client, mock_arborist_requests, test_case):
         "pur": "access",
         "scope": ["openid", "user"],
     }
-    # print(claims)
     key = jwk.generate_key("RSA", 2048, private=True)
-    # token = jwt.encode({"alg": "RS256", "typ": "JWT", "kid": "fence_key_key"}, claims, key)
     token = jwt.encode({"alg": "RS256", "typ": "JWT"}, claims, key)
 
     with patch(

@@ -226,21 +226,6 @@ def use_mock_authz(request):
     return _use_mock_authz
 
 
-def decode_jwt_unverified(token: str):
-    """
-    Decodes a JWT without validating it. Ignores the header, returns the claims.
-    """
-    parts = token.split(".")
-    if len(parts) < 2:
-        raise ValueError("Invalid JWT format")
-
-    # Add proper padding for base64 decoding
-    encoded_claims = parts[1]
-    padding = "=" * ((4 - len(encoded_claims) % 4) % 4)
-    decoded_bytes = base64.urlsafe_b64decode(encoded_claims + padding)
-    return json.loads(decoded_bytes.decode("utf-8"))
-
-
 @pytest.fixture(scope="function")
 def mock_arborist_requests(app, request):
     """
@@ -252,6 +237,20 @@ def mock_arborist_requests(app, request):
     """
     arborist_base_url = "arborist"
     app.auth.arborist = ArboristClient(arborist_base_url=arborist_base_url)
+
+    def decode_jwt_unverified(token: str):
+        """
+        Decodes a JWT without validating it. Ignores the header, returns the claims.
+        """
+        parts = token.split(".")
+        if len(parts) < 2:
+            raise ValueError("Invalid JWT format")
+
+        # Add proper padding for base64 decoding
+        encoded_claims = parts[1]
+        padding = "=" * ((4 - len(encoded_claims) % 4) % 4)
+        decoded_bytes = base64.urlsafe_b64decode(encoded_claims + padding)
+        return json.loads(decoded_bytes.decode("utf-8"))
 
     def do_patch(resource_method_to_authorized={}):
         # Resource/Method to authorized: { RESOURCE: { METHOD: True/False } }
