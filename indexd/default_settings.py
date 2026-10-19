@@ -91,13 +91,13 @@ CONFIG["DIST"] = [
 CONFIG["MAX_BULK_REQUEST_LENGTH"] = 100
 
 CONFIG["DRS_SERVICE_INFO"] = {
-    # "name": "DRS System",
-    # "type": {
-    #     "group": "org.ga4gh",
-    #     "artifact": "drs",
-    #     "version": "1.5.0",
-    # },
-    # "version": "1.5.0",
+    "name": "DRS System",
+    "type": {
+        "group": "org.ga4gh",
+        "artifact": "drs",
+        "version": "1.5.0",
+    },
+    "version": "1.5.0",
     # "id": "com.example",
     # "organization": {
     #     "name": "CTDS",
