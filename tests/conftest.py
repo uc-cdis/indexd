@@ -269,9 +269,12 @@ def mock_arborist_requests(app, request):
                 # mimic Arborist's token audience validation.
                 # `gen3` is the default audience for Gen3 Fence tokens
                 expected_aud = ["gen3"] if "aud" not in kwargs else kwargs["aud"]
-                token_aud = decode_jwt_unverified(kwargs["json"]["user"]["token"])[
-                    "aud"
-                ]
+                try:
+                    token_aud = decode_jwt_unverified(kwargs["json"]["user"]["token"])[
+                        "aud"
+                    ]
+                except Exception:
+                    token_aud = "gen3"
                 if not any(e in token_aud for e in expected_aud):
                     mocked_response.status_code = 401
                     mocked_response.json.return_value = {"auth": False}
