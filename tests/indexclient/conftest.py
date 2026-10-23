@@ -1,20 +1,19 @@
-import base64
 import pytest
 import requests
 from urllib.parse import urlparse
-from fastapi.testclient import TestClient
 
-from indexd.app import get_app
 import indexclient.indexclient.client as indexclient_module
 from indexclient.indexclient.client import IndexClient
 from tests.conftest import clear_database
 
 
 @pytest.fixture(scope="function")
-def test_client():
-    app = get_app()
-    with TestClient(app) as client:
-        yield client
+def test_client(app_client):
+    """
+    Reuse the app and client built by the autouse ``app_client`` fixture.
+    """
+    _, client = app_client
+    return client
 
 
 @pytest.fixture(scope="function")

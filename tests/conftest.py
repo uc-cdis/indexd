@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import importlib
+import json
 import pytest
 import requests
 
@@ -282,6 +283,20 @@ def mock_arborist_requests(request):
     to False, it raises a 401 error.
     """
 
+    def decode_jwt_unverified(token: str):
+        """
+        Decodes a JWT without validating it. Ignores the header, returns the claims.
+        """
+        parts = token.split(".")
+        if len(parts) < 2:
+            raise ValueError("Invalid JWT format")
+
+        # Add proper padding for base64 decoding
+        encoded_claims = parts[1]
+        padding = "=" * ((4 - len(encoded_claims) % 4) % 4)
+        decoded_bytes = base64.urlsafe_b64decode(encoded_claims + padding)
+        return json.loads(decoded_bytes.decode("utf-8"))
+
     def do_patch(authorized=True, resource_method_to_authorized={}):
         # URLs to reponses: { URL: { METHOD: ( content, code ) } }
         resource_method_to_authorized = {
@@ -308,12 +323,36 @@ def mock_arborist_requests(request):
                 mocked_response.status_code = 405
                 mocked_response.text = "METHOD NOT ALLOWED"
             else:
-                content, code = resource_method_to_authorized[url][method]
-                mocked_response.status_code = code
-                if isinstance(content, dict):
-                    mocked_response.json.return_value = content
+                # mimic Arborist's token audience validation.
+                # `gen3` is the default audience for Gen3 Fence tokens
+                expected_aud = ["gen3"] if "aud" not in kwargs else kwargs["aud"]
+                try:
+                    token_aud = decode_jwt_unverified(kwargs["json"]["user"]["token"])[
+                        "aud"
+                    ]
+                except Exception:
+                    token_aud = "gen3"
+                if not any(e in token_aud for e in expected_aud):
+                    mocked_response.status_code = 401
+                    mocked_response.json.retrun_value = {"auth": False}
                 else:
-                    mocked_response.text = content
+                    authz_res, authz_met = None, None
+                    authz_requests = kwargs["json"]["requests"]
+                    if authz_requests:
+                        authz_res = kwargs["json"]["requests"][0]["resource"]
+                        authz_met = kwargs["json"]["requests"][0]["action"]["method"]
+                    authorized = resource_method_to_authorized.get(authz_res, {}).get(
+                        authz_met, False
+                    )
+                    mocked_response.status_code = 200
+                    mocked_response.json.return_value = {"auth": authorized}
+
+                # content, code = resource_method_to_authorized[url][method]
+                # mocked_response.status_code = code
+                # if isinstance(content, dict):
+                #     mocked_response.json.return_value = content
+                # else:
+                #     mocked_response.text = content
 
             return mocked_response
 
@@ -325,6 +364,8 @@ def mock_arborist_requests(request):
 
         patch_method.start()
         request.addfinalizer(patch_method.stop)
+
+        return mocked_method
 
     return do_patch
 

@@ -130,13 +130,14 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                 "Arborist is not configured; cannot perform authorization check"
             )
 
+        token = get_jwt_token()
         try:
             # A successful call from arborist returns a bool, else returns ArboristError
             try:
                 # Arborist uses synchronous requests, so we wrap it in a thread
                 authorized = await asyncio.to_thread(
                     self.arborist.auth_request,
-                    get_jwt_token(),
+                    token,
                     "indexd",
                     method,
                     resource,
@@ -151,7 +152,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                 # admins can perform all operations
                 is_admin = await asyncio.to_thread(
                     self.arborist.auth_request,
-                    get_jwt_token(),
+                    token,
                     "indexd",
                     method,
                     ["/services/indexd/admin"],
@@ -161,7 +162,7 @@ class SQLAlchemyAuthDriver(AuthDriverABC):
                     # `/programs` (deprecated - for backwards compatibility).
                     is_admin = await asyncio.to_thread(
                         self.arborist.auth_request,
-                        get_jwt_token(),
+                        token,
                         "indexd",
                         method,
                         ["/programs"],

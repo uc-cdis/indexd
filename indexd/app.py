@@ -1,7 +1,9 @@
 import os
 import sys
+import traceback
 import logging as stdlib_logging
 import cdislogging
+from cdiserrors import AuthNError
 
 import asyncio
 from contextlib import asynccontextmanager
@@ -17,10 +19,11 @@ from indexd.middleware import MergeSlashesMiddleware
 from indexd.index.drivers.alchemy import Base as IndexBase
 from indexd.alias.drivers.alchemy import Base as AliasBase
 from indexd.auth.drivers.alchemy import Base as AuthBase
-
+from indexd.utils import recursive_dict_update
 from .router import router as cross_router, set_cross_config
 from .alias.router import router as indexd_alias_router, set_alias_config
 from .bulk.router import router as indexd_bulk_router, set_bulk_config
+from .default_settings import settings as default_settings
 from .dos.router import router as indexd_dos_router, set_dos_config
 from .drs.router import router as indexd_drs_router, set_drs_config
 from .guid.router import router as indexd_guid_router, set_guid_config
@@ -125,12 +128,12 @@ async def lifespan(app: FastAPI):
 
 
 def app_init(app, settings=None):
-    app.__dict__["logger"] = warn_about_logger
-    if not settings:
-        from .default_settings import settings
-
-    app.settings = settings
-    validate_config(settings)
+    # apply the default settings first, and then override with the provided settings
+    app_settings = recursive_dict_update({}, default_settings)  # deep copy
+    if settings:
+        recursive_dict_update(app_settings, settings)
+    validate_config(app_settings)
+    app.settings = app_settings
 
     logger.info("Initializing Arborist client")
     if os.environ.get("ARBORIST_URL"):
@@ -141,7 +144,7 @@ def app_init(app, settings=None):
     else:
         app.arborist_client = ArboristClient(logger=logger)
 
-    app.auth = settings["auth"]
+    app.auth = app_settings["auth"]
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
     set_cross_config(app)
     set_alias_config(app)
@@ -234,6 +237,7 @@ def get_app(settings=None):
         return error_response(request, 403, str(exc))
 
     @app.exception_handler(AuthzError)
+    @app.exception_handler(AuthNError)
     async def handle_authz_error(request, exc: AuthzError):
         return error_response(request, 401, str(exc))
 

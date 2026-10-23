@@ -782,7 +782,7 @@ async def test_stats_decrease_on_delete(
 
 @pytest.mark.asyncio
 async def test_add_record_with_multiple_month_stats_rows(
-    app_client, combined_default_and_single_table_settings
+    app_client, user, combined_default_and_single_table_settings
 ):
     """
     Regression: update_stats() runs a range query ("newest stats row at or before
@@ -819,7 +819,7 @@ async def test_add_record_with_multiple_month_stats_rows(
         await session.commit()
     await engine.dispose()
 
-    res = client.post("/index/", json=get_doc(size=123))
+    res = client.post("/index/", json=get_doc(size=123), headers=user)
     assert res.status_code == 200, res.text
 
     # the current month's row should have been incremented, not duplicated
