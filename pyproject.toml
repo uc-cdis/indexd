@@ -31,6 +31,7 @@ uvicorn = "^0.41.0"
 cachelib = "^0.13.0"
 asyncpg = "^0.31.0"
 httpx = "^0.28.1"
+greenlet = "^3.5.6"
 
 [tool.poetry.group.dev.dependencies]
 coveralls = ">=4.1.0"
