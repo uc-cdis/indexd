@@ -1,22 +1,24 @@
 import random
 import uuid
 
-from sqlalchemy import create_engine
+import pytest
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.pool import NullPool
 
 from bin.migrate_to_single_table import IndexRecordMigrator
 from indexd.index.drivers.alchemy import SQLAlchemyIndexDriver
 
 
-POSTGRES_CONNECTION = "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+POSTGRES_CONNECTION = "postgresql+asyncpg://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
 
 
-def create_record(n_records=1):
+async def create_record(n_records=1):
     """
     Create n_records number of records in multitable
     """
-
-    engine = create_engine(POSTGRES_CONNECTION)
-    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION)
+    engine = create_async_engine(POSTGRES_CONNECTION, poolclass=NullPool)
+    driver = SQLAlchemyIndexDriver(POSTGRES_CONNECTION, poolclass=NullPool)
     did_list = []
     for _ in range(n_records):
         did = str(uuid.uuid4())
@@ -40,7 +42,7 @@ def create_record(n_records=1):
         uploader = "uploader"
         description = "this is a test file"
 
-        driver.add(
+        await driver.add(
             "object",
             did=did,
             size=size,
@@ -58,15 +60,17 @@ def create_record(n_records=1):
         )
         did_list.append(did)
 
-    with engine.connect() as conn:
-        result = conn.execute("SELECT COUNT(*) FROM index_record")
+    async with engine.begin() as conn:
+        result = await conn.execute(text("SELECT COUNT(*) FROM index_record"))
         count = result.scalar()
         assert count == n_records
 
+    await engine.dispose()
     return did_list
 
 
-def test_index_record_to_new_table():
+@pytest.mark.asyncio
+async def test_index_record_to_new_table():
     """
     Test index_record_to_new_table copies records from old tables to new record table.
     """
@@ -74,76 +78,122 @@ def test_index_record_to_new_table():
         creds_file="tests/test_creds.json", batch_size=10
     )
     n_records = 100
-    create_record(n_records)
-    index_record_migrator.index_record_to_new_table()
+    await create_record(n_records)
 
-    engine = create_engine(POSTGRES_CONNECTION)
-    with engine.connect() as conn:
-        result = conn.execute("SELECT COUNT(*) FROM record")
+    # Await the migration process!
+    await index_record_migrator.index_record_to_new_table()
+
+    engine = create_async_engine(POSTGRES_CONNECTION, poolclass=NullPool)
+    async with engine.begin() as conn:
+        result = await conn.execute(text("SELECT COUNT(*) FROM record"))
         count = result.scalar()
         assert count == n_records
+    await engine.dispose()
 
 
-def test_get_index_record_hash():
+@pytest.mark.asyncio
+async def test_get_index_record_hash():
     """
     Test get_index_record_hash from IndexRecordMigrator returns the correct format
     """
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
-    did = create_record()[0]
-    result = index_record_migrator.get_index_record_hash(did)
+    record = await create_record()
+    did = record[0]
+
+    # Inject an async session since __init__ no longer opens blocking connections
+    engine = create_async_engine(index_record_migrator.db_url, poolclass=NullPool)
+    async with AsyncSession(engine) as session:
+        index_record_migrator.session = session
+        result = await index_record_migrator.get_index_record_hash(did)
+
     assert result == {"md5": "some_md5", "sha1": "some_sha1"}
 
 
-def test_get_urls_record():
+@pytest.mark.asyncio
+async def test_get_urls_record():
     """
     Test get_urls_record from IndexRecordMigrator returns the correct format
     """
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
-    did = create_record()[0]
-    result = index_record_migrator.get_urls_record(did)
+    record = await create_record()
+    did = record[0]
+
+    engine = create_async_engine(index_record_migrator.db_url, poolclass=NullPool)
+    async with AsyncSession(engine) as session:
+        index_record_migrator.session = session
+        result = await index_record_migrator.get_urls_record(did)
+
     assert sorted(result) == ["gs://bucket/data.txt", "s3://bucket/data.json"]
 
 
-def test_get_urls_metadata():
+@pytest.mark.asyncio
+async def test_get_urls_metadata():
     """
     Test get_urls_metadata from IndexRecordMigrator returns the correct format
     """
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
-    did = create_record()[0]
-    result = index_record_migrator.get_urls_metadata(did)
+    record = await create_record()
+    did = record[0]
+
+    engine = create_async_engine(index_record_migrator.db_url, poolclass=NullPool)
+    async with AsyncSession(engine) as session:
+        index_record_migrator.session = session
+        result = await index_record_migrator.get_urls_metadata(did)
+
     assert result == {
         "s3://bucket/data.json": {"metadata_key": "metadata_value"},
         "gs://bucket/data.txt": {"metadata_key": "metadata_value"},
     }
 
 
-def test_get_index_record_ace():
+@pytest.mark.asyncio
+async def test_get_index_record_ace():
     """
     Test get_index_record_ace from IndexRecordMigrator returns the correct format
     """
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
-    did = create_record()[0]
-    result = index_record_migrator.get_index_record_ace(did)
+    record = await create_record()
+    did = record[0]
+
+    engine = create_async_engine(index_record_migrator.db_url, poolclass=NullPool)
+    async with AsyncSession(engine) as session:
+        index_record_migrator.session = session
+        result = await index_record_migrator.get_index_record_ace(did)
+
     assert type(result) == list
 
 
-def test_get_index_record_authz():
+@pytest.mark.asyncio
+async def test_get_index_record_authz():
     """
     Test get_index_record_authz from IndexRecordMigrator returns the correct format
     """
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
-    did = create_record()[0]
-    result = index_record_migrator.get_index_record_authz(did)
+    record = await create_record()
+    did = record[0]
+
+    engine = create_async_engine(index_record_migrator.db_url, poolclass=NullPool)
+    async with AsyncSession(engine) as session:
+        index_record_migrator.session = session
+        result = await index_record_migrator.get_index_record_authz(did)
+
     assert type(result) == list
 
 
-def test_get_index_record_metadata():
+@pytest.mark.asyncio
+async def test_get_index_record_metadata():
     """
     Test get_index_record_metadata from IndexRecordMigrator returns the correct format
     """
     index_record_migrator = IndexRecordMigrator(creds_file="tests/test_creds.json")
-    did = create_record()[0]
-    result = index_record_migrator.get_index_record_metadata(did)
+    record = await create_record()
+    did = record[0]
+
+    engine = create_async_engine(index_record_migrator.db_url, poolclass=NullPool)
+    async with AsyncSession(engine) as session:
+        index_record_migrator.session = session
+        result = await index_record_migrator.get_index_record_metadata(did)
+
     assert result == {
         "metadata_key": "metadata_value",
         "some_other_key": "some_other_value",
