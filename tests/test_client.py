@@ -3067,13 +3067,9 @@ def test_token_validation(app_client, mock_arborist_requests, test_case):
     key = jwk.generate_key("RSA", 2048, private=True)
     token = jwt.encode({"alg": "RS256", "typ": "JWT"}, claims, key)
 
-    with patch(
-        "authutils.token.validate.get_public_key_for_token",
-        return_value=key.as_pem(private=False),
-    ):
-        res = client.post(
-            "/index/", json=get_doc(), headers={"Authorization": f"bearer {token}"}
-        )
+    res = client.post(
+        "/index/", json=get_doc(), headers={"Authorization": f"bearer {token}"}
+    )
 
     if test_case == "match":
         assert res.status_code == 200, res.text
