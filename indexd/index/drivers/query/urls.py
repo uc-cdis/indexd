@@ -1,4 +1,4 @@
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, select
 
 from indexd.errors import UserError
 from indexd.index.drivers.alchemy import (
@@ -25,7 +25,7 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         """
         self.driver = alchemy_driver
 
-    def query_urls(
+    async def query_urls(
         self,
         exclude=None,
         include=None,
@@ -44,52 +44,45 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
             versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         )
 
-        with self.driver.session as session:
+        async with self.driver.session as session:
             # special database specific functions dependent of the selected dialect
             q_func = driver_query_map.get(session.bind.dialect.name)
 
-            query = session.query(
-                IndexRecordUrl.did, q_func["string_agg"](IndexRecordUrl.url, ",")
-            )
+            string_agg_fn = q_func["string_agg"](IndexRecordUrl.url, ",")
+
+            stmt = select(IndexRecordUrl.did, string_agg_fn)
 
             # add version filter if versioned is not None
             if versioned is True:  # retrieve only those with a version number
-                query = query.outerjoin(IndexRecord)
-                query = query.filter(IndexRecord.version.isnot(None))
+                stmt = stmt.outerjoin(IndexRecord)
+                stmt = stmt.filter(IndexRecord.version.isnot(None))
             elif versioned is False:  # retrieve only those without a version number
-                query = query.outerjoin(IndexRecord)
-                query = query.filter(~IndexRecord.version.isnot(None))
+                stmt = stmt.outerjoin(IndexRecord)
+                stmt = stmt.filter(~IndexRecord.version.isnot(None))
 
-            query = query.group_by(IndexRecordUrl.did)
+            stmt = stmt.group_by(IndexRecordUrl.did)
 
             # add url filters
             if include and exclude:
-                query = query.having(
+                stmt = stmt.having(
                     and_(
-                        ~q_func["string_agg"](IndexRecordUrl.url, ",").contains(
-                            exclude
-                        ),
-                        q_func["string_agg"](IndexRecordUrl.url, ",").contains(include),
+                        ~string_agg_fn.contains(exclude),
+                        string_agg_fn.contains(include),
                     )
                 )
             elif include:
-                query = query.having(
-                    q_func["string_agg"](IndexRecordUrl.url, ",").contains(include)
-                )
+                stmt = stmt.having(string_agg_fn.contains(include))
             elif exclude:
-                query = query.having(
-                    ~q_func["string_agg"](IndexRecordUrl.url, ",").contains(exclude)
-                )
-            # [('did', 'urls')]
-            record_list = (
-                query.order_by(IndexRecordUrl.did.asc())
-                .offset(offset)
-                .limit(limit)
-                .all()
-            )
+                stmt = stmt.having(~string_agg_fn.contains(exclude))
+
+            # execute and fetch all rows asynchronously
+            stmt = stmt.order_by(IndexRecordUrl.did.asc()).offset(offset).limit(limit)
+            result = await session.execute(stmt)
+            record_list = result.all()
+
         return self._format_response(fields, record_list)
 
-    def query_metadata_by_key(
+    async def query_metadata_by_key(
         self,
         key,
         value,
@@ -108,8 +101,9 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
         versioned = (
             versioned.lower() in ["true", "t", "yes", "y"] if versioned else None
         )
-        with self.driver.session as session:
-            query = session.query(
+
+        async with self.driver.session as session:
+            stmt = select(
                 IndexRecordUrlMetadata.did, IndexRecordUrlMetadata.url, IndexRecord.rev
             ).filter(
                 IndexRecord.did == IndexRecordUrlMetadata.did,
@@ -119,23 +113,23 @@ class AlchemyURLsQueryDriver(URLsQueryDriver):
 
             # filter by version
             if versioned is True:
-                query = query.filter(IndexRecord.version.isnot(None))
+                stmt = stmt.filter(IndexRecord.version.isnot(None))
             elif versioned is False:
-                query = query.filter(~IndexRecord.version.isnot(None))
+                stmt = stmt.filter(~IndexRecord.version.isnot(None))
 
             # add url filter
             if url:
-                query = query.filter(
-                    IndexRecordUrlMetadata.url.like("%{}%".format(url))
-                )
+                stmt = stmt.filter(IndexRecordUrlMetadata.url.like("%{}%".format(url)))
 
-            # [('did', 'url', 'rev')]
-            record_list = (
-                query.order_by(IndexRecordUrlMetadata.did.asc())
+            # execute and fetch all rows asynchronously
+            stmt = (
+                stmt.order_by(IndexRecordUrlMetadata.did.asc())
                 .offset(offset)
                 .limit(limit)
-                .all()
             )
+            result = await session.execute(stmt)
+            record_list = result.all()
+
         return self._format_response(fields, record_list)
 
     @staticmethod
