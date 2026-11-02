@@ -5,7 +5,7 @@ from starlette.testclient import TestClient
 from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
 from unittest.mock import patch
-from indexd.utils import lookup_bucket_region
+from indexd.utils import lookup_bucket_region, get_bucket_regions
 from indexd.drs.router import router as drs_router
 from indexd.drs.router import get_cloud_provider
 
@@ -16,23 +16,6 @@ from indexd.app import get_app
 def client():
     app = get_app(settings)
     return TestClient(app)
-
-
-def generate_presigned_url_response(did, status=200, **query_params):
-    if query_params:
-        query_string = "&".join(
-            f"{param}={value}" for param, value in query_params.items()
-        )
-        full_url = (
-            "https://fictitious-commons.io/data/download/" + did + "?" + query_string
-        )
-    else:
-        full_url = "https://fictitious-commons.io/data/download/" + did
-    presigned_url = {
-        "url": "https://storage.googleapis.com/nih-mock-project-released-phs123-c2/RootStudyConsentSet_phs000007.Whatever.v666.p1.c2.FBI-BMW-CIA.tar.gz?GoogleAccessId=internal-someuser-1399@dcpstage-210518.iam.gserviceaccount.com&Expires=1582215120&Signature=hUsgjkegdsfkjbsajkafnsdjksdnfjknbdsajkfbsdkjfbjdfbkjdasfbnjsdnfjsnd2FTr%2FKs2kGKs0fJ8v5elFk5NQAYdrGcU3kROrzJuHUbI%2BMZ839SAbAz2rbMBuC9e46%2BdB91%2FA==&userProject=dcf-mock-project"
-    }
-    responses.add(responses.GET, full_url, json=presigned_url, status=status)
-    return presigned_url
 
 
 def get_doc(
@@ -562,6 +545,33 @@ def test_bucket_region_lookup_by_protocol():
         lookup_bucket_region("gs-bucket", fake_bucket_regions, "gs") == "europe-west1"
     )
     assert lookup_bucket_region("missing-bucket", fake_bucket_regions, "gs") == ""
+
+
+def test_bucket_region_lookup_non_existent_protocol():
+    """
+    Test case where protocol doesn't exist.
+    """
+    fake_bucket_regions = {
+        "S3_BUCKETS": {
+            "exact-bucket": {"region": "us-east-1"},
+            "regex-bucket-.*": {"region": "us-west-2"},
+        },
+        "GS_BUCKETS": {
+            "gs-bucket": {"region": "europe-west1"},
+        },
+    }
+
+    assert (
+        lookup_bucket_region("exact-bucket", fake_bucket_regions, "s4") == "us-east-1"
+    )
+    assert (
+        lookup_bucket_region("regex-bucket-123", fake_bucket_regions, "ams")
+        == "us-west-2"
+    )
+    assert (
+        lookup_bucket_region("gs-bucket", fake_bucket_regions, "gl") == "europe-west1"
+    )
+    assert lookup_bucket_region("missing-bucket", fake_bucket_regions, "gl") == ""
 
 
 def test_access_method_in_drs_object(app_client, user):

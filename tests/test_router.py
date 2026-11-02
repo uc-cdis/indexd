@@ -132,8 +132,7 @@ def create_merge_slashes_app():
 def test_repeated_slashes_are_merged(path):
     """
     Werkzeug merged repeated slashes for us under Flask, so clients calling
-    "//index/<guid>" kept working. Starlette does not, and the un-merged path
-    would otherwise be swallowed by the "/{record:path}" catch-all.
+    "//index/<guid>" kept working. Starlette does not.
     """
     client = create_merge_slashes_app()
     response = client.request("GET", "http://testserver" + path)
@@ -142,7 +141,9 @@ def test_repeated_slashes_are_merged(path):
 
 
 def test_repeated_slashes_merged_for_non_get_verbs():
-    """The catch-all only serves GET, so without merging a PUT 405s."""
+    """
+    Test middleware works for PUT
+    """
     client = create_merge_slashes_app()
     response = client.request("PUT", "http://testserver//index/dg.4503/abc-123")
     assert response.status_code == 200
@@ -150,7 +151,9 @@ def test_repeated_slashes_merged_for_non_get_verbs():
 
 
 def test_unmatched_path_still_reaches_catch_all():
-    """Merging must not divert paths the catch-all is supposed to resolve."""
+    """
+    Merging must not divert paths the catch-all is supposed to resolve.
+    """
     client = create_merge_slashes_app()
     response = client.request("GET", "http://testserver//some-guid")
     assert response.status_code == 200

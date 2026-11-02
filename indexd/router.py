@@ -67,7 +67,6 @@ async def get_record(record: str, request: Request):
             except AliasNoRecordFound:
                 if not router.dist or "no_dist" in request.query_params:
                     raise HTTPException(status_code=404, detail="No record found")
-                # Fixed: Added await since client calls are synchronous/blocking operations
                 ret = await dist_get_record(record)
 
     return JSONResponse(content=ret, status_code=200)

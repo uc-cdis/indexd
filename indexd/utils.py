@@ -236,11 +236,10 @@ def lookup_bucket_region(bucket_name, bucket_regions, protocol=None):
         elif protocol in ("s3", "aws"):
             bucket_mapping = bucket_regions.get("S3_BUCKETS") or {}
         else:
-            bucket_mapping = (
-                bucket_regions.get("S3_BUCKETS")
-                or bucket_regions.get("GS_BUCKETS")
-                or {}
-            )
+            if bucket_regions.get("S3_BUCKETS"):
+                bucket_mapping.update(bucket_regions.get("S3_BUCKETS"))
+            if bucket_regions.get("GS_BUCKETS"):
+                bucket_mapping.update(bucket_regions.get("GS_BUCKETS"))
 
     if not bucket_mapping:
         return ""

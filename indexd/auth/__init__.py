@@ -78,33 +78,6 @@ class Auth:
         if not is_admin:
             raise AuthError("Permission denied.")
 
-    async def get_token_claims(self) -> dict:
-        if not self.bearer_token:
-            err_msg = "Must provide an access token."
-            logger.error(err_msg)
-            raise HTTPException(
-                HTTP_401_UNAUTHORIZED,
-                err_msg,
-            )
-
-        try:
-            # NOTE: token can be None if no Authorization header was provided, we
-            # expect this to cause a downstream exception since it is invalid
-            token_claims = await access_token("user", "openid", purpose="access")(
-                self.bearer_token
-            )
-        except Exception as e:
-            logger.error(
-                f"Could not get token claims:\n{e.detail if hasattr(e, 'detail') else e}",
-                exc_info=True,
-            )
-            raise HTTPException(
-                HTTP_401_UNAUTHORIZED,
-                "Could not verify, parse, and/or validate scope from provided access token.",
-            )
-
-        return token_claims
-
     async def authorize(
         self,
         method: str,
