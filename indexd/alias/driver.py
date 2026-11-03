@@ -13,14 +13,14 @@ class AliasDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         super().__init__(conn, **config)
 
     @abc.abstractmethod
-    def aliases(self, limit=100, start="", size=None, urls=None, hashes=None):
+    async def aliases(self, limit=100, start="", size=None, urls=None, hashes=None):
         """
         Returns a list of aliases.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def upsert(
+    async def upsert(
         self,
         name,
         rev=None,
@@ -37,37 +37,39 @@ class AliasDriverABC(SQLAlchemyDriverBase, metaclass=abc.ABCMeta):
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def get(self, did):
+    async def get(self, did):
         """
         Gets a record given the record id.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def delete(self, did, rev):
+    async def delete(self, did, rev):
         """
         Deletes record.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def __contains__(self, did):
+    async def has_record(self, did):
         """
+        Async replacement for __contains__.
         Returns True if record is stored by backend.
         Returns False otherwise.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def __iter__(self):
+    async def __aiter__(self):
         """
-        Returns an iterator over unique records stored by backend.
+        Returns an async iterator over unique records stored by backend.
         """
         raise NotImplementedError("TODO")
 
     @abc.abstractmethod
-    def __len__(self):
+    async def len(self):
         """
+        Async replacement for __len__.
         Returns the number of unique records stored by backend.
         """
         raise NotImplementedError("TODO")

@@ -1,10 +1,16 @@
-class AuthError(Exception):
+class BaseAuthError(Exception):
     """
     Base auth error.
     """
 
 
-class AuthzError(Exception):
+class AuthError(BaseAuthError):
     """
-    Base authz error.
+    Auth error.
+    """
+
+
+class AuthzError(BaseAuthError):
+    """
+    Authz error.
     """
