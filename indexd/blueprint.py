@@ -1,6 +1,6 @@
 import flask
+import requests
 
-from indexclient.indexclient.client import IndexClient
 from doiclient.client import DOIClient
 from dosclient.client import DOSClient
 from hsclient.client import HSClient
@@ -84,14 +84,13 @@ def dist_get_record(record):
                 fetcher_client = HSClient(baseurl=indexd["host"])
                 res = fetcher_client.get(record)
             else:
-                fetcher_client = IndexClient(baseurl=indexd["host"])
-                res = fetcher_client.global_get(record, no_dist=True)
+                res = get_remote_index_record(indexd["host"], record)
         except Exception:
             # a lot of things can go wrong with the get, but in general we don't care here.
             continue
 
         if res:
-            json = res.to_json()
+            json = res if isinstance(res, dict) else res.to_json()
             json["from_index_service"] = {
                 "host": indexd["host"],
                 "name": indexd["name"],
@@ -99,6 +98,24 @@ def dist_get_record(record):
             return json
 
     raise IndexNoRecordFound("no record found")
+
+
+def get_remote_index_record(host, record):
+    """
+    Get a record from another indexd server, without distributed resolution.
+    Done with a plain request rather than indexclient, so that indexd doesn't
+    depend on its own client.
+
+    Returns the record's JSON, or None if the server doesn't have it.
+    """
+    url = "{}/{}".format(host.rstrip("/"), record.lstrip("/"))
+    resp = requests.get(url, params={"no_dist": ""}, timeout=60)
+    if resp.status_code == 404:
+        return None
+    resp.raise_for_status()
+    json = resp.json()
+    json["did"] = record
+    return json
 
 
 @blueprint.errorhandler(UserError)
