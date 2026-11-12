@@ -209,6 +209,33 @@ def test_alias_delete(app_client, user):
     assert len(client.get("/alias/").json()["aliases"]) == 0
 
 
+def test_alias_delete_not_found(app_client, user):
+    _, client = app_client
+    data = {
+        "size": 123,
+        "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+        "release": "private",
+        "keeper_authority": "CRI",
+        "host_authorities": ["PDC"],
+    }
+    ark = "ark:/31807/TEST-abc"
+
+    res_1 = client.put("/alias/" + ark, json=data, headers=user)
+    assert res_1.status_code == 200
+    rec_1 = res_1.json()
+    assert rec_1["rev"]
+
+    res = client.request(
+        "DELETE",
+        f"/alias/{ark}_wrong_record?rev={rec_1['rev']}",
+        json=data,
+        headers=user,
+    )
+    print("--------")
+    print(res.text)
+    assert res.status_code == 404
+
+
 ALIAS_DATA = {
     "size": 123,
     "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
