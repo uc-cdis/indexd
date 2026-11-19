@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 import logging
 
 from gen3authz.client.arborist.async_client import ArboristClient
+from cachelib import SimpleCache
 
 from indexd.config_helper import validate_config
 from indexd.middleware import MergeSlashesMiddleware
@@ -146,6 +147,7 @@ def app_init(app, settings=None):
 
     app.auth = app_settings["auth"]
     app.hostname = os.environ.get("HOSTNAME") or "http://example.io"
+    app.cache = SimpleCache(default_timeout=1800)
     set_cross_config(app)
     set_alias_config(app)
     set_bulk_config(app)
