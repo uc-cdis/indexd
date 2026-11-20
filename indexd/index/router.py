@@ -36,6 +36,8 @@ router.config = dict()
 router.index_driver = None
 router.dist = []
 router.cloud_provider_map = {}
+# Not `router.app`: Starlette's Router already defines that as its ASGI entrypoint.
+router.indexd_app = None
 
 ACCEPTABLE_HASHES = {
     "md5": re.compile(r"^[0-9a-f]{32}$").match,
@@ -52,7 +54,8 @@ def set_index_config(app):
     router.dist = app.settings["config"].get("DIST", [])
     if "CLOUD_PROVIDER_MAP" in app.settings["config"]:
         router.cloud_provider_map = app.settings["config"]["CLOUD_PROVIDER_MAP"]
-    router.bucket_regions = get_bucket_regions(app)
+    # Held so request handlers can reach the app's bucket region cache.
+    router.indexd_app = app
 
 
 def validate_hashes(**hashes):
@@ -353,7 +356,7 @@ async def get_index_record(record: str):
             cloud = router.cloud_provider_map.get(location_type)
             urls_meta[location]["cloud"] = cloud
             if "region" not in metadata.keys():
-                bucket_regions = router.bucket_regions
+                bucket_regions = get_bucket_regions(router.indexd_app)
                 bucket_name = metadata.get("bucket")
                 if bucket_name:
                     protocol = location.split(":")[0].lower()

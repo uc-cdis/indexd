@@ -5,7 +5,7 @@ from starlette.testclient import TestClient
 from tests.default_test_settings import settings
 from tests.test_bundles import get_bundle_doc
 from unittest.mock import patch
-from indexd.utils import lookup_bucket_region, get_bucket_regions
+from indexd.utils import lookup_bucket_region
 from indexd.drs.router import router as drs_router
 from indexd.drs.router import get_cloud_provider
 
@@ -575,73 +575,71 @@ def test_bucket_region_lookup_non_existent_protocol():
 
 
 def test_access_method_in_drs_object(app_client, user):
-    _, client = app_client
+    app, client = app_client
     fake_bucket_regions = {
         "my-test-bucket": "us-east-1",
         "another-bucket-.*": "us-west-2",
     }
 
-    with patch(
-        "indexd.utils.get_bucket_regions", return_value=fake_bucket_regions
-    ), patch("indexd.drs.router.router.bucket_regions", new=fake_bucket_regions):
-        urls = [
-            "s3://my-test-bucket/path/to/file",
-            "s3://another-bucket-phs000000-c1/path/to/file",
-            "gs://last-bucket/path/to/file",
-        ]
+    # Seed the cache the routers read from, so the lookup doesn't go out to Fence.
+    app.cache.set("bucket_regions", fake_bucket_regions)
 
-        doc = get_doc(
-            urls=urls,
-            urls_metadata={
-                urls[1]: {"available": False},
-                urls[2]: {"region": "mx-central-1"},
-            },
-        )
+    urls = [
+        "s3://my-test-bucket/path/to/file",
+        "s3://another-bucket-phs000000-c1/path/to/file",
+        "gs://last-bucket/path/to/file",
+    ]
 
-        res = client.post("/index/", json=doc, headers=user)
-        assert res.status_code == 200
-        did = res.json()["did"]
+    doc = get_doc(
+        urls=urls,
+        urls_metadata={
+            urls[1]: {"available": False},
+            urls[2]: {"region": "mx-central-1"},
+        },
+    )
 
-        drs_res = client.get(f"/ga4gh/drs/v1/objects/{did}")
-        assert drs_res.status_code == 200
-        drs_json = drs_res.json()
+    res = client.post("/index/", json=doc, headers=user)
+    assert res.status_code == 200
+    did = res.json()["did"]
 
-        # Build actual dict keyed by URL
-        actual = {
-            m["access_url"]["url"]: {
-                "region": m.get("region"),
-                "available": m.get("available"),
-                "cloud": m.get("cloud"),
-            }
-            for m in drs_json["access_methods"]
+    drs_res = client.get(f"/ga4gh/drs/v1/objects/{did}")
+    assert drs_res.status_code == 200
+    drs_json = drs_res.json()
+
+    # Build actual dict keyed by URL
+    actual = {
+        m["access_url"]["url"]: {
+            "region": m.get("region"),
+            "available": m.get("available"),
+            "cloud": m.get("cloud"),
         }
+        for m in drs_json["access_methods"]
+    }
 
-        expected = {
-            urls[0]: {
-                "region": "us-east-1",
-                "available": True,
-                "cloud": "aws",
-            },
-            urls[1]: {
-                "region": "us-west-2",
-                "available": False,
-                "cloud": "aws",
-            },
-            urls[2]: {
-                "region": "mx-central-1",
-                "available": True,
-                "cloud": "gcp",
-            },
+    expected = {
+        urls[0]: {
+            "region": "us-east-1",
+            "available": True,
+            "cloud": "aws",
+        },
+        urls[1]: {
+            "region": "us-west-2",
+            "available": False,
+            "cloud": "aws",
+        },
+        urls[2]: {
+            "region": "mx-central-1",
+            "available": True,
+            "cloud": "gcp",
+        },
+    }
+
+    for url, expected_access_method in expected.items():
+        assert actual[url] == expected_access_method, {
+            "url": url,
+            "actual": actual[url],
+            "expected": expected_access_method,
         }
-
-        for url, expected_access_method in expected.items():
-            assert actual[url] == expected_access_method, {
-                "url": url,
-                "actual": actual[url],
-                "expected": expected_access_method,
-            }
-
-    # current_app.cache.clear()
 
 
 def test_get_cloud_provider_string_mapping():

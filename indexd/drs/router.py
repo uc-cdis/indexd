@@ -15,7 +15,8 @@ router = APIRouter(tags=["drs"])
 
 router.index_driver = None
 router.service_info = {}
-router.bucket_regions = {}
+# Not `router.app`: Starlette's Router already defines that as its ASGI entrypoint.
+router.indexd_app = None
 logger = get_logger(__name__)
 
 
@@ -64,7 +65,8 @@ def set_drs_config(app):
         "MAX_BULK_REQUEST_LENGTH", 100
     )
 
-    router.bucket_regions = get_bucket_regions(app)
+    # Held so request handlers can reach the app's bucket region cache.
+    router.indexd_app = app
 
 
 @router.get("/ga4gh/drs/v1/service-info")
@@ -518,7 +520,7 @@ async def indexd_to_drs(record, expand=False):
         "description": description,
     }
     # Get access method dict for each url
-    bucket_regions = router.bucket_regions
+    bucket_regions = get_bucket_regions(router.indexd_app)
 
     region = {}
     urls_metadata = record.get("urls_metadata", {})
