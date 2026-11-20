@@ -23,6 +23,7 @@ from .errors import MultipleRecordsFound
 from .errors import RevisionMismatch
 from .errors import UnhealthyCheck
 
+from cdiserrors import AuthNError
 from cdislogging import get_logger
 from indexd.drs.blueprint import bundle_to_drs
 
@@ -852,6 +853,7 @@ def handle_auth_error(err):
 
 
 @blueprint.errorhandler(AuthzError)
+@blueprint.errorhandler(AuthNError)
 def handle_authz_error(err):
     return flask.jsonify(error=str(err)), 401
 

@@ -5,7 +5,6 @@ Tests for indexd stats table feature.
 import datetime
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from unittest.mock import MagicMock
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker

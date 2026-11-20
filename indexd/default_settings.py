@@ -1,10 +1,15 @@
+import json
+from os import environ
+
 from .index.drivers.alchemy import SQLAlchemyIndexDriver
 from .alias.drivers.alchemy import SQLAlchemyAliasDriver
 from .auth.drivers.alchemy import SQLAlchemyAuthDriver
 from .index.drivers.single_table_alchemy import SingleTableSQLAlchemyIndexDriver
-import json
-from os import environ
-import json
+
+from cdislogging import get_logger
+
+
+logger = get_logger(__name__)
 
 
 CONFIG = {}
@@ -22,53 +27,63 @@ USE_SINGLE_TABLE = False
 # - ADD_PREFIX_ALIAS: aliases are created for new records - "<PREFIX><GUID>".
 # Do NOT set both ADD_PREFIX_ALIAS and PREPEND_PREFIX to True, or aliases
 # will be created as "<PREFIX><PREFIX><GUID>".
-if USE_SINGLE_TABLE is True:
-    CONFIG["INDEX"] = {
-        "driver": SingleTableSQLAlchemyIndexDriver(
-            "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
-            echo=True,
-            index_config={
-                "DEFAULT_PREFIX": "testprefix/",
-                "PREPEND_PREFIX": True,
-                "ADD_PREFIX_ALIAS": False,
-            },
-        )
-    }
-else:
-    CONFIG["INDEX"] = {
-        "driver": SQLAlchemyIndexDriver(
-            "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
-            echo=True,
-            index_config={
-                "DEFAULT_PREFIX": "testprefix/",
-                "PREPEND_PREFIX": True,
-                "ADD_PREFIX_ALIAS": False,
-            },
-        )
-    }
-
-CONFIG["ALIAS"] = {
-    "driver": SQLAlchemyAliasDriver(
-        "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
-        echo=True,
+try:
+    if USE_SINGLE_TABLE is True:
+        CONFIG["INDEX"] = {
+            "driver": SingleTableSQLAlchemyIndexDriver(
+                "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+                echo=True,
+                index_config={
+                    "DEFAULT_PREFIX": "testprefix/",
+                    "PREPEND_PREFIX": True,
+                    "ADD_PREFIX_ALIAS": False,
+                },
+            )
+        }
+    else:
+        CONFIG["INDEX"] = {
+            "driver": SQLAlchemyIndexDriver(
+                "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+                echo=True,
+                index_config={
+                    "DEFAULT_PREFIX": "testprefix/",
+                    "PREPEND_PREFIX": True,
+                    "ADD_PREFIX_ALIAS": False,
+                },
+            )
+        }
+except Exception as e:
+    logger.warning(
+        "Unable to create default IndexDriver. This is not an issue if a different driver is configured: proceeding anyway"
     )
-}
+
+try:
+    CONFIG["ALIAS"] = {
+        "driver": SQLAlchemyAliasDriver(
+            "postgresql://postgres:postgres@localhost:5432/indexd_tests",  # pragma: allowlist secret
+            echo=True,
+        )
+    }
+except Exception as e:
+    logger.warning(
+        "Unable to create default AliasDriver. This is not an issue if a different driver is configured: proceeding anyway"
+    )
 
 
 CONFIG["DIST"] = [
-    {
-        "name": "Other IndexD",
-        "host": "https://indexd.example.io/index/",
-        "hints": [".*ROCKS.*"],
-        "type": "indexd",
-    },
-    {"name": "DX DOI", "host": "https://doi.org/", "hints": ["10\..*"], "type": "doi"},
-    {
-        "name": "DOS System",
-        "host": "https://example.com/api/ga4gh/dos/v1/",
-        "hints": [],
-        "type": "dos",
-    },
+    # {
+    #     "name": "Other IndexD",
+    #     "host": "https://indexd.example.io/index/",
+    #     "hints": [".*ROCKS.*"],
+    #     "type": "indexd",
+    # },
+    # {"name": "DX DOI", "host": "https://doi.org/", "hints": [r"10\..*"], "type": "doi"},
+    # {
+    #     "name": "DOS System",
+    #     "host": "https://example.com/api/ga4gh/dos/v1/",
+    #     "hints": [],
+    #     "type": "dos",
+    # },
 ]
 
 # Maximum number of objects in a single bulk DRS request.
@@ -83,11 +98,11 @@ CONFIG["DRS_SERVICE_INFO"] = {
         "version": "1.5.0",
     },
     "version": "1.5.0",
-    "id": "com.example",
-    "organization": {
-        "name": "CTDS",
-        "url": "http://example.com/",
-    },
+    # "id": "com.example",
+    # "organization": {
+    #     "name": "CTDS",
+    #     "url": "http://example.com/",
+    # },
 }
 
 cloud_provider_map = environ.get("CLOUD_PROVIDER_MAP", None)
@@ -100,8 +115,31 @@ else:
         "az": "azure",
     }
 
-AUTH = SQLAlchemyAuthDriver(
-    "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
-)
+drs_authorization_metadata = environ.get("DRS_AUTHORIZATION_METADATA", None)
+if drs_authorization_metadata:
+    CONFIG["DRS_AUTHORIZATION_METADATA"] = json.loads(drs_authorization_metadata)
+
+default_bearer_issuer = environ.get("DEFAULT_BEARER_ISSUER", None)
+if default_bearer_issuer:
+    CONFIG["DEFAULT_BEARER_ISSUER"] = default_bearer_issuer
+
+default_passport_issuer = environ.get("DEFAULT_PASSPORT_ISSUER", None)
+if default_passport_issuer:
+    CONFIG["DEFAULT_PASSPORT_ISSUER"] = default_passport_issuer
+
+default_preferred_type = environ.get("DEFAULT_PREFERRED_TYPE", None)
+
+if default_preferred_type:
+    CONFIG["DEFAULT_PREFERRED_TYPE"] = default_preferred_type
+
+AUTH = None
+try:
+    AUTH = SQLAlchemyAuthDriver(
+        "postgresql://postgres:postgres@localhost:5432/indexd_tests"  # pragma: allowlist secret
+    )
+except Exception as e:
+    logger.warning(
+        "Unable to create default AuthDriver. This is not an issue if a different driver is configured: proceeding anyway"
+    )
 
 settings = {"config": CONFIG, "auth": AUTH, "use_single_table": USE_SINGLE_TABLE}

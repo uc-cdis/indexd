@@ -1,6 +1,5 @@
 import flask
 
-from indexclient.indexclient.client import IndexClient
 from doiclient.client import DOIClient
 from dosclient.client import DOSClient
 from hsclient.client import HSClient
@@ -84,6 +83,11 @@ def dist_get_record(record):
                 fetcher_client = HSClient(baseurl=indexd["host"])
                 res = fetcher_client.get(record)
             else:
+                # Imported here because indexclient lives in this repo but isn't part
+                # of the installed indexd package; a top-level import breaks indexd
+                # for anything that installs it as a dependency.
+                from indexclient.indexclient.client import IndexClient
+
                 fetcher_client = IndexClient(baseurl=indexd["host"])
                 res = fetcher_client.global_get(record, no_dist=True)
         except Exception:
