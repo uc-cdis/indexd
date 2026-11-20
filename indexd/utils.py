@@ -3,7 +3,6 @@ import re
 from urllib.parse import urlparse
 import os
 import requests
-from flask import current_app as app
 from cdislogging import get_logger
 from sqlalchemy import create_engine
 
@@ -21,7 +20,7 @@ def try_drop_test_data(
     user, database, root_user="postgres", host=""
 ):  # pragma: no cover
     engine = create_engine(
-        "postgresql://{user}@{host}/postgres".format(user=root_user, host=host)
+        "postgresql+asyncpg://{user}@{host}/postgres".format(user=root_user, host=host)
     )
 
     conn = engine.connect()
@@ -53,7 +52,7 @@ def setup_database(
         try_drop_test_data(user, database)
 
     engine = create_engine(
-        "postgresql://{user}@{host}/postgres".format(user=root_user, host=host)
+        "postgresql+asyncpg://{user}@{host}/postgres".format(user=root_user, host=host)
     )
     conn = engine.connect()
     conn.execute("commit")
@@ -87,7 +86,7 @@ def create_tables(host, user, password, database):  # pragma: no cover
     create tables
     """
     engine = create_engine(
-        "postgresql://{user}:{pwd}@{host}/{db}".format(
+        "postgresql+asyncpg://{user}:{pwd}@{host}/{db}".format(
             user=user, host=host, pwd=password, db=database
         )
     )
@@ -237,11 +236,10 @@ def lookup_bucket_region(bucket_name, bucket_regions, protocol=None):
         elif protocol in ("s3", "aws"):
             bucket_mapping = bucket_regions.get("S3_BUCKETS") or {}
         else:
-            bucket_mapping = (
-                bucket_regions.get("S3_BUCKETS")
-                or bucket_regions.get("GS_BUCKETS")
-                or {}
-            )
+            if bucket_regions.get("S3_BUCKETS"):
+                bucket_mapping.update(bucket_regions.get("S3_BUCKETS"))
+            if bucket_regions.get("GS_BUCKETS"):
+                bucket_mapping.update(bucket_regions.get("GS_BUCKETS"))
 
     if not bucket_mapping:
         return ""
@@ -264,7 +262,7 @@ def lookup_bucket_region(bucket_name, bucket_regions, protocol=None):
     return ""
 
 
-def get_bucket_regions():
+def get_bucket_regions(app):
     cached = getattr(app, "cache", None)
     if cached:
         hit = cached.get("bucket_regions")

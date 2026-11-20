@@ -42,7 +42,7 @@ if max_bulk:
 if USE_SINGLE_TABLE is True:
     CONFIG["INDEX"] = {
         "driver": SingleTableSQLAlchemyIndexDriver(
-            "postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
+            "postgresql+asyncpg://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
                 usr=usr,
                 psw=psw,
                 pghost=pghost,
@@ -55,7 +55,7 @@ if USE_SINGLE_TABLE is True:
 else:
     CONFIG["INDEX"] = {
         "driver": SQLAlchemyIndexDriver(
-            "postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
+            "postgresql+asyncpg://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
                 usr=usr,
                 psw=psw,
                 pghost=pghost,
@@ -69,7 +69,7 @@ else:
 
 CONFIG["ALIAS"] = {
     "driver": SQLAlchemyAliasDriver(
-        "postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
+        "postgresql+asyncpg://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
             usr=usr,
             psw=psw,
             pghost=pghost,
@@ -80,7 +80,7 @@ CONFIG["ALIAS"] = {
 }
 
 AUTH = SQLAlchemyAuthDriver(
-    "postgresql+psycopg2://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
+    "postgresql+asyncpg://{usr}:{psw}@{pghost}:{pgport}/{db}".format(
         usr=usr,
         psw=psw,
         pghost=pghost,

@@ -3,7 +3,7 @@ from indexd.driver_base import SQLAlchemyDriverBase
 from sqlalchemy import String, Column, BigInteger, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
-
+from sqlalchemy.ext.asyncio import AsyncSession  # <--- Added for async
 
 Base = declarative_base()
 CURRENT_SCHEMA_VERSION = 2
@@ -17,7 +17,6 @@ class IndexRecord(Base):
     __tablename__ = "index_record"
 
     did = Column(String, primary_key=True)
-
     rev = Column(String)
     form = Column(String)
     size = Column(BigInteger)
@@ -25,7 +24,6 @@ class IndexRecord(Base):
     urls = relationship(
         "IndexRecordUrl", backref="index_record", cascade="all, delete-orphan"
     )
-
     hashes = relationship(
         "IndexRecordHash", backref="index_record", cascade="all, delete-orphan"
     )
@@ -63,6 +61,7 @@ class SQLAlchemyIndexTestDriver(SQLAlchemyDriverBase):
         super().__init__(conn, **config)
         self.logger = logger or get_logger("SQLAlchemyIndexTestDriver")
 
-        Base.metadata.bind = self.engine
-
-        self.Session = sessionmaker(bind=self.engine)
+        # Create an async session factory compatible with asyncpg
+        self.Session = sessionmaker(
+            self.engine, class_=AsyncSession, expire_on_commit=False
+        )

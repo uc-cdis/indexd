@@ -54,7 +54,7 @@ Change the config `CONFIG[“INDEX”]`
 ```
     CONFIG["INDEX"] = {
         "driver": SQLAlchemyIndexDriver(
-        "postgresql://postgres:postgres@localhost:5432/indexd_tests",
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/indexd_tests",
             echo=True,
             index_config={
                 "DEFAULT_PREFIX": "testprefix/",
@@ -74,7 +74,7 @@ Change the config `CONFIG[“INDEX”]`
     if USE_SINGLE_TABLE is True:
         CONFIG["INDEX"] = {
             "driver": SingleTableSQLAlchemyIndexDriver(
-                "postgresql://postgres:postgres@localhost:5432/indexd_tests",
+                "postgresql+asyncpg://postgres:postgres@localhost:5432/indexd_tests",
                 echo=True,
                 index_config={
                     "DEFAULT_PREFIX": "testprefix/",
@@ -86,7 +86,7 @@ Change the config `CONFIG[“INDEX”]`
     else:
         CONFIG["INDEX"] = {
             "driver": SQLAlchemyIndexDriver(
-            "postgresql://postgres:postgres@localhost:5432/indexd_tests",
+            "postgresql+asyncpg://postgres:postgres@localhost:5432/indexd_tests",
                 echo=True,
                 index_config={
                     "DEFAULT_PREFIX": "testprefix/",
