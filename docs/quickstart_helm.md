@@ -8,7 +8,7 @@ To deploy the indexd service:
 ```bash
 helm repo add gen3 https://helm.gen3.org
 helm repo update
-helm upgrade --install gen3/indexd
+helm upgrade --install indexd gen3/indexd
 ```
 These commands will add the Gen3 helm chart repo and install the indexd service to your Kubernetes cluster.
 
