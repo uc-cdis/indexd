@@ -26,8 +26,16 @@ COPY --chown=gen3:gen3 . /${appname}
 
 RUN poetry install -vv --no-interaction --without dev
 
-RUN git config --global --add safe.directory ${appname} && COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" > ${appname}/version_data.py \
-    && VERSION=`git describe --always --tags` && echo "VERSION=\"${VERSION}\"" >> ${appname}/version_data.py
+RUN echo "Latest tags (sorted by date):" && git tag --contains HEAD --sort=-taggerdate
+RUN echo "Git describe tags:" && git describe --always --tags
+RUN VERSION=$(git tag --contains HEAD --sort=-taggerdate | head -n 1) && if [ -z "$VERSION" ]; then \
+        echo "Tag command failed or returned empty. Falling back to git describe."; \
+        VERSION=$(git describe --always --tags); \
+        echo "Using git describe VERSION: $VERSION"; \
+    else \
+        echo "Successfully found tag, VERSION: $VERSION"; \
+    fi && git config --global --add safe.directory ${appname} && COMMIT=`git rev-parse HEAD` && echo "COMMIT=\"${COMMIT}\"" > ${appname}/version_data.py \
+    && echo "VERSION=\"${VERSION}\"" >> ${appname}/version_data.py
 
 
 # Final stage
